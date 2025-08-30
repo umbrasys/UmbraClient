@@ -1,0 +1,14 @@
+{
+  "Author": "SirConstance",
+  "Name": "UmbraSync",
+  "Punchline": "Il revient!",
+  "Description": "This plugin will synchronize your Penumbra mods and current Glamourer state with other paired clients automatically.",
+  "InternalName": "UmbraSync",
+  "ApplicableVersion": "any",
+  "Tags": [
+    "customization"
+  ],
+  "IconUrl": "",
+  "RepoUrl": "",
+  "CanUnloadAsync": true
+}
