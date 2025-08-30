@@ -524,6 +524,12 @@
         "dependencies": {
           "MessagePack.Annotations": "[2.5.129, )"
         }
+      },
+      "umbracrypt": {
+        "type": "Project",
+        "dependencies": {
+          "Chaos.NaCl": "[1.0.0, )"
+        }
       }
     }
   }

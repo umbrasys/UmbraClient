@@ -53,6 +53,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\UmbraAPI\MareSynchronosAPI\MareSynchronos.API.csproj" />
+    <ProjectReference Include="..\..\UmbraCrypt\UmbraCrypt\UmbraCrypt.csproj" />
   </ItemGroup>
 
   <ItemGroup>
