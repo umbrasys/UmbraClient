@@ -2,7 +2,9 @@
 <Project Sdk="Dalamud.NET.Sdk/13.0.0">
   <PropertyGroup>
     <AssemblyName>UmbraSync</AssemblyName>
-    <Version>1.0.0</Version>
+    <Version>0.0.0.1</Version>
+    <AssemblyVersion>0.0.0.1</AssemblyVersion>
+    <FileVersion>0.0.0.1</FileVersion>
     <PackageProjectUrl></PackageProjectUrl>
   </PropertyGroup>
 
@@ -60,7 +62,4 @@
     <None Include="..\.editorconfig" Link=".editorconfig" />
   </ItemGroup>
 
-  <ItemGroup Condition="Exists('..\\Chaos.NaCl\\Chaos.NaCl\\Chaos.NaCl.csproj')">
-    <ProjectReference Include="..\\Chaos.NaCl\\Chaos.NaCl\\Chaos.NaCl.csproj" />
-  </ItemGroup>
 </Project>
