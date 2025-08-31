@@ -80,11 +80,11 @@ public class CompactUi : WindowMediatorSubscriberBase
 #if DEBUG
         string dev = "Dev Build";
         var ver = Assembly.GetExecutingAssembly().GetName().Version!;
-        WindowName = $"UmbraSync Sync {dev} ({ver.Major}.{ver.Minor}.{ver.Build})###UmbraSyncSyncMainUIDev";
+        WindowName = $"UmbraSync {dev} ({ver.Major}.{ver.Minor}.{ver.Build})###UmbraSyncSyncMainUIDev";
         Toggle();
 #else
         var ver = Assembly.GetExecutingAssembly().GetName().Version!;
-        WindowName = "UmbraSync Sync " + ver.Major + "." + ver.Minor + "." + ver.Build + "###UmbraSyncSyncMainUI";
+        WindowName = "UmbraSync " + ver.Major + "." + ver.Minor + "." + ver.Build + "###UmbraSyncSyncMainUI";
 #endif
         Mediator.Subscribe<SwitchToMainUiMessage>(this, (_) => IsOpen = true);
         Mediator.Subscribe<SwitchToIntroUiMessage>(this, (_) => IsOpen = false);
@@ -104,10 +104,7 @@ public class CompactUi : WindowMediatorSubscriberBase
 
     protected override void DrawInternal()
     {
-        if (_serverManager.CurrentApiUrl.Equals(ApiController.UmbraSyncServiceUri, StringComparison.Ordinal))
-            UiSharedService.AccentColor = new Vector4(1.0f, 0.8666f, 0.06666f, 1.0f);
-        else
-            UiSharedService.AccentColor = ImGuiColors.ParsedGreen;
+        UiSharedService.AccentColor = new Vector4(0.2f, 0.6f, 1f, 1f); // custom blue
         ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGui.GetStyle().WindowPadding.Y - 1f * ImGuiHelpers.GlobalScale + ImGui.GetStyle().ItemSpacing.Y);
         WindowContentWidth = UiSharedService.GetWindowContentRegionWidth();
         if (!_apiController.IsCurrentVersion)
@@ -387,7 +384,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         {
             ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()) / 2 - (userSize.X + textSize.X) / 2 - ImGui.GetStyle().ItemSpacing.X / 2);
             if (!printShard) ImGui.AlignTextToFramePadding();
-            ImGui.TextColored(ImGuiColors.ParsedGreen, userCount);
+            ImGui.TextColored(ImGuiColors.ParsedBlue, userCount);
             ImGui.SameLine();
             if (!printShard) ImGui.AlignTextToFramePadding();
             ImGui.TextUnformatted("Users Online");
@@ -595,7 +592,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         {
             ServerState.Connecting => ImGuiColors.DalamudYellow,
             ServerState.Reconnecting => ImGuiColors.DalamudRed,
-            ServerState.Connected => UiSharedService.AccentColor,
+            ServerState.Connected => new Vector4(0.2f, 0.6f, 1f, 1f), // custom blue
             ServerState.Disconnected => ImGuiColors.DalamudYellow,
             ServerState.Disconnecting => ImGuiColors.DalamudYellow,
             ServerState.Unauthorized => ImGuiColors.DalamudRed,
