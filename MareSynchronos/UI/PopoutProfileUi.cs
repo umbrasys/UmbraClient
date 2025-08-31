@@ -29,7 +29,7 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
 
     public PopoutProfileUi(ILogger<PopoutProfileUi> logger, MareMediator mediator, UiSharedService uiSharedService,
         ServerConfigurationManager serverManager, MareConfigService mareConfigService,
-        MareProfileManager mareProfileManager, PairManager pairManager, PerformanceCollectorService performanceCollectorService) : base(logger, mediator, "###UmbraSyncSyncPopoutProfileUI", performanceCollectorService)
+        MareProfileManager mareProfileManager, PairManager pairManager, PerformanceCollectorService performanceCollectorService) : base(logger, mediator, "###UmbraSyncPopoutProfileUI", performanceCollectorService)
     {
         _uiSharedService = uiSharedService;
         _serverManager = serverManager;

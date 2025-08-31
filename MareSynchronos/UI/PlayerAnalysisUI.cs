@@ -24,7 +24,7 @@ public class PlayerAnalysisUI : WindowMediatorSubscriberBase
 
     public PlayerAnalysisUI(ILogger<PlayerAnalysisUI> logger, Pair pair, MareMediator mediator, UiSharedService uiSharedService,
         PerformanceCollectorService performanceCollectorService)
-        : base(logger, mediator, "Character Data Analysis for " + pair.UserData.AliasOrUID + "###UmbraSyncPairAnalysis" + pair.UserData.UID, performanceCollectorService)
+        : base(logger, mediator, "Character Data Analysis for " + pair.UserData.AliasOrUID + "###UmbraPairAnalysis" + pair.UserData.UID, performanceCollectorService)
     {
         Pair = pair;
         _uiSharedService = uiSharedService;

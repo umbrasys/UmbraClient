@@ -38,7 +38,7 @@ public partial class IntroUi : WindowMediatorSubscriberBase
 
     public IntroUi(ILogger<IntroUi> logger, UiSharedService uiShared, MareConfigService configService,
         CacheMonitor fileCacheManager, ServerConfigurationManager serverConfigurationManager, MareMediator mareMediator,
-        PerformanceCollectorService performanceCollectorService, DalamudUtilService dalamudUtilService, AccountRegistrationService registerService) : base(logger, mareMediator, "UmbraSync Setup", performanceCollectorService)
+        PerformanceCollectorService performanceCollectorService, DalamudUtilService dalamudUtilService, AccountRegistrationService registerService) : base(logger, mareMediator, "Umbra Setup", performanceCollectorService)
     {
         _uiShared = uiShared;
         _configService = configService;
@@ -108,9 +108,9 @@ public partial class IntroUi : WindowMediatorSubscriberBase
 
         if (!_configService.Current.AcceptedAgreement && !_readFirstPage)
         {
-            _uiShared.BigText("Welcome to UmbraSync");
+            _uiShared.BigText("Welcome to Umbra");
             ImGui.Separator();
-            UiSharedService.TextWrapped("UmbraSync is a plugin that will replicate your full current character state including all Penumbra mods to other paired users. " +
+            UiSharedService.TextWrapped("Umbra is a plugin that will replicate your full current character state including all Penumbra mods to other paired users. " +
                               "Note that you will have to have Penumbra as well as Glamourer installed to use this plugin.");
             UiSharedService.TextWrapped("We will have to setup a few things first before you can start using this plugin. Click on next to continue.");
 
@@ -151,25 +151,36 @@ public partial class IntroUi : WindowMediatorSubscriberBase
             UiSharedService.ColorText(readThis, ImGuiColors.DalamudRed);
             ImGui.SetWindowFontScale(1.0f);
             ImGui.Separator();
-
             UiSharedService.TextWrapped("""
-All of the mod files currently active on your character as well as your current character state will be uploaded to the service you registered yourself at automatically. The plugin will exclusively upload the necessary mod files and not the whole mod.
-""");
+                                        To use Umbra, you must be over the age of 18, or 21 in some jurisdictions. 
+                                        """);
             UiSharedService.TextWrapped("""
-If you are on a data capped internet connection, higher fees due to data usage depending on the amount of downloaded and uploaded mod files might occur. Mod files will be compressed on up- and download to save on bandwidth usage. Due to varying up- and download speeds, changes in characters might not be visible immediately. Files present on the service that already represent your active mod files will not be uploaded again.
-""");
+                                        All of the mod files currently active on your character as well as your current character state will be uploaded to the service you registered yourself at automatically. The plugin will exclusively upload the necessary mod files and not the whole mod.
+                                        """);
             UiSharedService.TextWrapped("""
-The mod files you are uploading are confidential and will not be distributed to parties other than the ones who are requesting the exact same mod files. Please think about who you are going to pair since it is unavoidable that they will receive and locally cache the necessary mod files that you have currently in use. Locally cached mod files will have arbitrary file names to discourage attempts at replicating the original mod.
-""");
+                                        If you are on a data capped internet connection, higher fees due to data usage depending on the amount of downloaded and uploaded mod files might occur. Mod files will be compressed on up- and download to save on bandwidth usage. Due to varying up- and download speeds, changes in characters might not be visible immediately. Files present on the service that already represent your active mod files will not be uploaded again.
+                                        """);
             UiSharedService.TextWrapped("""
-The plugin creator tried their best to keep you secure. However, there is no guarantee for 100% security. Do not blindly pair your client with everyone.
-""");
+                                        The mod files you are uploading are confidential and will not be distributed to parties other than the ones who are requesting the exact same mod files. Please think about who you are going to pair since it is unavoidable that they will receive and locally cache the necessary mod files that you have currently in use. Locally cached mod files will have arbitrary file names to discourage attempts at replicating the original mod.
+                                        """);
             UiSharedService.TextWrapped("""
-Mod files that are saved on the service will remain on the service as long as there are requests for the files from clients. After a period of not being used, the mod files will be automatically deleted.
-""");
+                                        The plugin creator tried their best to keep you secure. However, there is no guarantee for 100% security. Do not blindly pair your client with everyone.
+                                        """);
             UiSharedService.TextWrapped("""
-This service is provided as-is.
-""");
+                                        Mod files that are saved on the service will remain on the service as long as there are requests for the files from clients. After a period of not being used, the mod files will be automatically deleted.
+                                        """);
+            UiSharedService.TextWrapped("""
+                                        Accounts that are inactive for ninety (90) days will be deleted for privacy reasons.
+                                        """);
+            UiSharedService.TextWrapped("""
+                                        Umbra is operated from servers located in the European Union. You agree not to upload any content to the service that violates EU law; and more specifically, German law.
+                                        """);
+            UiSharedService.TextWrapped("""
+                                        You may delete your account at any time from within the Settings panel of the plugin. Any mods unique to you will then be removed from the server within 14 days.
+                                        """);
+            UiSharedService.TextWrapped("""
+                                        This service is provided as-is.
+                                        """);
 
             ImGui.Separator();
             if (_timeoutTask?.IsCompleted ?? true)
@@ -201,11 +212,11 @@ This service is provided as-is.
             }
             else
             {
-                UiSharedService.TextWrapped("To not unnecessary download files already present on your computer, UmbraSync will have to scan your Penumbra mod directory. " +
-                                     "Additionally, a local storage folder must be set where UmbraSync will download other character files to. " +
+                UiSharedService.TextWrapped("To not unnecessary download files already present on your computer, Umbra will have to scan your Penumbra mod directory. " +
+                                     "Additionally, a local storage folder must be set where Umbra will download other character files to. " +
                                      "Once the storage folder is set and the scan complete, this page will automatically forward to registration at a service.");
                 UiSharedService.TextWrapped("Note: The initial scan, depending on the amount of mods you have, might take a while. Please wait until it is completed.");
-                UiSharedService.ColorTextWrapped("Warning: once past this step you should not delete the FileCache.csv of UmbraSync in the Plugin Configurations folder of Dalamud. " +
+                UiSharedService.ColorTextWrapped("Warning: once past this step you should not delete the FileCache.csv of Umbra in the Plugin Configurations folder of Dalamud. " +
                                           "Otherwise on the next launch a full re-scan of the file cache database will be initiated.", ImGuiColors.DalamudYellow);
                 UiSharedService.ColorTextWrapped("Warning: if the scan is hanging and does nothing for a long time, chances are high your Penumbra folder is not set up properly.", ImGuiColors.DalamudYellow);
                 _uiShared.DrawCacheDirectorySetting();
@@ -230,8 +241,8 @@ This service is provided as-is.
                     _configService.Current.UseCompactor = useFileCompactor;
                     _configService.Save();
                 }
-                UiSharedService.ColorTextWrapped("The File Compactor can save a tremendeous amount of space on the hard disk for downloads through UmbraSync. It will incur a minor CPU penalty on download but can speed up " +
-                    "loading of other characters. It is recommended to keep it enabled. You can change this setting later anytime in the UmbraSync settings.", ImGuiColors.DalamudYellow);
+                UiSharedService.ColorTextWrapped("The File Compactor can save a tremendeous amount of space on the hard disk for downloads through Umbra. It will incur a minor CPU penalty on download but can speed up " +
+                    "loading of other characters. It is recommended to keep it enabled. You can change this setting later anytime in the Umbra settings.", ImGuiColors.DalamudYellow);
             }
         }
         else if (!_uiShared.ApiController.IsConnected)
@@ -239,7 +250,7 @@ This service is provided as-is.
             using (_uiShared.UidFont.Push())
                 ImGui.TextUnformatted("Service Registration");
             ImGui.Separator();
-            UiSharedService.TextWrapped("To be able to use UmbraSync you will have to register an account.");
+            UiSharedService.TextWrapped("To be able to use Umbra you will have to register an account.");
             UiSharedService.TextWrapped("Refer to the instructions at the location you obtained this plugin for more information or support.");
 
             ImGui.Separator();
@@ -251,8 +262,8 @@ This service is provided as-is.
             {
                 ImGui.BeginDisabled(_registrationInProgress || _registrationSuccess || _secretKey.Length > 0);
                 ImGui.Separator();
-                ImGui.TextUnformatted("If you have not used UmbraSync before, click below to register a new account.");
-                if (_uiShared.IconTextButton(FontAwesomeIcon.Plus, "Register a new UmbraSync account"))
+                ImGui.TextUnformatted("If you have not used Umbra before, click below to register a new account.");
+                if (_uiShared.IconTextButton(FontAwesomeIcon.Plus, "Register a new Umbra account"))
                 {
                     _registrationInProgress = true;
                     _ = Task.Run(async () => {

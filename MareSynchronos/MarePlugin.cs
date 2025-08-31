@@ -89,9 +89,9 @@ public class MarePlugin : MediatorSubscriberBase, IHostedService
     public Task StartAsync(CancellationToken cancellationToken)
     {
         var version = Assembly.GetExecutingAssembly().GetName().Version!;
-        Logger.LogInformation("Launching {name} {major}.{minor}.{build}.{rev}", "UmbraSync", version.Major, version.Minor, version.Build, version.Revision);
+        Logger.LogInformation("Launching {name} {major}.{minor}.{build}.{rev}", "Umbra Sync", version.Major, version.Minor, version.Build, version.Revision);
         Mediator.Publish(new EventMessage(new Services.Events.Event(nameof(MarePlugin), Services.Events.EventSeverity.Informational,
-            $"Starting UmbraSync {version.Major}.{version.Minor}.{version.Build}.{version.Revision}")));
+            $"Starting Umbra Sync {version.Major}.{version.Minor}.{version.Build}.{version.Revision}")));
 
         Mediator.Subscribe<SwitchToMainUiMessage>(this, (msg) => { if (_launchTask == null || _launchTask.IsCompleted) _launchTask = Task.Run(WaitForPlayerAndLaunchCharacterManager); });
         Mediator.Subscribe<DalamudLoginMessage>(this, (_) => DalamudUtilOnLogIn());
@@ -157,7 +157,7 @@ public class MarePlugin : MediatorSubscriberBase, IHostedService
             if (_mareConfigService.Current.LogLevel != LogLevel.Information)
             {
                 Mediator.Publish(new NotificationMessage("Abnormal Log Level",
-                    $"Your log level is set to '{_mareConfigService.Current.LogLevel}' which is not recommended for normal usage. Set it to '{LogLevel.Information}' in \"UmbraSync Settings -> Debug\" unless instructed otherwise.",
+                    $"Your log level is set to '{_mareConfigService.Current.LogLevel}' which is not recommended for normal usage. Set it to '{LogLevel.Information}' in \"Umbra Settings -> Debug\" unless instructed otherwise.",
                     MareConfiguration.Models.NotificationType.Error, TimeSpan.FromSeconds(15000)));
             }
 #endif

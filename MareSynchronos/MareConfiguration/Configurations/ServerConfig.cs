@@ -10,7 +10,7 @@ public class ServerConfig : IMareConfiguration
 
     public List<ServerStorage> ServerStorage { get; set; } = new()
     {
-        { new ServerStorage() { ServerName = ApiController.UmbraSyncServer, ServerUri = ApiController.UmbraSyncServiceUri } },
+        { new ServerStorage() { ServerName = ApiController.UmbraServer, ServerUri = ApiController.UmbraServiceUri } },
     };
 
     public int Version { get; set; } = 1;

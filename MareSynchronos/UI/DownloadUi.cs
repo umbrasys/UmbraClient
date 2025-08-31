@@ -23,7 +23,7 @@ public class DownloadUi : WindowMediatorSubscriberBase
 
     public DownloadUi(ILogger<DownloadUi> logger, DalamudUtilService dalamudUtilService, MareConfigService configService,
         FileUploadManager fileTransferManager, MareMediator mediator, UiSharedService uiShared, PerformanceCollectorService performanceCollectorService)
-        : base(logger, mediator, "UmbraSync Downloads", performanceCollectorService)
+        : base(logger, mediator, "Umbra Downloads", performanceCollectorService)
     {
         _dalamudUtilService = dalamudUtilService;
         _configService = configService;
@@ -163,13 +163,13 @@ public class DownloadUi : WindowMediatorSubscriberBase
                     UiSharedService.Color(0, 0, 0, transparency), 1);
                 drawList.AddRectFilled(dlBarStart with { X = dlBarStart.X - dlBarBorder, Y = dlBarStart.Y - dlBarBorder },
                     dlBarEnd with { X = dlBarEnd.X + dlBarBorder, Y = dlBarEnd.Y + dlBarBorder },
-                    UiSharedService.Color(220, 220, 220, transparency), 1);
+                    UiSharedService.Color(220, 220, 255, transparency), 1);
                 drawList.AddRectFilled(dlBarStart, dlBarEnd,
                     UiSharedService.Color(0, 0, 0, transparency), 1);
                 var dlProgressPercent = transferredBytes / (double)totalBytes;
                 drawList.AddRectFilled(dlBarStart,
                     dlBarEnd with { X = dlBarStart.X + (float)(dlProgressPercent * dlBarWidth) },
-                    UiSharedService.Color(50, 205, 50, transparency), 1);
+                    UiSharedService.Color(100, 100, 255, transparency), 1);
 
                 if (_configService.Current.TransferBarsShowText)
                 {

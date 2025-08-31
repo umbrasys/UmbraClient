@@ -21,10 +21,10 @@ namespace MareSynchronos.WebAPI;
 #pragma warning disable MA0040
 public sealed partial class ApiController : DisposableMediatorSubscriberBase, IMareHubClient
 {
-    public const string UmbraSyncServer = "UmbraSync Main Server (BETA)";
-public const string UmbraSyncServiceUri = "wss://umbra-sync.net/";
-public const string UmbraSyncServiceApiUri = "wss://umbra-sync.net/";
-public const string UmbraSyncServiceHubUri = "wss://umbra-sync.net/mare";
+    public const string UmbraServer = "UmbraSync Main Server (BETA)";
+    public const string UmbraServiceUri = "wss://umbra-sync.net/";
+    public const string UmbraServiceApiUri = "wss://umbra-sync.net/";
+    public const string UmbraServiceHubUri = "wss://umbra-sync.net/mare";  
 
     private readonly DalamudUtilService _dalamudUtil;
     private readonly HubFactory _hubFactory;
@@ -194,7 +194,7 @@ public const string UmbraSyncServiceHubUri = "wss://umbra-sync.net/mare";
                         Mediator.Publish(new NotificationMessage("Client incompatible",
                             $"Your client is outdated ({currentClientVer.Major}.{currentClientVer.Minor}.{currentClientVer.Build}), current is: " +
                             $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}. " +
-                            $"This client version is incompatible and will not be able to connect. Please update your UmbraSync client.",
+                            $"This client version is incompatible and will not be able to connect. Please update your Umbra client.",
                             NotificationType.Error));
                     }
                     await StopConnection(ServerState.VersionMisMatch).ConfigureAwait(false);
@@ -206,7 +206,7 @@ public const string UmbraSyncServiceHubUri = "wss://umbra-sync.net/mare";
                     Mediator.Publish(new NotificationMessage("Client outdated",
                         $"Your client is outdated ({currentClientVer.Major}.{currentClientVer.Minor}.{currentClientVer.Build}), current is: " +
                         $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}. " +
-                        $"Please keep your UmbraSync client up-to-date.",
+                        $"Please keep your Umbra client up-to-date.",
                         NotificationType.Warning, TimeSpan.FromSeconds(15)));
                 }
 

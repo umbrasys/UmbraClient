@@ -79,7 +79,7 @@ internal sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
                          UiSharedService uiSharedService, ServerConfigurationManager serverConfigurationManager,
                          DalamudUtilService dalamudUtilService, FileDialogManager fileDialogManager, PairManager pairManager,
                          CharaDataGposeTogetherManager charaDataGposeTogetherManager)
-        : base(logger, mediator, "UmbraSync Character Data Hub###UmbraSyncCharaDataUI", performanceCollectorService)
+        : base(logger, mediator, "Umbra Character Data Hub###UmbraCharaDataUI", performanceCollectorService)
     {
         SetWindowSizeConstraints();
 

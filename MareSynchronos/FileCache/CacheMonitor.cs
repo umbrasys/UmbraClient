@@ -122,24 +122,24 @@ public sealed class CacheMonitor : DisposableMediatorSubscriberBase
 
     public bool StorageisNTFS { get; private set; } = false;
 
-    public void StartMareWatcher(string? marePath)
+    public void StartMareWatcher(string? snowPath)
     {
         MareWatcher?.Dispose();
-        if (string.IsNullOrEmpty(marePath) || !Directory.Exists(marePath))
+        if (string.IsNullOrEmpty(snowPath) || !Directory.Exists(snowPath))
         {
             MareWatcher = null;
-            Logger.LogWarning("Mare file path is not set, cannot start the FSW for Mare.");
+            Logger.LogWarning("Umbra file path is not set, cannot start the FSW for Umbra.");
             return;
         }
 
         DriveInfo di = new(new DirectoryInfo(_configService.Current.CacheFolder).Root.FullName);
         StorageisNTFS = string.Equals("NTFS", di.DriveFormat, StringComparison.OrdinalIgnoreCase);
-        Logger.LogInformation("Mare Storage is on NTFS drive: {isNtfs}", StorageisNTFS);
+        Logger.LogInformation("Umbra Storage is on NTFS drive: {isNtfs}", StorageisNTFS);
 
-        Logger.LogDebug("Initializing Mare FSW on {path}", marePath);
+        Logger.LogDebug("Initializing Mare FSW on {path}", snowPath);
         MareWatcher = new()
         {
-            Path = marePath,
+            Path = snowPath,
             InternalBufferSize = 8388608,
             NotifyFilter = NotifyFilters.CreationTime
                 | NotifyFilters.LastWrite
@@ -161,7 +161,7 @@ public sealed class CacheMonitor : DisposableMediatorSubscriberBase
         if (string.IsNullOrEmpty(substPath))
         {
             SubstWatcher = null;
-            Logger.LogWarning("Mare file path is not set, cannot start the FSW for Mare.");
+            Logger.LogWarning("Umbra file path is not set, cannot start the FSW for Umbra.");
             return;
         }
 
@@ -197,7 +197,7 @@ public sealed class CacheMonitor : DisposableMediatorSubscriberBase
 
     private void MareWatcher_FileChanged(object sender, FileSystemEventArgs e)
     {
-        Logger.LogTrace("Mare FSW: FileChanged: {change} => {path}", e.ChangeType, e.FullPath);
+        Logger.LogTrace("Umbra FSW: FileChanged: {change} => {path}", e.ChangeType, e.FullPath);
 
         if (!AllowedFileExtensions.Any(ext => e.FullPath.EndsWith(ext, StringComparison.OrdinalIgnoreCase))) return;
 
@@ -631,7 +631,7 @@ public sealed class CacheMonitor : DisposableMediatorSubscriberBase
         if (string.IsNullOrEmpty(_configService.Current.CacheFolder) || !Directory.Exists(_configService.Current.CacheFolder))
         {
             cacheDirExists = false;
-            Logger.LogWarning("UmbraSync Cache directory is not set or does not exist.");
+            Logger.LogWarning("Umbra Cache directory is not set or does not exist.");
         }
         if (!penDirExists || !cacheDirExists)
         {

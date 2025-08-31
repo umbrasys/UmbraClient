@@ -104,7 +104,7 @@ public sealed class DtrEntry : IDisposable, IHostedService
     private IDtrBarEntry CreateEntry()
     {
         _logger.LogTrace("Creating new DtrBar entry");
-        var entry = _dtrBar.Get("UmbraSync");
+        var entry = _dtrBar.Get("Umbra");
         entry.OnClick = _ => _mareMediator.Publish(new UiToggleMessage(typeof(CompactUi)));
 
         return entry;
@@ -163,19 +163,19 @@ public sealed class DtrEntry : IDisposable, IHostedService
                         .Select(x => string.Format("{0}", _configService.Current.PreferNoteInDtrTooltip ? x.GetNoteOrName() : x.PlayerName));
                 }
 
-                tooltip = $"UmbraSync: Connected{Environment.NewLine}----------{Environment.NewLine}{string.Join(Environment.NewLine, visiblePairs)}";
+                tooltip = $"Umbra: Connected{Environment.NewLine}----------{Environment.NewLine}{string.Join(Environment.NewLine, visiblePairs)}";
                 colors = _configService.Current.DtrColorsPairsInRange;
             }
             else
             {
-                tooltip = "UmbraSync: Connected";
+                tooltip = "Umbra: Connected";
                 colors = _configService.Current.DtrColorsDefault;
             }
         }
         else
         {
             text = RenderDtrStyle(_configService.Current.DtrStyle, "\uE04C");
-            tooltip = "UmbraSync: Not Connected";
+            tooltip = "Umbra: Not Connected";
             colors = _configService.Current.DtrColorsNotConnected;
         }
 

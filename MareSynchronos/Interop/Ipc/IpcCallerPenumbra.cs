@@ -114,7 +114,7 @@ public sealed class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
         bool penumbraAvailable = false;
         try
         {
-            penumbraAvailable = _pluginLoaded && _pluginVersion >= new Version(1, 0, 1, 0);
+            penumbraAvailable = _pluginLoaded && _pluginVersion >= new Version(1, 5, 1, 0);
             try
             {
                 penumbraAvailable &= _penumbraEnabled.Invoke();
@@ -136,7 +136,7 @@ public sealed class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
             {
                 _shownPenumbraUnavailable = true;
                 _mareMediator.Publish(new NotificationMessage("Penumbra inactive",
-                    "Your Penumbra installation is not active or out of date. Update Penumbra and/or the Enable Mods setting in Penumbra to continue to use UmbraSync. If you just updated Penumbra, ignore this message.",
+                    "Your Penumbra installation is not active or out of date. Update Penumbra and/or the Enable Mods setting in Penumbra to continue to use Umbra. If you just updated Penumbra, ignore this message.",
                     NotificationType.Error));
             }
         }
@@ -225,9 +225,15 @@ public sealed class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
 
         return await _dalamudUtil.RunOnFrameworkThread(() =>
         {
-            var collName = "UmbraSync_" + uid;
-            var collId = _penumbraCreateNamedTemporaryCollection.Invoke(collName);
+            Guid collId;
+            var collName = "ElfSync_" + uid;
+            PenumbraApiEc penEC = _penumbraCreateNamedTemporaryCollection.Invoke(uid, collName, out collId);
             logger.LogTrace("Creating Temp Collection {collName}, GUID: {collId}", collName, collId);
+            if (penEC != PenumbraApiEc.Success) 
+            {
+                logger.LogError("Failed to create temporary collection for {collName} with error code {penEC}. Please include this line in any error reports", collName, penEC);
+                return Guid.Empty; 
+            }
             return collId;
 
         }).ConfigureAwait(false);

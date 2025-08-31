@@ -7,6 +7,8 @@ namespace MareSynchronos.MareConfiguration.Configurations;
 [Serializable]
 public class MareConfig : IMareConfiguration
 {
+    public int ExpectedTOSVersion = 2;
+    public int AcceptedTOSVersion { get; set; } = 0;
     public bool AcceptedAgreement { get; set; } = false;
     public string CacheFolder { get; set; } = string.Empty;
     public bool DisableOptionalPluginWarnings { get; set; } = false;
@@ -31,7 +33,7 @@ public class MareConfig : IMareConfiguration
     public bool LogPerformance { get; set; } = false;
     public bool LogEvents { get; set; } = true;
     public bool HoldCombatApplication { get; set; } = false;
-    public double MaxLocalCacheInGiB { get; set; } = 20;
+    public double MaxLocalCacheInGiB { get; set; } = 100;
     public bool OpenGposeImportOnGposeStart { get; set; } = false;
     public bool OpenPopupOnAdd { get; set; } = true;
     public int ParallelDownloads { get; set; } = 10;

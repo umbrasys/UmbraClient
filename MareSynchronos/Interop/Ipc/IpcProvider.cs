@@ -66,11 +66,11 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
     public Task StartAsync(CancellationToken cancellationToken)
     {
         _logger.LogDebug("Starting IpcProvider Service");
-        _loadFileProvider = _pi.GetIpcProvider<string, IGameObject, bool>("UmbraSyncSync.LoadMcdf");
+        _loadFileProvider = _pi.GetIpcProvider<string, IGameObject, bool>("ElfSync.LoadMcdf");
         _loadFileProvider.RegisterFunc(LoadMcdf);
-        _loadFileAsyncProvider = _pi.GetIpcProvider<string, IGameObject, Task<bool>>("UmbraSyncSync.LoadMcdfAsync");
+        _loadFileAsyncProvider = _pi.GetIpcProvider<string, IGameObject, Task<bool>>("UmbraSync.LoadMcdfAsync");
         _loadFileAsyncProvider.RegisterFunc(LoadMcdfAsync);
-        _handledGameAddresses = _pi.GetIpcProvider<List<nint>>("UmbraSyncSync.GetHandledAddresses");
+        _handledGameAddresses = _pi.GetIpcProvider<List<nint>>("UmbraSync.GetHandledAddresses");
         _handledGameAddresses.RegisterFunc(GetHandledAddresses);
 
         _loadFileProviderMare = _pi.GetIpcProvider<string, IGameObject, bool>("MareSynchronos.LoadMcdf");

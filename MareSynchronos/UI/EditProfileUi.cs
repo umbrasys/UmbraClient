@@ -35,7 +35,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
         ApiController apiController, UiSharedService uiSharedService, FileDialogManager fileDialogManager,
         ServerConfigurationManager serverConfigurationManager,
         MareProfileManager mareProfileManager, PerformanceCollectorService performanceCollectorService)
-        : base(logger, mediator, "UmbraSync Edit Profile###UmbraSyncSyncEditProfileUI", performanceCollectorService)
+        : base(logger, mediator, "Umbra Edit Profile###UmbraSyncEditProfileUI", performanceCollectorService)
     {
         IsOpen = false;
         this.SizeConstraints = new()

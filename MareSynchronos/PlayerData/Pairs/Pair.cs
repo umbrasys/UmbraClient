@@ -86,8 +86,8 @@ public class Pair : DisposableMediatorSubscriberBase
             {
                 Name = name,
                 OnClicked = action,
-                PrefixColor = 559,
-                PrefixChar = 'L'
+                PrefixColor = 526,
+                PrefixChar = 'S'
             });
         }
 
@@ -170,11 +170,6 @@ public class Pair : DisposableMediatorSubscriberBase
 
         if (_serverConfigurationManager.IsUidBlacklisted(UserData.UID))
             HoldApplication("Blacklist", maxValue: 1);
-
-        if (NoSnapService.AnyLoaded)
-            HoldApplication("NoSnap", maxValue: 1);
-        else
-            UnholdApplication("NoSnap", skipApplication: true);
 
         CachedPlayer.ApplyCharacterData(Guid.NewGuid(), RemoveNotSyncedFiles(LastReceivedCharacterData.DeepClone())!, forced);
     }

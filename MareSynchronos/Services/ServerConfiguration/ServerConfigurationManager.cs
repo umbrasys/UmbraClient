@@ -496,17 +496,17 @@ public class ServerConfigurationManager
 
     private void EnsureMainExists()
     {
-        bool lopExists = false;
+        bool elfExists = false;
         for (int i = 0; i < _configService.Current.ServerStorage.Count; ++i)
         {
             var x = _configService.Current.ServerStorage[i];
-            if (x.ServerUri.Equals(ApiController.UmbraSyncServiceUri, StringComparison.OrdinalIgnoreCase))
-                lopExists = true;
+            if (x.ServerUri.Equals(ApiController.UmbraServiceUri, StringComparison.OrdinalIgnoreCase))
+                elfExists = true;
         }
-        if (!lopExists)
+        if (!elfExists)
         {
-            _logger.LogDebug("Re-adding missing server {uri}", ApiController.UmbraSyncServiceUri);
-            _configService.Current.ServerStorage.Insert(0, new ServerStorage() { ServerUri = ApiController.UmbraSyncServiceUri, ServerName = ApiController.UmbraSyncServer });
+            _logger.LogDebug("Re-adding missing server {uri}", ApiController.UmbraServiceUri);
+            _configService.Current.ServerStorage.Insert(0, new ServerStorage() { ServerUri = ApiController.UmbraServiceUri, ServerName = ApiController.UmbraServer });
             if (_configService.Current.CurrentServer >= 0)
                 _configService.Current.CurrentServer++;
         }
