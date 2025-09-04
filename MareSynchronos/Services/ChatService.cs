@@ -72,7 +72,7 @@ public class ChatService : DisposableMediatorSubscriberBase
     {
         var chatMsg = message.ChatMsg;
         var prefix = new SeStringBuilder();
-        prefix.AddText("[SnowChat] ");
+        prefix.AddText("[UmbraChat] ");
         _chatGui.Print(new XivChatEntry{
             MessageBytes = [..prefix.Build().Encode(), ..message.ChatMsg.PayloadContent],
             Name = chatMsg.SenderName,
