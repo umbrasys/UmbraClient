@@ -8,7 +8,7 @@
   "Tags": [
     "customization"
   ],
-  "IconUrl": "",
-  "RepoUrl": "",
+  "IconUrl": "https://repo.umbra-sync.net/logo.png",
+  "RepoUrl": "https://repo.umbra-sync.net/plugin.json",
   "CanUnloadAsync": true
 }

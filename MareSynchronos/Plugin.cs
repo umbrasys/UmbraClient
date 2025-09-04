@@ -29,7 +29,7 @@ using MareSynchronos.Services.CharaData;
 
 using MareSynchronos;
 
-namespace Umbra;
+namespace Snowcloak;
 
 public sealed class Plugin : IDalamudPlugin
 {
@@ -40,7 +40,7 @@ public sealed class Plugin : IDalamudPlugin
 #pragma warning restore CA2211, CS8618, MA0069, S1104, S2223
     public Action<IFramework>? RealOnFrameworkUpdate { get; set; }
 
-    // Proxy function in the UmbraSync namespace to avoid confusion in /xlstats
+    // Proxy function in the SnowcloakSync namespace to avoid confusion in /xlstats
     public void OnFrameworkUpdate(IFramework framework)
     {
         RealOnFrameworkUpdate?.Invoke(framework);
