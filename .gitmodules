@@ -1,6 +1,7 @@
 [submodule "MareAPI"]
 	path = MareAPI
 	url = https://git.umbra-sync.net/SirConstance/UmbraAPI.git
+	branch = main
 [submodule "Penumbra.Api"]
 	path = Penumbra.Api
 	url = https://github.com/Ottermandias/Penumbra.Api.git
