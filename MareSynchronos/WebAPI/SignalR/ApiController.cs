@@ -21,10 +21,10 @@ namespace MareSynchronos.WebAPI;
 #pragma warning disable MA0040
 public sealed partial class ApiController : DisposableMediatorSubscriberBase, IMareHubClient
 {
-        public const string UmbraServer = "Umbra Main Server (BETA)";
-        public const string UmbraServiceUri = "wss://umbra-sync.net";
-        public const string UmbraServiceApiUri = "wss://umbra-sync.net/";
-        public const string UmbraServiceHubUri = "wss://umbra-sync.net/mare";
+    public const string UmbraServer = "UmbraSync Main Server (BETA)";
+    public const string UmbraServiceUri = "wss://umbra-sync.net/";
+    public const string UmbraServiceApiUri = "wss://umbra-sync.net/";
+    public const string UmbraServiceHubUri = "wss://umbra-sync.net/mare";  
 
     private readonly DalamudUtilService _dalamudUtil;
     private readonly HubFactory _hubFactory;

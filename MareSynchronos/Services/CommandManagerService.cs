@@ -15,7 +15,7 @@ namespace MareSynchronos.Services;
 public sealed class CommandManagerService : IDisposable
 {
     private const string _commandName = "/sync";
-    private const string _commandName2 = "/snowcloak";
+    private const string _commandName2 = "/usync";
 
     private const string _ssCommandPrefix = "/ss";
 

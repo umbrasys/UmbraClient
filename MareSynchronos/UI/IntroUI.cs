@@ -106,9 +106,8 @@ public partial class IntroUi : WindowMediatorSubscriberBase
     {
         if (_uiShared.IsInGpose) return;
 
-        if ((!_configService.Current.AcceptedAgreement || _configService.Current.AcceptedTOSVersion != _configService.Current.ExpectedTOSVersion) && !_readFirstPage)
+        if (!_configService.Current.AcceptedAgreement && !_readFirstPage)
         {
-            // TODO: The UI bugs hard if this page *isn't* shown before the new TOS. There's probably a way around it.
             _uiShared.BigText("Welcome to Umbra");
             ImGui.Separator();
             UiSharedService.TextWrapped("Umbra is a plugin that will replicate your full current character state including all Penumbra mods to other paired users. " +
@@ -126,7 +125,7 @@ public partial class IntroUi : WindowMediatorSubscriberBase
 #if !DEBUG
                 _timeoutTask = Task.Run(async () =>
                 {
-                    for (int i = 45; i > 0; i--)
+                    for (int i = 10; i > 0; i--)
                     {
                         _timeoutLabel = $"'I agree' button will be available in {i}s";
                         await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
@@ -137,7 +136,7 @@ public partial class IntroUi : WindowMediatorSubscriberBase
 #endif
             }
         }
-        else if ((!_configService.Current.AcceptedAgreement || _configService.Current.AcceptedTOSVersion != _configService.Current.ExpectedTOSVersion) && _readFirstPage)
+        else if (!_configService.Current.AcceptedAgreement && _readFirstPage)
         {
             using (_uiShared.UidFont.Push())
             {
@@ -152,7 +151,6 @@ public partial class IntroUi : WindowMediatorSubscriberBase
             UiSharedService.ColorText(readThis, ImGuiColors.DalamudRed);
             ImGui.SetWindowFontScale(1.0f);
             ImGui.Separator();
-
             UiSharedService.TextWrapped("""
                                         To use Umbra, you must be over the age of 18, or 21 in some jurisdictions. 
                                         """);
@@ -172,7 +170,10 @@ public partial class IntroUi : WindowMediatorSubscriberBase
                                         Mod files that are saved on the service will remain on the service as long as there are requests for the files from clients. After a period of not being used, the mod files will be automatically deleted.
                                         """);
             UiSharedService.TextWrapped("""
-                                        Umbra is operated from servers located in the European Union and Switzerland. You agree not to upload any content to the service that violates EU and CH law; and more specifically, German law for EU.
+                                        Accounts that are inactive for ninety (90) days will be deleted for privacy reasons.
+                                        """);
+            UiSharedService.TextWrapped("""
+                                        Umbra is operated from servers located in the European Union. You agree not to upload any content to the service that violates EU law; and more specifically, German law.
                                         """);
             UiSharedService.TextWrapped("""
                                         You may delete your account at any time from within the Settings panel of the plugin. Any mods unique to you will then be removed from the server within 14 days.
@@ -187,7 +188,6 @@ public partial class IntroUi : WindowMediatorSubscriberBase
                 if (ImGui.Button("I agree##toSetup"))
                 {
                     _configService.Current.AcceptedAgreement = true;
-                    _configService.Current.AcceptedTOSVersion = _configService.Current.ExpectedTOSVersion;
                     _configService.Save();
                 }
             }
@@ -196,7 +196,7 @@ public partial class IntroUi : WindowMediatorSubscriberBase
                 UiSharedService.TextWrapped(_timeoutLabel);
             }
         }
-        else if ((!_configService.Current.AcceptedAgreement || _configService.Current.AcceptedTOSVersion != _configService.Current.ExpectedTOSVersion)
+        else if (_configService.Current.AcceptedAgreement
                  && (string.IsNullOrEmpty(_configService.Current.CacheFolder)
                      || !_configService.Current.InitialScanComplete
                      || !Directory.Exists(_configService.Current.CacheFolder)))

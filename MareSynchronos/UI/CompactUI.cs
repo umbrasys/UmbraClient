@@ -60,7 +60,7 @@ public class CompactUi : WindowMediatorSubscriberBase
     public CompactUi(ILogger<CompactUi> logger, UiSharedService uiShared, MareConfigService configService, ApiController apiController, PairManager pairManager, ChatService chatService,
         ServerConfigurationManager serverManager, MareMediator mediator, FileUploadManager fileTransferManager, UidDisplayHandler uidDisplayHandler, CharaDataManager charaDataManager,
         PerformanceCollectorService performanceCollectorService)
-        : base(logger, mediator, "###UmbraSyncMainUI", performanceCollectorService)
+        : base(logger, mediator, "###UmbraSyncSyncMainUI", performanceCollectorService)
     {
         _uiSharedService = uiShared;
         _configService = configService;
@@ -80,11 +80,11 @@ public class CompactUi : WindowMediatorSubscriberBase
 #if DEBUG
         string dev = "Dev Build";
         var ver = Assembly.GetExecutingAssembly().GetName().Version!;
-        WindowName = $"Umbra Sync {dev} ({ver.Major}.{ver.Minor}.{ver.Build})###UmbraSyncMainUIDev";
+        WindowName = $"UmbraSync {dev} ({ver.Major}.{ver.Minor}.{ver.Build})###UmbraSyncSyncMainUIDev";
         Toggle();
 #else
         var ver = Assembly.GetExecutingAssembly().GetName().Version!;
-        WindowName = "Umbra Sync " + ver.Major + "." + ver.Minor + "." + ver.Build + "###UmbraSyncMainUI";
+        WindowName = "UmbraSync " + ver.Major + "." + ver.Minor + "." + ver.Build + "###UmbraSyncSyncMainUI";
 #endif
         Mediator.Subscribe<SwitchToMainUiMessage>(this, (_) => IsOpen = true);
         Mediator.Subscribe<SwitchToIntroUiMessage>(this, (_) => IsOpen = false);
@@ -104,10 +104,7 @@ public class CompactUi : WindowMediatorSubscriberBase
 
     protected override void DrawInternal()
     {
-        if (_serverManager.CurrentApiUrl.Equals(ApiController.UmbraServiceUri, StringComparison.Ordinal))
-            UiSharedService.AccentColor = new(0.4275f, 0.6863f, 1f, 1f);
-        else
-            UiSharedService.AccentColor = new Vector4(0.6f, 0.4f, 0.8f, 1f);
+        UiSharedService.AccentColor = new Vector4(0.2f, 0.6f, 1f, 1f); // custom blue
         ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGui.GetStyle().WindowPadding.Y - 1f * ImGuiHelpers.GlobalScale + ImGui.GetStyle().ItemSpacing.Y);
         WindowContentWidth = UiSharedService.GetWindowContentRegionWidth();
         if (!_apiController.IsCurrentVersion)
@@ -121,8 +118,8 @@ public class CompactUi : WindowMediatorSubscriberBase
                 ImGui.AlignTextToFramePadding();
                 ImGui.TextColored(ImGuiColors.DalamudRed, unsupported);
             }
-            UiSharedService.ColorTextWrapped($"Your Umbra installation is out of date, the current version is {ver.Major}.{ver.Minor}.{ver.Build}. " +
-                $"It is highly recommended to keep Umbra up to date. Open /xlplugins and update the plugin.", ImGuiColors.DalamudRed);
+            UiSharedService.ColorTextWrapped($"Your UmbraSync installation is out of date, the current version is {ver.Major}.{ver.Minor}.{ver.Build}. " +
+                $"It is highly recommended to keep UmbraSync up to date. Open /xlplugins and update the plugin.", ImGuiColors.DalamudRed);
         }
 
         using (ImRaii.PushId("header")) DrawUIDHeader();
@@ -387,7 +384,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         {
             ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()) / 2 - (userSize.X + textSize.X) / 2 - ImGui.GetStyle().ItemSpacing.X / 2);
             if (!printShard) ImGui.AlignTextToFramePadding();
-            ImGui.TextColored(new Vector4(0.6f, 0.4f, 0.8f, 1f), userCount);
+            ImGui.TextColored(ImGuiColors.ParsedBlue, userCount);
             ImGui.SameLine();
             if (!printShard) ImGui.AlignTextToFramePadding();
             ImGui.TextUnformatted("Users Online");
@@ -410,7 +407,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         {
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ((userSize.Y + textSize.Y) / 2 + shardTextSize.Y) / 2 - ImGui.GetStyle().ItemSpacing.Y + buttonSize.Y / 2);
         }
-        var color = !_serverManager.CurrentServer!.FullPause ? new Vector4(0.6f, 0.4f, 0.8f, 1f) : ImGuiColors.DalamudRed;
+        var color = UiSharedService.GetBoolColor(!_serverManager.CurrentServer!.FullPause);
         var connectedIcon = !_serverManager.CurrentServer.FullPause ? FontAwesomeIcon.Link : FontAwesomeIcon.Unlink;
 
         if (_apiController.ServerState is ServerState.Connected)
@@ -525,7 +522,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         {
             Mediator.Publish(new OpenSettingsUiMessage());
         }
-        UiSharedService.AttachToolTip("Open the Umbra Settings");
+        UiSharedService.AttachToolTip("Open the UmbraSync Settings");
 
         ImGui.SameLine(); //Important to draw the uidText consistently
         ImGui.SetCursorPos(originalPos);
@@ -595,7 +592,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         {
             ServerState.Connecting => ImGuiColors.DalamudYellow,
             ServerState.Reconnecting => ImGuiColors.DalamudRed,
-            ServerState.Connected => UiSharedService.AccentColor,
+            ServerState.Connected => new Vector4(0.2f, 0.6f, 1f, 1f), // custom blue
             ServerState.Disconnected => ImGuiColors.DalamudYellow,
             ServerState.Disconnecting => ImGuiColors.DalamudYellow,
             ServerState.Unauthorized => ImGuiColors.DalamudRed,

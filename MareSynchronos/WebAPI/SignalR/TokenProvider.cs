@@ -20,16 +20,14 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
     private readonly HttpClient _httpClient;
     private readonly ILogger<TokenProvider> _logger;
     private readonly ServerConfigurationManager _serverManager;
-    private readonly RemoteConfigurationService _remoteConfig;
     private readonly ConcurrentDictionary<JwtIdentifier, string> _tokenCache = new();
     private readonly ConcurrentDictionary<string, string?> _wellKnownCache = new(StringComparer.Ordinal);
 
-    public TokenProvider(ILogger<TokenProvider> logger, ServerConfigurationManager serverManager, RemoteConfigurationService remoteConfig,
+    public TokenProvider(ILogger<TokenProvider> logger, ServerConfigurationManager serverManager,
         DalamudUtilService dalamudUtil, MareMediator mareMediator)
     {
         _logger = logger;
         _serverManager = serverManager;
-        _remoteConfig = remoteConfig;
         _dalamudUtil = dalamudUtil;
         _httpClient = new(
             new HttpClientHandler
@@ -70,23 +68,11 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
         Uri tokenUri;
         HttpResponseMessage result;
 
-        var authApiUrl = _serverManager.CurrentApiUrl;
-
-        // Override the API URL used for auth from remote config, if one is available
-        if (authApiUrl.Equals(ApiController.UmbraServiceUri, StringComparison.Ordinal))
-        {
-            var config = await _remoteConfig.GetConfigAsync<HubConnectionConfig>("mainServer").ConfigureAwait(false) ?? new();
-            if (!string.IsNullOrEmpty(config.ApiUrl))
-                authApiUrl = config.ApiUrl;
-            else
-                authApiUrl = ApiController.UmbraServiceApiUri;
-        }
-
         try
         {
             _logger.LogDebug("GetNewToken: Requesting");
 
-            tokenUri = MareAuth.AuthV2FullPath(new Uri(authApiUrl
+            tokenUri = MareAuth.AuthV2FullPath(new Uri(_serverManager.CurrentApiUrl
                 .Replace("wss://", "https://", StringComparison.OrdinalIgnoreCase)
                 .Replace("ws://", "http://", StringComparison.OrdinalIgnoreCase)));
             var secretKey = _serverManager.GetSecretKey(out _)!;
