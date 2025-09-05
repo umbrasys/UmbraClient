@@ -236,6 +236,7 @@ public sealed class FileCacheManager : IHostedService
 
             foreach (var entry in cleanedPaths)
             {
+                //_logger.LogDebug("Checking {path}", entry.Value);
 
                 if (dict.TryGetValue(entry.Value, out var entity))
                 {
@@ -365,7 +366,8 @@ public sealed class FileCacheManager : IHostedService
 
         if (!entries.Exists(u => string.Equals(u.PrefixedFilePath, fileCache.PrefixedFilePath, StringComparison.OrdinalIgnoreCase)))
         {
-                        entries.Add(fileCache);
+            //_logger.LogTrace("Adding to DB: {hash} => {path}", fileCache.Hash, fileCache.PrefixedFilePath);
+            entries.Add(fileCache);
         }
     }
 
@@ -387,6 +389,7 @@ public sealed class FileCacheManager : IHostedService
     private FileCacheEntity? GetValidatedFileCache(FileCacheEntity fileCache)
     {
         var resultingFileCache = ReplacePathPrefixes(fileCache);
+        //_logger.LogTrace("Validating {path}", fileCache.PrefixedFilePath);
         resultingFileCache = Validate(resultingFileCache);
         return resultingFileCache;
     }

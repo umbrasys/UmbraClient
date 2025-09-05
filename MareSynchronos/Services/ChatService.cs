@@ -72,7 +72,7 @@ public class ChatService : DisposableMediatorSubscriberBase
     {
         var chatMsg = message.ChatMsg;
         var prefix = new SeStringBuilder();
-        prefix.AddText("[UmbraChat] ");
+        prefix.AddText("[BnnuyChat] ");
         _chatGui.Print(new XivChatEntry{
             MessageBytes = [..prefix.Build().Encode(), ..message.ChatMsg.PayloadContent],
             Name = chatMsg.SenderName,
@@ -207,7 +207,7 @@ public class ChatService : DisposableMediatorSubscriberBase
             }
         }
 
-        _chatGui.PrintError($"[UmbraSync] Syncshell number #{shellNumber} not found");
+        _chatGui.PrintError($"[Umbra] Syncshell number #{shellNumber} not found");
     }
 
     public void SendChatShell(int shellNumber, byte[] chatBytes)
@@ -236,6 +236,6 @@ public class ChatService : DisposableMediatorSubscriberBase
             }
         }
 
-        _chatGui.PrintError($"[UmbraSync] Syncshell number #{shellNumber} not found");
+        _chatGui.PrintError($"[Umbra] Syncshell number #{shellNumber} not found");
     }
 }

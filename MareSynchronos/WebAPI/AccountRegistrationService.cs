@@ -17,16 +17,18 @@ public sealed class AccountRegistrationService : IDisposable
     private readonly HttpClient _httpClient;
     private readonly ILogger<AccountRegistrationService> _logger;
     private readonly ServerConfigurationManager _serverManager;
+    private readonly RemoteConfigurationService _remoteConfig;
 
     private string GenerateSecretKey()
     {
         return Convert.ToHexString(SHA256.HashData(RandomNumberGenerator.GetBytes(64)));
     }
 
-    public AccountRegistrationService(ILogger<AccountRegistrationService> logger, ServerConfigurationManager serverManager)
+    public AccountRegistrationService(ILogger<AccountRegistrationService> logger, ServerConfigurationManager serverManager, RemoteConfigurationService remoteConfig)
     {
         _logger = logger;
         _serverManager = serverManager;
+        _remoteConfig = remoteConfig;
         _httpClient = new(
             new HttpClientHandler
             {
@@ -45,10 +47,22 @@ public sealed class AccountRegistrationService : IDisposable
 
     public async Task<RegisterReplyDto> RegisterAccount(CancellationToken token)
     {
+        var authApiUrl = _serverManager.CurrentApiUrl;
+
+        // Override the API URL used for auth from remote config, if one is available
+        if (authApiUrl.Equals(ApiController.UmbraServiceUri, StringComparison.Ordinal))
+        {
+            var config = await _remoteConfig.GetConfigAsync<HubConnectionConfig>("mainServer").ConfigureAwait(false) ?? new();
+            if (!string.IsNullOrEmpty(config.ApiUrl))
+                authApiUrl = config.ApiUrl;
+            else
+                authApiUrl = ApiController.UmbraServiceApiUri;
+        }
+
         var secretKey = GenerateSecretKey();
         var hashedSecretKey = secretKey.GetHash256();
 
-        Uri postUri = MareAuth.AuthRegisterV2FullPath(new Uri(_serverManager.CurrentApiUrl
+        Uri postUri = MareAuth.AuthRegisterV2FullPath(new Uri(authApiUrl
             .Replace("wss://", "https://", StringComparison.OrdinalIgnoreCase)
             .Replace("ws://", "http://", StringComparison.OrdinalIgnoreCase)));
 

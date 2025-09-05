@@ -39,6 +39,8 @@ public sealed class Plugin : IDalamudPlugin
     public static Plugin Self;
 #pragma warning restore CA2211, CS8618, MA0069, S1104, S2223
     public Action<IFramework>? RealOnFrameworkUpdate { get; set; }
+
+    // Proxy function in the UmbraSync namespace to avoid confusion in /xlstats
     public void OnFrameworkUpdate(IFramework framework)
     {
         RealOnFrameworkUpdate?.Invoke(framework);
@@ -140,6 +142,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton<IpcCallerMare>();
             collection.AddSingleton<IpcManager>();
             collection.AddSingleton<NotificationService>();
+            collection.AddSingleton<NoSnapService>();
 
             collection.AddSingleton((s) => new MareConfigService(pluginInterface.ConfigDirectory.FullName));
             collection.AddSingleton((s) => new ServerConfigService(pluginInterface.ConfigDirectory.FullName));
@@ -165,6 +168,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton<IConfigService<IMareConfiguration>>(s => s.GetRequiredService<RemoteConfigCacheService>());
             collection.AddSingleton<ConfigurationMigrator>();
             collection.AddSingleton<ConfigurationSaveService>();
+            collection.AddSingleton<RemoteConfigurationService>();
 
             collection.AddSingleton<HubFactory>();
 
@@ -205,6 +209,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddHostedService(p => p.GetRequiredService<EventAggregator>());
             collection.AddHostedService(p => p.GetRequiredService<MarePlugin>());
             collection.AddHostedService(p => p.GetRequiredService<IpcProvider>());
+            collection.AddHostedService(p => p.GetRequiredService<NoSnapService>());
         })
         .Build();
 

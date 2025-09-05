@@ -30,12 +30,12 @@ public sealed class IpcCallerPetNames : IIpcCaller
         _dalamudUtil = dalamudUtil;
         _mareMediator = mareMediator;
 
-        _petnamesReady = pi.GetIpcSubscriber<object>("PetRenamer.OnReady");
-        _petnamesDisposing = pi.GetIpcSubscriber<object>("PetRenamer.OnDisposing");
+        _petnamesReady = pi.GetIpcSubscriber<object>("PetRenamer.Ready");
+        _petnamesDisposing = pi.GetIpcSubscriber<object>("PetRenamer.Disposing");
         _apiVersion = pi.GetIpcSubscriber<(uint, uint)>("PetRenamer.ApiVersion");
-        _enabled = pi.GetIpcSubscriber<bool>("PetRenamer.IsEnabled");
+        _enabled = pi.GetIpcSubscriber<bool>("PetRenamer.Enabled");
 
-        _playerDataChanged = pi.GetIpcSubscriber<string, object>("PetRenamer.OnPlayerDataChanged");
+        _playerDataChanged = pi.GetIpcSubscriber<string, object>("PetRenamer.PlayerDataChanged");
         _getPlayerData = pi.GetIpcSubscriber<string>("PetRenamer.GetPlayerData");
         _setPlayerData = pi.GetIpcSubscriber<string, object>("PetRenamer.SetPlayerData");
         _clearPlayerData = pi.GetIpcSubscriber<ushort, object>("PetRenamer.ClearPlayerData");
@@ -56,7 +56,7 @@ public sealed class IpcCallerPetNames : IIpcCaller
             APIAvailable = _enabled?.InvokeFunc() ?? false;
             if (APIAvailable)
             {
-                APIAvailable = _apiVersion?.InvokeFunc() is { Item1: 4, Item2: >= 0 };
+                APIAvailable = _apiVersion?.InvokeFunc() is { Item1: 3, Item2: >= 1 };
             }
         }
         catch

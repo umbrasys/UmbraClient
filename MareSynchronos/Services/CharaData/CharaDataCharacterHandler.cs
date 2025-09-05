@@ -13,18 +13,20 @@ public sealed class CharaDataCharacterHandler : DisposableMediatorSubscriberBase
     private readonly GameObjectHandlerFactory _gameObjectHandlerFactory;
     private readonly DalamudUtilService _dalamudUtilService;
     private readonly IpcManager _ipcManager;
+    private readonly NoSnapService _noSnapService;
     private readonly Dictionary<string, HandledCharaDataEntry> _handledCharaData = new(StringComparer.Ordinal);
 
     public IReadOnlyDictionary<string, HandledCharaDataEntry> HandledCharaData => _handledCharaData;
 
     public CharaDataCharacterHandler(ILogger<CharaDataCharacterHandler> logger, MareMediator mediator,
         GameObjectHandlerFactory gameObjectHandlerFactory, DalamudUtilService dalamudUtilService,
-        IpcManager ipcManager)
+        IpcManager ipcManager, NoSnapService noSnapService)
         : base(logger, mediator)
     {
         _gameObjectHandlerFactory = gameObjectHandlerFactory;
         _dalamudUtilService = dalamudUtilService;
         _ipcManager = ipcManager;
+        _noSnapService = noSnapService;
         mediator.Subscribe<GposeEndMessage>(this, msg =>
         {
             foreach (var chara in _handledCharaData)
@@ -92,6 +94,7 @@ public sealed class CharaDataCharacterHandler : DisposableMediatorSubscriberBase
         _handledCharaData.Remove(handled.Name);
         await _dalamudUtilService.RunOnFrameworkThread(async () =>
         {
+            RemoveGposer(handled);
             await RevertChara(handled.Name, handled.CustomizePlus).ConfigureAwait(false);
         }).ConfigureAwait(false);
         return true;
@@ -100,6 +103,7 @@ public sealed class CharaDataCharacterHandler : DisposableMediatorSubscriberBase
     internal void AddHandledChara(HandledCharaDataEntry handledCharaDataEntry)
     {
         _handledCharaData.Add(handledCharaDataEntry.Name, handledCharaDataEntry);
+        _ = _dalamudUtilService.RunOnFrameworkThread(() => AddGposer(handledCharaDataEntry));
     }
 
     public void UpdateHandledData(Dictionary<string, CharaDataMetaInfoExtendedDto?> newData)
@@ -129,5 +133,24 @@ public sealed class CharaDataCharacterHandler : DisposableMediatorSubscriberBase
             .ConfigureAwait(false);
         if (handler.Address == nint.Zero) return null;
         return handler;
+    }
+
+    private int GetGposerObjectIndex(string name)
+    {
+        return _dalamudUtilService.GetGposeCharacterFromObjectTableByName(name, _dalamudUtilService.IsInGpose)?.ObjectIndex ?? -1;
+    }
+
+    private void AddGposer(HandledCharaDataEntry handled)
+    {
+        int objectIndex = GetGposerObjectIndex(handled.Name);
+        if (objectIndex > 0)
+            _noSnapService.AddGposer(objectIndex);
+    }
+
+    private void RemoveGposer(HandledCharaDataEntry handled)
+    {
+        int objectIndex = GetGposerObjectIndex(handled.Name);
+        if (objectIndex > 0)
+            _noSnapService.RemoveGposer(objectIndex);
     }
 }

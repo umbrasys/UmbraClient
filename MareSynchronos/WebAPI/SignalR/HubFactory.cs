@@ -9,9 +9,6 @@ using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using System.Net.Http.Headers;
-using System.Reflection;
-using System.Text.Json;
 
 namespace MareSynchronos.WebAPI.SignalR;
 
@@ -19,6 +16,7 @@ public class HubFactory : MediatorSubscriberBase
 {
     private readonly ILoggerProvider _loggingProvider;
     private readonly ServerConfigurationManager _serverConfigurationManager;
+    private readonly RemoteConfigurationService _remoteConfig;
     private readonly TokenProvider _tokenProvider;
     private HubConnection? _instance;
     private string _cachedConfigFor = string.Empty;
@@ -26,10 +24,11 @@ public class HubFactory : MediatorSubscriberBase
     private bool _isDisposed = false;
 
     public HubFactory(ILogger<HubFactory> logger, MareMediator mediator,
-        ServerConfigurationManager serverConfigurationManager, 
+        ServerConfigurationManager serverConfigurationManager, RemoteConfigurationService remoteConfig,
         TokenProvider tokenProvider, ILoggerProvider pluginLog) : base(logger, mediator)
     {
         _serverConfigurationManager = serverConfigurationManager;
+        _remoteConfig = remoteConfig;
         _tokenProvider = tokenProvider;
         _loggingProvider = pluginLog;
     }
@@ -66,98 +65,28 @@ public class HubFactory : MediatorSubscriberBase
 
     private async Task<HubConnectionConfig> ResolveHubConfig()
     {
-        var stapledWellKnown = _tokenProvider.GetStapledWellKnown(_serverConfigurationManager.CurrentApiUrl);
-
-        var apiUrl = new Uri(_serverConfigurationManager.CurrentApiUrl);
-
-        HubConnectionConfig defaultConfig;
-
         if (_cachedConfig != null && _serverConfigurationManager.CurrentApiUrl.Equals(_cachedConfigFor, StringComparison.Ordinal))
         {
-            defaultConfig = _cachedConfig;
+            return _cachedConfig;
         }
-        else
+        var defaultConfig = new HubConnectionConfig
         {
-            defaultConfig = new HubConnectionConfig
-            {
-                HubUrl = _serverConfigurationManager.CurrentApiUrl.TrimEnd('/') + IMareHub.Path,
-                Transports = []
-            };
-        }
+            HubUrl = _serverConfigurationManager.CurrentApiUrl.TrimEnd('/') + IMareHub.Path,
+            Transports = []
+        };
 
-        string jsonResponse;
-
-        if (stapledWellKnown != null)
+        if (_serverConfigurationManager.CurrentApiUrl.Equals(ApiController.UmbraServiceUri, StringComparison.Ordinal))
         {
-            jsonResponse = stapledWellKnown;
-            Logger.LogTrace("Using stapled hub config for {url}", _serverConfigurationManager.CurrentApiUrl);
+            var mainServerConfig = await _remoteConfig.GetConfigAsync<HubConnectionConfig>("mainServer").ConfigureAwait(false) ?? new();
+            if (string.IsNullOrEmpty(mainServerConfig.ApiUrl))
+                mainServerConfig.ApiUrl = ApiController.UmbraServiceApiUri;
+            if (string.IsNullOrEmpty(mainServerConfig.HubUrl))
+                mainServerConfig.HubUrl = ApiController.UmbraServiceHubUri;
+
+            mainServerConfig.Transports ??= defaultConfig.Transports ?? [];
+            return mainServerConfig;
         }
-        else
-        {
-            try
-            {
-                var httpScheme = apiUrl.Scheme.ToLowerInvariant() switch
-                {
-                    "ws" => "http",
-                    "wss" => "https",
-                    _ => apiUrl.Scheme
-                };
-
-                var wellKnownUrl = $"{httpScheme}://{apiUrl.Host}/.well-known/Umbra/client";
-                Logger.LogTrace("Fetching hub config for {uri} via {wk}", _serverConfigurationManager.CurrentApiUrl, wellKnownUrl);
-
-                using var httpClient = new HttpClient(
-                    new HttpClientHandler
-                    {
-                        AllowAutoRedirect = true,
-                        MaxAutomaticRedirections = 5
-                    }
-                );
-
-                var ver = Assembly.GetExecutingAssembly().GetName().Version;
-                httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("MareSynchronos", ver!.Major + "." + ver!.Minor + "." + ver!.Build));
-
-                var response = await httpClient.GetAsync(wellKnownUrl).ConfigureAwait(false);
-
-                if (!response.IsSuccessStatusCode)
-                    return defaultConfig;
-
-                var contentType = response.Content.Headers.ContentType?.MediaType;
-
-                if (contentType == null || !contentType.Equals("application/json", StringComparison.Ordinal))
-                    return defaultConfig;
-
-                jsonResponse = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            }
-            catch (HttpRequestException ex)
-            {
-                Logger.LogWarning(ex, "HTTP request failed for .well-known");
-                return defaultConfig;
-            }
-        }
-
-        try
-        {
-            var config = JsonSerializer.Deserialize<HubConnectionConfig>(jsonResponse);
-
-            if (config == null)
-                return defaultConfig;
-
-            if (string.IsNullOrEmpty(config.ApiUrl))
-                config.ApiUrl = defaultConfig.ApiUrl;
-
-            if (string.IsNullOrEmpty(config.HubUrl))
-                config.HubUrl = defaultConfig.HubUrl;
-
-            config.Transports ??= defaultConfig.Transports ?? [];
-
-            return config;
-        }
-        catch (JsonException ex)
-        {
-            Logger.LogWarning(ex, "Invalid JSON in .well-known response");
-            return defaultConfig;
-        }
+        return defaultConfig;
     }
 
     private HubConnection BuildHubConnection(HubConnectionConfig hubConfig, CancellationToken ct)
@@ -177,13 +106,11 @@ public class HubFactory : MediatorSubscriberBase
                 var resolver = CompositeResolver.Create(StandardResolverAllowPrivate.Instance,
                     BuiltinResolver.Instance,
                     AttributeFormatterResolver.Instance,
-                    // replace enum resolver
                     DynamicEnumAsStringResolver.Instance,
                     DynamicGenericResolver.Instance,
                     DynamicUnionResolver.Instance,
                     DynamicObjectResolver.Instance,
                     PrimitiveObjectResolver.Instance,
-                    // final fallback(last priority)
                     StandardResolver.Instance);
 
                 opt.SerializerOptions =

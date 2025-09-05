@@ -32,6 +32,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     private readonly ServerConfigurationManager _serverConfigManager;
     private readonly PluginWarningNotificationService _pluginWarningNotificationManager;
     private readonly VisibilityService _visibilityService;
+    private readonly NoSnapService _noSnapService;
     private CancellationTokenSource? _applicationCancellationTokenSource = new();
     private Guid _applicationId;
     private Task? _applicationTask;
@@ -54,7 +55,8 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         FileCacheManager fileDbManager, MareMediator mediator,
         PlayerPerformanceService playerPerformanceService,
         ServerConfigurationManager serverConfigManager,
-        MareConfigService configService, VisibilityService visibilityService) : base(logger, mediator)
+        MareConfigService configService, VisibilityService visibilityService,
+        NoSnapService noSnapService) : base(logger, mediator)
     {
         Pair = pair;
         PairAnalyzer = pairAnalyzer;
@@ -68,6 +70,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         _serverConfigManager = serverConfigManager;
         _configService = configService;
         _visibilityService = visibilityService;
+        _noSnapService = noSnapService;
 
         _visibilityService.StartTracking(Pair.Ident);
 
@@ -316,6 +319,24 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         });
     }
 
+    private void RegisterGposeClones()
+    {
+        var name = PlayerName;
+        if (name == null)
+            return;
+        _ = _dalamudUtil.RunOnFrameworkThread(() =>
+        {
+            foreach (var actor in _dalamudUtil.GetGposeCharactersFromObjectTable())
+            {
+                if (actor == null) continue;
+                var gposeName = actor.Name.TextValue;
+                if (!name.Equals(gposeName, StringComparison.Ordinal))
+                    continue;
+                _noSnapService.AddGposer(actor.ObjectIndex);
+            }
+        });
+    }
+
     private async Task UndoApplicationAsync(Guid applicationId = default)
     {
         Logger.LogDebug($"Undoing application of {Pair.UserPair}");
@@ -332,6 +353,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             {
                 await _ipcManager.Penumbra.RemoveTemporaryCollectionAsync(Logger, applicationId, _penumbraCollection).ConfigureAwait(false);
                 _penumbraCollection = Guid.Empty;
+                RegisterGposeClones();
             }
 
             if (_dalamudUtil is { IsZoning: false, IsInCutscene: false } && !string.IsNullOrEmpty(name))
@@ -362,6 +384,10 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
                         }
                     }
                 }
+            }
+            else if (_dalamudUtil.IsInCutscene && !string.IsNullOrEmpty(name))
+            {
+                _noSnapService.AddGposerNamed(name);
             }
         }
         catch (Exception ex)

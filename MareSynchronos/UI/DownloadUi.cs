@@ -163,13 +163,13 @@ public class DownloadUi : WindowMediatorSubscriberBase
                     UiSharedService.Color(0, 0, 0, transparency), 1);
                 drawList.AddRectFilled(dlBarStart with { X = dlBarStart.X - dlBarBorder, Y = dlBarStart.Y - dlBarBorder },
                     dlBarEnd with { X = dlBarEnd.X + dlBarBorder, Y = dlBarEnd.Y + dlBarBorder },
-                    UiSharedService.Color(220, 220, 255, transparency), 1);
+                    UiSharedService.Color(200, 170, 230, transparency), 1);
                 drawList.AddRectFilled(dlBarStart, dlBarEnd,
                     UiSharedService.Color(0, 0, 0, transparency), 1);
                 var dlProgressPercent = transferredBytes / (double)totalBytes;
                 drawList.AddRectFilled(dlBarStart,
                     dlBarEnd with { X = dlBarStart.X + (float)(dlProgressPercent * dlBarWidth) },
-                    UiSharedService.Color(100, 100, 255, transparency), 1);
+                    UiSharedService.Color(153, 102, 204, transparency), 1);
 
                 if (_configService.Current.TransferBarsShowText)
                 {
@@ -198,7 +198,7 @@ public class DownloadUi : WindowMediatorSubscriberBase
                         var drawList = ImGui.GetBackgroundDrawList();
                         UiSharedService.DrawOutlinedFont(drawList, uploadText,
                             screenPos with { X = screenPos.X - textSize.X / 2f - 1, Y = screenPos.Y - textSize.Y / 2f - 1 },
-                            UiSharedService.Color(255, 255, 0, transparency),
+                            UiSharedService.Color(153, 102, 204, transparency),
                             UiSharedService.Color(0, 0, 0, transparency), 2);
                     }
                     catch

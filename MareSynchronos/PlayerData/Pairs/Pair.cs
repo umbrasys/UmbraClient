@@ -171,6 +171,11 @@ public class Pair : DisposableMediatorSubscriberBase
         if (_serverConfigurationManager.IsUidBlacklisted(UserData.UID))
             HoldApplication("Blacklist", maxValue: 1);
 
+        if (NoSnapService.AnyLoaded)
+            HoldApplication("NoSnap", maxValue: 1);
+        else
+            UnholdApplication("NoSnap", skipApplication: true);
+
         CachedPlayer.ApplyCharacterData(Guid.NewGuid(), RemoveNotSyncedFiles(LastReceivedCharacterData.DeepClone())!, forced);
     }
 

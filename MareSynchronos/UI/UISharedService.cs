@@ -851,6 +851,16 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             ImGui.TextColored(ImGuiColors.DalamudRed, "You need to install both Penumbra and Glamourer and keep them up to date to use Umbra.");
             return false;
         }
+        else if (NoSnapService.AnyLoaded)
+        {
+            IconText(FontAwesomeIcon.ExclamationTriangle, ImGuiColors.DalamudYellow);
+            ImGui.SameLine();
+            var cursorX = ImGui.GetCursorPosX();
+            ImGui.TextColored(ImGuiColors.DalamudYellow, "Synced player appearances will not apply until incompatible plugins are disabled:");
+            ImGui.SetCursorPosX(cursorX + 16.0f);
+            ImGui.TextColored(ImGuiColors.DalamudYellow, NoSnapService.ActivePlugins);
+            return false;
+        }
 
         return true;
     }

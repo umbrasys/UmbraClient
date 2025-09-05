@@ -1,10 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Dalamud.NET.Sdk/13.0.0">
-<PropertyGroup>
-  <AssemblyName>UmbraSync</AssemblyName>
-  <RootNamespace>UmbraSync</RootNamespace>
-  <Version>0.0.6</Version>
-</PropertyGroup>
+  <PropertyGroup>
+    <AssemblyName>UmbraSync</AssemblyName>
+    <Version>0.1.0.0</Version>
+    <PackageProjectUrl>https://git.umbra-sync.net/SirConstance/UmbraClient</PackageProjectUrl>
+  </PropertyGroup>
 
   <ItemGroup>
     <Compile Remove="PlayerData\Export\**" />
@@ -53,7 +53,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\UmbraAPI\MareSynchronosAPI\MareSynchronos.API.csproj" />
+    <ProjectReference Include="..\MareAPI\MareSynchronosAPI\MareSynchronos.API.csproj" />
   </ItemGroup>
 
   <ItemGroup>

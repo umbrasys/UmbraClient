@@ -8,6 +8,6 @@ public static class ConfigurationExtensions
     {
         return configuration.AcceptedAgreement && configuration.InitialScanComplete
                     && !string.IsNullOrEmpty(configuration.CacheFolder)
-                    && Directory.Exists(configuration.CacheFolder);
+                    && Directory.Exists(configuration.CacheFolder) && configuration.AcceptedTOSVersion == configuration.ExpectedTOSVersion;
     }
 }
