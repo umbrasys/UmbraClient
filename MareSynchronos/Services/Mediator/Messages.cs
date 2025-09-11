@@ -12,7 +12,7 @@ using System.Numerics;
 
 namespace MareSynchronos.Services.Mediator;
 
-#pragma warning disable MA0048 // File name must match type name
+#pragma warning disable MA0048
 #pragma warning disable S2094
 public record SwitchToIntroUiMessage : MessageBase;
 public record SwitchToMainUiMessage : MessageBase;
@@ -108,6 +108,9 @@ public record GPoseLobbyReceiveCharaData(CharaDataDownloadDto CharaDataDownloadD
 public record GPoseLobbyReceivePoseData(UserData UserData, PoseData PoseData) : MessageBase;
 public record GPoseLobbyReceiveWorldData(UserData UserData, WorldData WorldData) : MessageBase;
 
+public record NearbyEntry(string Name, ushort WorldId, float Distance, bool IsMatch, string? Token);
+public record DiscoveryListUpdated(List<NearbyEntry> Entries) : MessageBase;
+
 public record PluginChangeMessage(string InternalName, Version Version, bool IsLoaded) : KeyedMessage(InternalName);
 #pragma warning restore S2094
-#pragma warning restore MA0048 // File name must match type name
+#pragma warning restore MA0048

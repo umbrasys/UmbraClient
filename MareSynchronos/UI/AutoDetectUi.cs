@@ -17,15 +17,19 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
     private readonly MareConfigService _configService;
     private readonly DalamudUtilService _dalamud;
     private readonly IObjectTable _objectTable;
+    private readonly Services.AutoDetect.AutoDetectRequestService _requestService;
+    private List<Services.Mediator.NearbyEntry> _entries = new();
 
     public AutoDetectUi(ILogger<AutoDetectUi> logger, MareMediator mediator,
         MareConfigService configService, DalamudUtilService dalamudUtilService, IObjectTable objectTable,
+        Services.AutoDetect.AutoDetectRequestService requestService,
         PerformanceCollectorService performanceCollectorService)
         : base(logger, mediator, "Umbra Nearby", performanceCollectorService)
     {
         _configService = configService;
         _dalamud = dalamudUtilService;
         _objectTable = objectTable;
+        _requestService = requestService;
 
         Flags |= ImGuiWindowFlags.NoScrollbar;
         SizeConstraints = new WindowSizeConstraints()
@@ -43,7 +47,7 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
 
     protected override void DrawInternal()
     {
-        using var _ = ImRaii.PushId("autosync-ui");
+        using var idScope = ImRaii.PushId("autodetect-ui");
 
         if (!_configService.Current.EnableAutoDetectDiscovery)
         {
@@ -65,42 +69,79 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
         ImGuiHelpers.ScaledDummy(6);
 
         // Table header
-        if (ImGui.BeginTable("autosync-nearby", 3, ImGuiTableFlags.SizingStretchProp))
+        if (ImGui.BeginTable("autodetect-nearby", 5, ImGuiTableFlags.SizingStretchProp))
         {
             ImGui.TableSetupColumn("Name");
             ImGui.TableSetupColumn("World");
             ImGui.TableSetupColumn("Distance");
+            ImGui.TableSetupColumn("Status");
+            ImGui.TableSetupColumn("Action");
             ImGui.TableHeadersRow();
 
-            var local = _dalamud.GetPlayerCharacter();
-            var localPos = local?.Position ?? Vector3.Zero;
-
-            for (int i = 0; i < 200; i += 2)
+            var data = _entries.Count > 0 ? _entries : BuildLocalSnapshot(maxDist);
+            foreach (var e in data)
             {
-                var obj = _objectTable[i];
-                if (obj == null || obj.ObjectKind != Dalamud.Game.ClientState.Objects.Enums.ObjectKind.Player) continue;
-                if (local != null && obj.Address == local.Address) continue;
-
-                float dist = local == null ? float.NaN : Vector3.Distance(localPos, obj.Position);
-                if (!float.IsNaN(dist) && dist > maxDist) continue;
-
-                string name = obj.Name.ToString();
-                ushort worldId = 0;
-                if (obj is IPlayerCharacter pc)
+                ImGui.TableNextColumn();
+                ImGui.TextUnformatted(e.Name);
+                ImGui.TableNextColumn();
+                ImGui.TextUnformatted(e.WorldId == 0 ? "-" : (_dalamud.WorldData.Value.TryGetValue(e.WorldId, out var w) ? w : e.WorldId.ToString()));
+                ImGui.TableNextColumn();
+                ImGui.TextUnformatted(float.IsNaN(e.Distance) ? "-" : $"{e.Distance:0.0} m");
+                ImGui.TableNextColumn();
+                ImGui.TextUnformatted(e.IsMatch ? "On Umbra" : "Unknown");
+                ImGui.TableNextColumn();
+                bool allowRequests = _configService.Current.AllowAutoDetectPairRequests;
+                using (ImRaii.Disabled(!allowRequests || !e.IsMatch || string.IsNullOrEmpty(e.Token)))
                 {
-                    worldId = (ushort)pc.HomeWorld.RowId;
+                    if (ImGui.Button($"Send request##{e.Name}"))
+                    {
+                        _ = _requestService.SendRequestAsync(e.Token!);
+                    }
                 }
-                string world = worldId == 0 ? "-" : (_dalamud.WorldData.Value.TryGetValue(worldId, out var w) ? w : worldId.ToString());
-
-                ImGui.TableNextColumn();
-                ImGui.TextUnformatted(name);
-                ImGui.TableNextColumn();
-                ImGui.TextUnformatted(world);
-                ImGui.TableNextColumn();
-                ImGui.TextUnformatted(float.IsNaN(dist) ? "-" : $"{dist:0.0} m");
+                if (!allowRequests)
+                {
+                    UiSharedService.AttachToolTip("Enable 'Allow pair requests' in Settings to send a request.");
+                }
             }
 
             ImGui.EndTable();
         }
+    }
+
+    public override void OnOpen()
+    {
+        base.OnOpen();
+        Mediator.Subscribe<Services.Mediator.DiscoveryListUpdated>(this, OnDiscoveryUpdated);
+    }
+
+    public override void OnClose()
+    {
+        Mediator.Unsubscribe<Services.Mediator.DiscoveryListUpdated>(this);
+        base.OnClose();
+    }
+
+    private void OnDiscoveryUpdated(Services.Mediator.DiscoveryListUpdated msg)
+    {
+        _entries = msg.Entries;
+    }
+
+    private List<Services.Mediator.NearbyEntry> BuildLocalSnapshot(int maxDist)
+    {
+        var list = new List<Services.Mediator.NearbyEntry>();
+        var local = _dalamud.GetPlayerCharacter();
+        var localPos = local?.Position ?? Vector3.Zero;
+        for (int i = 0; i < 200; i += 2)
+        {
+            var obj = _objectTable[i];
+            if (obj == null || obj.ObjectKind != Dalamud.Game.ClientState.Objects.Enums.ObjectKind.Player) continue;
+            if (local != null && obj.Address == local.Address) continue;
+            float dist = local == null ? float.NaN : Vector3.Distance(localPos, obj.Position);
+            if (!float.IsNaN(dist) && dist > maxDist) continue;
+            string name = obj.Name.ToString();
+            ushort worldId = 0;
+            if (obj is IPlayerCharacter pc) worldId = (ushort)pc.HomeWorld.RowId;
+            list.Add(new Services.Mediator.NearbyEntry(name, worldId, dist, false, null));
+        }
+        return list;
     }
 }

@@ -96,6 +96,10 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton<HubFactory>();
             collection.AddSingleton<FileUploadManager>();
             collection.AddSingleton<FileTransferOrchestrator>();
+            collection.AddSingleton<MareSynchronos.Services.AutoDetect.DiscoveryConfigProvider>();
+            collection.AddSingleton<MareSynchronos.WebAPI.AutoDetect.DiscoveryApiClient>();
+            collection.AddSingleton<MareSynchronos.Services.AutoDetect.AutoDetectRequestService>();
+            collection.AddSingleton<MareSynchronos.Services.AutoDetect.NearbyDiscoveryService>();
             collection.AddSingleton<MarePlugin>();
             collection.AddSingleton<MareProfileManager>();
             collection.AddSingleton<GameObjectHandlerFactory>();
@@ -206,6 +210,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddHostedService(p => p.GetRequiredService<EventAggregator>());
             collection.AddHostedService(p => p.GetRequiredService<MarePlugin>());
             collection.AddHostedService(p => p.GetRequiredService<IpcProvider>());
+            collection.AddHostedService(p => p.GetRequiredService<MareSynchronos.Services.AutoDetect.NearbyDiscoveryService>());
         })
         .Build();
 

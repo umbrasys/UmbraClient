@@ -24,6 +24,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Numerics;
 using System.Reflection;
+using System.Linq;
 
 namespace MareSynchronos.UI;
 
@@ -57,6 +58,7 @@ public class CompactUi : WindowMediatorSubscriberBase
     private bool _showSyncShells;
     private bool _wasOpen;
     private bool _nearbyOpen = true;
+    private List<Services.Mediator.NearbyEntry> _nearbyEntries = new();
 
     public CompactUi(ILogger<CompactUi> logger, UiSharedService uiShared, MareConfigService configService, ApiController apiController, PairManager pairManager, ChatService chatService,
         ServerConfigurationManager serverManager, MareMediator mediator, FileUploadManager fileTransferManager, UidDisplayHandler uidDisplayHandler, CharaDataManager charaDataManager,
@@ -93,6 +95,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         Mediator.Subscribe<CutsceneEndMessage>(this, (_) => UiSharedService_GposeEnd());
         Mediator.Subscribe<DownloadStartedMessage>(this, (msg) => _currentDownloads[msg.DownloadId] = msg.DownloadStatus);
         Mediator.Subscribe<DownloadFinishedMessage>(this, (msg) => _currentDownloads.TryRemove(msg.DownloadId, out _));
+        Mediator.Subscribe<DiscoveryListUpdated>(this, (msg) => _nearbyEntries = msg.Entries);
 
         Flags |= ImGuiWindowFlags.NoDocking;
 
@@ -386,13 +389,24 @@ public class CompactUi : WindowMediatorSubscriberBase
                 _uiSharedService.IconText(icon);
                 if (ImGui.IsItemClicked(ImGuiMouseButton.Left)) _nearbyOpen = !_nearbyOpen;
                 ImGui.SameLine();
-                ImGui.TextUnformatted("Nearby (0 Players)");
+                var nearbyCount = _nearbyEntries?.Count ?? 0;
+                var onUmbra = _nearbyEntries?.Count(e => e.IsMatch) ?? 0;
+                ImGui.TextUnformatted(onUmbra > 0
+                    ? $"Nearby ({nearbyCount} — {onUmbra} on Umbra)"
+                    : $"Nearby ({nearbyCount} Players)");
                 if (ImGui.IsItemClicked(ImGuiMouseButton.Left)) _nearbyOpen = !_nearbyOpen;
 
                 if (_nearbyOpen)
                 {
                     ImGui.Indent();
-                    UiSharedService.ColorTextWrapped("No nearby players detected.", ImGuiColors.DalamudGrey3);
+                    if (nearbyCount == 0)
+                    {
+                        UiSharedService.ColorTextWrapped("No nearby players detected.", ImGuiColors.DalamudGrey3);
+                    }
+                    else
+                    {
+                        UiSharedService.ColorTextWrapped("Open Nearby for details.", ImGuiColors.DalamudGrey3);
+                    }
                     ImGui.Unindent();
                     ImGui.Separator();
                 }

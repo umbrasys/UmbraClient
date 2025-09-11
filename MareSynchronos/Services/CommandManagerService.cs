@@ -14,10 +14,8 @@ namespace MareSynchronos.Services;
 
 public sealed class CommandManagerService : IDisposable
 {
-    private const string _commandName = "/sync";
-    private const string _commandName2 = "/usync";
-
-    private const string _ssCommandPrefix = "/ss";
+    private const string _commandName = "/usync";
+    private const string _ssCommandPrefix = "/ums";
 
     private readonly ApiController _apiController;
     private readonly ICommandManager _commandManager;
@@ -42,11 +40,7 @@ public sealed class CommandManagerService : IDisposable
         _mareConfigService = mareConfigService;
         _commandManager.AddHandler(_commandName, new CommandInfo(OnCommand)
         {
-            HelpMessage = "Opens the Umbra UI"
-        });
-        _commandManager.AddHandler(_commandName2, new CommandInfo(OnCommand)
-        {
-            HelpMessage = "Opens the Umbra UI"
+            HelpMessage = "Opens the UmbraSync UI"
         });
 
         // Lazy registration of all possible /ss# commands which tbf is what the game does for linkshells anyway
@@ -62,7 +56,7 @@ public sealed class CommandManagerService : IDisposable
     public void Dispose()
     {
         _commandManager.RemoveHandler(_commandName);
-        _commandManager.RemoveHandler(_commandName2);
+
 
         for (int i = 1; i <= ChatService.CommandMaxNumber; ++i)
             _commandManager.RemoveHandler($"{_ssCommandPrefix}{i}");
@@ -147,7 +141,6 @@ public sealed class CommandManagerService : IDisposable
         }
         else
         {
-            // FIXME: Chat content seems to already be stripped of any special characters here?
             byte[] chatBytes = Encoding.UTF8.GetBytes(args);
             _chatService.SendChatShell(shellNumber, chatBytes);
         }
