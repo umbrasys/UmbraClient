@@ -212,6 +212,40 @@ public class SettingsUi : WindowMediatorSubscriberBase
         }
 
         ImGui.Separator();
+        _uiShared.BigText("Nearby");
+        bool enableDiscovery = _configService.Current.EnableAutoDetectDiscovery;
+        if (ImGui.Checkbox("Enable Nearby detection (beta)", ref enableDiscovery))
+        {
+            _configService.Current.EnableAutoDetectDiscovery = enableDiscovery;
+            _configService.Save();
+        }
+        bool allowRequests = _configService.Current.AllowAutoDetectPairRequests;
+        if (ImGui.Checkbox("Allow pair requests", ref allowRequests))
+        {
+            _configService.Current.AllowAutoDetectPairRequests = allowRequests;
+            _configService.Save();
+        }
+        if (enableDiscovery)
+        {
+            ImGui.Indent();
+            int maxMeters = _configService.Current.AutoDetectMaxDistanceMeters;
+            ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
+            if (ImGui.SliderInt("Max distance (meters)", ref maxMeters, 5, 100))
+            {
+                _configService.Current.AutoDetectMaxDistanceMeters = maxMeters;
+                _configService.Save();
+            }
+            int muteMin = _configService.Current.AutoDetectMuteMinutes;
+            ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
+            if (ImGui.SliderInt("Default mute duration (minutes)", ref muteMin, 1, 120))
+            {
+                _configService.Current.AutoDetectMuteMinutes = muteMin;
+                _configService.Save();
+            }
+            ImGui.Unindent();
+        }
+
+        ImGui.Separator();
         _uiShared.BigText("Transfer UI");
 
         bool showTransferWindow = _configService.Current.ShowTransferWindow;

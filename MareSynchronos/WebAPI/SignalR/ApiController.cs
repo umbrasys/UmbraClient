@@ -222,7 +222,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
 #endif
                 }
 
-                await LoadIninitialPairs().ConfigureAwait(false);
+                await LoadInitialPairs().ConfigureAwait(false);
                 await LoadOnlinePairs().ConfigureAwait(false);
             }
             catch (OperationCanceledException)
@@ -375,7 +375,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         _initialized = true;
     }
 
-    private async Task LoadIninitialPairs()
+    private async Task LoadInitialPairs()
     {
         foreach (var userPair in await UserGetPairedClients().ConfigureAwait(false))
         {
@@ -435,7 +435,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
                 return;
             }
             ServerState = ServerState.Connected;
-            await LoadIninitialPairs().ConfigureAwait(false);
+            await LoadInitialPairs().ConfigureAwait(false);
             await LoadOnlinePairs().ConfigureAwait(false);
             Mediator.Publish(new ConnectedMessage(_connectionDto));
         }

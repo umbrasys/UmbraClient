@@ -59,6 +59,10 @@ public class MareConfig : IMareConfiguration
     public bool ShowUploading { get; set; } = true;
     public bool ShowUploadingBigText { get; set; } = true;
     public bool ShowVisibleUsersSeparately { get; set; } = true;
+    public bool EnableAutoDetectDiscovery { get; set; } = false;
+    public bool AllowAutoDetectPairRequests { get; set; } = false;
+    public int AutoDetectMaxDistanceMeters { get; set; } = 40;
+    public int AutoDetectMuteMinutes { get; set; } = 5;
     public int TimeSpanBetweenScansInSeconds { get; set; } = 30;
     public int TransferBarsHeight { get; set; } = 12;
     public bool TransferBarsShowText { get; set; } = true;

@@ -49,7 +49,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
 
     public List<FileTransfer> ForbiddenTransfers => _orchestrator.ForbiddenTransfers;
 
-    public bool IsDownloading => !CurrentDownloads.Any();
+    public bool IsDownloading => CurrentDownloads.Any();
 
     public void ClearDownload()
     {

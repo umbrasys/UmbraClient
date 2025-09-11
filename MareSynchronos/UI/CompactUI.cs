@@ -56,11 +56,12 @@ public class CompactUi : WindowMediatorSubscriberBase
     private bool _showModalForUserAddition;
     private bool _showSyncShells;
     private bool _wasOpen;
+    private bool _nearbyOpen = true;
 
     public CompactUi(ILogger<CompactUi> logger, UiSharedService uiShared, MareConfigService configService, ApiController apiController, PairManager pairManager, ChatService chatService,
         ServerConfigurationManager serverManager, MareMediator mediator, FileUploadManager fileTransferManager, UidDisplayHandler uidDisplayHandler, CharaDataManager charaDataManager,
         PerformanceCollectorService performanceCollectorService)
-        : base(logger, mediator, "###UmbraSyncSyncMainUI", performanceCollectorService)
+        : base(logger, mediator, "###UmbraSyncMainUI", performanceCollectorService)
     {
         _uiSharedService = uiShared;
         _configService = configService;
@@ -80,11 +81,11 @@ public class CompactUi : WindowMediatorSubscriberBase
 #if DEBUG
         string dev = "Dev Build";
         var ver = Assembly.GetExecutingAssembly().GetName().Version!;
-        WindowName = $"UmbraSync {dev} ({ver.Major}.{ver.Minor}.{ver.Build})###UmbraSyncSyncMainUIDev";
+        WindowName = $"UmbraSync {dev} ({ver.Major}.{ver.Minor}.{ver.Build})###UmbraSyncMainUIDev";
         Toggle();
 #else
         var ver = Assembly.GetExecutingAssembly().GetName().Version!;
-        WindowName = "UmbraSync " + ver.Major + "." + ver.Minor + "." + ver.Build + "###UmbraSyncSyncMainUI";
+        WindowName = "UmbraSync " + ver.Major + "." + ver.Minor + "." + ver.Build + "###UmbracSyncMainUI";
 #endif
         Mediator.Subscribe<SwitchToMainUiMessage>(this, (_) => IsOpen = true);
         Mediator.Subscribe<SwitchToIntroUiMessage>(this, (_) => IsOpen = false);
@@ -104,7 +105,7 @@ public class CompactUi : WindowMediatorSubscriberBase
 
     protected override void DrawInternal()
     {
-        UiSharedService.AccentColor = new Vector4(0.2f, 0.6f, 1f, 1f); // custom blue
+        UiSharedService.AccentColor = new Vector4(0.63f, 0.25f, 1f, 1f);
         ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGui.GetStyle().WindowPadding.Y - 1f * ImGuiHelpers.GlobalScale + ImGui.GetStyle().ItemSpacing.Y);
         WindowContentWidth = UiSharedService.GetWindowContentRegionWidth();
         if (!_apiController.IsCurrentVersion)
@@ -176,6 +177,14 @@ public class CompactUi : WindowMediatorSubscriberBase
             }
             ImGui.Separator();
             using (ImRaii.PushId("transfers")) DrawTransfers();
+            using (ImRaii.PushId("autosync"))
+            {
+                ImGui.SameLine();
+                if (_uiSharedService.IconTextButton(FontAwesomeIcon.UserPlus, "Nearby", (WindowContentWidth - ImGui.GetStyle().ItemSpacing.X) / 2))
+                {
+                    Mediator.Publish(new UiToggleMessage(typeof(AutoDetectUi)));
+                }
+            }
             TransferPartHeight = ImGui.GetCursorPosY() - TransferPartHeight;
             using (ImRaii.PushId("group-user-popup")) _selectPairsForGroupUi.Draw(_pairManager.DirectPairs);
             using (ImRaii.PushId("grouping-popup")) _selectGroupForPairUi.Draw();
@@ -367,6 +376,29 @@ public class CompactUi : WindowMediatorSubscriberBase
 
         _pairGroupsUi.Draw(visibleUsers, onlineUsers, offlineUsers);
 
+        // Always show a Nearby group when detection is enabled, even if empty
+        if (_configService.Current.EnableAutoDetectDiscovery)
+        {
+            ImGui.Separator();
+            using (ImRaii.PushId("group-Nearby"))
+            {
+                var icon = _nearbyOpen ? FontAwesomeIcon.CaretSquareDown : FontAwesomeIcon.CaretSquareRight;
+                _uiSharedService.IconText(icon);
+                if (ImGui.IsItemClicked(ImGuiMouseButton.Left)) _nearbyOpen = !_nearbyOpen;
+                ImGui.SameLine();
+                ImGui.TextUnformatted("Nearby (0 Players)");
+                if (ImGui.IsItemClicked(ImGuiMouseButton.Left)) _nearbyOpen = !_nearbyOpen;
+
+                if (_nearbyOpen)
+                {
+                    ImGui.Indent();
+                    UiSharedService.ColorTextWrapped("No nearby players detected.", ImGuiColors.DalamudGrey3);
+                    ImGui.Unindent();
+                    ImGui.Separator();
+                }
+            }
+        }
+
         ImGui.EndChild();
     }
 
@@ -384,7 +416,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         {
             ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()) / 2 - (userSize.X + textSize.X) / 2 - ImGui.GetStyle().ItemSpacing.X / 2);
             if (!printShard) ImGui.AlignTextToFramePadding();
-            ImGui.TextColored(ImGuiColors.ParsedBlue, userCount);
+            ImGui.TextColored(UiSharedService.AccentColor, userCount);
             ImGui.SameLine();
             if (!printShard) ImGui.AlignTextToFramePadding();
             ImGui.TextUnformatted("Users Online");
@@ -592,7 +624,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         {
             ServerState.Connecting => ImGuiColors.DalamudYellow,
             ServerState.Reconnecting => ImGuiColors.DalamudRed,
-            ServerState.Connected => new Vector4(0.2f, 0.6f, 1f, 1f), // custom blue
+            ServerState.Connected => new Vector4(0.63f, 0.25f, 1f, 1f), // custom violet
             ServerState.Disconnected => ImGuiColors.DalamudYellow,
             ServerState.Disconnecting => ImGuiColors.DalamudYellow,
             ServerState.Unauthorized => ImGuiColors.DalamudRed,
