@@ -50,7 +50,7 @@ public class DiscoveryConfigProvider
             root.NearbyDiscovery?.Hydrate();
             _config = root;
             _lastLoad = DateTimeOffset.UtcNow;
-            _logger.LogDebug("Loaded Nearby well-known (stapled), enabled={enabled}", NearbyEnabled);
+            _logger.LogInformation("Loaded Nearby well-known (stapled), enabled={enabled}, expires={exp}", NearbyEnabled, _config?.NearbyDiscovery?.SaltExpiresAt);
             return true;
         }
         catch (Exception ex)

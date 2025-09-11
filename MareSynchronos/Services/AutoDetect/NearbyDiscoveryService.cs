@@ -25,6 +25,9 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
     private bool _loggedLocalOnly;
     private int _lastLocalCount = -1;
     private int _lastMatchCount = -1;
+    private bool _loggedConfigReady;
+    private string? _lastSnapshotSig;
+    private volatile bool _isConnected;
 
     public NearbyDiscoveryService(ILogger<NearbyDiscoveryService> logger, MareMediator mediator,
         MareConfigService config, DiscoveryConfigProvider configProvider, DalamudUtilService dalamudUtilService,
@@ -44,7 +47,8 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
     public Task StartAsync(CancellationToken cancellationToken)
     {
         _loopCts = new CancellationTokenSource();
-        _mediator.Subscribe<ConnectedMessage>(this, _ => _configProvider.TryLoadFromStapled());
+        _mediator.Subscribe<ConnectedMessage>(this, _ => { _isConnected = true; _configProvider.TryLoadFromStapled(); });
+        _mediator.Subscribe<DisconnectedMessage>(this, _ => { _isConnected = false; _lastPublishedSignature = null; });
         _ = Task.Run(() => Loop(_loopCts.Token));
         return Task.CompletedTask;
     }
@@ -65,7 +69,7 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
         {
             try
             {
-                if (!_config.Current.EnableAutoDetectDiscovery || !_dalamud.IsLoggedIn)
+                if (!_config.Current.EnableAutoDetectDiscovery || !_dalamud.IsLoggedIn || !_isConnected)
                 {
                     await Task.Delay(1000, ct).ConfigureAwait(false);
                     continue;
@@ -78,6 +82,11 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                     {
                         await _configProvider.TryFetchFromServerAsync(ct).ConfigureAwait(false);
                     }
+                }
+                else if (!_loggedConfigReady && _configProvider.NearbyEnabled)
+                {
+                    _loggedConfigReady = true;
+                    _logger.LogInformation("Nearby: well-known loaded and enabled; refresh={refresh}s, expires={exp}", _configProvider.RefreshSec, _configProvider.SaltExpiresAt);
                 }
 
                 var entries = await GetLocalNearbyAsync().ConfigureAwait(false);
@@ -95,7 +104,7 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                     try
                     {
                         var saltHex = Convert.ToHexString(_configProvider.Salt!);
-                        // map hash->index for result matching and reuse for publish
+                        // map hash->index for result matching
                         Dictionary<string, int> hashToIndex = new(StringComparer.Ordinal);
                         List<string> hashes = new(entries.Count);
                         foreach (var (entry, idx) in entries.Select((e, i) => (e, i)))
@@ -105,35 +114,63 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                             hashes.Add(h);
                         }
 
-                        // Publish local snapshot if endpoint is available (deduplicated)
+                        // Debug snapshot once per change
+                        try
+                        {
+                            var snapSig = string.Join(',', hashes.OrderBy(s => s, StringComparer.Ordinal)).GetHash256();
+                            if (!string.Equals(snapSig, _lastSnapshotSig, StringComparison.Ordinal))
+                            {
+                                _lastSnapshotSig = snapSig;
+                                var sample = entries.Take(5).Select(e =>
+                                {
+                                    var hh = (saltHex + e.Name + e.WorldId.ToString()).GetHash256();
+                                    var shortH = hh.Length > 8 ? hh[..8] : hh;
+                                    return $"{e.Name}({e.WorldId})->{shortH}";
+                                });
+                                var saltShort = saltHex.Length > 8 ? saltHex[..8] : saltHex;
+                                _logger.LogInformation("Nearby snapshot: {count} entries; salt={saltShort}…; samples=[{samples}]",
+                                    entries.Count, saltShort, string.Join(", ", sample));
+                            }
+                        }
+                        catch { }
+
+                        // Publish OUR presence (own hash) if endpoint is available (deduplicated)
                         if (!string.IsNullOrEmpty(_configProvider.PublishEndpoint))
                         {
                             string? displayName = null;
+                            string? selfHash = null;
                             try
                             {
                                 var me = await _dalamud.RunOnFrameworkThread(() => _dalamud.GetPlayerCharacter()).ConfigureAwait(false);
                                 if (me != null)
                                 {
                                     displayName = me.Name.TextValue;
+                                    ushort meWorld = 0;
+                                    if (me is Dalamud.Game.ClientState.Objects.SubKinds.IPlayerCharacter mePc)
+                                        meWorld = (ushort)mePc.HomeWorld.RowId;
+                                    _logger.LogInformation("Nearby self ident: {name} ({world})", displayName, meWorld);
+                                    selfHash = (saltHex + displayName + meWorld.ToString()).GetHash256();
                                 }
                             }
                             catch { /* ignore */ }
 
-                            if (hashes.Count > 0)
+                            if (!string.IsNullOrEmpty(selfHash))
                             {
-                                var sig = string.Join(',', hashes.OrderBy(s => s, StringComparer.Ordinal)).GetHash256();
+                                var sig = selfHash!;
                                 if (!string.Equals(sig, _lastPublishedSignature, StringComparison.Ordinal))
                                 {
                                     _lastPublishedSignature = sig;
-                                    _logger.LogDebug("Nearby publish: {count} hashes (updated)", hashes.Count);
-                                    _ = _api.PublishAsync(_configProvider.PublishEndpoint!, hashes, displayName, ct);
+                                    var shortSelf = selfHash!.Length > 8 ? selfHash[..8] : selfHash;
+                                    _logger.LogInformation("Nearby publish: self presence updated (hash={hash})", shortSelf);
+                                    var ok = await _api.PublishAsync(_configProvider.PublishEndpoint!, new[] { selfHash! }, displayName, ct).ConfigureAwait(false);
+                                    _logger.LogInformation("Nearby publish result: {result}", ok ? "success" : "failed");
                                 }
                                 else
                                 {
                                     _logger.LogDebug("Nearby publish skipped (no changes)");
                                 }
                             }
-                            // else: no local entries; skip publish silently
+                            // else: no self character available; skip publish silently
                         }
 
                         // Query for matches if endpoint is available
@@ -160,6 +197,7 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                                     }
                                 }
                             }
+                            _logger.LogInformation("Nearby: server returned {count} matches", allMatches.Count);
 
                             // Log change in number of Umbra matches
                             int matchCount = entries.Count(e => e.IsMatch);
@@ -206,7 +244,8 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
             var localPos = local?.Position ?? Vector3.Zero;
             int maxDist = Math.Clamp(_config.Current.AutoDetectMaxDistanceMeters, 5, 100);
 
-            for (int i = 0; i < 200; i += 2)
+            int limit = Math.Min(200, _objectTable.Length);
+            for (int i = 0; i < limit; i++)
             {
                 var obj = await _dalamud.RunOnFrameworkThread(() => _objectTable[i]).ConfigureAwait(false);
                 if (obj == null || obj.ObjectKind != Dalamud.Game.ClientState.Objects.Enums.ObjectKind.Player) continue;
@@ -215,7 +254,7 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                 float dist = local == null ? float.NaN : Vector3.Distance(localPos, obj.Position);
                 if (!float.IsNaN(dist) && dist > maxDist) continue;
 
-                string name = obj.Name.ToString();
+                string name = obj.Name.TextValue;
                 ushort worldId = 0;
                 if (obj is Dalamud.Game.ClientState.Objects.SubKinds.IPlayerCharacter pc)
                     worldId = (ushort)pc.HomeWorld.RowId;

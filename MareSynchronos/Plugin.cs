@@ -100,6 +100,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton<MareSynchronos.WebAPI.AutoDetect.DiscoveryApiClient>();
             collection.AddSingleton<MareSynchronos.Services.AutoDetect.AutoDetectRequestService>();
             collection.AddSingleton<MareSynchronos.Services.AutoDetect.NearbyDiscoveryService>();
+            collection.AddSingleton<MareSynchronos.Services.AutoDetect.NearbyPendingService>();
             collection.AddSingleton<MarePlugin>();
             collection.AddSingleton<MareProfileManager>();
             collection.AddSingleton<GameObjectHandlerFactory>();

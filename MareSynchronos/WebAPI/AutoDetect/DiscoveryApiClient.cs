@@ -11,6 +11,7 @@ public class DiscoveryApiClient
     private readonly ILogger<DiscoveryApiClient> _logger;
     private readonly TokenProvider _tokenProvider;
     private readonly HttpClient _httpClient = new();
+    private static readonly JsonSerializerOptions JsonOpt = new() { PropertyNameCaseInsensitive = true };
 
     public DiscoveryApiClient(ILogger<DiscoveryApiClient> logger, TokenProvider tokenProvider)
     {
@@ -32,7 +33,7 @@ public class DiscoveryApiClient
             var resp = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
             resp.EnsureSuccessStatusCode();
             var json = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
-            var result = JsonSerializer.Deserialize<List<ServerMatch>>(json) ?? [];
+            var result = JsonSerializer.Deserialize<List<ServerMatch>>(json, JsonOpt) ?? [];
             return result;
         }
         catch (Exception ex)
@@ -42,7 +43,7 @@ public class DiscoveryApiClient
         }
     }
 
-    public async Task<bool> SendRequestAsync(string endpoint, string token, CancellationToken ct)
+    public async Task<bool> SendRequestAsync(string endpoint, string token, string? displayName, CancellationToken ct)
     {
         try
         {
@@ -50,10 +51,17 @@ public class DiscoveryApiClient
             if (string.IsNullOrEmpty(jwt)) return false;
             using var req = new HttpRequestMessage(HttpMethod.Post, endpoint);
             req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
-            var body = JsonSerializer.Serialize(new { token });
+            var body = JsonSerializer.Serialize(new { token, displayName });
             req.Content = new StringContent(body, Encoding.UTF8, "application/json");
             var resp = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
-            return resp.IsSuccessStatusCode;
+            if (!resp.IsSuccessStatusCode)
+            {
+                string txt = string.Empty;
+                try { txt = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false); } catch { }
+                _logger.LogWarning("Discovery request failed: {code} {reason} {body}", (int)resp.StatusCode, resp.ReasonPhrase, txt);
+                return false;
+            }
+            return true;
         }
         catch (Exception ex)
         {

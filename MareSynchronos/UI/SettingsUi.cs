@@ -212,7 +212,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         }
 
         ImGui.Separator();
-        _uiShared.BigText("Nearby");
+        _uiShared.BigText("AutoDetect");
         bool enableDiscovery = _configService.Current.EnableAutoDetectDiscovery;
         if (ImGui.Checkbox("Enable Nearby detection (beta)", ref enableDiscovery))
         {

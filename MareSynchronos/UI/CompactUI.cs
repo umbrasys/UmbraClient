@@ -44,6 +44,7 @@ public class CompactUi : WindowMediatorSubscriberBase
     private readonly ServerConfigurationManager _serverManager;
     private readonly Stopwatch _timeout = new();
     private readonly CharaDataManager _charaDataManager;
+    private readonly Services.AutoDetect.NearbyPendingService _nearbyPending;
     private readonly UidDisplayHandler _uidDisplayHandler;
     private readonly UiSharedService _uiSharedService;
     private bool _buttonState;
@@ -62,6 +63,7 @@ public class CompactUi : WindowMediatorSubscriberBase
 
     public CompactUi(ILogger<CompactUi> logger, UiSharedService uiShared, MareConfigService configService, ApiController apiController, PairManager pairManager, ChatService chatService,
         ServerConfigurationManager serverManager, MareMediator mediator, FileUploadManager fileTransferManager, UidDisplayHandler uidDisplayHandler, CharaDataManager charaDataManager,
+        Services.AutoDetect.NearbyPendingService nearbyPendingService,
         PerformanceCollectorService performanceCollectorService)
         : base(logger, mediator, "###UmbraSyncMainUI", performanceCollectorService)
     {
@@ -73,6 +75,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         _fileTransferManager = fileTransferManager;
         _uidDisplayHandler = uidDisplayHandler;
         _charaDataManager = charaDataManager;
+        _nearbyPending = nearbyPendingService;
         var tagHandler = new TagHandler(_serverManager);
 
         _groupPanel = new(this, uiShared, _pairManager, chatService, uidDisplayHandler, _configService, _serverManager, _charaDataManager);
@@ -180,14 +183,6 @@ public class CompactUi : WindowMediatorSubscriberBase
             }
             ImGui.Separator();
             using (ImRaii.PushId("transfers")) DrawTransfers();
-            using (ImRaii.PushId("autosync"))
-            {
-                ImGui.SameLine();
-                if (_uiSharedService.IconTextButton(FontAwesomeIcon.UserPlus, "Nearby", (WindowContentWidth - ImGui.GetStyle().ItemSpacing.X) / 2))
-                {
-                    Mediator.Publish(new UiToggleMessage(typeof(AutoDetectUi)));
-                }
-            }
             TransferPartHeight = ImGui.GetCursorPosY() - TransferPartHeight;
             using (ImRaii.PushId("group-user-popup")) _selectPairsForGroupUi.Draw(_pairManager.DirectPairs);
             using (ImRaii.PushId("grouping-popup")) _selectGroupForPairUi.Draw();
@@ -396,6 +391,16 @@ public class CompactUi : WindowMediatorSubscriberBase
                     : $"Nearby ({nearbyCount} Players)");
                 if (ImGui.IsItemClicked(ImGuiMouseButton.Left)) _nearbyOpen = !_nearbyOpen;
 
+                // Header action button to open Nearby window
+                var btnWidth = _uiSharedService.GetIconTextButtonSize(FontAwesomeIcon.UserPlus, "Nearby");
+                var headerRight = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth();
+                ImGui.SameLine();
+                ImGui.SetCursorPosX(headerRight - btnWidth);
+                if (_uiSharedService.IconTextButton(FontAwesomeIcon.UserPlus, "Nearby", btnWidth))
+                {
+                    Mediator.Publish(new UiToggleMessage(typeof(AutoDetectUi)));
+                }
+
                 if (_nearbyOpen)
                 {
                     ImGui.Indent();
@@ -407,6 +412,34 @@ public class CompactUi : WindowMediatorSubscriberBase
                     {
                         UiSharedService.ColorTextWrapped("Open Nearby for details.", ImGuiColors.DalamudGrey3);
                     }
+                    // Pending Nearby requests (Accept / Dismiss)
+                    try
+                    {
+                        var inbox = _nearbyPending;
+                        if (inbox != null && inbox.Pending.Count > 0)
+                        {
+                            ImGuiHelpers.ScaledDummy(6);
+                            _uiSharedService.BigText("Requests");
+                            foreach (var kv in inbox.Pending)
+                            {
+                                ImGui.AlignTextToFramePadding();
+                                ImGui.TextUnformatted($"{kv.Value} [{kv.Key}]");
+                                ImGui.SameLine();
+                                if (_uiSharedService.IconButton(FontAwesomeIcon.Check))
+                                {
+                                    _ = inbox.AcceptAsync(kv.Key);
+                                }
+                                UiSharedService.AttachToolTip("Accept and add as pair");
+                                ImGui.SameLine();
+                                if (_uiSharedService.IconButton(FontAwesomeIcon.Times))
+                                {
+                                    inbox.Remove(kv.Key);
+                                }
+                                UiSharedService.AttachToolTip("Dismiss request");
+                            }
+                        }
+                    }
+                    catch { }
                     ImGui.Unindent();
                     ImGui.Separator();
                 }
@@ -530,21 +563,20 @@ public class CompactUi : WindowMediatorSubscriberBase
             ImGui.TextUnformatted(downloadText);
         }
 
-        var bottomButtonWidth = (WindowContentWidth - ImGui.GetStyle().ItemSpacing.X) / 2;
-
+        // Space for three equal-width buttons laid out precisely (avoid overlap/wrap)
+        var spacing = ImGui.GetStyle().ItemSpacing.X;
+        var bottomButtonWidth = (WindowContentWidth - spacing) / 2f;
         if (_uiSharedService.IconTextButton(FontAwesomeIcon.PersonCircleQuestion, "Character Analysis", bottomButtonWidth))
         {
             Mediator.Publish(new UiToggleMessage(typeof(DataAnalysisUi)));
         }
 
         ImGui.SameLine();
-
         if (_uiSharedService.IconTextButton(FontAwesomeIcon.Running, "Character Data Hub", bottomButtonWidth))
         {
             Mediator.Publish(new UiToggleMessage(typeof(CharaDataHubUi)));
         }
-
-        ImGui.SameLine();
+        ImGuiHelpers.ScaledDummy(2);
     }
 
     private void DrawUIDHeader()
