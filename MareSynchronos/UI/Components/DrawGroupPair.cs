@@ -44,10 +44,6 @@ public class DrawGroupPair : DrawPairBase
         var presenceText = entryUID + " is offline";
 
         ImGui.SetCursorPosY(textPosY);
-
-        // We'll draw an optional prefix icon (pause or paired-moon). If we draw one,
-        // we add a SameLine() before drawing the presence icon. Otherwise, we draw
-        // the presence icon directly at the current cursor position to avoid gaps.
         bool drewPrefixIcon = false;
 
         if (_pair.IsPaused)
@@ -65,9 +61,6 @@ public class DrawGroupPair : DrawPairBase
         {
             bool individuallyPaired = _pair.UserPair != null;
             var violet = new Vector4(0.63f, 0.25f, 1f, 1f);
-
-            // Show a violet moon only when individually paired AND online/visible.
-            // If offline or not individually paired, do not draw a moon at all.
             if (individuallyPaired && (_pair.IsOnline || _pair.IsVisible))
             {
                 ImGui.PushFont(UiBuilder.IconFont);
@@ -77,8 +70,6 @@ public class DrawGroupPair : DrawPairBase
                 drewPrefixIcon = true;
             }
         }
-
-        // Presence status icon (eye when visible, cloud-moon otherwise)
         if (drewPrefixIcon)
             ImGui.SameLine();
 

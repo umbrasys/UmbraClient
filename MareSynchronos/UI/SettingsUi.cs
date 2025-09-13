@@ -547,7 +547,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
             if (ImGui.Checkbox($"Enable chat for this syncshell##{gid}", ref shellEnabled))
             {
-                // If there is an active group with the same syncshell number, pick a new one
                 int nextNumber = 1;
                 bool conflict = false;
                 foreach (var otherGroup in _pairManager.Groups)
@@ -567,17 +566,13 @@ public class SettingsUi : WindowMediatorSubscriberBase
             using var pushDisabled = ImRaii.Disabled(!shellEnabled);
 
             ImGui.SetNextItemWidth(50 * ImGuiHelpers.GlobalScale);
-
-            // _uiShared.DrawCombo() remembers the selected option -- we don't want that, because the value can change
             if (ImGui.BeginCombo("Syncshell number##{gid}", $"{shellNumber}"))
             {
-                // Same hard-coded number in CommandManagerService
                 for (int i = 1; i <= ChatService.CommandMaxNumber; ++i)
                 {
                     if (ImGui.Selectable($"{i}", i == shellNumber))
                     {
-                        // Find an active group with the same syncshell number as selected, and swap it
-                        // This logic can leave duplicate IDs present in the config but its not critical
+
                         foreach (var otherGroup in _pairManager.Groups)
                         {
                             if (gid.Equals(otherGroup.Key.GID, StringComparison.Ordinal)) continue;
@@ -1665,8 +1660,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
                         string selectedKeyName = string.Empty;
                         if (selectedServer.SecretKeys.TryGetValue(item.SecretKeyIdx, out var selectedKey))
                             selectedKeyName = selectedKey.FriendlyName;
-
-                        // _uiShared.DrawCombo() remembers the selected option -- we don't want that, because the value can change
                         if (ImGui.BeginCombo($"##{item.CharacterName}{i}", selectedKeyName))
                         {
                             foreach (var key in selectedServer.SecretKeys)
@@ -1945,7 +1938,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 ImGui.BeginDisabled(_registrationInProgress);
                 DrawServerConfiguration();
                 ImGui.EndTabItem();
-                ImGui.EndDisabled(); // _registrationInProgress
+                ImGui.EndDisabled();
             }
 
             if (ImGui.BeginTabItem("Chat"))

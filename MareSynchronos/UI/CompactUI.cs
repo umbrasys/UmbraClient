@@ -386,8 +386,6 @@ public class CompactUi : WindowMediatorSubscriberBase
                 var onUmbra = _nearbyEntries?.Count(e => e.IsMatch) ?? 0;
                 ImGui.TextUnformatted($"Nearby ({onUmbra})");
                 if (ImGui.IsItemClicked(ImGuiMouseButton.Left)) _nearbyOpen = !_nearbyOpen;
-
-                // Header action button to open Nearby window
                 var btnWidth = _uiSharedService.GetIconTextButtonSize(FontAwesomeIcon.UserPlus, "Nearby");
                 var headerRight = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth();
                 ImGui.SameLine();
@@ -413,16 +411,12 @@ public class CompactUi : WindowMediatorSubscriberBase
                     {
                         foreach (var e in nearby)
                         {
-                            // name
                             var name = e.DisplayName ?? e.Name;
                             ImGui.AlignTextToFramePadding();
                             ImGui.TextUnformatted(name);
-
-                            // right side status/action
                             var right = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth();
                             ImGui.SameLine();
 
-                            // detect if already paired (prefer UID if present)
                             bool isPaired = false;
                             try
                             {
@@ -430,7 +424,6 @@ public class CompactUi : WindowMediatorSubscriberBase
                             }
                             catch
                             {
-                                // fall back to display name/alias matching if UID is not available
                                 var key = (e.DisplayName ?? e.Name) ?? string.Empty;
                                 isPaired = _pairManager.DirectPairs.Any(p => string.Equals(p.UserData.AliasOrUID, key, StringComparison.OrdinalIgnoreCase));
                             }
@@ -441,12 +434,10 @@ public class CompactUi : WindowMediatorSubscriberBase
 
                             if (isPaired || !e.AcceptPairRequests)
                             {
-                                // just paint the status
                                 ImGui.TextUnformatted(statusText);
                             }
                             else
                             {
-                                // no direct send from Compact; open Nearby window to send the invite there
                                 if (_uiSharedService.IconTextButton(FontAwesomeIcon.UserPlus, "Invite", statusSize.X))
                                 {
                                     Mediator.Publish(new UiToggleMessage(typeof(AutoDetectUi)));
@@ -454,8 +445,6 @@ public class CompactUi : WindowMediatorSubscriberBase
                             }
                         }
                     }
-
-                    // Pending Nearby requests (Accept / Dismiss)
                     try
                     {
                         var inbox = _nearbyPending;
@@ -606,8 +595,6 @@ public class CompactUi : WindowMediatorSubscriberBase
             ImGui.SameLine(WindowContentWidth - textSize.X);
             ImGui.TextUnformatted(downloadText);
         }
-
-        // Space for three equal-width buttons laid out precisely (avoid overlap/wrap)
         var spacing = ImGui.GetStyle().ItemSpacing.X;
         var bottomButtonWidth = (WindowContentWidth - spacing) / 2f;
         if (_uiSharedService.IconTextButton(FontAwesomeIcon.PersonCircleQuestion, "Character Analysis", bottomButtonWidth))
@@ -646,7 +633,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         }
         UiSharedService.AttachToolTip("Open the UmbraSync Settings");
 
-        ImGui.SameLine(); //Important to draw the uidText consistently
+        ImGui.SameLine();
         ImGui.SetCursorPos(originalPos);
 
         if (_apiController.ServerState is ServerState.Connected)

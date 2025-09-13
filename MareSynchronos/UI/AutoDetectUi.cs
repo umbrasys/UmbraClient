@@ -46,7 +46,6 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
 
     public override bool DrawConditions()
     {
-        // Visible when explicitly opened; allow drawing even if discovery is disabled to show hint
         return true;
     }
 
@@ -168,8 +167,6 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
                         return true;
                 }
             }
-
-            // 2) Fallback on alias/name (legacy compatibility)
             var key = NormalizeKey(e.DisplayName ?? e.Name);
             if (string.IsNullOrEmpty(key)) return false;
             foreach (var p in _pairManager.DirectPairs)
@@ -180,7 +177,6 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
         }
         catch
         {
-            // ignore
         }
         return false;
     }

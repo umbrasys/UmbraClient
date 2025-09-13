@@ -14,7 +14,6 @@ public class DiscoveryApiClient
     private readonly DiscoveryConfigProvider _configProvider;
     private readonly HttpClient _httpClient = new();
     private static readonly JsonSerializerOptions JsonOpt = new() { PropertyNameCaseInsensitive = true };
-    // private readonly ISaltProvider _saltProvider; // For future use if needed
 
     public DiscoveryApiClient(ILogger<DiscoveryApiClient> logger, TokenProvider tokenProvider, DiscoveryConfigProvider configProvider)
     {
@@ -41,7 +40,6 @@ public class DiscoveryApiClient
             var resp = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
             if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
-                // Retry once with a fresh token
                 var token2 = await _tokenProvider.GetOrUpdateToken(ct).ConfigureAwait(false);
                 if (string.IsNullOrEmpty(token2)) return [];
                 using var req2 = new HttpRequestMessage(HttpMethod.Post, endpoint);
@@ -178,7 +176,6 @@ public class DiscoveryApiClient
             if (string.IsNullOrEmpty(jwt)) return;
             using var req = new HttpRequestMessage(HttpMethod.Post, endpoint);
             req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
-            // no body required
             var resp = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
             if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {

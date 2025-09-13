@@ -38,9 +38,7 @@ public class DrawUserPair : DrawPairBase
 
     protected override void DrawLeftSide(float textPosY, float originalY)
     {
-        // Primary presence indicator: moon (online = violet, offline = grey)
         var online = _pair.IsOnline;
-        // Violet accent (#BA70EF)
         var violet = new Vector4(0.69f, 0.27f, 0.93f, 1f);
         var offlineGrey = ImGuiColors.DalamudGrey3;
 
@@ -51,9 +49,6 @@ public class DrawUserPair : DrawPairBase
         UiSharedService.AttachToolTip(online
             ? "User is online"
             : "User is offline");
-
-        // Secondary pairing state badges (only if needed)
-        // Not mutually paired -> red ArrowUp
         if (!(_pair.UserPair!.OwnPermissions.IsPaired() && _pair.UserPair!.OtherPermissions.IsPaired()))
         {
             ImGui.SameLine();
@@ -63,7 +58,6 @@ public class DrawUserPair : DrawPairBase
             ImGui.PopFont();
             UiSharedService.AttachToolTip(_pair.UserData.AliasOrUID + " has not added you back");
         }
-        // Paused (either side) -> yellow PauseCircle
         else if (_pair.UserPair!.OwnPermissions.IsPaused() || _pair.UserPair!.OtherPermissions.IsPaused())
         {
             ImGui.SameLine();
@@ -149,8 +143,6 @@ public class DrawUserPair : DrawPairBase
             var individualSoundsDisabled = (_pair.UserPair?.OwnPermissions.IsDisableSounds() ?? false) || (_pair.UserPair?.OtherPermissions.IsDisableSounds() ?? false);
             var individualAnimDisabled = (_pair.UserPair?.OwnPermissions.IsDisableAnimations() ?? false) || (_pair.UserPair?.OtherPermissions.IsDisableAnimations() ?? false);
             var individualVFXDisabled = (_pair.UserPair?.OwnPermissions.IsDisableVFX() ?? false) || (_pair.UserPair?.OtherPermissions.IsDisableVFX() ?? false);
-
-            // Icon for individually applied permissions
             if (individualSoundsDisabled || individualAnimDisabled || individualVFXDisabled)
             {
                 var icon = FontAwesomeIcon.ExclamationTriangle;
@@ -205,8 +197,6 @@ public class DrawUserPair : DrawPairBase
                 }
             }
         }
-
-        // Icon for shared character data
         if (_charaDataManager.SharedWithYouData.TryGetValue(_pair.UserData, out var sharedData))
         {
             var icon = FontAwesomeIcon.Running;

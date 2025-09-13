@@ -54,17 +54,12 @@ public class PairGroupsUi
         ImGui.SameLine(buttonPauseOffset);
         if (_uiSharedService.IconButton(pauseButton))
         {
-            // If all of the currently visible pairs (after applying filters to the pairs)
-            // are paused we display a resume button to resume all currently visible (after filters)
-            // pairs. Otherwise, we just pause all the remaining pairs.
             if (allArePaused)
             {
-                // If all are paused => resume all
                 ResumeAllPairs(availablePairsInThisTag);
             }
             else
             {
-                // otherwise pause all remaining
                 PauseRemainingPairs(availablePairsInThisTag);
             }
         }
@@ -120,7 +115,6 @@ public class PairGroupsUi
         }
         else
         {
-            // Avoid uncomfortably close group names
             if (!_tagHandler.IsTagOpen(tag))
             {
                 var size = ImGui.CalcTextSize("").Y + ImGui.GetStyle().FramePadding.Y * 2f;
@@ -163,8 +157,6 @@ public class PairGroupsUi
         };
 
         string resultFolderName = !isSpecialTag ? $"{displayedName} ({visible}/{online}/{total} Pairs)" : $"{displayedName} ({online} Pairs)";
-
-        //  FontAwesomeIcon.CaretSquareDown : FontAwesomeIcon.CaretSquareRight
         var icon = _tagHandler.IsTagOpen(tag) ? FontAwesomeIcon.CaretSquareDown : FontAwesomeIcon.CaretSquareRight;
         _uiSharedService.IconText(icon);
         if (ImGui.IsItemClicked(ImGuiMouseButton.Left))

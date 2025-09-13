@@ -15,20 +15,8 @@ public class SelectGroupForPairUi
     private readonly UidDisplayHandler _uidDisplayHandler;
     private readonly UiSharedService _uiSharedService;
 
-    /// <summary>
-    /// The group UI is always open for a specific pair. This defines which pair the UI is open for.
-    /// </summary>
-    /// <returns></returns>
     private Pair? _pair;
-
-    /// <summary>
-    /// Should the panel show, yes/no
-    /// </summary>
     private bool _show;
-
-    /// <summary>
-    /// For the add category option, this stores the currently typed in tag name
-    /// </summary>
     private string _tagNameToAdd = "";
 
     public SelectGroupForPairUi(TagHandler tagHandler, UidDisplayHandler uidDisplayHandler, UiSharedService uiSharedService)
@@ -49,7 +37,6 @@ public class SelectGroupForPairUi
 
         var name = PairName(_pair);
         var popupName = $"Choose Groups for {name}";
-        // Is the popup supposed to show but did not open yet? Open it
         if (_show)
         {
             ImGui.OpenPopup(popupName);
@@ -91,10 +78,6 @@ public class SelectGroupForPairUi
     public void Open(Pair pair)
     {
         _pair = pair;
-        // Using "_show" here to de-couple the opening of the popup
-        // The popup name is derived from the name the user currently sees, which is
-        // based on the showUidForEntry dictionary.
-        // We'd have to derive the name here to open it popup modal here, when the Open() is called
         _show = true;
     }
 
