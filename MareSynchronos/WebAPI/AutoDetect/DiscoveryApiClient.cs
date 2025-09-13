@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using MareSynchronos.WebAPI.SignalR;
+using MareSynchronos.Services.AutoDetect;
 
 namespace MareSynchronos.WebAPI.AutoDetect;
 
@@ -10,13 +11,16 @@ public class DiscoveryApiClient
 {
     private readonly ILogger<DiscoveryApiClient> _logger;
     private readonly TokenProvider _tokenProvider;
+    private readonly DiscoveryConfigProvider _configProvider;
     private readonly HttpClient _httpClient = new();
     private static readonly JsonSerializerOptions JsonOpt = new() { PropertyNameCaseInsensitive = true };
+    // private readonly ISaltProvider _saltProvider; // For future use if needed
 
-    public DiscoveryApiClient(ILogger<DiscoveryApiClient> logger, TokenProvider tokenProvider)
+    public DiscoveryApiClient(ILogger<DiscoveryApiClient> logger, TokenProvider tokenProvider, DiscoveryConfigProvider configProvider)
     {
         _logger = logger;
         _tokenProvider = tokenProvider;
+        _configProvider = configProvider;
         _httpClient.Timeout = TimeSpan.FromSeconds(30);
     }
 
@@ -28,7 +32,11 @@ public class DiscoveryApiClient
             if (string.IsNullOrEmpty(token)) return [];
             using var req = new HttpRequestMessage(HttpMethod.Post, endpoint);
             req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            var body = JsonSerializer.Serialize(new { hashes = hashes.Distinct(StringComparer.Ordinal).ToArray() });
+            var body = JsonSerializer.Serialize(new
+            {
+                hashes = hashes.Distinct(StringComparer.Ordinal).ToArray(),
+                salt = _configProvider.SaltB64
+            });
             req.Content = new StringContent(body, Encoding.UTF8, "application/json");
             var resp = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
             resp.EnsureSuccessStatusCode();
@@ -70,7 +78,7 @@ public class DiscoveryApiClient
         }
     }
 
-    public async Task<bool> PublishAsync(string endpoint, IEnumerable<string> hashes, string? displayName, CancellationToken ct)
+    public async Task<bool> PublishAsync(string endpoint, IEnumerable<string> hashes, string? displayName, CancellationToken ct, bool allowRequests = true)
     {
         try
         {
@@ -78,7 +86,13 @@ public class DiscoveryApiClient
             if (string.IsNullOrEmpty(jwt)) return false;
             using var req = new HttpRequestMessage(HttpMethod.Post, endpoint);
             req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
-            var bodyObj = new { hashes = hashes.Distinct(StringComparer.Ordinal).ToArray(), displayName };
+            var bodyObj = new
+            {
+                hashes = hashes.Distinct(StringComparer.Ordinal).ToArray(),
+                displayName,
+                salt = _configProvider.SaltB64,
+                allowRequests
+            };
             var body = JsonSerializer.Serialize(bodyObj);
             req.Content = new StringContent(body, Encoding.UTF8, "application/json");
             var resp = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
@@ -90,11 +104,55 @@ public class DiscoveryApiClient
             return false;
         }
     }
+
+    public async Task<bool> SendAcceptAsync(string endpoint, string targetUid, string? displayName, CancellationToken ct)
+    {
+        try
+        {
+            var jwt = await _tokenProvider.GetOrUpdateToken(ct).ConfigureAwait(false);
+            if (string.IsNullOrEmpty(jwt)) return false;
+            using var req = new HttpRequestMessage(HttpMethod.Post, endpoint);
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+            var bodyObj = new { targetUid, displayName };
+            var body = JsonSerializer.Serialize(bodyObj);
+            req.Content = new StringContent(body, Encoding.UTF8, "application/json");
+            var resp = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+            return resp.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Discovery accept notify failed");
+            return false;
+        }
+    }
+    public async Task DisableAsync(string endpoint, CancellationToken ct)
+    {
+        try
+        {
+            var jwt = await _tokenProvider.GetOrUpdateToken(ct).ConfigureAwait(false);
+            if (string.IsNullOrEmpty(jwt)) return;
+            using var req = new HttpRequestMessage(HttpMethod.Post, endpoint);
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+            // no body required
+            var resp = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+            if (!resp.IsSuccessStatusCode)
+            {
+                string txt = string.Empty;
+                try { txt = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false); } catch { }
+                _logger.LogWarning("Discovery disable failed: {code} {reason} {body}", (int)resp.StatusCode, resp.ReasonPhrase, txt);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Discovery disable failed");
+        }
+    }
 }
 
 public sealed class ServerMatch
 {
     public string Hash { get; set; } = string.Empty;
-    public string Token { get; set; } = string.Empty;
+    public string? Token { get; set; }
+    public string? Uid { get; set; }
     public string? DisplayName { get; set; }
 }

@@ -108,7 +108,7 @@ public record GPoseLobbyReceiveCharaData(CharaDataDownloadDto CharaDataDownloadD
 public record GPoseLobbyReceivePoseData(UserData UserData, PoseData PoseData) : MessageBase;
 public record GPoseLobbyReceiveWorldData(UserData UserData, WorldData WorldData) : MessageBase;
 
-public record NearbyEntry(string Name, ushort WorldId, float Distance, bool IsMatch, string? Token);
+public record NearbyEntry(string Name, ushort WorldId, float Distance, bool IsMatch, string? Token, string? DisplayName, string? Uid);
 public record DiscoveryListUpdated(List<NearbyEntry> Entries) : MessageBase;
 
 public record PluginChangeMessage(string InternalName, Version Version, bool IsLoaded) : KeyedMessage(InternalName);

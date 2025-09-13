@@ -6,9 +6,12 @@ using Dalamud.Interface.Utility.Raii;
 using Dalamud.Plugin.Services;
 using MareSynchronos.MareConfiguration;
 using MareSynchronos.Services;
+using MareSynchronos.PlayerData.Pairs;
 using MareSynchronos.Services.Mediator;
 using Microsoft.Extensions.Logging;
 using System.Numerics;
+using System.Globalization;
+using System.Text;
 
 namespace MareSynchronos.UI;
 
@@ -18,18 +21,20 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
     private readonly DalamudUtilService _dalamud;
     private readonly IObjectTable _objectTable;
     private readonly Services.AutoDetect.AutoDetectRequestService _requestService;
+    private readonly PairManager _pairManager;
     private List<Services.Mediator.NearbyEntry> _entries = new();
 
     public AutoDetectUi(ILogger<AutoDetectUi> logger, MareMediator mediator,
         MareConfigService configService, DalamudUtilService dalamudUtilService, IObjectTable objectTable,
-        Services.AutoDetect.AutoDetectRequestService requestService,
+        Services.AutoDetect.AutoDetectRequestService requestService, PairManager pairManager,
         PerformanceCollectorService performanceCollectorService)
-        : base(logger, mediator, "Umbra Nearby", performanceCollectorService)
+        : base(logger, mediator, "AutoDetect", performanceCollectorService)
     {
         _configService = configService;
         _dalamud = dalamudUtilService;
         _objectTable = objectTable;
         _requestService = requestService;
+        _pairManager = pairManager;
 
         Flags |= ImGuiWindowFlags.NoScrollbar;
         SizeConstraints = new WindowSizeConstraints()
@@ -78,7 +83,7 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
             ImGui.TableSetupColumn("Action");
             ImGui.TableHeadersRow();
 
-            var data = _entries.Count > 0 ? _entries : BuildLocalSnapshot(maxDist);
+            var data = _entries.Count > 0 ? _entries.Where(e => e.IsMatch).ToList() : new List<Services.Mediator.NearbyEntry>();
             foreach (var e in data)
             {
                 ImGui.TableNextColumn();
@@ -88,19 +93,24 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
                 ImGui.TableNextColumn();
                 ImGui.TextUnformatted(float.IsNaN(e.Distance) ? "-" : $"{e.Distance:0.0} m");
                 ImGui.TableNextColumn();
-                ImGui.TextUnformatted(e.IsMatch ? "On Umbra" : "Unknown");
+                bool alreadyPaired = IsAlreadyPairedByUidOrAlias(e);
+                string status = alreadyPaired ? "Paired" : (string.IsNullOrEmpty(e.Token) ? "Requests disabled" : "On Umbra");
+                ImGui.TextUnformatted(status);
                 ImGui.TableNextColumn();
-                bool allowRequests = _configService.Current.AllowAutoDetectPairRequests;
-                using (ImRaii.Disabled(!allowRequests || !e.IsMatch || string.IsNullOrEmpty(e.Token)))
+                using (ImRaii.Disabled(alreadyPaired || string.IsNullOrEmpty(e.Token)))
                 {
-                    if (ImGui.Button($"Send request##{e.Name}"))
+                    if (alreadyPaired)
+                    {
+                        ImGui.Button($"Already sync##{e.Name}");
+                    }
+                    else if (string.IsNullOrEmpty(e.Token))
+                    {
+                        ImGui.Button($"Requests disabled##{e.Name}");
+                    }
+                    else if (ImGui.Button($"Send request##{e.Name}"))
                     {
                         _ = _requestService.SendRequestAsync(e.Token!);
                     }
-                }
-                if (!allowRequests)
-                {
-                    UiSharedService.AttachToolTip("Enable 'Allow pair requests' in Settings to send a request.");
                 }
             }
 
@@ -140,8 +150,52 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
             string name = obj.Name.ToString();
             ushort worldId = 0;
             if (obj is IPlayerCharacter pc) worldId = (ushort)pc.HomeWorld.RowId;
-            list.Add(new Services.Mediator.NearbyEntry(name, worldId, dist, false, null));
+            list.Add(new Services.Mediator.NearbyEntry(name, worldId, dist, false, null, null, null));
         }
         return list;
+    }
+
+    private bool IsAlreadyPairedByUidOrAlias(Services.Mediator.NearbyEntry e)
+    {
+        try
+        {
+            // 1) Match by UID when available (authoritative)
+            if (!string.IsNullOrEmpty(e.Uid))
+            {
+                foreach (var p in _pairManager.DirectPairs)
+                {
+                    if (string.Equals(p.UserData.UID, e.Uid, StringComparison.Ordinal))
+                        return true;
+                }
+            }
+
+            // 2) Fallback on alias/name (legacy compatibility)
+            var key = NormalizeKey(e.DisplayName ?? e.Name);
+            if (string.IsNullOrEmpty(key)) return false;
+            foreach (var p in _pairManager.DirectPairs)
+            {
+                if (NormalizeKey(p.UserData.AliasOrUID) == key) return true;
+                if (!string.IsNullOrEmpty(p.UserData.Alias) && NormalizeKey(p.UserData.Alias!) == key) return true;
+            }
+        }
+        catch
+        {
+            // ignore
+        }
+        return false;
+    }
+
+    private static string NormalizeKey(string? input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return string.Empty;
+        var formD = input.Normalize(NormalizationForm.FormD);
+        var sb = new StringBuilder(formD.Length);
+        foreach (var ch in formD)
+        {
+            var cat = CharUnicodeInfo.GetUnicodeCategory(ch);
+            if (cat != UnicodeCategory.NonSpacingMark)
+                sb.Append(char.ToLowerInvariant(ch));
+        }
+        return sb.ToString();
     }
 }

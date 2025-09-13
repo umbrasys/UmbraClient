@@ -29,6 +29,7 @@ public class DiscoveryConfigProvider
     public bool HasConfig => _config != null;
     public bool NearbyEnabled => _config?.NearbyDiscovery?.Enabled ?? false;
     public byte[]? Salt => _config?.NearbyDiscovery?.SaltBytes;
+    public string? SaltB64 => _config?.NearbyDiscovery?.SaltB64;
     public DateTimeOffset? SaltExpiresAt => _config?.NearbyDiscovery?.SaltExpiresAt;
     public int RefreshSec => _config?.NearbyDiscovery?.RefreshSec ?? 300;
     public int MinQueryIntervalMs => _config?.NearbyDiscovery?.Policies?.MinQueryIntervalMs ?? 2000;
@@ -36,6 +37,7 @@ public class DiscoveryConfigProvider
     public string? PublishEndpoint => _config?.NearbyDiscovery?.Endpoints?.Publish;
     public string? QueryEndpoint => _config?.NearbyDiscovery?.Endpoints?.Query;
     public string? RequestEndpoint => _config?.NearbyDiscovery?.Endpoints?.Request;
+    public string? AcceptEndpoint => _config?.NearbyDiscovery?.Endpoints?.Accept;
 
     public bool TryLoadFromStapled()
     {
@@ -50,7 +52,7 @@ public class DiscoveryConfigProvider
             root.NearbyDiscovery?.Hydrate();
             _config = root;
             _lastLoad = DateTimeOffset.UtcNow;
-            _logger.LogInformation("Loaded Nearby well-known (stapled), enabled={enabled}, expires={exp}", NearbyEnabled, _config?.NearbyDiscovery?.SaltExpiresAt);
+            _logger.LogDebug("Loaded Nearby well-known (stapled), enabled={enabled}, expires={exp}", NearbyEnabled, _config?.NearbyDiscovery?.SaltExpiresAt);
             return true;
         }
         catch (Exception ex)
@@ -158,6 +160,7 @@ public class DiscoveryConfigProvider
         [JsonPropertyName("publish")] public string? Publish { get; set; }
         [JsonPropertyName("query")] public string? Query { get; set; }
         [JsonPropertyName("request")] public string? Request { get; set; }
+        [JsonPropertyName("accept")] public string? Accept { get; set; }
     }
 
     private sealed class Policies

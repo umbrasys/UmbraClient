@@ -28,6 +28,10 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
     private bool _loggedConfigReady;
     private string? _lastSnapshotSig;
     private volatile bool _isConnected;
+    private bool _notifiedDisabled;
+    private bool _notifiedEnabled;
+    private bool _disableSent;
+    private bool _lastAutoDetectState;
 
     public NearbyDiscoveryService(ILogger<NearbyDiscoveryService> logger, MareMediator mediator,
         MareConfigService config, DiscoveryConfigProvider configProvider, DalamudUtilService dalamudUtilService,
@@ -50,6 +54,7 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
         _mediator.Subscribe<ConnectedMessage>(this, _ => { _isConnected = true; _configProvider.TryLoadFromStapled(); });
         _mediator.Subscribe<DisconnectedMessage>(this, _ => { _isConnected = false; _lastPublishedSignature = null; });
         _ = Task.Run(() => Loop(_loopCts.Token));
+        _lastAutoDetectState = _config.Current.EnableAutoDetectDiscovery;
         return Task.CompletedTask;
     }
 
@@ -62,20 +67,112 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
 
     private async Task Loop(CancellationToken ct)
     {
-        // best effort config load
         _configProvider.TryLoadFromStapled();
 
         while (!ct.IsCancellationRequested)
         {
             try
             {
+                bool currentState = _config.Current.EnableAutoDetectDiscovery;
+                if (currentState != _lastAutoDetectState)
+                {
+                    _lastAutoDetectState = currentState;
+                    if (currentState)
+                    {
+                        // Force immediate publish on toggle ON
+                        try
+                        {
+                            // Ensure well-known is present
+                            if (!_configProvider.HasConfig || _configProvider.IsExpired())
+                            {
+                                if (!_configProvider.TryLoadFromStapled())
+                                {
+                                    await _configProvider.TryFetchFromServerAsync(ct).ConfigureAwait(false);
+                                }
+                            }
+
+                            var ep = _configProvider.PublishEndpoint;
+                            var saltBytes = _configProvider.Salt;
+                            if (!string.IsNullOrEmpty(ep) && saltBytes is { Length: > 0 })
+                            {
+                                var saltHex = Convert.ToHexString(saltBytes);
+                                string? displayName = null;
+                                ushort meWorld = 0;
+                                try
+                                {
+                                    var me = await _dalamud.RunOnFrameworkThread(() => _dalamud.GetPlayerCharacter()).ConfigureAwait(false);
+                                    if (me != null)
+                                    {
+                                        displayName = me.Name.TextValue;
+                                        if (me is Dalamud.Game.ClientState.Objects.SubKinds.IPlayerCharacter mePc)
+                                            meWorld = (ushort)mePc.HomeWorld.RowId;
+                                    }
+                                }
+                                catch { }
+
+                                if (!string.IsNullOrEmpty(displayName))
+                                {
+                                var selfHash = (saltHex + displayName + meWorld.ToString()).GetHash256();
+                                _lastPublishedSignature = null; // ensure future loop doesn't skip
+                                var okNow = await _api.PublishAsync(ep!, new[] { selfHash }, displayName, ct, _config.Current.AllowAutoDetectPairRequests).ConfigureAwait(false);
+                                _logger.LogInformation("Nearby immediate publish on toggle ON: {result}", okNow ? "success" : "failed");
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogDebug(ex, "Nearby immediate publish on toggle ON failed");
+                        }
+
+                        if (!_notifiedEnabled)
+                        {
+                            _mediator.Publish(new NotificationMessage("Nearby Detection", "AutoDetect enabled : you are now visible.", default));
+                            _notifiedEnabled = true;
+                            _notifiedDisabled = false;
+                            _disableSent = false;
+                        }
+                    }
+                    else
+                    {
+                        var ep = _configProvider.PublishEndpoint;
+                        if (!string.IsNullOrEmpty(ep) && !_disableSent)
+                        {
+                            var disableUrl = ep.Replace("/publish", "/disable");
+                            try { await _api.DisableAsync(disableUrl, ct).ConfigureAwait(false); _disableSent = true; } catch { }
+                        }
+                        if (!_notifiedDisabled)
+                        {
+                            _mediator.Publish(new NotificationMessage("Nearby Detection", "AutoDetect disabled : you are not visible.", default));
+                            _notifiedDisabled = true;
+                            _notifiedEnabled = false;
+                        }
+                    }
+                }
                 if (!_config.Current.EnableAutoDetectDiscovery || !_dalamud.IsLoggedIn || !_isConnected)
                 {
+                    if (!_config.Current.EnableAutoDetectDiscovery && !string.IsNullOrEmpty(_configProvider.PublishEndpoint))
+                    {
+                        var disableUrl = _configProvider.PublishEndpoint.Replace("/publish", "/disable");
+                        try
+                        {
+                            if (!_disableSent)
+                            {
+                                await _api.DisableAsync(disableUrl, ct).ConfigureAwait(false);
+                                _disableSent = true;
+                            }
+                        }
+                        catch { }
+
+                        if (!_notifiedDisabled)
+                        {
+                            _mediator.Publish(new NotificationMessage("Nearby Detection", "AutoDetect disabled : you are not visible.", default));
+                            _notifiedDisabled = true;
+                            _notifiedEnabled = false;
+                        }
+                    }
                     await Task.Delay(1000, ct).ConfigureAwait(false);
                     continue;
                 }
-
-                // Ensure we have a valid Nearby config: try stapled, then HTTP fallback
                 if (!_configProvider.HasConfig || _configProvider.IsExpired())
                 {
                     if (!_configProvider.TryLoadFromStapled())
@@ -114,7 +211,6 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                             hashes.Add(h);
                         }
 
-                        // Debug snapshot once per change
                         try
                         {
                             var snapSig = string.Join(',', hashes.OrderBy(s => s, StringComparer.Ordinal)).GetHash256();
@@ -134,7 +230,6 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                         }
                         catch { }
 
-                        // Publish OUR presence (own hash) if endpoint is available (deduplicated)
                         if (!string.IsNullOrEmpty(_configProvider.PublishEndpoint))
                         {
                             string? displayName = null;
@@ -161,9 +256,19 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                                 {
                                     _lastPublishedSignature = sig;
                                     var shortSelf = selfHash!.Length > 8 ? selfHash[..8] : selfHash;
-                                    _logger.LogInformation("Nearby publish: self presence updated (hash={hash})", shortSelf);
-                                    var ok = await _api.PublishAsync(_configProvider.PublishEndpoint!, new[] { selfHash! }, displayName, ct).ConfigureAwait(false);
+                                    _logger.LogDebug("Nearby publish: self presence updated (hash={hash})", shortSelf);
+                                    var ok = await _api.PublishAsync(_configProvider.PublishEndpoint!, new[] { selfHash! }, displayName, ct, _config.Current.AllowAutoDetectPairRequests).ConfigureAwait(false);
                                     _logger.LogInformation("Nearby publish result: {result}", ok ? "success" : "failed");
+                                    if (ok)
+                                    {
+                                        if (!_notifiedEnabled)
+                                        {
+                                            _mediator.Publish(new NotificationMessage("Nearby Detection", "AutoDetect enabled : you are now visible.", default));
+                                            _notifiedEnabled = true;
+                                            _notifiedDisabled = false;
+                                            _disableSent = false; // allow future /disable when turning off again
+                                        }
+                                    }
                                 }
                                 else
                                 {
@@ -193,7 +298,7 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                                     if (hashToIndex.TryGetValue(m.Hash, out var idx))
                                     {
                                         var e = entries[idx];
-                                        entries[idx] = new NearbyEntry(e.Name, e.WorldId, e.Distance, true, m.Token);
+                                        entries[idx] = new NearbyEntry(e.Name, e.WorldId, e.Distance, true, m.Token, m.DisplayName, m.Uid);
                                     }
                                 }
                             }
@@ -204,13 +309,18 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                             if (matchCount != _lastMatchCount)
                             {
                                 _lastMatchCount = matchCount;
-                                _logger.LogInformation("Nearby: {count} Umbra users nearby", matchCount);
+                                _logger.LogDebug("Nearby: {count} Umbra users nearby", matchCount);
                             }
                         }
                     }
                     catch (Exception ex)
                     {
                         _logger.LogDebug(ex, "Nearby query failed; falling back to local list");
+                        if (ex.Message.Contains("DISCOVERY_SALT_EXPIRED", StringComparison.OrdinalIgnoreCase))
+                        {
+                            _logger.LogInformation("Nearby: salt expired, refetching well-known");
+                            try { await _configProvider.TryFetchFromServerAsync(ct).ConfigureAwait(false); } catch { }
+                        }
                     }
                 }
                 else
@@ -218,12 +328,13 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                     if (!_loggedLocalOnly)
                     {
                         _loggedLocalOnly = true;
-                        _logger.LogInformation("Nearby: well-known not available or disabled; running in local-only mode");
+                        _logger.LogDebug("Nearby: well-known not available or disabled; running in local-only mode");
                     }
                 }
                 _mediator.Publish(new DiscoveryListUpdated(entries));
 
                 var delayMs = Math.Max(1000, _configProvider.MinQueryIntervalMs);
+                if (entries.Count == 0) delayMs = Math.Max(delayMs, 5000);
                 await Task.Delay(delayMs, ct).ConfigureAwait(false);
             }
             catch (OperationCanceledException) { }
@@ -259,7 +370,7 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                 if (obj is Dalamud.Game.ClientState.Objects.SubKinds.IPlayerCharacter pc)
                     worldId = (ushort)pc.HomeWorld.RowId;
 
-                list.Add(new NearbyEntry(name, worldId, dist, false, null));
+                list.Add(new NearbyEntry(name, worldId, dist, false, null, null, null));
             }
         }
         catch

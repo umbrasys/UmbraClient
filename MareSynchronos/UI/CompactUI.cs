@@ -384,11 +384,8 @@ public class CompactUi : WindowMediatorSubscriberBase
                 _uiSharedService.IconText(icon);
                 if (ImGui.IsItemClicked(ImGuiMouseButton.Left)) _nearbyOpen = !_nearbyOpen;
                 ImGui.SameLine();
-                var nearbyCount = _nearbyEntries?.Count ?? 0;
                 var onUmbra = _nearbyEntries?.Count(e => e.IsMatch) ?? 0;
-                ImGui.TextUnformatted(onUmbra > 0
-                    ? $"Nearby ({nearbyCount} — {onUmbra} on Umbra)"
-                    : $"Nearby ({nearbyCount} Players)");
+                ImGui.TextUnformatted($"Nearby ({onUmbra})");
                 if (ImGui.IsItemClicked(ImGuiMouseButton.Left)) _nearbyOpen = !_nearbyOpen;
 
                 // Header action button to open Nearby window
@@ -404,7 +401,7 @@ public class CompactUi : WindowMediatorSubscriberBase
                 if (_nearbyOpen)
                 {
                     ImGui.Indent();
-                    if (nearbyCount == 0)
+                    if (onUmbra == 0)
                     {
                         UiSharedService.ColorTextWrapped("No nearby players detected.", ImGuiColors.DalamudGrey3);
                     }

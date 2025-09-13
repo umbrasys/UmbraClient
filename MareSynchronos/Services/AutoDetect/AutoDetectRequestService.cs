@@ -61,4 +61,23 @@ public class AutoDetectRequestService
         }
         return ok;
     }
+
+    public async Task<bool> SendAcceptNotifyAsync(string targetUid, CancellationToken ct = default)
+    {
+        var endpoint = _configProvider.AcceptEndpoint;
+        if (string.IsNullOrEmpty(endpoint))
+        {
+            _logger.LogDebug("No accept endpoint configured");
+            return false;
+        }
+        string? displayName = null;
+        try
+        {
+            var me = await _dalamud.RunOnFrameworkThread(() => _dalamud.GetPlayerCharacter()).ConfigureAwait(false);
+            displayName = me?.Name.TextValue;
+        }
+        catch { }
+        _logger.LogInformation("Nearby: sending accept notify via {endpoint}", endpoint);
+        return await _client.SendAcceptAsync(endpoint!, targetUid, displayName, ct).ConfigureAwait(false);
+    }
 }

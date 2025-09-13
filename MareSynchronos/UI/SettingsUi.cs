@@ -235,13 +235,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 _configService.Current.AutoDetectMaxDistanceMeters = maxMeters;
                 _configService.Save();
             }
-            int muteMin = _configService.Current.AutoDetectMuteMinutes;
-            ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
-            if (ImGui.SliderInt("Default mute duration (minutes)", ref muteMin, 1, 120))
-            {
-                _configService.Current.AutoDetectMuteMinutes = muteMin;
-                _configService.Save();
-            }
             ImGui.Unindent();
         }
 
