@@ -218,14 +218,42 @@ public class SettingsUi : WindowMediatorSubscriberBase
         {
             _configService.Current.EnableAutoDetectDiscovery = enableDiscovery;
             _configService.Save();
+
+            // notify services of toggle
+            Mediator.Publish(new NearbyDetectionToggled(enableDiscovery));
+
+            // if Nearby is turned OFF, force Allow Pair Requests OFF as well
+            if (!enableDiscovery && _configService.Current.AllowAutoDetectPairRequests)
+            {
+                _configService.Current.AllowAutoDetectPairRequests = false;
+                _configService.Save();
+                Mediator.Publish(new AllowPairRequestsToggled(false));
+            }
         }
-        bool allowRequests = _configService.Current.AllowAutoDetectPairRequests;
-        if (ImGui.Checkbox("Allow pair requests", ref allowRequests))
+
+        // Allow Pair Requests is disabled when Nearby is OFF
+        using (ImRaii.Disabled(!enableDiscovery))
         {
-            _configService.Current.AllowAutoDetectPairRequests = allowRequests;
-            _configService.Save();
+            bool allowRequests = _configService.Current.AllowAutoDetectPairRequests;
+            if (ImGui.Checkbox("Allow pair requests", ref allowRequests))
+            {
+                _configService.Current.AllowAutoDetectPairRequests = allowRequests;
+                _configService.Save();
+
+                // notify services of toggle
+                Mediator.Publish(new AllowPairRequestsToggled(allowRequests));
+
+                // user-facing info toast
+                Mediator.Publish(new NotificationMessage(
+                    "Nearby Detection",
+                    allowRequests ? "Pair requests enabled: others can invite you." : "Pair requests disabled: others cannot invite you.",
+                    NotificationType.Info,
+                    default));
+            }
         }
-        if (enableDiscovery)
+
+        // Radius only available when both Nearby and Allow Pair Requests are ON
+        if (enableDiscovery && _configService.Current.AllowAutoDetectPairRequests)
         {
             ImGui.Indent();
             int maxMeters = _configService.Current.AutoDetectMaxDistanceMeters;

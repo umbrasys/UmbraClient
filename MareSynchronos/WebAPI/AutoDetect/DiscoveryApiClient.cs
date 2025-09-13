@@ -39,6 +39,21 @@ public class DiscoveryApiClient
             });
             req.Content = new StringContent(body, Encoding.UTF8, "application/json");
             var resp = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+            if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                // Retry once with a fresh token
+                var token2 = await _tokenProvider.GetOrUpdateToken(ct).ConfigureAwait(false);
+                if (string.IsNullOrEmpty(token2)) return [];
+                using var req2 = new HttpRequestMessage(HttpMethod.Post, endpoint);
+                req2.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token2);
+                var body2 = JsonSerializer.Serialize(new
+                {
+                    hashes = hashes.Distinct(StringComparer.Ordinal).ToArray(),
+                    salt = _configProvider.SaltB64
+                });
+                req2.Content = new StringContent(body2, Encoding.UTF8, "application/json");
+                resp = await _httpClient.SendAsync(req2, ct).ConfigureAwait(false);
+            }
             resp.EnsureSuccessStatusCode();
             var json = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
             var result = JsonSerializer.Deserialize<List<ServerMatch>>(json, JsonOpt) ?? [];
@@ -62,6 +77,16 @@ public class DiscoveryApiClient
             var body = JsonSerializer.Serialize(new { token, displayName });
             req.Content = new StringContent(body, Encoding.UTF8, "application/json");
             var resp = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+            if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                var jwt2 = await _tokenProvider.GetOrUpdateToken(ct).ConfigureAwait(false);
+                if (string.IsNullOrEmpty(jwt2)) return false;
+                using var req2 = new HttpRequestMessage(HttpMethod.Post, endpoint);
+                req2.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt2);
+                var body2 = JsonSerializer.Serialize(new { token, displayName });
+                req2.Content = new StringContent(body2, Encoding.UTF8, "application/json");
+                resp = await _httpClient.SendAsync(req2, ct).ConfigureAwait(false);
+            }
             if (!resp.IsSuccessStatusCode)
             {
                 string txt = string.Empty;
@@ -96,6 +121,16 @@ public class DiscoveryApiClient
             var body = JsonSerializer.Serialize(bodyObj);
             req.Content = new StringContent(body, Encoding.UTF8, "application/json");
             var resp = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+            if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                var jwt2 = await _tokenProvider.GetOrUpdateToken(ct).ConfigureAwait(false);
+                if (string.IsNullOrEmpty(jwt2)) return false;
+                using var req2 = new HttpRequestMessage(HttpMethod.Post, endpoint);
+                req2.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt2);
+                var body2 = JsonSerializer.Serialize(bodyObj);
+                req2.Content = new StringContent(body2, Encoding.UTF8, "application/json");
+                resp = await _httpClient.SendAsync(req2, ct).ConfigureAwait(false);
+            }
             return resp.IsSuccessStatusCode;
         }
         catch (Exception ex)
@@ -117,6 +152,16 @@ public class DiscoveryApiClient
             var body = JsonSerializer.Serialize(bodyObj);
             req.Content = new StringContent(body, Encoding.UTF8, "application/json");
             var resp = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+            if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                var jwt2 = await _tokenProvider.GetOrUpdateToken(ct).ConfigureAwait(false);
+                if (string.IsNullOrEmpty(jwt2)) return false;
+                using var req2 = new HttpRequestMessage(HttpMethod.Post, endpoint);
+                req2.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt2);
+                var body2 = JsonSerializer.Serialize(bodyObj);
+                req2.Content = new StringContent(body2, Encoding.UTF8, "application/json");
+                resp = await _httpClient.SendAsync(req2, ct).ConfigureAwait(false);
+            }
             return resp.IsSuccessStatusCode;
         }
         catch (Exception ex)
@@ -135,6 +180,14 @@ public class DiscoveryApiClient
             req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
             // no body required
             var resp = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+            if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                var jwt2 = await _tokenProvider.GetOrUpdateToken(ct).ConfigureAwait(false);
+                if (string.IsNullOrEmpty(jwt2)) return;
+                using var req2 = new HttpRequestMessage(HttpMethod.Post, endpoint);
+                req2.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt2);
+                resp = await _httpClient.SendAsync(req2, ct).ConfigureAwait(false);
+            }
             if (!resp.IsSuccessStatusCode)
             {
                 string txt = string.Empty;

@@ -32,6 +32,8 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
     private bool _notifiedEnabled;
     private bool _disableSent;
     private bool _lastAutoDetectState;
+    private DateTime _lastHeartbeat = DateTime.MinValue;
+    private static readonly TimeSpan HeartbeatInterval = TimeSpan.FromSeconds(75);
 
     public NearbyDiscoveryService(ILogger<NearbyDiscoveryService> logger, MareMediator mediator,
         MareConfigService config, DiscoveryConfigProvider configProvider, DalamudUtilService dalamudUtilService,
@@ -53,9 +55,74 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
         _loopCts = new CancellationTokenSource();
         _mediator.Subscribe<ConnectedMessage>(this, _ => { _isConnected = true; _configProvider.TryLoadFromStapled(); });
         _mediator.Subscribe<DisconnectedMessage>(this, _ => { _isConnected = false; _lastPublishedSignature = null; });
+        _mediator.Subscribe<AllowPairRequestsToggled>(this, OnAllowPairRequestsToggled);
         _ = Task.Run(() => Loop(_loopCts.Token));
         _lastAutoDetectState = _config.Current.EnableAutoDetectDiscovery;
         return Task.CompletedTask;
+    }
+    private async void OnAllowPairRequestsToggled(AllowPairRequestsToggled msg)
+    {
+        try
+        {
+            if (!_config.Current.EnableAutoDetectDiscovery) return;
+            // Force a publish now so the server immediately reflects the new allow/deny state
+            _lastPublishedSignature = null; // ensure next loop won't skip
+            await PublishSelfOnceAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "OnAllowPairRequestsToggled failed");
+        }
+    }
+
+    private async Task PublishSelfOnceAsync(CancellationToken ct)
+    {
+        try
+        {
+            if (!_config.Current.EnableAutoDetectDiscovery || !_dalamud.IsLoggedIn || !_isConnected) return;
+
+            if (!_configProvider.HasConfig || _configProvider.IsExpired())
+            {
+                if (!_configProvider.TryLoadFromStapled())
+                {
+                    await _configProvider.TryFetchFromServerAsync(ct).ConfigureAwait(false);
+                }
+            }
+
+            var ep = _configProvider.PublishEndpoint;
+            var saltBytes = _configProvider.Salt;
+            if (string.IsNullOrEmpty(ep) || saltBytes is not { Length: > 0 }) return;
+
+            var saltHex = Convert.ToHexString(saltBytes);
+            string? displayName = null;
+            ushort meWorld = 0;
+            try
+            {
+                var me = await _dalamud.RunOnFrameworkThread(() => _dalamud.GetPlayerCharacter()).ConfigureAwait(false);
+                if (me != null)
+                {
+                    displayName = me.Name.TextValue;
+                    if (me is Dalamud.Game.ClientState.Objects.SubKinds.IPlayerCharacter mePc)
+                        meWorld = (ushort)mePc.HomeWorld.RowId;
+                }
+            }
+            catch { }
+
+            if (string.IsNullOrEmpty(displayName)) return;
+
+            var selfHash = (saltHex + displayName + meWorld.ToString()).GetHash256();
+            var ok = await _api.PublishAsync(ep!, new[] { selfHash }, displayName, ct, _config.Current.AllowAutoDetectPairRequests).ConfigureAwait(false);
+            _logger.LogInformation("Nearby publish (manual/immediate): {result}", ok ? "success" : "failed");
+            if (ok)
+            {
+                _lastPublishedSignature = selfHash;
+                _lastHeartbeat = DateTime.UtcNow;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Immediate publish failed");
+        }
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
@@ -259,6 +326,7 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                                     _logger.LogDebug("Nearby publish: self presence updated (hash={hash})", shortSelf);
                                     var ok = await _api.PublishAsync(_configProvider.PublishEndpoint!, new[] { selfHash! }, displayName, ct, _config.Current.AllowAutoDetectPairRequests).ConfigureAwait(false);
                                     _logger.LogInformation("Nearby publish result: {result}", ok ? "success" : "failed");
+                                    if (ok) _lastHeartbeat = DateTime.UtcNow;
                                     if (ok)
                                     {
                                         if (!_notifiedEnabled)
@@ -272,7 +340,17 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                                 }
                                 else
                                 {
-                                    _logger.LogDebug("Nearby publish skipped (no changes)");
+                                    // No changes; perform heartbeat publish if interval elapsed
+                                    if (DateTime.UtcNow - _lastHeartbeat >= HeartbeatInterval)
+                                    {
+                                        var okHb = await _api.PublishAsync(_configProvider.PublishEndpoint!, new[] { selfHash! }, displayName, ct, _config.Current.AllowAutoDetectPairRequests).ConfigureAwait(false);
+                                        _logger.LogDebug("Nearby heartbeat publish: {result}", okHb ? "success" : "failed");
+                                        if (okHb) _lastHeartbeat = DateTime.UtcNow;
+                                    }
+                                    else
+                                    {
+                                        _logger.LogDebug("Nearby publish skipped (no changes)");
+                                    }
                                 }
                             }
                             // else: no self character available; skip publish silently

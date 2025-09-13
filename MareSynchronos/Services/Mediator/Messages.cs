@@ -110,6 +110,8 @@ public record GPoseLobbyReceiveWorldData(UserData UserData, WorldData WorldData)
 
 public record NearbyEntry(string Name, ushort WorldId, float Distance, bool IsMatch, string? Token, string? DisplayName, string? Uid);
 public record DiscoveryListUpdated(List<NearbyEntry> Entries) : MessageBase;
+public record NearbyDetectionToggled(bool Enabled) : MessageBase;
+public record AllowPairRequestsToggled(bool Enabled) : MessageBase;
 
 public record PluginChangeMessage(string InternalName, Version Version, bool IsLoaded) : KeyedMessage(InternalName);
 #pragma warning restore S2094
