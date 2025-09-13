@@ -652,7 +652,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             ImGui.SameLine(300.0f * ImGuiHelpers.GlobalScale);
             if (_ipcProvider.ImpersonationActive)
             {
-                UiSharedService.ColorTextWrapped("Umbra API active!", ImGuiColors.HealerGreen);
+                UiSharedService.ColorTextWrapped("Umbra API active!", UiSharedService.AccentColor);
             }
             else
             {
@@ -991,7 +991,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         _uiShared.DrawHelpText("If this option is selected all already existing notes for UIDs will be overwritten by the imported notes.");
         if (_notesSuccessfullyApplied.HasValue && _notesSuccessfullyApplied.Value)
         {
-            UiSharedService.ColorTextWrapped("User Notes successfully imported", ImGuiColors.HealerGreen);
+            UiSharedService.ColorTextWrapped("User Notes successfully imported", UiSharedService.AccentColor);
         }
         else if (_notesSuccessfullyApplied.HasValue && !_notesSuccessfullyApplied.Value)
         {
@@ -1310,7 +1310,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
         ImGui.TextUnformatted("Current VRAM utilization by all nearby players:");
         ImGui.SameLine();
-        using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.HealerGreen, totalVramBytes < 2.0 * 1024.0 * 1024.0 * 1024.0))
+        using (ImRaii.PushColor(ImGuiCol.Text, UiSharedService.AccentColor, totalVramBytes < 2.0 * 1024.0 * 1024.0 * 1024.0))
             using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudYellow, totalVramBytes >= 4.0 * 1024.0 * 1024.0 * 1024.0))
                 using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudRed, totalVramBytes >= 6.0 * 1024.0 * 1024.0 * 1024.0))
                     ImGui.TextUnformatted($"{totalVramBytes / 1024.0 / 1024.0 / 1024.0:0.00} GiB");
@@ -1903,11 +1903,11 @@ public class SettingsUi : WindowMediatorSubscriberBase
         {
             ImGui.TextUnformatted("Service " + _serverConfigurationManager.CurrentServer!.ServerName + ":");
             ImGui.SameLine();
-            ImGui.TextColored(ImGuiColors.ParsedGreen, "Available");
+            ImGui.TextColored(UiSharedService.AccentColor, "Available");
             ImGui.SameLine();
             ImGui.TextUnformatted("(");
             ImGui.SameLine();
-            ImGui.TextColored(ImGuiColors.ParsedGreen, _apiController.OnlineUsers.ToString(CultureInfo.InvariantCulture));
+            ImGui.TextColored(UiSharedService.AccentColor, _apiController.OnlineUsers.ToString(CultureInfo.InvariantCulture));
             ImGui.SameLine();
             ImGui.TextUnformatted("Users Online");
             ImGui.SameLine();

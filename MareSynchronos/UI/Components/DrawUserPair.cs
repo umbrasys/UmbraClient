@@ -38,33 +38,41 @@ public class DrawUserPair : DrawPairBase
 
     protected override void DrawLeftSide(float textPosY, float originalY)
     {
-        FontAwesomeIcon connectionIcon;
-        Vector4 connectionColor;
-        string connectionText;
-        if (!(_pair.UserPair!.OwnPermissions.IsPaired() && _pair.UserPair!.OtherPermissions.IsPaired()))
-        {
-            connectionIcon = FontAwesomeIcon.ArrowUp;
-            connectionText = _pair.UserData.AliasOrUID + " has not added you back";
-            connectionColor = ImGuiColors.DalamudRed;
-        }
-        else if (_pair.UserPair!.OwnPermissions.IsPaused() || _pair.UserPair!.OtherPermissions.IsPaused())
-        {
-            connectionIcon = FontAwesomeIcon.PauseCircle;
-            connectionText = "Pairing status with " + _pair.UserData.AliasOrUID + " is paused";
-            connectionColor = ImGuiColors.DalamudYellow;
-        }
-        else
-        {
-            connectionIcon = FontAwesomeIcon.Check;
-            connectionText = "You are paired with " + _pair.UserData.AliasOrUID;
-            connectionColor = ImGuiColors.ParsedGreen;
-        }
+        // Primary presence indicator: moon (online = violet, offline = grey)
+        var online = _pair.IsOnline;
+        // Violet accent (#BA70EF)
+        var violet = new Vector4(0.69f, 0.27f, 0.93f, 1f);
+        var offlineGrey = ImGuiColors.DalamudGrey3;
 
         ImGui.SetCursorPosY(textPosY);
         ImGui.PushFont(UiBuilder.IconFont);
-        UiSharedService.ColorText(connectionIcon.ToIconString(), connectionColor);
+        UiSharedService.ColorText(FontAwesomeIcon.Moon.ToIconString(), online ? violet : offlineGrey);
         ImGui.PopFont();
-        UiSharedService.AttachToolTip(connectionText);
+        UiSharedService.AttachToolTip(online
+            ? "User is online"
+            : "User is offline");
+
+        // Secondary pairing state badges (only if needed)
+        // Not mutually paired -> red ArrowUp
+        if (!(_pair.UserPair!.OwnPermissions.IsPaired() && _pair.UserPair!.OtherPermissions.IsPaired()))
+        {
+            ImGui.SameLine();
+            ImGui.SetCursorPosY(textPosY);
+            ImGui.PushFont(UiBuilder.IconFont);
+            UiSharedService.ColorText(FontAwesomeIcon.ArrowUp.ToIconString(), ImGuiColors.DalamudRed);
+            ImGui.PopFont();
+            UiSharedService.AttachToolTip(_pair.UserData.AliasOrUID + " has not added you back");
+        }
+        // Paused (either side) -> yellow PauseCircle
+        else if (_pair.UserPair!.OwnPermissions.IsPaused() || _pair.UserPair!.OtherPermissions.IsPaused())
+        {
+            ImGui.SameLine();
+            ImGui.SetCursorPosY(textPosY);
+            ImGui.PushFont(UiBuilder.IconFont);
+            UiSharedService.ColorText(FontAwesomeIcon.PauseCircle.ToIconString(), ImGuiColors.DalamudYellow);
+            ImGui.PopFont();
+            UiSharedService.AttachToolTip("Pairing with " + _pair.UserData.AliasOrUID + " is paused");
+        }
         if (_pair is { IsOnline: true, IsVisible: true })
         {
             ImGui.SameLine();

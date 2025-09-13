@@ -157,7 +157,7 @@ public class PairGroupsUi
         {
             TagHandler.CustomUnpairedTag => "Unpaired",
             TagHandler.CustomOfflineTag => "Offline",
-            TagHandler.CustomOnlineTag => _mareConfig.Current.ShowOfflineUsersSeparately ? "Online/Paused" : "Contacts",
+            TagHandler.CustomOnlineTag => _mareConfig.Current.ShowOfflineUsersSeparately ? "Online" : "Contacts",
             TagHandler.CustomVisibleTag => "Visible",
             _ => tag
         };

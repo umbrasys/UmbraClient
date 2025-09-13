@@ -377,7 +377,6 @@ public class CompactUi : WindowMediatorSubscriberBase
         // Always show a Nearby group when detection is enabled, even if empty
         if (_configService.Current.EnableAutoDetectDiscovery)
         {
-            ImGui.Separator();
             using (ImRaii.PushId("group-Nearby"))
             {
                 var icon = _nearbyOpen ? FontAwesomeIcon.CaretSquareDown : FontAwesomeIcon.CaretSquareRight;
@@ -401,14 +400,61 @@ public class CompactUi : WindowMediatorSubscriberBase
                 if (_nearbyOpen)
                 {
                     ImGui.Indent();
-                    if (onUmbra == 0)
+                    var nearby = _nearbyEntries == null
+                        ? new List<Services.Mediator.NearbyEntry>()
+                        : _nearbyEntries.Where(e => e.IsMatch)
+                            .OrderBy(e => e.Distance)
+                            .ToList();
+                    if (nearby.Count == 0)
                     {
                         UiSharedService.ColorTextWrapped("No nearby players detected.", ImGuiColors.DalamudGrey3);
                     }
                     else
                     {
-                        UiSharedService.ColorTextWrapped("Open Nearby for details.", ImGuiColors.DalamudGrey3);
+                        foreach (var e in nearby)
+                        {
+                            // name
+                            var name = e.DisplayName ?? e.Name;
+                            ImGui.AlignTextToFramePadding();
+                            ImGui.TextUnformatted(name);
+
+                            // right side status/action
+                            var right = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth();
+                            ImGui.SameLine();
+
+                            // detect if already paired (prefer UID if present)
+                            bool isPaired = false;
+                            try
+                            {
+                                isPaired = _pairManager.DirectPairs.Any(p => string.Equals(p.UserData.UID, e.Uid, StringComparison.Ordinal));
+                            }
+                            catch
+                            {
+                                // fall back to display name/alias matching if UID is not available
+                                var key = (e.DisplayName ?? e.Name) ?? string.Empty;
+                                isPaired = _pairManager.DirectPairs.Any(p => string.Equals(p.UserData.AliasOrUID, key, StringComparison.OrdinalIgnoreCase));
+                            }
+
+                            var statusText = isPaired ? "✔ Paired" : (e.AcceptPairRequests ? "➕ Invite" : "⛔ Requests disabled");
+                            var statusSize = ImGui.CalcTextSize(statusText);
+                            ImGui.SetCursorPosX(right - statusSize.X);
+
+                            if (isPaired || !e.AcceptPairRequests)
+                            {
+                                // just paint the status
+                                ImGui.TextUnformatted(statusText);
+                            }
+                            else
+                            {
+                                // no direct send from Compact; open Nearby window to send the invite there
+                                if (_uiSharedService.IconTextButton(FontAwesomeIcon.UserPlus, "Invite", statusSize.X))
+                                {
+                                    Mediator.Publish(new UiToggleMessage(typeof(AutoDetectUi)));
+                                }
+                            }
+                        }
                     }
+
                     // Pending Nearby requests (Accept / Dismiss)
                     try
                     {
@@ -416,7 +462,7 @@ public class CompactUi : WindowMediatorSubscriberBase
                         if (inbox != null && inbox.Pending.Count > 0)
                         {
                             ImGuiHelpers.ScaledDummy(6);
-                            _uiSharedService.BigText("Requests");
+                            _uiSharedService.BigText("Incoming requests");
                             foreach (var kv in inbox.Pending)
                             {
                                 ImGui.AlignTextToFramePadding();
@@ -483,8 +529,9 @@ public class CompactUi : WindowMediatorSubscriberBase
         {
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ((userSize.Y + textSize.Y) / 2 + shardTextSize.Y) / 2 - ImGui.GetStyle().ItemSpacing.Y + buttonSize.Y / 2);
         }
-        var color = UiSharedService.GetBoolColor(!_serverManager.CurrentServer!.FullPause);
-        var connectedIcon = !_serverManager.CurrentServer.FullPause ? FontAwesomeIcon.Link : FontAwesomeIcon.Unlink;
+        var isLinked = !_serverManager.CurrentServer!.FullPause;
+        var color = isLinked ? new Vector4(0.63f, 0.25f, 1f, 1f) : UiSharedService.GetBoolColor(isLinked);
+        var connectedIcon = isLinked ? FontAwesomeIcon.Link : FontAwesomeIcon.Unlink;
 
         if (_apiController.ServerState is ServerState.Connected)
         {

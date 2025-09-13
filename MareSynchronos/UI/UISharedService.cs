@@ -36,7 +36,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
                                                ImGuiWindowFlags.NoScrollbar |
                                            ImGuiWindowFlags.NoScrollWithMouse;
 
-    public static Vector4 AccentColor { get; set; } = ImGuiColors.DalamudYellow;
+    public static Vector4 AccentColor { get; set; } = ImGuiColors.DalamudViolet;
 
     public readonly FileDialogManager FileDialogManager;
 
@@ -310,7 +310,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         }
     }
 
-    public static Vector4 GetBoolColor(bool input) => input ? ImGuiColors.ParsedGreen : ImGuiColors.DalamudRed;
+    public static Vector4 GetBoolColor(bool input) => input ? AccentColor : ImGuiColors.DalamudRed;
 
     public float GetIconTextButtonSize(FontAwesomeIcon icon, string text)
     {
@@ -517,7 +517,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
     public void BooleanToColoredIcon(bool value, bool inline = true)
     {
-        using var colorgreen = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.HealerGreen, value);
+        using var colorgreen = ImRaii.PushColor(ImGuiCol.Text, AccentColor, value);
         using var colorred = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudRed, !value);
 
         if (inline) ImGui.SameLine();

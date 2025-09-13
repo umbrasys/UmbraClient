@@ -1,4 +1,5 @@
-﻿using Dalamud.Bindings.ImGui;
+﻿using System.Numerics;
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
@@ -38,15 +39,19 @@ public class DrawGroupPair : DrawPairBase
         var entryIsMod = _fullInfoDto.GroupPairStatusInfo.IsModerator();
         var entryIsOwner = string.Equals(_pair.UserData.UID, _group.OwnerUID, StringComparison.Ordinal);
         var entryIsPinned = _fullInfoDto.GroupPairStatusInfo.IsPinned();
-        var presenceIcon = _pair.IsVisible ? FontAwesomeIcon.Eye : (_pair.IsOnline ? FontAwesomeIcon.Link : FontAwesomeIcon.Unlink);
-        var presenceColor = (_pair.IsOnline || _pair.IsVisible) ? ImGuiColors.ParsedGreen : ImGuiColors.DalamudRed;
+        var presenceIcon = _pair.IsVisible ? FontAwesomeIcon.Eye : FontAwesomeIcon.CloudMoon;
+        var presenceColor = (_pair.IsOnline || _pair.IsVisible) ? new Vector4(0.63f, 0.25f, 1f, 1f) : ImGuiColors.DalamudGrey;
         var presenceText = entryUID + " is offline";
 
         ImGui.SetCursorPosY(textPosY);
+
+        // We'll draw an optional prefix icon (pause or paired-moon). If we draw one,
+        // we add a SameLine() before drawing the presence icon. Otherwise, we draw
+        // the presence icon directly at the current cursor position to avoid gaps.
+        bool drewPrefixIcon = false;
+
         if (_pair.IsPaused)
         {
-            presenceIcon = FontAwesomeIcon.Question;
-            presenceColor = ImGuiColors.DalamudGrey;
             presenceText = entryUID + " online status is unknown (paused)";
 
             ImGui.PushFont(UiBuilder.IconFont);
@@ -54,24 +59,37 @@ public class DrawGroupPair : DrawPairBase
             ImGui.PopFont();
 
             UiSharedService.AttachToolTip("Pairing status with " + entryUID + " is paused");
+            drewPrefixIcon = true;
         }
         else
         {
-            ImGui.PushFont(UiBuilder.IconFont);
-            UiSharedService.ColorText(FontAwesomeIcon.Check.ToIconString(), ImGuiColors.ParsedGreen);
-            ImGui.PopFont();
+            bool individuallyPaired = _pair.UserPair != null;
+            var violet = new Vector4(0.63f, 0.25f, 1f, 1f);
 
-            UiSharedService.AttachToolTip("You are paired with " + entryUID);
+            // Show a violet moon only when individually paired AND online/visible.
+            // If offline or not individually paired, do not draw a moon at all.
+            if (individuallyPaired && (_pair.IsOnline || _pair.IsVisible))
+            {
+                ImGui.PushFont(UiBuilder.IconFont);
+                UiSharedService.ColorText(FontAwesomeIcon.Moon.ToIconString(), violet);
+                ImGui.PopFont();
+                UiSharedService.AttachToolTip("You are individually paired with " + entryUID);
+                drewPrefixIcon = true;
+            }
         }
 
-        if (_pair.IsOnline && !_pair.IsVisible) presenceText = entryUID + " is online";
-        else if (_pair.IsOnline && _pair.IsVisible) presenceText = entryUID + " is visible: " + _pair.PlayerName + Environment.NewLine + "Click to target this player";
+        // Presence status icon (eye when visible, cloud-moon otherwise)
+        if (drewPrefixIcon)
+            ImGui.SameLine();
 
-        ImGui.SameLine();
         ImGui.SetCursorPosY(textPosY);
         ImGui.PushFont(UiBuilder.IconFont);
         UiSharedService.ColorText(presenceIcon.ToIconString(), presenceColor);
         ImGui.PopFont();
+
+        if (_pair.IsOnline && !_pair.IsVisible) presenceText = entryUID + " is online";
+        else if (_pair.IsOnline && _pair.IsVisible) presenceText = entryUID + " is visible: " + _pair.PlayerName + Environment.NewLine + "Click to target this player";
+
         if (_pair.IsVisible)
         {
             if (ImGui.IsItemClicked())
@@ -94,6 +112,7 @@ public class DrawGroupPair : DrawPairBase
                 }
             }
         }
+
         UiSharedService.AttachToolTip(presenceText);
 
         if (entryIsOwner)

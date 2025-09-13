@@ -1,4 +1,4 @@
-﻿using Dalamud.Bindings.ImGui;
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
@@ -464,7 +464,9 @@ internal sealed class GroupPanel
 
             if (offlineUsers.Count > 0)
             {
+                ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudGrey);
                 ImGui.TextUnformatted("Offline/Unknown");
+                ImGui.PopStyleColor();
                 ImGui.Separator();
                 if (hideOfflineUsers)
                 {
