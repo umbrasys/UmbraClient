@@ -172,6 +172,16 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
         return await GetNewToken(jwtIdentifier, ct).ConfigureAwait(false);
     }
 
+    public async Task<string?> ForceRefreshToken(CancellationToken ct)
+    {
+        JwtIdentifier? jwtIdentifier = await GetIdentifier().ConfigureAwait(false);
+        if (jwtIdentifier == null) return null;
+
+        _tokenCache.TryRemove(jwtIdentifier, out _);
+        _logger.LogTrace("ForceRefresh: Getting new token");
+        return await GetNewToken(jwtIdentifier, ct).ConfigureAwait(false);
+    }
+
     public string? GetStapledWellKnown(string apiUrl)
     {
         _wellKnownCache.TryGetValue(apiUrl, out var wellKnown);

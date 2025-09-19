@@ -52,6 +52,7 @@ internal sealed class GroupPanel
     private bool _showModalChangePassword;
     private bool _showModalCreateGroup;
     private bool _showModalEnterPassword;
+    private string _newSyncShellAlias = string.Empty;
     private string _syncShellPassword = string.Empty;
     private string _syncShellToJoin = string.Empty;
 
@@ -82,7 +83,7 @@ internal sealed class GroupPanel
     {
         var buttonSize = _uiShared.GetIconButtonSize(FontAwesomeIcon.Plus);
         ImGui.SetNextItemWidth(UiSharedService.GetWindowContentRegionWidth() - ImGui.GetWindowContentRegionMin().X - buttonSize.X);
-        ImGui.InputTextWithHint("##syncshellid", "Syncshell GID/Alias (leave empty to create)", ref _syncShellToJoin, 20);
+        ImGui.InputTextWithHint("##syncshellid", "Syncshell GID/Alias (leave empty to create)", ref _syncShellToJoin, 50);
         ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - buttonSize.X);
 
         bool userCanJoinMoreGroups = _pairManager.GroupPairs.Count < ApiController.ServerInfo.MaxGroupsJoinedByUser;
@@ -108,6 +109,7 @@ internal sealed class GroupPanel
                 {
                     _lastCreatedGroup = null;
                     _errorGroupCreate = false;
+                    _newSyncShellAlias = string.Empty;
                     _showModalCreateGroup = true;
                     ImGui.OpenPopup("Create Syncshell");
                 }
@@ -150,13 +152,21 @@ internal sealed class GroupPanel
 
         if (ImGui.BeginPopupModal("Create Syncshell", ref _showModalCreateGroup, UiSharedService.PopupWindowFlags))
         {
-            UiSharedService.TextWrapped("Press the button below to create a new Syncshell.");
+            UiSharedService.TextWrapped("Donnez un nom à votre Syncshell (optionnel) puis créez-la. Le préfixe 'UMB-' reste inchangé.");
+            ImGui.SetNextItemWidth(-1);
+            ImGui.InputTextWithHint("##syncshellalias", "Nom du Syncshell", ref _newSyncShellAlias, 50);
+            UiSharedService.TextWrapped("Appuyez sur le bouton ci-dessous pour créer une nouvelle Syncshell.");
             ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
             if (ImGui.Button("Create Syncshell"))
             {
                 try
                 {
-                    _lastCreatedGroup = ApiController.GroupCreate().Result;
+                    var aliasInput = string.IsNullOrWhiteSpace(_newSyncShellAlias) ? null : _newSyncShellAlias.Trim();
+                    _lastCreatedGroup = ApiController.GroupCreate(aliasInput).Result;
+                    if (_lastCreatedGroup != null)
+                    {
+                        _newSyncShellAlias = string.Empty;
+                    }
                 }
                 catch
                 {
@@ -169,6 +179,10 @@ internal sealed class GroupPanel
             {
                 ImGui.Separator();
                 _errorGroupCreate = false;
+                if (!string.IsNullOrWhiteSpace(_lastCreatedGroup.Group.Alias))
+                {
+                    ImGui.TextUnformatted("Syncshell Name: " + _lastCreatedGroup.Group.Alias);
+                }
                 ImGui.TextUnformatted("Syncshell ID: " + _lastCreatedGroup.Group.GID);
                 ImGui.AlignTextToFramePadding();
                 ImGui.TextUnformatted("Syncshell Password: " + _lastCreatedGroup.Password);

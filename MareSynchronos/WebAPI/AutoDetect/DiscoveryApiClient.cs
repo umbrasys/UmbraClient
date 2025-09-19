@@ -29,24 +29,25 @@ public class DiscoveryApiClient
         {
             var token = await _tokenProvider.GetOrUpdateToken(ct).ConfigureAwait(false);
             if (string.IsNullOrEmpty(token)) return [];
+            var distinctHashes = hashes.Distinct(StringComparer.Ordinal).ToArray();
             using var req = new HttpRequestMessage(HttpMethod.Post, endpoint);
             req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
             var body = JsonSerializer.Serialize(new
             {
-                hashes = hashes.Distinct(StringComparer.Ordinal).ToArray(),
+                hashes = distinctHashes,
                 salt = _configProvider.SaltB64
             });
             req.Content = new StringContent(body, Encoding.UTF8, "application/json");
             var resp = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
             if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
-                var token2 = await _tokenProvider.GetOrUpdateToken(ct).ConfigureAwait(false);
+                var token2 = await _tokenProvider.ForceRefreshToken(ct).ConfigureAwait(false);
                 if (string.IsNullOrEmpty(token2)) return [];
                 using var req2 = new HttpRequestMessage(HttpMethod.Post, endpoint);
                 req2.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token2);
                 var body2 = JsonSerializer.Serialize(new
                 {
-                    hashes = hashes.Distinct(StringComparer.Ordinal).ToArray(),
+                    hashes = distinctHashes,
                     salt = _configProvider.SaltB64
                 });
                 req2.Content = new StringContent(body2, Encoding.UTF8, "application/json");
@@ -77,7 +78,7 @@ public class DiscoveryApiClient
             var resp = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
             if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
-                var jwt2 = await _tokenProvider.GetOrUpdateToken(ct).ConfigureAwait(false);
+                var jwt2 = await _tokenProvider.ForceRefreshToken(ct).ConfigureAwait(false);
                 if (string.IsNullOrEmpty(jwt2)) return false;
                 using var req2 = new HttpRequestMessage(HttpMethod.Post, endpoint);
                 req2.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt2);
@@ -121,7 +122,7 @@ public class DiscoveryApiClient
             var resp = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
             if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
-                var jwt2 = await _tokenProvider.GetOrUpdateToken(ct).ConfigureAwait(false);
+                var jwt2 = await _tokenProvider.ForceRefreshToken(ct).ConfigureAwait(false);
                 if (string.IsNullOrEmpty(jwt2)) return false;
                 using var req2 = new HttpRequestMessage(HttpMethod.Post, endpoint);
                 req2.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt2);
@@ -152,7 +153,7 @@ public class DiscoveryApiClient
             var resp = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
             if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
-                var jwt2 = await _tokenProvider.GetOrUpdateToken(ct).ConfigureAwait(false);
+                var jwt2 = await _tokenProvider.ForceRefreshToken(ct).ConfigureAwait(false);
                 if (string.IsNullOrEmpty(jwt2)) return false;
                 using var req2 = new HttpRequestMessage(HttpMethod.Post, endpoint);
                 req2.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt2);
@@ -179,7 +180,7 @@ public class DiscoveryApiClient
             var resp = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
             if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
-                var jwt2 = await _tokenProvider.GetOrUpdateToken(ct).ConfigureAwait(false);
+                var jwt2 = await _tokenProvider.ForceRefreshToken(ct).ConfigureAwait(false);
                 if (string.IsNullOrEmpty(jwt2)) return;
                 using var req2 = new HttpRequestMessage(HttpMethod.Post, endpoint);
                 req2.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt2);

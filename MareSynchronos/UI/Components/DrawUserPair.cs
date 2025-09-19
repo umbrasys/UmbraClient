@@ -16,6 +16,7 @@ namespace MareSynchronos.UI.Components;
 
 public class DrawUserPair : DrawPairBase
 {
+    private static readonly Vector4 Violet = new(0.63f, 0.25f, 1f, 1f);
     protected readonly MareMediator _mediator;
     private readonly SelectGroupForPairUi _selectGroupForPairUi;
     private readonly CharaDataManager _charaDataManager;
@@ -39,12 +40,11 @@ public class DrawUserPair : DrawPairBase
     protected override void DrawLeftSide(float textPosY, float originalY)
     {
         var online = _pair.IsOnline;
-        var violet = new Vector4(0.69f, 0.27f, 0.93f, 1f);
         var offlineGrey = ImGuiColors.DalamudGrey3;
 
         ImGui.SetCursorPosY(textPosY);
         ImGui.PushFont(UiBuilder.IconFont);
-        UiSharedService.ColorText(FontAwesomeIcon.Moon.ToIconString(), online ? violet : offlineGrey);
+        UiSharedService.ColorText(FontAwesomeIcon.Moon.ToIconString(), online ? Violet : offlineGrey);
         ImGui.PopFont();
         UiSharedService.AttachToolTip(online
             ? "User is online"
@@ -72,7 +72,7 @@ public class DrawUserPair : DrawPairBase
             ImGui.SameLine();
             ImGui.SetCursorPosY(textPosY);
             ImGui.PushFont(UiBuilder.IconFont);
-            UiSharedService.ColorText(FontAwesomeIcon.Eye.ToIconString(), ImGuiColors.ParsedGreen);
+            UiSharedService.ColorText(FontAwesomeIcon.Eye.ToIconString(), Violet);
             if (ImGui.IsItemClicked())
             {
                 _mediator.Publish(new TargetPairMessage(_pair));

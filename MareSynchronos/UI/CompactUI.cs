@@ -12,6 +12,7 @@ using MareSynchronos.PlayerData.Pairs;
 using MareSynchronos.Services;
 using MareSynchronos.Services.Mediator;
 using MareSynchronos.Services.ServerConfiguration;
+using MareSynchronos.Services.AutoDetect;
 using MareSynchronos.UI.Components;
 using MareSynchronos.UI.Handlers;
 using MareSynchronos.WebAPI;
@@ -44,7 +45,8 @@ public class CompactUi : WindowMediatorSubscriberBase
     private readonly ServerConfigurationManager _serverManager;
     private readonly Stopwatch _timeout = new();
     private readonly CharaDataManager _charaDataManager;
-    private readonly Services.AutoDetect.NearbyPendingService _nearbyPending;
+    private readonly NearbyPendingService _nearbyPending;
+    private readonly AutoDetectRequestService _autoDetectRequestService;
     private readonly UidDisplayHandler _uidDisplayHandler;
     private readonly UiSharedService _uiSharedService;
     private bool _buttonState;
@@ -63,7 +65,8 @@ public class CompactUi : WindowMediatorSubscriberBase
 
     public CompactUi(ILogger<CompactUi> logger, UiSharedService uiShared, MareConfigService configService, ApiController apiController, PairManager pairManager, ChatService chatService,
         ServerConfigurationManager serverManager, MareMediator mediator, FileUploadManager fileTransferManager, UidDisplayHandler uidDisplayHandler, CharaDataManager charaDataManager,
-        Services.AutoDetect.NearbyPendingService nearbyPendingService,
+        NearbyPendingService nearbyPendingService,
+        AutoDetectRequestService autoDetectRequestService,
         PerformanceCollectorService performanceCollectorService)
         : base(logger, mediator, "###UmbraSyncMainUI", performanceCollectorService)
     {
@@ -76,6 +79,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         _uidDisplayHandler = uidDisplayHandler;
         _charaDataManager = charaDataManager;
         _nearbyPending = nearbyPendingService;
+        _autoDetectRequestService = autoDetectRequestService;
         var tagHandler = new TagHandler(_serverManager);
 
         _groupPanel = new(this, uiShared, _pairManager, chatService, uidDisplayHandler, _configService, _serverManager, _charaDataManager);
@@ -428,20 +432,31 @@ public class CompactUi : WindowMediatorSubscriberBase
                                 isPaired = _pairManager.DirectPairs.Any(p => string.Equals(p.UserData.AliasOrUID, key, StringComparison.OrdinalIgnoreCase));
                             }
 
-                            var statusText = isPaired ? "✔ Paired" : (e.AcceptPairRequests ? "➕ Invite" : "⛔ Requests disabled");
-                            var statusSize = ImGui.CalcTextSize(statusText);
-                            ImGui.SetCursorPosX(right - statusSize.X);
+                            var statusButtonSize = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.UserPlus);
+                            ImGui.SetCursorPosX(right - statusButtonSize.X);
 
-                            if (isPaired || !e.AcceptPairRequests)
+                            if (isPaired)
                             {
-                                ImGui.TextUnformatted(statusText);
+                                _uiSharedService.IconText(FontAwesomeIcon.Check, ImGuiColors.ParsedGreen);
+                                UiSharedService.AttachToolTip("Déjà apparié sur Umbra");
+                            }
+                            else if (!e.AcceptPairRequests)
+                            {
+                                _uiSharedService.IconText(FontAwesomeIcon.Ban, ImGuiColors.DalamudGrey3);
+                                UiSharedService.AttachToolTip("Les demandes sont désactivées pour ce joueur");
+                            }
+                            else if (!string.IsNullOrEmpty(e.Token))
+                            {
+                                if (_uiSharedService.IconButton(FontAwesomeIcon.UserPlus))
+                                {
+                                    _ = _autoDetectRequestService.SendRequestAsync(e.Token!);
+                                }
+                                UiSharedService.AttachToolTip("Envoyer une invitation Umbra");
                             }
                             else
                             {
-                                if (_uiSharedService.IconTextButton(FontAwesomeIcon.UserPlus, "Invite", statusSize.X))
-                                {
-                                    Mediator.Publish(new UiToggleMessage(typeof(AutoDetectUi)));
-                                }
+                                _uiSharedService.IconText(FontAwesomeIcon.QuestionCircle, ImGuiColors.DalamudGrey3);
+                                UiSharedService.AttachToolTip("Impossible d'inviter ce joueur");
                             }
                         }
                     }

@@ -258,7 +258,7 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                 if (entries.Count != _lastLocalCount)
                 {
                     _lastLocalCount = entries.Count;
-                    _logger.LogInformation("Nearby: {count} players detected locally", _lastLocalCount);
+                    _logger.LogTrace("Nearby: {count} players detected locally", _lastLocalCount);
                 }
 
                 // Try query server if config and endpoints are present
@@ -291,7 +291,7 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                                     return $"{e.Name}({e.WorldId})->{shortH}";
                                 });
                                 var saltShort = saltHex.Length > 8 ? saltHex[..8] : saltHex;
-                                _logger.LogInformation("Nearby snapshot: {count} entries; salt={saltShort}…; samples=[{samples}]",
+                                _logger.LogTrace("Nearby snapshot: {count} entries; salt={saltShort}…; samples=[{samples}]",
                                     entries.Count, saltShort, string.Join(", ", sample));
                             }
                         }
@@ -310,7 +310,7 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                                     ushort meWorld = 0;
                                     if (me is Dalamud.Game.ClientState.Objects.SubKinds.IPlayerCharacter mePc)
                                         meWorld = (ushort)mePc.HomeWorld.RowId;
-                                    _logger.LogInformation("Nearby self ident: {name} ({world})", displayName, meWorld);
+                                    _logger.LogTrace("Nearby self ident: {name} ({world})", displayName, meWorld);
                                     selfHash = (saltHex + displayName + meWorld.ToString()).GetHash256();
                                 }
                             }
@@ -380,14 +380,31 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                                     }
                                 }
                             }
-                            _logger.LogInformation("Nearby: server returned {count} matches", allMatches.Count);
+                            if (allMatches.Count > 0)
+                            {
+                                _logger.LogInformation("Nearby: server returned {count} matches", allMatches.Count);
+                            }
+                            else
+                            {
+                                _logger.LogTrace("Nearby: server returned {count} matches", allMatches.Count);
+                            }
 
                             // Log change in number of Umbra matches
                             int matchCount = entries.Count(e => e.IsMatch);
                             if (matchCount != _lastMatchCount)
                             {
                                 _lastMatchCount = matchCount;
-                                _logger.LogDebug("Nearby: {count} Umbra users nearby", matchCount);
+                                if (matchCount > 0)
+                                {
+                                    var matchSamples = entries.Where(e => e.IsMatch).Take(5)
+                                        .Select(e => string.IsNullOrEmpty(e.DisplayName) ? e.Name : e.DisplayName!);
+                                    _logger.LogInformation("Nearby: {count} Umbra users nearby [{samples}]",
+                                        matchCount, string.Join(", ", matchSamples));
+                                }
+                                else
+                                {
+                                    _logger.LogTrace("Nearby: {count} Umbra users nearby", matchCount);
+                                }
                             }
                         }
                     }
