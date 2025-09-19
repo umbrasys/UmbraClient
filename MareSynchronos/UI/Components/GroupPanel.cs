@@ -152,7 +152,7 @@ internal sealed class GroupPanel
 
         if (ImGui.BeginPopupModal("Create Syncshell", ref _showModalCreateGroup, UiSharedService.PopupWindowFlags))
         {
-            UiSharedService.TextWrapped("Donnez un nom à votre Syncshell (optionnel) puis créez-la. Le préfixe 'UMB-' reste inchangé.");
+            UiSharedService.TextWrapped("Donnez un nom à votre Syncshell (optionnel) puis créez-la.");
             ImGui.SetNextItemWidth(-1);
             ImGui.InputTextWithHint("##syncshellalias", "Nom du Syncshell", ref _newSyncShellAlias, 50);
             UiSharedService.TextWrapped("Appuyez sur le bouton ci-dessous pour créer une nouvelle Syncshell.");
