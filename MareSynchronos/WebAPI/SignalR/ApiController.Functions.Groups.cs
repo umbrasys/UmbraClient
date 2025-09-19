@@ -49,7 +49,12 @@ public partial class ApiController
         await _mareHub!.SendAsync(nameof(GroupClear), group).ConfigureAwait(false);
     }
 
-    public async Task<GroupPasswordDto> GroupCreate(string? alias = null)
+    public Task<GroupPasswordDto> GroupCreate()
+    {
+        return GroupCreate(null);
+    }
+
+    public async Task<GroupPasswordDto> GroupCreate(string? alias)
     {
         CheckConnection();
         return await _mareHub!.InvokeAsync<GroupPasswordDto>(nameof(GroupCreate), string.IsNullOrWhiteSpace(alias) ? null : alias.Trim()).ConfigureAwait(false);

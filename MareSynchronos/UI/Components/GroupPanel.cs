@@ -40,6 +40,7 @@ internal sealed class GroupPanel
     private string _editGroupComment = string.Empty;
     private string _editGroupEntry = string.Empty;
     private bool _errorGroupCreate = false;
+    private string _errorGroupCreateMessage = string.Empty;
     private bool _errorGroupJoin;
     private bool _isPasswordValid;
     private GroupPasswordDto? _lastCreatedGroup = null;
@@ -110,6 +111,7 @@ internal sealed class GroupPanel
                     _lastCreatedGroup = null;
                     _errorGroupCreate = false;
                     _newSyncShellAlias = string.Empty;
+                    _errorGroupCreateMessage = string.Empty;
                     _showModalCreateGroup = true;
                     ImGui.OpenPopup("Create Syncshell");
                 }
@@ -168,10 +170,11 @@ internal sealed class GroupPanel
                         _newSyncShellAlias = string.Empty;
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
                     _lastCreatedGroup = null;
                     _errorGroupCreate = true;
+                    _errorGroupCreateMessage = ex.Message;
                 }
             }
 
@@ -179,6 +182,7 @@ internal sealed class GroupPanel
             {
                 ImGui.Separator();
                 _errorGroupCreate = false;
+                _errorGroupCreateMessage = string.Empty;
                 if (!string.IsNullOrWhiteSpace(_lastCreatedGroup.Group.Alias))
                 {
                     ImGui.TextUnformatted("Syncshell Name: " + _lastCreatedGroup.Group.Alias);
@@ -196,8 +200,10 @@ internal sealed class GroupPanel
 
             if (_errorGroupCreate)
             {
-                UiSharedService.ColorTextWrapped("You are already owner of the maximum amount of Syncshells (3) or joined the maximum amount of Syncshells (6). Relinquish ownership of your own Syncshells to someone else or leave existing Syncshells.",
-                    new Vector4(1, 0, 0, 1));
+                var msg = string.IsNullOrWhiteSpace(_errorGroupCreateMessage)
+                    ? "You are already owner of the maximum amount of Syncshells (3) or joined the maximum amount of Syncshells (6). Relinquish ownership of your own Syncshells to someone else or leave existing Syncshells."
+                    : _errorGroupCreateMessage;
+                UiSharedService.ColorTextWrapped(msg, new Vector4(1, 0, 0, 1));
             }
 
             UiSharedService.SetScaledWindowSize(350);
