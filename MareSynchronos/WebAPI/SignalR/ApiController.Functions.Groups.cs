@@ -1,4 +1,5 @@
-﻿using MareSynchronos.API.Data;
+﻿using System;
+using MareSynchronos.API.Data;
 using MareSynchronos.API.Dto.Group;
 using MareSynchronos.WebAPI.SignalR.Utils;
 using Microsoft.AspNetCore.SignalR.Client;
@@ -58,6 +59,12 @@ public partial class ApiController
     {
         CheckConnection();
         return await _mareHub!.InvokeAsync<GroupPasswordDto>(nameof(GroupCreate), string.IsNullOrWhiteSpace(alias) ? null : alias.Trim()).ConfigureAwait(false);
+    }
+
+    public async Task<GroupPasswordDto> GroupCreateTemporary(DateTime expiresAtUtc)
+    {
+        CheckConnection();
+        return await _mareHub!.InvokeAsync<GroupPasswordDto>(nameof(GroupCreateTemporary), expiresAtUtc).ConfigureAwait(false);
     }
 
     public async Task<List<string>> GroupCreateTempInvite(GroupDto group, int amount)

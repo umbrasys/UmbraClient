@@ -17,6 +17,7 @@ using MareSynchronos.Services.ServerConfiguration;
 using MareSynchronos.UI.Components;
 using MareSynchronos.UI.Handlers;
 using MareSynchronos.WebAPI;
+using System;
 using System.Globalization;
 using System.Numerics;
 
@@ -54,6 +55,20 @@ internal sealed class GroupPanel
     private bool _showModalCreateGroup;
     private bool _showModalEnterPassword;
     private string _newSyncShellAlias = string.Empty;
+    private bool _createIsTemporary = false;
+    private int _tempSyncshellDurationHours = 24;
+    private readonly int[] _temporaryDurationOptions = new[]
+    {
+        1,
+        12,
+        24,
+        48,
+        72,
+        96,
+        120,
+        144,
+        168
+    };
     private string _syncShellPassword = string.Empty;
     private string _syncShellToJoin = string.Empty;
 
@@ -111,6 +126,8 @@ internal sealed class GroupPanel
                     _lastCreatedGroup = null;
                     _errorGroupCreate = false;
                     _newSyncShellAlias = string.Empty;
+                    _createIsTemporary = false;
+                    _tempSyncshellDurationHours = 24;
                     _errorGroupCreateMessage = string.Empty;
                     _showModalCreateGroup = true;
                     ImGui.OpenPopup("Create Syncshell");
@@ -154,27 +171,97 @@ internal sealed class GroupPanel
 
         if (ImGui.BeginPopupModal("Create Syncshell", ref _showModalCreateGroup, UiSharedService.PopupWindowFlags))
         {
+            UiSharedService.TextWrapped("Choisissez le type de Syncshell à créer.");
+            bool showPermanent = !_createIsTemporary;
+            if (ImGui.RadioButton("Permanente", showPermanent))
+            {
+                _createIsTemporary = false;
+            }
+            ImGui.SameLine();
+            if (ImGui.RadioButton("Temporaire", _createIsTemporary))
+            {
+                _createIsTemporary = true;
+                _newSyncShellAlias = string.Empty;
+        }
+
+        if (!_createIsTemporary)
+        {
             UiSharedService.TextWrapped("Donnez un nom à votre Syncshell (optionnel) puis créez-la.");
             ImGui.SetNextItemWidth(-1);
             ImGui.InputTextWithHint("##syncshellalias", "Nom du Syncshell", ref _newSyncShellAlias, 50);
+        }
+        else
+        {
+            _newSyncShellAlias = string.Empty;
+        }
+
+        if (_createIsTemporary)
+        {
+            UiSharedService.TextWrapped("Durée maximale d'une Syncshell temporaire : 7 jours.");
+            if (_tempSyncshellDurationHours > 168) _tempSyncshellDurationHours = 168;
+            for (int i = 0; i < _temporaryDurationOptions.Length; i++)
+            {
+                var option = _temporaryDurationOptions[i];
+                var isSelected = _tempSyncshellDurationHours == option;
+                string label = option switch
+                {
+                    >= 24 when option % 24 == 0 => option == 24 ? "24h" : $"{option / 24}j",
+                    _ => option + "h"
+                };
+
+                if (ImGui.RadioButton(label, isSelected))
+                {
+                    _tempSyncshellDurationHours = option;
+                }
+
+                // Start a new line after every 3 buttons
+                if ((i + 1) % 3 == 0)
+                {
+                    ImGui.NewLine();
+                }
+                else
+                {
+                    ImGui.SameLine();
+                }
+            }
+
+            var expiresLocal = DateTime.Now.AddHours(_tempSyncshellDurationHours);
+            UiSharedService.TextWrapped($"Expiration le {expiresLocal:g} (heure locale).");
+        }
+
             UiSharedService.TextWrapped("Appuyez sur le bouton ci-dessous pour créer une nouvelle Syncshell.");
             ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
             if (ImGui.Button("Create Syncshell"))
             {
                 try
                 {
-                    var aliasInput = string.IsNullOrWhiteSpace(_newSyncShellAlias) ? null : _newSyncShellAlias.Trim();
-                    _lastCreatedGroup = ApiController.GroupCreate(aliasInput).Result;
-                    if (_lastCreatedGroup != null)
+                    if (_createIsTemporary)
                     {
-                        _newSyncShellAlias = string.Empty;
+                        var expiresAtUtc = DateTime.UtcNow.AddHours(_tempSyncshellDurationHours);
+                        _lastCreatedGroup = ApiController.GroupCreateTemporary(expiresAtUtc).Result;
+                    }
+                    else
+                    {
+                        var aliasInput = string.IsNullOrWhiteSpace(_newSyncShellAlias) ? null : _newSyncShellAlias.Trim();
+                        _lastCreatedGroup = ApiController.GroupCreate(aliasInput).Result;
+                        if (_lastCreatedGroup != null)
+                        {
+                            _newSyncShellAlias = string.Empty;
+                        }
                     }
                 }
                 catch (Exception ex)
                 {
                     _lastCreatedGroup = null;
                     _errorGroupCreate = true;
-                    _errorGroupCreateMessage = ex.Message;
+                    if (ex.Message.Contains("name is already in use", StringComparison.OrdinalIgnoreCase))
+                    {
+                        _errorGroupCreateMessage = "Le nom de la Syncshell est déjà utilisé.";
+                    }
+                    else
+                    {
+                        _errorGroupCreateMessage = ex.Message;
+                    }
                 }
             }
 
@@ -196,6 +283,11 @@ internal sealed class GroupPanel
                     ImGui.SetClipboardText(_lastCreatedGroup.Password);
                 }
                 UiSharedService.TextWrapped("You can change the Syncshell password later at any time.");
+                if (_lastCreatedGroup.IsTemporary && _lastCreatedGroup.ExpiresAt != null)
+                {
+                    var expiresLocal = _lastCreatedGroup.ExpiresAt.Value.ToLocalTime();
+                    UiSharedService.TextWrapped($"Cette Syncshell expirera le {expiresLocal:g} (heure locale).");
+                }
             }
 
             if (_errorGroupCreate)
@@ -263,11 +355,13 @@ internal sealed class GroupPanel
         if (!string.Equals(_editGroupEntry, groupDto.GID, StringComparison.Ordinal))
         {
             var shellConfig = _serverConfigurationManager.GetShellConfigForGid(groupDto.GID);
-            if (!_mareConfig.Current.DisableSyncshellChat && shellConfig.Enabled)
-            {
-                ImGui.TextUnformatted($"[{shellNumber}]");
-                UiSharedService.AttachToolTip("Chat command prefix: /ss" + shellNumber);
-            }
+            var totalMembers = pairsInGroup.Count + 1;
+            var connectedMembers = pairsInGroup.Count(p => p.IsOnline) + 1;
+            var maxCapacity = ApiController.ServerInfo.MaxGroupUserCount;
+            ImGui.TextUnformatted($"{connectedMembers}/{totalMembers}");
+            UiSharedService.AttachToolTip("Membres connectés / membres totaux" + Environment.NewLine +
+                $"Capacité maximale : {maxCapacity}" + Environment.NewLine +
+                "Syncshell ID: " + groupDto.Group.GID);
             if (textIsGid) ImGui.PushFont(UiBuilder.MonoFont);
             ImGui.SameLine();
             ImGui.TextUnformatted(groupName);
@@ -275,6 +369,20 @@ internal sealed class GroupPanel
             UiSharedService.AttachToolTip("Left click to switch between GID display and comment" + Environment.NewLine +
                           "Right click to change comment for " + groupName + Environment.NewLine + Environment.NewLine
                           + "Users: " + (pairsInGroup.Count + 1) + ", Owner: " + groupDto.OwnerAliasOrUID);
+            if (groupDto.IsTemporary)
+            {
+                ImGui.SameLine();
+                UiSharedService.ColorText("(Temp)", ImGuiColors.DalamudOrange);
+                if (groupDto.ExpiresAt != null)
+                {
+                    var tempExpireLocal = groupDto.ExpiresAt.Value.ToLocalTime();
+                    UiSharedService.AttachToolTip($"Expire le {tempExpireLocal:g}");
+                }
+                else
+                {
+                    UiSharedService.AttachToolTip("Syncshell temporaire");
+                }
+            }
             if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
             {
                 var prevState = textIsGid;

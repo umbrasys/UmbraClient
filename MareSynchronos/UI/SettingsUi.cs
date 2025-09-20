@@ -50,6 +50,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private readonly AccountRegistrationService _registerService;
     private readonly ServerConfigurationManager _serverConfigurationManager;
     private readonly UiSharedService _uiShared;
+    private static readonly string DtrDefaultPreviewText = DtrEntry.DefaultGlyph + " 123";
     private bool _deleteAccountPopupModalShown = false;
     private string _lastTab = string.Empty;
     private bool? _notesSuccessfullyApplied = null;
@@ -1049,13 +1050,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 _configService.Save();
             }
 
-            ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
-            _uiShared.DrawCombo("Server Info Bar style", Enumerable.Range(0, DtrEntry.NumStyles), (i) => DtrEntry.RenderDtrStyle(i, "123"),
-            (i) =>
-            {
-                _configService.Current.DtrStyle = i;
-                _configService.Save();
-            }, _configService.Current.DtrStyle);
+            DrawDtrStyleCombo();
 
             if (ImGui.Checkbox("Color-code the Server Info Bar entry according to status", ref useColorsInDtr))
             {
@@ -1941,12 +1936,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 ImGui.EndDisabled();
             }
 
-            if (ImGui.BeginTabItem("Chat"))
-            {
-                DrawChatConfig();
-                ImGui.EndTabItem();
-            }
-
             if (ImGui.BeginTabItem("Advanced"))
             {
                 DrawAdvanced();
@@ -1955,6 +1944,38 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
             ImGui.EndTabBar();
         }
+    }
+
+    private void DrawDtrStyleCombo()
+    {
+        var styleIndex = _configService.Current.DtrStyle;
+        string previewText = styleIndex == 0 ? DtrDefaultPreviewText : DtrEntry.RenderDtrStyle(styleIndex, "123");
+
+        ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
+        bool comboOpen = ImGui.BeginCombo("Server Info Bar style", previewText);
+
+        if (comboOpen)
+        {
+            for (int i = 0; i < DtrEntry.NumStyles; i++)
+            {
+                string label = i == 0 ? DtrDefaultPreviewText : DtrEntry.RenderDtrStyle(i, "123");
+                bool isSelected = i == styleIndex;
+                if (ImGui.Selectable(label, isSelected))
+                {
+                    _configService.Current.DtrStyle = i;
+                    _configService.Save();
+                }
+
+                if (isSelected)
+                {
+                    ImGui.SetItemDefaultFocus();
+                }
+
+            }
+
+            ImGui.EndCombo();
+        }
+
     }
 
     private void UiSharedService_GposeEnd()

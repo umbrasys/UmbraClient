@@ -2,6 +2,7 @@
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Plugin.Services;
+using Dalamud.Interface;
 using MareSynchronos.MareConfiguration;
 using MareSynchronos.MareConfiguration.Configurations;
 using MareSynchronos.PlayerData.Pairs;
@@ -15,6 +16,7 @@ namespace MareSynchronos.UI;
 
 public sealed class DtrEntry : IDisposable, IHostedService
 {
+    public const string DefaultGlyph = "\u25CB";
     private enum DtrStyle
     {
         Default,
@@ -196,7 +198,8 @@ public sealed class DtrEntry : IDisposable, IHostedService
     {
         var style = (DtrStyle)styleNum;
 
-        return style switch {
+        return style switch
+        {
             DtrStyle.Style1 => $"\xE039 {text}",
             DtrStyle.Style2 => $"\xE0BC {text}",
             DtrStyle.Style3 => $"\xE0BD {text}",
@@ -206,7 +209,7 @@ public sealed class DtrEntry : IDisposable, IHostedService
             DtrStyle.Style7 => $"\xE05D {text}",
             DtrStyle.Style8 => $"\xE03C{text}",
             DtrStyle.Style9 => $"\xE040 {text} \xE041",
-            _ => $"\uE044 {text}"
+            _ => DefaultGlyph + " " + text
         };
     }
 

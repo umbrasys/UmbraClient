@@ -210,9 +210,16 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
 
     public void SetGroupInfo(GroupInfoDto dto)
     {
-        _allGroups[dto.Group].Group = dto.Group;
-        _allGroups[dto.Group].Owner = dto.Owner;
-        _allGroups[dto.Group].GroupPermissions = dto.GroupPermissions;
+        if (!_allGroups.TryGetValue(dto.Group, out var groupInfo))
+        {
+            return;
+        }
+
+        groupInfo.Group = dto.Group;
+        groupInfo.Owner = dto.Owner;
+        groupInfo.GroupPermissions = dto.GroupPermissions;
+        groupInfo.IsTemporary = dto.IsTemporary;
+        groupInfo.ExpiresAt = dto.ExpiresAt;
 
         RecreateLazy();
     }

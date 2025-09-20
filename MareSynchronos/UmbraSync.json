@@ -1,8 +1,8 @@
 {
-  "Author": "SirConstance",
+  "Author": "Keda",
   "Name": "UmbraSync",
-  "Punchline": "Share your true self.",
-  "Description": "This plugin will synchronize your Penumbra mods and current Glamourer state with other paired clients automatically.",
+  "Punchline": "Parce que nous le valons bien.",
+  "Description": "Ce plugin synchronisera automatiquement vos mods Penumbra et l'état actuel de Glamourer avec les autres clients appairés.",
   "InternalName": "UmbraSync",
   "ApplicableVersion": "any",
   "Tags": [
