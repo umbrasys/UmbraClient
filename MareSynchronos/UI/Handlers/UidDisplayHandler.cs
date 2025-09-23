@@ -77,9 +77,21 @@ public class UidDisplayHandler
 
                 if (_popupTime > DateTime.UtcNow || !_mareConfigService.Current.ProfilesShow)
                 {
-                    ImGui.SetTooltip("Left click to switch between UID display and nick" + Environment.NewLine
+                    // Build tooltip; prepend last-seen when player is offline or not visible
+                    string tooltip = "Left click to switch between UID display and nick" + Environment.NewLine
                         + "Right click to change nick for " + pair.UserData.AliasOrUID + Environment.NewLine
-                        + "Middle Mouse Button to open their profile in a separate window");
+                        + "Middle Mouse Button to open their profile in a separate window";
+
+                    if (!pair.IsOnline || !pair.IsVisible)
+                    {
+                        var lastSeen = _serverManager.GetNameForUid(pair.UserData.UID);
+                        if (!string.IsNullOrEmpty(lastSeen))
+                        {
+                            tooltip = "Vu sous : " + lastSeen + Environment.NewLine + tooltip;
+                        }
+                    }
+
+                    ImGui.SetTooltip(tooltip);
                 }
                 else if (_popupTime < DateTime.UtcNow && !_popupShown)
                 {
@@ -142,6 +154,12 @@ public class UidDisplayHandler
 
     public (bool isUid, string text) GetPlayerText(Pair pair)
     {
+        // When the user is offline or not visible, always show the raw UID (no alias/note/character name)
+        if (!pair.IsOnline || !pair.IsVisible)
+        {
+            return (true, pair.UserData.UID);
+        }
+
         var textIsUid = true;
         bool showUidInsteadOfName = ShowUidInsteadOfName(pair);
         string? playerText = _serverManager.GetNoteForUid(pair.UserData.UID);

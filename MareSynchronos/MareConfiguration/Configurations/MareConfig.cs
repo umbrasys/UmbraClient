@@ -19,7 +19,7 @@ public class MareConfig : IMareConfiguration
     public bool UseColorsInDtr { get; set; } = true;
     public DtrEntry.Colors DtrColorsDefault { get; set; } = default;
     public DtrEntry.Colors DtrColorsNotConnected { get; set; } = new(Glow: 0x0428FFu);
-    public DtrEntry.Colors DtrColorsPairsInRange { get; set; } = new(Glow: 0xFFBA47u);
+    public DtrEntry.Colors DtrColorsPairsInRange { get; set; } = new(Glow: 0x8D37C0u);
     public bool UseNameColors { get; set; } = false;
     public DtrEntry.Colors NameColors { get; set; } = new(Foreground: 0x67EBF5u, Glow: 0x00303Cu);
     public DtrEntry.Colors BlockedNameColors { get; set; } = new(Foreground: 0x8AADC7, Glow: 0x000080u);

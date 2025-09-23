@@ -1,4 +1,4 @@
-﻿using Dalamud.Bindings.ImGui;
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
@@ -61,6 +61,7 @@ public class CompactUi : WindowMediatorSubscriberBase
     private bool _showSyncShells;
     private bool _wasOpen;
     private bool _nearbyOpen = true;
+    private bool _pendingOpen = true;
     private List<Services.Mediator.NearbyEntry> _nearbyEntries = new();
 
     public CompactUi(ILogger<CompactUi> logger, UiSharedService uiShared, MareConfigService configService, ApiController apiController, PairManager pairManager, ChatService chatService,
@@ -102,7 +103,20 @@ public class CompactUi : WindowMediatorSubscriberBase
         Mediator.Subscribe<CutsceneEndMessage>(this, (_) => UiSharedService_GposeEnd());
         Mediator.Subscribe<DownloadStartedMessage>(this, (msg) => _currentDownloads[msg.DownloadId] = msg.DownloadStatus);
         Mediator.Subscribe<DownloadFinishedMessage>(this, (msg) => _currentDownloads.TryRemove(msg.DownloadId, out _));
-        Mediator.Subscribe<DiscoveryListUpdated>(this, (msg) => _nearbyEntries = msg.Entries);
+        Mediator.Subscribe<DiscoveryListUpdated>(this, (msg) =>
+        {
+            _nearbyEntries = msg.Entries;
+            // Update last-seen character names for matched entries
+            foreach (var e in _nearbyEntries.Where(x => x.IsMatch))
+            {
+                var uid = e.Uid;
+                var lastSeen = e.DisplayName ?? e.Name;
+                if (!string.IsNullOrEmpty(uid) && !string.IsNullOrEmpty(lastSeen))
+                {
+                    _serverManager.SetNameForUid(uid, lastSeen);
+                }
+            }
+        });
 
         Flags |= ImGuiWindowFlags.NoDocking;
 
@@ -370,15 +384,85 @@ public class CompactUi : WindowMediatorSubscriberBase
             : (ImGui.GetWindowContentRegionMax().Y - ImGui.GetWindowContentRegionMin().Y) - TransferPartHeight - ImGui.GetCursorPosY();
         var users = GetFilteredUsers().OrderBy(u => u.GetPairSortKey(), StringComparer.Ordinal);
 
+        ImGui.BeginChild("list", new Vector2(WindowContentWidth, ySize), border: false);
+
+        try
+        {
+            var inbox = _nearbyPending;
+            if (inbox != null && inbox.Pending.Count > 0)
+            {
+                ImGuiHelpers.ScaledDummy(6);
+                _uiSharedService.BigText("Incoming requests");
+                foreach (var kv in inbox.Pending)
+                {
+                    ImGui.AlignTextToFramePadding();
+                    ImGui.TextUnformatted($"{kv.Value} [{kv.Key}]");
+                    ImGui.SameLine();
+                    if (_uiSharedService.IconButton(FontAwesomeIcon.Check))
+                    {
+                        _ = inbox.AcceptAsync(kv.Key);
+                    }
+                    UiSharedService.AttachToolTip("Accept and add as pair");
+                    ImGui.SameLine();
+                    if (_uiSharedService.IconButton(FontAwesomeIcon.Times))
+                    {
+                        inbox.Remove(kv.Key);
+                    }
+                    UiSharedService.AttachToolTip("Dismiss request");
+                }
+                ImGui.Separator();
+            }
+        }
+        catch { }
+
+        // Add the "En attente" category
+        using (ImRaii.PushId("group-Pending"))
+        {
+            var icon = _pendingOpen ? FontAwesomeIcon.CaretSquareDown : FontAwesomeIcon.CaretSquareRight;
+            _uiSharedService.IconText(icon);
+            if (ImGui.IsItemClicked(ImGuiMouseButton.Left)) _pendingOpen = !_pendingOpen;
+            ImGui.SameLine();
+            ImGui.TextUnformatted($"En attente ({_nearbyPending?.Pending.Count ?? 0})");
+            if (ImGui.IsItemClicked(ImGuiMouseButton.Left)) _pendingOpen = !_pendingOpen;
+
+            if (_pendingOpen)
+            {
+                ImGui.Indent();
+                if (_nearbyPending != null && _nearbyPending.Pending.Count > 0)
+                {
+                    foreach (var kv in _nearbyPending.Pending)
+                    {
+                        ImGui.AlignTextToFramePadding();
+                        ImGui.TextUnformatted($"{kv.Value} [{kv.Key}]");
+                        ImGui.SameLine();
+                        if (_uiSharedService.IconButton(FontAwesomeIcon.Check))
+                        {
+                            _ = _nearbyPending.AcceptAsync(kv.Key);
+                        }
+                        UiSharedService.AttachToolTip("Accept and add as pair");
+                        ImGui.SameLine();
+                        if (_uiSharedService.IconButton(FontAwesomeIcon.Times))
+                        {
+                            _nearbyPending.Remove(kv.Key);
+                        }
+                        UiSharedService.AttachToolTip("Dismiss request");
+                    }
+                }
+                else
+                {
+                    UiSharedService.ColorTextWrapped("Aucune invitation en attente.", ImGuiColors.DalamudGrey3);
+                }
+                ImGui.Unindent();
+                ImGui.Separator();
+            }
+        }
+
         var onlineUsers = users.Where(u => u.UserPair!.OtherPermissions.IsPaired() && (u.IsOnline || u.UserPair!.OwnPermissions.IsPaused())).Select(c => new DrawUserPair("Online" + c.UserData.UID, c, _uidDisplayHandler, _apiController, Mediator, _selectGroupForPairUi, _uiSharedService, _charaDataManager)).ToList();
         var visibleUsers = users.Where(u => u.IsVisible).Select(c => new DrawUserPair("Visible" + c.UserData.UID, c, _uidDisplayHandler, _apiController, Mediator, _selectGroupForPairUi, _uiSharedService, _charaDataManager)).ToList();
         var offlineUsers = users.Where(u => !u.UserPair!.OtherPermissions.IsPaired() || (!u.IsOnline && !u.UserPair!.OwnPermissions.IsPaused())).Select(c => new DrawUserPair("Offline" + c.UserData.UID, c, _uidDisplayHandler, _apiController, Mediator, _selectGroupForPairUi, _uiSharedService, _charaDataManager)).ToList();
 
-        ImGui.BeginChild("list", new Vector2(WindowContentWidth, ySize), border: false);
-
         _pairGroupsUi.Draw(visibleUsers, onlineUsers, offlineUsers);
 
-        // Always show a Nearby group when detection is enabled, even if empty
         if (_configService.Current.EnableAutoDetectDiscovery)
         {
             using (ImRaii.PushId("group-Nearby"))
@@ -409,7 +493,7 @@ public class CompactUi : WindowMediatorSubscriberBase
                             .ToList();
                     if (nearby.Count == 0)
                     {
-                        UiSharedService.ColorTextWrapped("No nearby players detected.", ImGuiColors.DalamudGrey3);
+                        UiSharedService.ColorTextWrapped("Aucun joueur detecté.", ImGuiColors.DalamudGrey3);
                     }
                     else
                     {
@@ -438,7 +522,7 @@ public class CompactUi : WindowMediatorSubscriberBase
                             if (isPaired)
                             {
                                 _uiSharedService.IconText(FontAwesomeIcon.Check, ImGuiColors.ParsedGreen);
-                                UiSharedService.AttachToolTip("Déjà apparié sur Umbra");
+                                UiSharedService.AttachToolTip("Déjà appairé");
                             }
                             else if (!e.AcceptPairRequests)
                             {
@@ -451,7 +535,7 @@ public class CompactUi : WindowMediatorSubscriberBase
                                 {
                                     _ = _autoDetectRequestService.SendRequestAsync(e.Token!);
                                 }
-                                UiSharedService.AttachToolTip("Envoyer une invitation Umbra");
+                                UiSharedService.AttachToolTip("Envoyer une invitation d'apparaige");
                             }
                             else
                             {
@@ -460,33 +544,6 @@ public class CompactUi : WindowMediatorSubscriberBase
                             }
                         }
                     }
-                    try
-                    {
-                        var inbox = _nearbyPending;
-                        if (inbox != null && inbox.Pending.Count > 0)
-                        {
-                            ImGuiHelpers.ScaledDummy(6);
-                            _uiSharedService.BigText("Incoming requests");
-                            foreach (var kv in inbox.Pending)
-                            {
-                                ImGui.AlignTextToFramePadding();
-                                ImGui.TextUnformatted($"{kv.Value} [{kv.Key}]");
-                                ImGui.SameLine();
-                                if (_uiSharedService.IconButton(FontAwesomeIcon.Check))
-                                {
-                                    _ = inbox.AcceptAsync(kv.Key);
-                                }
-                                UiSharedService.AttachToolTip("Accept and add as pair");
-                                ImGui.SameLine();
-                                if (_uiSharedService.IconButton(FontAwesomeIcon.Times))
-                                {
-                                    inbox.Remove(kv.Key);
-                                }
-                                UiSharedService.AttachToolTip("Dismiss request");
-                            }
-                        }
-                    }
-                    catch { }
                     ImGui.Unindent();
                     ImGui.Separator();
                 }
@@ -670,8 +727,8 @@ public class CompactUi : WindowMediatorSubscriberBase
             ImGui.TextColored(GetUidColor(), uidText);
 
         if (_apiController.ServerState is not ServerState.Connected)
-        {
             UiSharedService.ColorTextWrapped(GetServerError(), GetUidColor());
+        {
             if (_apiController.ServerState is ServerState.NoSecretKey)
             {
                 DrawAddCharacter();
@@ -710,13 +767,13 @@ public class CompactUi : WindowMediatorSubscriberBase
         };
     }
 
-    private Vector4 GetUidColor()
+     private Vector4 GetUidColor()
     {
         return _apiController.ServerState switch
         {
             ServerState.Connecting => ImGuiColors.DalamudYellow,
             ServerState.Reconnecting => ImGuiColors.DalamudRed,
-            ServerState.Connected => new Vector4(0.63f, 0.25f, 1f, 1f), // custom violet
+            ServerState.Connected => new Vector4(0.63f, 0.25f, 1f, 1f),
             ServerState.Disconnected => ImGuiColors.DalamudYellow,
             ServerState.Disconnecting => ImGuiColors.DalamudYellow,
             ServerState.Unauthorized => ImGuiColors.DalamudRed,
