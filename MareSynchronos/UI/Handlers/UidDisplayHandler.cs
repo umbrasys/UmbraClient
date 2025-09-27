@@ -154,16 +154,15 @@ public class UidDisplayHandler
 
     public (bool isUid, string text) GetPlayerText(Pair pair)
     {
-        // When the user is offline or not visible, always show the raw UID (no alias/note/character name)
-        if (!pair.IsOnline || !pair.IsVisible)
+        bool showUidInsteadOfName = ShowUidInsteadOfName(pair);
+        if (showUidInsteadOfName)
         {
             return (true, pair.UserData.UID);
         }
 
         var textIsUid = true;
-        bool showUidInsteadOfName = ShowUidInsteadOfName(pair);
         string? playerText = _serverManager.GetNoteForUid(pair.UserData.UID);
-        if (!showUidInsteadOfName && playerText != null)
+        if (playerText != null)
         {
             if (string.IsNullOrEmpty(playerText))
             {
@@ -179,7 +178,7 @@ public class UidDisplayHandler
             playerText = pair.UserData.AliasOrUID;
         }
 
-        if (_mareConfigService.Current.ShowCharacterNames && textIsUid && !showUidInsteadOfName)
+        if (_mareConfigService.Current.ShowCharacterNames && textIsUid && pair.IsOnline && pair.IsVisible)
         {
             var name = pair.PlayerName;
             if (name != null)
@@ -215,8 +214,11 @@ public class UidDisplayHandler
 
     private bool ShowUidInsteadOfName(Pair pair)
     {
-        _showUidForEntry.TryGetValue(pair.UserData.UID, out var showUidInsteadOfName);
+        if (_showUidForEntry.TryGetValue(pair.UserData.UID, out var showUidInsteadOfName))
+        {
+            return showUidInsteadOfName;
+        }
 
-        return showUidInsteadOfName;
+        return false;
     }
 }

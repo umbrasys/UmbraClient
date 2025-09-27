@@ -471,69 +471,58 @@ public class CompactUi : WindowMediatorSubscriberBase
                 _uiSharedService.IconText(icon);
                 if (ImGui.IsItemClicked(ImGuiMouseButton.Left)) _nearbyOpen = !_nearbyOpen;
                 ImGui.SameLine();
-                var onUmbra = _nearbyEntries?.Count(e => e.IsMatch) ?? 0;
+                var onUmbra = _nearbyEntries?.Count(e => e.IsMatch && e.AcceptPairRequests && !string.IsNullOrEmpty(e.Token) && !IsAlreadyPairedQuickMenu(e)) ?? 0;
                 ImGui.TextUnformatted($"Nearby ({onUmbra})");
                 if (ImGui.IsItemClicked(ImGuiMouseButton.Left)) _nearbyOpen = !_nearbyOpen;
-                var btnWidth = _uiSharedService.GetIconTextButtonSize(FontAwesomeIcon.UserPlus, "Nearby");
-                var headerRight = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth();
-                ImGui.SameLine();
-                ImGui.SetCursorPosX(headerRight - btnWidth);
-                if (_uiSharedService.IconTextButton(FontAwesomeIcon.UserPlus, "Nearby", btnWidth))
-                {
-                    Mediator.Publish(new UiToggleMessage(typeof(AutoDetectUi)));
-                }
-
                 if (_nearbyOpen)
                 {
+                    var btnWidth = _uiSharedService.GetIconTextButtonSize(FontAwesomeIcon.UserPlus, "Nearby");
+                    var headerRight = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth();
+                    ImGui.SameLine();
+                    ImGui.SetCursorPosX(headerRight - btnWidth);
+                    if (_uiSharedService.IconTextButton(FontAwesomeIcon.UserPlus, "Nearby", btnWidth))
+                    {
+                        Mediator.Publish(new UiToggleMessage(typeof(AutoDetectUi)));
+                    }
+
                     ImGui.Indent();
                     var nearby = _nearbyEntries == null
                         ? new List<Services.Mediator.NearbyEntry>()
-                        : _nearbyEntries.Where(e => e.IsMatch)
+                        : _nearbyEntries.Where(e => e.IsMatch && e.AcceptPairRequests && !string.IsNullOrEmpty(e.Token) && !IsAlreadyPairedQuickMenu(e))
                             .OrderBy(e => e.Distance)
                             .ToList();
                     if (nearby.Count == 0)
                     {
-                        UiSharedService.ColorTextWrapped("Aucun joueur detecté.", ImGuiColors.DalamudGrey3);
+                        UiSharedService.ColorTextWrapped("Aucun nouveau joueur detecté.", ImGuiColors.DalamudGrey3);
                     }
                     else
                     {
                         foreach (var e in nearby)
                         {
+                            if (!e.AcceptPairRequests || string.IsNullOrEmpty(e.Token))
+                                continue;
+
                             var name = e.DisplayName ?? e.Name;
                             ImGui.AlignTextToFramePadding();
                             ImGui.TextUnformatted(name);
                             var right = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth();
                             ImGui.SameLine();
 
-                            bool isPaired = false;
-                            try
-                            {
-                                isPaired = _pairManager.DirectPairs.Any(p => string.Equals(p.UserData.UID, e.Uid, StringComparison.Ordinal));
-                            }
-                            catch
-                            {
-                                var key = (e.DisplayName ?? e.Name) ?? string.Empty;
-                                isPaired = _pairManager.DirectPairs.Any(p => string.Equals(p.UserData.AliasOrUID, key, StringComparison.OrdinalIgnoreCase));
-                            }
-
                             var statusButtonSize = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.UserPlus);
                             ImGui.SetCursorPosX(right - statusButtonSize.X);
-
-                            if (isPaired)
-                            {
-                                _uiSharedService.IconText(FontAwesomeIcon.Check, ImGuiColors.ParsedGreen);
-                                UiSharedService.AttachToolTip("Déjà appairé");
-                            }
-                            else if (!e.AcceptPairRequests)
+                            if (!e.AcceptPairRequests)
                             {
                                 _uiSharedService.IconText(FontAwesomeIcon.Ban, ImGuiColors.DalamudGrey3);
                                 UiSharedService.AttachToolTip("Les demandes sont désactivées pour ce joueur");
                             }
                             else if (!string.IsNullOrEmpty(e.Token))
                             {
-                                if (_uiSharedService.IconButton(FontAwesomeIcon.UserPlus))
+                                using (ImRaii.PushId(e.Token ?? e.Uid ?? e.Name ?? string.Empty))
                                 {
-                                    _ = _autoDetectRequestService.SendRequestAsync(e.Token!);
+                                    if (_uiSharedService.IconButton(FontAwesomeIcon.UserPlus))
+                                    {
+                                        _ = _autoDetectRequestService.SendRequestAsync(e.Token!, e.Uid, e.DisplayName);
+                                    }
                                 }
                                 UiSharedService.AttachToolTip("Envoyer une invitation d'apparaige");
                             }
@@ -551,6 +540,27 @@ public class CompactUi : WindowMediatorSubscriberBase
         }
 
         ImGui.EndChild();
+    }
+
+    private bool IsAlreadyPairedQuickMenu(Services.Mediator.NearbyEntry entry)
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(entry.Uid))
+            {
+                if (_pairManager.DirectPairs.Any(p => string.Equals(p.UserData.UID, entry.Uid, StringComparison.Ordinal)))
+                    return true;
+            }
+
+            var key = (entry.DisplayName ?? entry.Name) ?? string.Empty;
+            if (string.IsNullOrEmpty(key)) return false;
+
+            return _pairManager.DirectPairs.Any(p => string.Equals(p.UserData.AliasOrUID, key, StringComparison.OrdinalIgnoreCase));
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private void DrawServerStatus()

@@ -6,6 +6,7 @@ using Dalamud.Interface;
 using MareSynchronos.MareConfiguration;
 using MareSynchronos.MareConfiguration.Configurations;
 using MareSynchronos.PlayerData.Pairs;
+using MareSynchronos.Services.AutoDetect;
 using MareSynchronos.Services.Mediator;
 using MareSynchronos.WebAPI;
 using Microsoft.Extensions.Hosting;
@@ -41,12 +42,13 @@ public sealed class DtrEntry : IDisposable, IHostedService
     private readonly ILogger<DtrEntry> _logger;
     private readonly MareMediator _mareMediator;
     private readonly PairManager _pairManager;
+    private readonly NearbyPendingService _nearbyPendingService;
     private Task? _runTask;
     private string? _text;
     private string? _tooltip;
     private Colors _colors;
 
-    public DtrEntry(ILogger<DtrEntry> logger, IDtrBar dtrBar, MareConfigService configService, MareMediator mareMediator, PairManager pairManager, ApiController apiController)
+    public DtrEntry(ILogger<DtrEntry> logger, IDtrBar dtrBar, MareConfigService configService, MareMediator mareMediator, PairManager pairManager, ApiController apiController, NearbyPendingService nearbyPendingService)
     {
         _logger = logger;
         _dtrBar = dtrBar;
@@ -55,6 +57,7 @@ public sealed class DtrEntry : IDisposable, IHostedService
         _mareMediator = mareMediator;
         _pairManager = pairManager;
         _apiController = apiController;
+        _nearbyPendingService = nearbyPendingService;
     }
 
     public void Dispose()
@@ -147,8 +150,9 @@ public sealed class DtrEntry : IDisposable, IHostedService
         if (_apiController.IsConnected)
         {
             var pairCount = _pairManager.GetVisibleUserCount();
-
-            text = RenderDtrStyle(_configService.Current.DtrStyle, pairCount.ToString());
+            var baseText = RenderDtrStyle(_configService.Current.DtrStyle, pairCount.ToString());
+            var pendingNearby = _nearbyPendingService.Pending.Count;
+            text = pendingNearby > 0 ? $"{baseText} ({pendingNearby})" : baseText;
             if (pairCount > 0)
             {
                 IEnumerable<string> visiblePairs;
@@ -165,12 +169,21 @@ public sealed class DtrEntry : IDisposable, IHostedService
                         .Select(x => string.Format("{0}", _configService.Current.PreferNoteInDtrTooltip ? x.GetNoteOrName() : x.PlayerName));
                 }
 
-                tooltip = $"Umbra: Connected{Environment.NewLine}----------{Environment.NewLine}{string.Join(Environment.NewLine, visiblePairs)}";
+                tooltip = $"Umbra: Connected";
+                if (pendingNearby > 0)
+                {
+                    tooltip += $"{Environment.NewLine}Invitation en attente : {pendingNearby}";
+                }
+                tooltip += $"{Environment.NewLine}----------{Environment.NewLine}{string.Join(Environment.NewLine, visiblePairs)}";
                 colors = _configService.Current.DtrColorsPairsInRange;
             }
             else
             {
                 tooltip = "Umbra: Connected";
+                if (pendingNearby > 0)
+                {
+                    tooltip += $"{Environment.NewLine}Invitation en attente : {pendingNearby}";
+                }
                 colors = _configService.Current.DtrColorsDefault;
             }
         }

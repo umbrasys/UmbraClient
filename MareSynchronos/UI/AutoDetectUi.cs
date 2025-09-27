@@ -108,7 +108,7 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
                     }
                     else if (ImGui.Button($"Send request##{e.Name}"))
                     {
-                        _ = _requestService.SendRequestAsync(e.Token!);
+                        _ = _requestService.SendRequestAsync(e.Token!, e.Uid, e.DisplayName);
                     }
                 }
             }

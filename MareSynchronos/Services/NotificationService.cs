@@ -1,4 +1,5 @@
-﻿using Dalamud.Game.Text.SeStringHandling;
+﻿using System;
+using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Plugin.Services;
 using MareSynchronos.MareConfiguration;
@@ -81,41 +82,94 @@ public class NotificationService : DisposableMediatorSubscriberBase, IHostedServ
 
         if (!_dalamudUtilService.IsLoggedIn) return;
 
-        switch (msg.Type)
+        bool appendInstruction;
+        bool forceChat = ShouldForceChat(msg, out appendInstruction);
+        var effectiveMessage = forceChat && appendInstruction ? AppendUsyncInstruction(msg.Message) : msg.Message;
+        var adjustedMsg = forceChat && appendInstruction ? msg with { Message = effectiveMessage } : msg;
+
+        switch (adjustedMsg.Type)
         {
             case NotificationType.Info:
-                ShowNotificationLocationBased(msg, _configurationService.Current.InfoNotification);
+                ShowNotificationLocationBased(adjustedMsg, _configurationService.Current.InfoNotification, forceChat);
                 break;
 
             case NotificationType.Warning:
-                ShowNotificationLocationBased(msg, _configurationService.Current.WarningNotification);
+                ShowNotificationLocationBased(adjustedMsg, _configurationService.Current.WarningNotification, forceChat);
                 break;
 
             case NotificationType.Error:
-                ShowNotificationLocationBased(msg, _configurationService.Current.ErrorNotification);
+                ShowNotificationLocationBased(adjustedMsg, _configurationService.Current.ErrorNotification, forceChat);
                 break;
         }
     }
 
-    private void ShowNotificationLocationBased(NotificationMessage msg, NotificationLocation location)
+    private static bool ShouldForceChat(NotificationMessage msg, out bool appendInstruction)
     {
-        switch (location)
+        appendInstruction = false;
+
+        bool IsNearbyRequestText(string? text)
         {
-            case NotificationLocation.Toast:
-                ShowToast(msg);
-                break;
+            if (string.IsNullOrEmpty(text)) return false;
+            return text.Contains("Nearby request", StringComparison.OrdinalIgnoreCase)
+                || text.Contains("Nearby Request", StringComparison.Ordinal);
+        }
 
-            case NotificationLocation.Chat:
-                ShowChat(msg);
-                break;
+        bool IsNearbyAcceptText(string? text)
+        {
+            if (string.IsNullOrEmpty(text)) return false;
+            return text.Contains("Nearby Accept", StringComparison.OrdinalIgnoreCase);
+        }
 
-            case NotificationLocation.Both:
-                ShowToast(msg);
-                ShowChat(msg);
-                break;
+        bool isAccept = IsNearbyAcceptText(msg.Title) || IsNearbyAcceptText(msg.Message);
+        if (isAccept)
+            return false;
 
-            case NotificationLocation.Nowhere:
-                break;
+        bool isRequest = IsNearbyRequestText(msg.Title) || IsNearbyRequestText(msg.Message);
+        if (isRequest)
+        {
+            appendInstruction = !IsRequestSentConfirmation(msg);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsRequestSentConfirmation(NotificationMessage msg)
+    {
+        if (string.Equals(msg.Title, "Nearby request sent", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (!string.IsNullOrEmpty(msg.Message) && msg.Message.Contains("The other user will receive a request notification.", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return false;
+    }
+
+    private static string AppendUsyncInstruction(string? message)
+    {
+        const string suffix = " | Ouvrez /usync pour voir l'invitation.";
+        if (string.IsNullOrWhiteSpace(message))
+            return suffix.TrimStart(' ', '|');
+
+        if (message.Contains("/usync", StringComparison.OrdinalIgnoreCase))
+            return message;
+
+        return message.TrimEnd() + suffix;
+    }
+
+    private void ShowNotificationLocationBased(NotificationMessage msg, NotificationLocation location, bool forceChat)
+    {
+        bool showToast = location is NotificationLocation.Toast or NotificationLocation.Both;
+        bool showChat = forceChat || location is NotificationLocation.Chat or NotificationLocation.Both;
+
+        if (showToast)
+        {
+            ShowToast(msg);
+        }
+
+        if (showChat)
+        {
+            ShowChat(msg);
         }
     }
 
