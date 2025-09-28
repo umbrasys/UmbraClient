@@ -272,6 +272,7 @@ public class DrawUserPair : DrawPairBase
         {
             var permissions = entry.UserPair.OwnPermissions;
             permissions.SetDisableSounds(!isDisableSounds);
+            _mediator.Publish(new PairSyncOverrideChanged(entry.UserData.UID, permissions.IsDisableSounds(), null, null));
             _ = _apiController.UserSetPairPermissions(new UserPermissionsDto(entry.UserData, permissions));
         }
 
@@ -282,6 +283,7 @@ public class DrawUserPair : DrawPairBase
         {
             var permissions = entry.UserPair.OwnPermissions;
             permissions.SetDisableAnimations(!isDisableAnims);
+            _mediator.Publish(new PairSyncOverrideChanged(entry.UserData.UID, null, permissions.IsDisableAnimations(), null));
             _ = _apiController.UserSetPairPermissions(new UserPermissionsDto(entry.UserData, permissions));
         }
 
@@ -292,6 +294,7 @@ public class DrawUserPair : DrawPairBase
         {
             var permissions = entry.UserPair.OwnPermissions;
             permissions.SetDisableVFX(!isDisableVFX);
+            _mediator.Publish(new PairSyncOverrideChanged(entry.UserData.UID, null, null, permissions.IsDisableVFX()));
             _ = _apiController.UserSetPairPermissions(new UserPermissionsDto(entry.UserData, permissions));
         }
 

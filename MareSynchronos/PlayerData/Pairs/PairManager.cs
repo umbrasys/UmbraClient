@@ -51,7 +51,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         RecreateLazy();
     }
 
-    public void AddGroupPair(GroupPairFullInfoDto dto)
+    public void AddGroupPair(GroupPairFullInfoDto dto, bool isInitialLoad = false)
     {
         if (!_allClientPairs.ContainsKey(dto.User))
             _allClientPairs[dto.User] = _pairFactory.Create(dto.User);
@@ -59,6 +59,11 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         var group = _allGroups[dto.Group];
         _allClientPairs[dto.User].GroupPair[group] = dto;
         RecreateLazy();
+
+        if (!isInitialLoad)
+        {
+            Mediator.Publish(new ApplyDefaultGroupPermissionsMessage(dto));
+        }
     }
 
     public Pair? GetPairByUID(string uid)
@@ -88,6 +93,11 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
             LastAddedUser = _allClientPairs[dto.User];
         _allClientPairs[dto.User].ApplyLastReceivedData();
         RecreateLazy();
+
+        if (addToLastAddedUser)
+        {
+            Mediator.Publish(new ApplyDefaultPairPermissionsMessage(dto));
+        }
     }
 
     public void ClearPairs()

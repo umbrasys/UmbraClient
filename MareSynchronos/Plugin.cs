@@ -115,6 +115,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton<PluginWarningNotificationService>();
             collection.AddSingleton<FileCompactor>();
             collection.AddSingleton<TagHandler>();
+            collection.AddSingleton<SyncDefaultsService>();
             collection.AddSingleton<UidDisplayHandler>();
             collection.AddSingleton<PluginWatcherService>();
             collection.AddSingleton<PlayerPerformanceService>();
@@ -146,6 +147,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton<IpcManager>();
             collection.AddSingleton<NotificationService>();
             collection.AddSingleton<TemporarySyncshellNotificationService>();
+            collection.AddSingleton<PartyListTypingService>();
 
             collection.AddSingleton((s) => new MareConfigService(pluginInterface.ConfigDirectory.FullName));
             collection.AddSingleton((s) => new ServerConfigService(pluginInterface.ConfigDirectory.FullName));
@@ -217,6 +219,16 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddHostedService(p => p.GetRequiredService<MareSynchronos.Services.AutoDetect.NearbyDiscoveryService>());
         })
         .Build();
+
+        try
+        {
+            var partyListTypingService = _host.Services.GetRequiredService<PartyListTypingService>();
+            pluginInterface.UiBuilder.Draw += partyListTypingService.Draw;
+        }
+        catch (Exception e)
+        {
+            pluginLog.Warning(e, "Failed to initialize PartyListTypingService draw hook");
+        }
 
         _ = Task.Run(async () => {
             try

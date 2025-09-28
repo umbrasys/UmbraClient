@@ -1,3 +1,4 @@
+using System.Threading;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
@@ -30,6 +31,11 @@ public class ChatService : DisposableMediatorSubscriberBase
 
     private readonly Lazy<GameChatHooks> _gameChatHooks;
 
+    private readonly object _typingLock = new();
+    private CancellationTokenSource? _typingCts;
+    private bool _isTypingAnnounced;
+    private static readonly TimeSpan TypingIdle = TimeSpan.FromSeconds(2);
+
     public ChatService(ILogger<ChatService> logger, DalamudUtilService dalamudUtil, MareMediator mediator, ApiController apiController,
         PairManager pairManager, ILoggerFactory loggerFactory, IGameInteropProvider gameInteropProvider, IChatGui chatGui,
         MareConfigService mareConfig, ServerConfigurationManager serverConfigurationManager) : base(logger, mediator)
@@ -46,13 +52,12 @@ public class ChatService : DisposableMediatorSubscriberBase
         Mediator.Subscribe<GroupChatMsgMessage>(this, HandleGroupChat);
 
         _gameChatHooks = new(() => new GameChatHooks(loggerFactory.CreateLogger<GameChatHooks>(), gameInteropProvider, SendChatShell));
-
-        // Initialize chat hooks in advance
         _ = Task.Run(() =>
         {
             try
             {
                 _ = _gameChatHooks.Value;
+                _isTypingAnnounced = false;
             }
             catch (Exception ex)
             {
@@ -64,8 +69,73 @@ public class ChatService : DisposableMediatorSubscriberBase
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
+        _typingCts?.Cancel();
+        _typingCts?.Dispose();
         if (_gameChatHooks.IsValueCreated)
             _gameChatHooks.Value!.Dispose();
+    }
+    public void NotifyTypingKeystroke()
+    {
+        lock (_typingLock)
+        {
+            if (!_isTypingAnnounced)
+            {
+                _ = Task.Run(async () =>
+                {
+                    try { await _apiController.UserSetTypingState(true).ConfigureAwait(false); }
+                    catch (Exception ex) { _logger.LogDebug(ex, "NotifyTypingKeystroke: failed to send typing=true"); }
+                });
+                _isTypingAnnounced = true;
+            }
+
+            _typingCts?.Cancel();
+            _typingCts?.Dispose();
+            _typingCts = new CancellationTokenSource();
+            var token = _typingCts.Token;
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(TypingIdle, token).ConfigureAwait(false);
+                    await _apiController.UserSetTypingState(false).ConfigureAwait(false);
+                }
+                catch (TaskCanceledException)
+                {
+                    // reset timer
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "NotifyTypingKeystroke: failed to send typing=false");
+                }
+                finally
+                {
+                    lock (_typingLock)
+                    {
+                        if (!token.IsCancellationRequested)
+                            _isTypingAnnounced = false;
+                    }
+                }
+            });
+        }
+    }
+    public void ClearTypingState()
+    {
+        lock (_typingLock)
+        {
+            _typingCts?.Cancel();
+            _typingCts?.Dispose();
+            _typingCts = null;
+            if (_isTypingAnnounced)
+            {
+                _ = Task.Run(async () =>
+                {
+                    try { await _apiController.UserSetTypingState(false).ConfigureAwait(false); }
+                    catch (Exception ex) { _logger.LogDebug(ex, "ClearTypingState: failed to send typing=false"); }
+                });
+                _isTypingAnnounced = false;
+            }
+        }
     }
 
     private void HandleUserChat(UserChatMsgMessage message)
@@ -124,7 +194,6 @@ public class ChatService : DisposableMediatorSubscriberBase
         msg.AddText($"[SS{shellNumber}]<");
         if (message.ChatMsg.Sender.UID.Equals(_apiController.UID, StringComparison.Ordinal))
         {
-            // Don't link to your own character
             msg.AddText(chatMsg.SenderName);
         }
         else
@@ -142,8 +211,6 @@ public class ChatService : DisposableMediatorSubscriberBase
             Type = logKind
         });
     }
-
-    // Print an example message to the configured global chat channel
     public void PrintChannelExample(string message, string gid = "")
     {
         int chatType = _mareConfig.Current.ChatLogKind;
@@ -164,8 +231,6 @@ public class ChatService : DisposableMediatorSubscriberBase
             Type = (XivChatType)chatType
         });
     }
-
-    // Called to update the active chat shell name if its renamed
     public void MaybeUpdateShellName(int shellNumber)
     {
         if (_mareConfig.Current.DisableSyncshellChat)
@@ -178,7 +243,6 @@ public class ChatService : DisposableMediatorSubscriberBase
             {
                 if (_gameChatHooks.IsValueCreated && _gameChatHooks.Value.ChatChannelOverride != null)
                 {
-                    // Very dumb and won't handle re-numbering -- need to identify the active chat channel more reliably later
                     if (_gameChatHooks.Value.ChatChannelOverride.ChannelName.StartsWith($"SS [{shellNumber}]", StringComparison.Ordinal))
                         SwitchChatShell(shellNumber);
                 }
@@ -197,7 +261,6 @@ public class ChatService : DisposableMediatorSubscriberBase
             if (shellConfig.Enabled && shellConfig.ShellNumber == shellNumber)
             {
                 var name = _serverConfigurationManager.GetNoteForGid(group.Key.GID) ?? group.Key.AliasOrGID;
-                // BUG: This doesn't always update the chat window e.g. when renaming a group
                 _gameChatHooks.Value.ChatChannelOverride = new()
                 {
                     ChannelName = $"SS [{shellNumber}]: {name}",
@@ -221,7 +284,6 @@ public class ChatService : DisposableMediatorSubscriberBase
             if (shellConfig.Enabled && shellConfig.ShellNumber == shellNumber)
             {
                 _ = Task.Run(async () => {
-                    // Should cache the name and home world instead of fetching it every time
                     var chatMsg = await _dalamudUtil.RunOnFrameworkThread(() => {
                         return new ChatMessage()
                         {
@@ -230,6 +292,7 @@ public class ChatService : DisposableMediatorSubscriberBase
                             PayloadContent = chatBytes
                         };
                     }).ConfigureAwait(false);
+                    ClearTypingState();
                     await _apiController.GroupChatSendMsg(new(group.Key), chatMsg).ConfigureAwait(false);
                 }).ConfigureAwait(false);
                 return;

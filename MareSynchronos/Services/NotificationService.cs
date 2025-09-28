@@ -32,6 +32,7 @@ public class NotificationService : DisposableMediatorSubscriberBase, IHostedServ
     public Task StartAsync(CancellationToken cancellationToken)
     {
         Mediator.Subscribe<NotificationMessage>(this, ShowNotification);
+        Mediator.Subscribe<DualNotificationMessage>(this, ShowDualNotification);
         return Task.CompletedTask;
     }
 
@@ -101,6 +102,15 @@ public class NotificationService : DisposableMediatorSubscriberBase, IHostedServ
                 ShowNotificationLocationBased(adjustedMsg, _configurationService.Current.ErrorNotification, forceChat);
                 break;
         }
+    }
+
+    private void ShowDualNotification(DualNotificationMessage message)
+    {
+        if (!_dalamudUtilService.IsLoggedIn) return;
+
+        var baseMsg = new NotificationMessage(message.Title, message.Message, message.Type, message.ToastDuration);
+        ShowToast(baseMsg);
+        ShowChat(baseMsg);
     }
 
     private static bool ShouldForceChat(NotificationMessage msg, out bool appendInstruction)

@@ -7,6 +7,7 @@ using Dalamud.Utility;
 using MareSynchronos.API.Data.Extensions;
 using MareSynchronos.API.Dto.User;
 using MareSynchronos.MareConfiguration;
+using MareSynchronos.MareConfiguration.Models;
 using MareSynchronos.PlayerData.Handlers;
 using MareSynchronos.PlayerData.Pairs;
 using MareSynchronos.Services;
@@ -190,7 +191,7 @@ public class CompactUi : WindowMediatorSubscriberBase
 
             UiSharedService.AttachToolTip("Syncshells");
 
-            ImGui.Separator();
+            DrawDefaultSyncSettings();
             if (!hasShownSyncShells)
             {
                 using (ImRaii.PushId("pairlist")) DrawPairList();
@@ -203,7 +204,7 @@ public class CompactUi : WindowMediatorSubscriberBase
             using (ImRaii.PushId("transfers")) DrawTransfers();
             TransferPartHeight = ImGui.GetCursorPosY() - TransferPartHeight;
             using (ImRaii.PushId("group-user-popup")) _selectPairsForGroupUi.Draw(_pairManager.DirectPairs);
-            using (ImRaii.PushId("grouping-popup")) _selectGroupForPairUi.Draw();
+                using (ImRaii.PushId("grouping-popup")) _selectGroupForPairUi.Draw();
         }
 
         if (_configService.Current.OpenPopupOnAdd && _pairManager.LastAddedUser != null)
@@ -251,6 +252,114 @@ public class CompactUi : WindowMediatorSubscriberBase
     {
         _uidDisplayHandler.Clear();
         base.OnClose();
+    }
+
+    private void DrawDefaultSyncSettings()
+    {
+        ImGuiHelpers.ScaledDummy(4f);
+        using (ImRaii.PushId("sync-defaults"))
+        {
+            const string soundLabel = "Audio";
+            const string animLabel = "Anim";
+            const string vfxLabel = "VFX";
+            const string soundSubject = "de l'audio";
+            const string animSubject = "des animations";
+            const string vfxSubject = "des effets visuels";
+
+            bool soundsDisabled = _configService.Current.DefaultDisableSounds;
+            bool animsDisabled = _configService.Current.DefaultDisableAnimations;
+            bool vfxDisabled = _configService.Current.DefaultDisableVfx;
+            bool showNearby = _configService.Current.EnableAutoDetectDiscovery;
+
+            var soundIcon = soundsDisabled ? FontAwesomeIcon.VolumeUp : FontAwesomeIcon.VolumeMute;
+            var animIcon = animsDisabled ? FontAwesomeIcon.Running : FontAwesomeIcon.Stop;
+            var vfxIcon = vfxDisabled ? FontAwesomeIcon.Sun : FontAwesomeIcon.Circle;
+
+            float spacing = ImGui.GetStyle().ItemSpacing.X;
+            float audioWidth = _uiSharedService.GetIconTextButtonSize(soundIcon, soundLabel);
+            float animWidth = _uiSharedService.GetIconTextButtonSize(animIcon, animLabel);
+            float vfxWidth = _uiSharedService.GetIconTextButtonSize(vfxIcon, vfxLabel);
+            float nearbyWidth = showNearby ? _uiSharedService.GetIconTextButtonSize(FontAwesomeIcon.UserPlus, "Nearby") : 0f;
+            int buttonCount = 3 + (showNearby ? 1 : 0);
+            float totalWidth = audioWidth + animWidth + vfxWidth + nearbyWidth + spacing * (buttonCount - 1);
+            float available = ImGui.GetContentRegionAvail().X;
+            float startCursorX = ImGui.GetCursorPosX();
+            if (totalWidth < available)
+            {
+                ImGui.SetCursorPosX(startCursorX + (available - totalWidth) / 2f);
+            }
+
+            DrawDefaultSyncButton(soundIcon, soundLabel, audioWidth, soundsDisabled,
+                state =>
+                {
+                    _configService.Current.DefaultDisableSounds = state;
+                    _configService.Save();
+                    PublishSyncDefaultNotification(soundSubject, state);
+                    Mediator.Publish(new ApplyDefaultsToAllSyncsMessage());
+                },
+                () => DisableStateTooltip(soundSubject, _configService.Current.DefaultDisableSounds));
+
+            DrawDefaultSyncButton(animIcon, animLabel, animWidth, animsDisabled,
+                state =>
+                {
+                    _configService.Current.DefaultDisableAnimations = state;
+                    _configService.Save();
+                    PublishSyncDefaultNotification(animSubject, state);
+                    Mediator.Publish(new ApplyDefaultsToAllSyncsMessage());
+                },
+                () => DisableStateTooltip(animSubject, _configService.Current.DefaultDisableAnimations), spacing);
+
+            DrawDefaultSyncButton(vfxIcon, vfxLabel, vfxWidth, vfxDisabled,
+                state =>
+                {
+                    _configService.Current.DefaultDisableVfx = state;
+                    _configService.Save();
+                    PublishSyncDefaultNotification(vfxSubject, state);
+                    Mediator.Publish(new ApplyDefaultsToAllSyncsMessage());
+                },
+                () => DisableStateTooltip(vfxSubject, _configService.Current.DefaultDisableVfx), spacing);
+
+            if (showNearby)
+            {
+                ImGui.SameLine(0, spacing);
+                if (_uiSharedService.IconTextButton(FontAwesomeIcon.UserPlus, "Nearby", nearbyWidth))
+                {
+                    Mediator.Publish(new UiToggleMessage(typeof(AutoDetectUi)));
+                }
+                UiSharedService.AttachToolTip("Ouvrir la détection de proximité");
+            }
+        }
+        ImGui.Separator();
+    }
+
+    private void DrawDefaultSyncButton(FontAwesomeIcon icon, string label, float width, bool currentState,
+        Action<bool> onToggle, Func<string> tooltipProvider, float spacingOverride = -1f)
+    {
+        if (spacingOverride >= 0f)
+        {
+            ImGui.SameLine(0, spacingOverride);
+        }
+
+        if (_uiSharedService.IconTextButton(icon, label, width))
+        {
+            var newState = !currentState;
+            onToggle(newState);
+        }
+
+        UiSharedService.AttachToolTip(tooltipProvider());
+    }
+
+    private static string DisableStateTooltip(string context, bool disabled)
+    {
+        var state = disabled ? "désactivée" : "activée";
+        return $"Synchronisation {context} par défaut : {state}.\nCliquez pour modifier.";
+    }
+
+    private void PublishSyncDefaultNotification(string context, bool disabled)
+    {
+        var state = disabled ? "désactivée" : "activée";
+        var message = $"Synchronisation {context} par défaut {state}.";
+        Mediator.Publish(new DualNotificationMessage("Préférence de synchronisation", message, NotificationType.Info));
     }
 
     private void DrawAddCharacter()
@@ -388,49 +497,26 @@ public class CompactUi : WindowMediatorSubscriberBase
 
         try
         {
-            var inbox = _nearbyPending;
-            if (inbox != null && inbox.Pending.Count > 0)
-            {
-                ImGuiHelpers.ScaledDummy(6);
-                _uiSharedService.BigText("Incoming requests");
-                foreach (var kv in inbox.Pending)
-                {
-                    ImGui.AlignTextToFramePadding();
-                    ImGui.TextUnformatted($"{kv.Value} [{kv.Key}]");
-                    ImGui.SameLine();
-                    if (_uiSharedService.IconButton(FontAwesomeIcon.Check))
-                    {
-                        _ = inbox.AcceptAsync(kv.Key);
-                    }
-                    UiSharedService.AttachToolTip("Accept and add as pair");
-                    ImGui.SameLine();
-                    if (_uiSharedService.IconButton(FontAwesomeIcon.Times))
-                    {
-                        inbox.Remove(kv.Key);
-                    }
-                    UiSharedService.AttachToolTip("Dismiss request");
-                }
-                ImGui.Separator();
-            }
+            // intentionally left blank; pending requests handled in collapsible section below
         }
         catch { }
 
-        // Add the "En attente" category
-        using (ImRaii.PushId("group-Pending"))
+        var pendingCount = _nearbyPending?.Pending.Count ?? 0;
+        if (pendingCount > 0)
         {
-            var icon = _pendingOpen ? FontAwesomeIcon.CaretSquareDown : FontAwesomeIcon.CaretSquareRight;
-            _uiSharedService.IconText(icon);
-            if (ImGui.IsItemClicked(ImGuiMouseButton.Left)) _pendingOpen = !_pendingOpen;
-            ImGui.SameLine();
-            ImGui.TextUnformatted($"En attente ({_nearbyPending?.Pending.Count ?? 0})");
-            if (ImGui.IsItemClicked(ImGuiMouseButton.Left)) _pendingOpen = !_pendingOpen;
-
-            if (_pendingOpen)
+            using (ImRaii.PushId("group-Pending"))
             {
-                ImGui.Indent();
-                if (_nearbyPending != null && _nearbyPending.Pending.Count > 0)
+                var icon = _pendingOpen ? FontAwesomeIcon.CaretSquareDown : FontAwesomeIcon.CaretSquareRight;
+                _uiSharedService.IconText(icon);
+                if (ImGui.IsItemClicked(ImGuiMouseButton.Left)) _pendingOpen = !_pendingOpen;
+                ImGui.SameLine();
+                ImGui.TextUnformatted($"En attente ({pendingCount})");
+                if (ImGui.IsItemClicked(ImGuiMouseButton.Left)) _pendingOpen = !_pendingOpen;
+
+                if (_pendingOpen)
                 {
-                    foreach (var kv in _nearbyPending.Pending)
+                    ImGui.Indent();
+                    foreach (var kv in _nearbyPending!.Pending)
                     {
                         ImGui.AlignTextToFramePadding();
                         ImGui.TextUnformatted($"{kv.Value} [{kv.Key}]");
@@ -447,13 +533,9 @@ public class CompactUi : WindowMediatorSubscriberBase
                         }
                         UiSharedService.AttachToolTip("Dismiss request");
                     }
+                    ImGui.Unindent();
+                    ImGui.Separator();
                 }
-                else
-                {
-                    UiSharedService.ColorTextWrapped("Aucune invitation en attente.", ImGuiColors.DalamudGrey3);
-                }
-                ImGui.Unindent();
-                ImGui.Separator();
             }
         }
 
@@ -476,15 +558,6 @@ public class CompactUi : WindowMediatorSubscriberBase
                 if (ImGui.IsItemClicked(ImGuiMouseButton.Left)) _nearbyOpen = !_nearbyOpen;
                 if (_nearbyOpen)
                 {
-                    var btnWidth = _uiSharedService.GetIconTextButtonSize(FontAwesomeIcon.UserPlus, "Nearby");
-                    var headerRight = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth();
-                    ImGui.SameLine();
-                    ImGui.SetCursorPosX(headerRight - btnWidth);
-                    if (_uiSharedService.IconTextButton(FontAwesomeIcon.UserPlus, "Nearby", btnWidth))
-                    {
-                        Mediator.Publish(new UiToggleMessage(typeof(AutoDetectUi)));
-                    }
-
                     ImGui.Indent();
                     var nearby = _nearbyEntries == null
                         ? new List<Services.Mediator.NearbyEntry>()

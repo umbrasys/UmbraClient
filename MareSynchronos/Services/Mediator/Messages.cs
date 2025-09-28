@@ -3,6 +3,7 @@ using MareSynchronos.API.Data;
 using MareSynchronos.API.Dto;
 using MareSynchronos.API.Dto.CharaData;
 using MareSynchronos.API.Dto.Group;
+using MareSynchronos.API.Dto.User;
 using MareSynchronos.MareConfiguration.Models;
 using MareSynchronos.PlayerData.Handlers;
 using MareSynchronos.PlayerData.Pairs;
@@ -52,6 +53,7 @@ public record HaltScanMessage(string Source) : MessageBase;
 public record ResumeScanMessage(string Source) : MessageBase;
 public record NotificationMessage
     (string Title, string Message, NotificationType Type, TimeSpan? TimeShownOnScreen = null) : MessageBase;
+public record DualNotificationMessage(string Title, string Message, NotificationType Type, TimeSpan? ToastDuration = null) : MessageBase;
 public record CreateCacheForObjectMessage(GameObjectHandler ObjectToCreateFor) : MessageBase;
 public record ClearCacheForObjectMessage(GameObjectHandler ObjectToCreateFor) : MessageBase;
 public record CharacterDataCreatedMessage(CharacterData CharacterData) : SameThreadMessage;
@@ -90,6 +92,7 @@ public record PenumbraDirectoryChangedMessage(string? ModDirectory) : MessageBas
 public record PenumbraRedrawCharacterMessage(ICharacter Character) : SameThreadMessage;
 public record UserChatMsgMessage(SignedChatMessage ChatMsg) : MessageBase;
 public record GroupChatMsgMessage(GroupDto GroupInfo, SignedChatMessage ChatMsg) : MessageBase;
+public record UserTypingStateMessage(TypingStateDto Typing) : MessageBase;
 public record RecalculatePerformanceMessage(string? UID) : MessageBase;
 public record NameplateRedrawMessage : MessageBase;
 public record HoldPairApplicationMessage(string UID, string Source) : KeyedMessage(UID);
@@ -112,6 +115,11 @@ public record NearbyEntry(string Name, ushort WorldId, float Distance, bool IsMa
 public record DiscoveryListUpdated(List<NearbyEntry> Entries) : MessageBase;
 public record NearbyDetectionToggled(bool Enabled) : MessageBase;
 public record AllowPairRequestsToggled(bool Enabled) : MessageBase;
+public record ApplyDefaultPairPermissionsMessage(UserPairDto Pair) : MessageBase;
+public record ApplyDefaultGroupPermissionsMessage(GroupPairFullInfoDto GroupPair) : MessageBase;
+public record ApplyDefaultsToAllSyncsMessage : MessageBase;
+public record PairSyncOverrideChanged(string Uid, bool? DisableSounds, bool? DisableAnimations, bool? DisableVfx) : MessageBase;
+public record GroupSyncOverrideChanged(string Gid, bool? DisableSounds, bool? DisableAnimations, bool? DisableVfx) : MessageBase;
 
 public record PluginChangeMessage(string InternalName, Version Version, bool IsLoaded) : KeyedMessage(InternalName);
 #pragma warning restore S2094

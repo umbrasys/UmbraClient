@@ -128,6 +128,10 @@ public class PermissionWindowUI : WindowMediatorSubscriberBase
         using (ImRaii.Disabled(!hasChanges))
             if (_uiSharedService.IconTextButton(Dalamud.Interface.FontAwesomeIcon.Save, "Save"))
             {
+                Mediator.Publish(new PairSyncOverrideChanged(Pair.UserData.UID,
+                    _ownPermissions.IsDisableSounds(),
+                    _ownPermissions.IsDisableAnimations(),
+                    _ownPermissions.IsDisableVFX()));
                 _ = _apiController.UserSetPairPermissions(new(Pair.UserData, _ownPermissions));
             }
         UiSharedService.AttachToolTip("Save and apply all changes");
@@ -148,10 +152,15 @@ public class PermissionWindowUI : WindowMediatorSubscriberBase
         ImGui.SameLine();
         if (_uiSharedService.IconTextButton(Dalamud.Interface.FontAwesomeIcon.ArrowsSpin, "Reset to Default"))
         {
+            var defaults = _uiSharedService.ConfigService.Current;
             _ownPermissions.SetPaused(false);
-            _ownPermissions.SetDisableVFX(false);
-            _ownPermissions.SetDisableSounds(false);
-            _ownPermissions.SetDisableAnimations(false);
+            _ownPermissions.SetDisableSounds(defaults.DefaultDisableSounds);
+            _ownPermissions.SetDisableAnimations(defaults.DefaultDisableAnimations);
+            _ownPermissions.SetDisableVFX(defaults.DefaultDisableVfx);
+            Mediator.Publish(new PairSyncOverrideChanged(Pair.UserData.UID,
+                _ownPermissions.IsDisableSounds(),
+                _ownPermissions.IsDisableAnimations(),
+                _ownPermissions.IsDisableVFX()));
             _ = _apiController.UserSetPairPermissions(new(Pair.UserData, _ownPermissions));
         }
         UiSharedService.AttachToolTip("This will set all permissions to their default setting");

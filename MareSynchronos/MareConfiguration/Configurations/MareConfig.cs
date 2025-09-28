@@ -1,4 +1,5 @@
-﻿using MareSynchronos.MareConfiguration.Models;
+﻿using System.Collections.Generic;
+using MareSynchronos.MareConfiguration.Models;
 using MareSynchronos.UI;
 using Microsoft.Extensions.Logging;
 
@@ -60,6 +61,11 @@ public class MareConfig : IMareConfiguration
     public bool ShowUploadingBigText { get; set; } = true;
     public bool ShowVisibleUsersSeparately { get; set; } = true;
     public string LastChangelogVersionSeen { get; set; } = string.Empty;
+    public bool DefaultDisableSounds { get; set; } = false;
+    public bool DefaultDisableAnimations { get; set; } = false;
+    public bool DefaultDisableVfx { get; set; } = false;
+    public Dictionary<string, SyncOverrideEntry> PairSyncOverrides { get; set; } = new(StringComparer.Ordinal);
+    public Dictionary<string, SyncOverrideEntry> GroupSyncOverrides { get; set; } = new(StringComparer.Ordinal);
     public bool EnableAutoDetectDiscovery { get; set; } = false;
     public bool AllowAutoDetectPairRequests { get; set; } = false;
     public int AutoDetectMaxDistanceMeters { get; set; } = 40;
@@ -78,6 +84,8 @@ public class MareConfig : IMareConfiguration
     public int ChatLogKind { get; set; } = 1; // XivChatType.Debug
     public bool ExtraChatAPI { get; set; } = false;
     public bool ExtraChatTags { get; set; } = false;
+    public bool TypingIndicatorShowOnNameplates { get; set; } = true;
+    public bool TypingIndicatorShowOnPartyList { get; set; } = true;
 
     public bool MareAPI { get; set; } = true;
 }

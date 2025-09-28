@@ -138,6 +138,13 @@ public partial class ApiController
         return Task.CompletedTask;
     }
 
+    public Task Client_UserTypingState(TypingStateDto dto)
+    {
+        Logger.LogTrace("Client_UserTypingState: {uid} typing={typing}", dto.User.UID, dto.IsTyping);
+        Mediator.Publish(new UserTypingStateMessage(dto));
+        return Task.CompletedTask;
+    }
+
     public Task Client_UserReceiveCharacterData(OnlineUserCharaDataDto dataDto)
     {
         Logger.LogTrace("Client_UserReceiveCharacterData: {user}", dataDto.User);
@@ -311,6 +318,12 @@ public partial class ApiController
     {
         if (_initialized) return;
         _mareHub!.On(nameof(Client_UserChatMsg), act);
+    }
+
+    public void OnUserTypingState(Action<TypingStateDto> act)
+    {
+        if (_initialized) return;
+        _mareHub!.On(nameof(Client_UserTypingState), act);
     }
 
     public void OnUserReceiveCharacterData(Action<OnlineUserCharaDataDto> act)

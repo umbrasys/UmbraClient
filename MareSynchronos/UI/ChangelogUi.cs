@@ -169,6 +169,13 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
     {
         return new List<ChangelogEntry>
         {
+            new(new Version(0, 1, 9, 0), "0.1.9.0", new List<ChangelogLine>
+            {
+                new("Il est désormais possible de configurer par défaut nos choix de synchronisation (VFX, Music, Animation)."),
+                new("La catégorie 'En attente' ne s'affice uniquement que si une invitation est en attente"),
+                new("(EN PRÉ VERSION) Il est désormais possible de voir quand une personne appairé est en train d'écrire avec une bulle qui s'affiche."),
+                new("Correctif : Désormais, les invitation entrantes ne s'affichent qu'une seule fois au lieu de deux."),
+            }),
             new(new Version(0, 1, 8, 2), "0.1.8.2", new List<ChangelogLine>
             {
                 new("Détection Nearby : la liste rapide ne montre plus que les joueurs réellement invitables."),

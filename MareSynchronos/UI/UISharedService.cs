@@ -136,6 +136,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     public string PlayerName => _dalamudUtil.GetPlayerName();
 
     public IFontHandle UidFont { get; init; }
+    public MareConfigService ConfigService => _configService;
     public Dictionary<ushort, string> WorldData => _dalamudUtil.WorldData.Value;
 
     public uint WorldId => _dalamudUtil.GetHomeWorldId();

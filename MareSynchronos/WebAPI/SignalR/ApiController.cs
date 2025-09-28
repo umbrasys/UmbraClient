@@ -348,6 +348,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         OnUserUpdateSelfPairPermissions(dto => _ = Client_UserUpdateSelfPairPermissions(dto));
         OnUserReceiveUploadStatus(dto => _ = Client_UserReceiveUploadStatus(dto));
         OnUserUpdateProfile(dto => _ = Client_UserUpdateProfile(dto));
+        OnUserTypingState(dto => _ = Client_UserTypingState(dto));
 
         OnGroupChangePermissions((dto) => _ = Client_GroupChangePermissions(dto));
         OnGroupDelete((dto) => _ = Client_GroupDelete(dto));
@@ -393,7 +394,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
             foreach (var user in users)
         {
                 Logger.LogDebug("Group Pair: {user}", user);
-                _pairManager.AddGroupPair(user);
+                _pairManager.AddGroupPair(user, isInitialLoad: true);
             }
         }
     }

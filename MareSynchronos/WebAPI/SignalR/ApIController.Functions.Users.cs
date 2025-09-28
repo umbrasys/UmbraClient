@@ -97,6 +97,12 @@ public partial class ApiController
         await _mareHub!.InvokeAsync(nameof(UserSetProfile), userDescription).ConfigureAwait(false);
     }
 
+    public async Task UserSetTypingState(bool isTyping)
+    {
+        CheckConnection();
+        await _mareHub!.SendAsync(nameof(UserSetTypingState), isTyping).ConfigureAwait(false);
+    }
+
     private async Task PushCharacterDataInternal(CharacterData character, List<UserData> visibleCharacters)
     {
         Logger.LogInformation("Pushing character data for {hash} to {charas}", character.DataHash.Value, string.Join(", ", visibleCharacters.Select(c => c.AliasOrUID)));

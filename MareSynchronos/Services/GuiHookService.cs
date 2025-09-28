@@ -7,6 +7,9 @@ using MareSynchronos.PlayerData.Pairs;
 using MareSynchronos.Services.Mediator;
 using MareSynchronos.UI;
 using Microsoft.Extensions.Logging;
+using MareSynchronos.API.Dto.User;
+using System.Collections.Concurrent;
+using Dalamud.Game.Text;
 
 namespace MareSynchronos.Services;
 
@@ -19,6 +22,9 @@ public class GuiHookService : DisposableMediatorSubscriberBase
     private readonly IGameConfig _gameConfig;
     private readonly IPartyList _partyList;
     private readonly PairManager _pairManager;
+
+    private readonly ConcurrentDictionary<string, DateTime> _typingUsers = new();
+    private static readonly TimeSpan TypingDisplayTime = TimeSpan.FromSeconds(2);
 
     private bool _isModified = false;
     private bool _namePlateRoleColorsEnabled = false;
@@ -41,6 +47,18 @@ public class GuiHookService : DisposableMediatorSubscriberBase
         Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, (_) => GameSettingsCheck());
         Mediator.Subscribe<PairHandlerVisibleMessage>(this, (_) => RequestRedraw());
         Mediator.Subscribe<NameplateRedrawMessage>(this, (_) => RequestRedraw());
+        Mediator.Subscribe<UserTypingStateMessage>(this, (msg) =>
+        {
+            if (msg.Typing.IsTyping)
+            {
+                _typingUsers[msg.Typing.User.UID] = DateTime.UtcNow;
+            }
+            else
+            {
+                _typingUsers.TryRemove(msg.Typing.User.UID, out _);
+            }
+            RequestRedraw();
+        });
     }
 
     public void RequestRedraw(bool force = false)
@@ -72,6 +90,7 @@ public class GuiHookService : DisposableMediatorSubscriberBase
         if (!_configService.Current.UseNameColors)
             return;
 
+        var showTypingIndicator = _configService.Current.TypingIndicatorShowOnNameplates;
         var visibleUsers = _pairManager.GetOnlineUserPairs().Where(u => u.IsVisible && u.PlayerCharacterId != uint.MaxValue);
         var visibleUsersIds = visibleUsers.Select(u => (ulong)u.PlayerCharacterId).ToHashSet();
 
@@ -95,6 +114,17 @@ public class GuiHookService : DisposableMediatorSubscriberBase
                     BuildColorEndSeString(colors)
                 );
                 _isModified = true;
+                if (showTypingIndicator
+                    && _typingUsers.TryGetValue(pair.UserData.UID, out var lastTyping)
+                    && (DateTime.UtcNow - lastTyping) < TypingDisplayTime)
+                {
+                    var ssb = new SeStringBuilder();
+                    ssb.Append(handler.Name);
+                    ssb.Add(new IconPayload(BitmapFontIcon.AutoTranslateBegin));
+                    ssb.AddText("...");
+                    ssb.Add(new IconPayload(BitmapFontIcon.AutoTranslateEnd));
+                    handler.Name = ssb.Build();
+                }
             }
         }
     }
