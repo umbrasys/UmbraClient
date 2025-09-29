@@ -33,7 +33,7 @@ public sealed class SyncDefaultsService : DisposableMediatorSubscriberBase
 
         Mediator.Subscribe<ApplyDefaultPairPermissionsMessage>(this, OnApplyPairDefaults);
         Mediator.Subscribe<ApplyDefaultGroupPermissionsMessage>(this, OnApplyGroupDefaults);
-        Mediator.Subscribe<ApplyDefaultsToAllSyncsMessage>(this, _ => ApplyDefaultsToAll());
+        Mediator.Subscribe<ApplyDefaultsToAllSyncsMessage>(this, msg => ApplyDefaultsToAll(msg));
         Mediator.Subscribe<PairSyncOverrideChanged>(this, OnPairOverrideChanged);
         Mediator.Subscribe<GroupSyncOverrideChanged>(this, OnGroupOverrideChanged);
     }
@@ -63,7 +63,7 @@ public sealed class SyncDefaultsService : DisposableMediatorSubscriberBase
         _ = _apiController.GroupChangeIndividualPermissionState(new GroupPairUserPermissionDto(message.GroupPair.Group, message.GroupPair.User, permissions));
     }
 
-    private async Task ApplyDefaultsToAllAsync()
+    private async Task ApplyDefaultsToAllAsync(ApplyDefaultsToAllSyncsMessage message)
     {
         try
         {
@@ -107,7 +107,10 @@ public sealed class SyncDefaultsService : DisposableMediatorSubscriberBase
                 }
             }
 
-            Mediator.Publish(new DualNotificationMessage("Préférences appliquées", BuildSummaryMessage(updatedPairs, updatedGroups), NotificationType.Info));
+            var summary = BuildSummaryMessage(updatedPairs, updatedGroups);
+            var primary = BuildPrimaryMessage(message);
+            var combined = string.IsNullOrEmpty(primary) ? summary : string.Concat(primary, ' ', summary);
+            Mediator.Publish(new DualNotificationMessage("Préférences appliquées", combined, NotificationType.Info));
         }
         catch (Exception ex)
         {
@@ -116,7 +119,16 @@ public sealed class SyncDefaultsService : DisposableMediatorSubscriberBase
         }
     }
 
-    private void ApplyDefaultsToAll() => _ = ApplyDefaultsToAllAsync();
+    private void ApplyDefaultsToAll(ApplyDefaultsToAllSyncsMessage message) => _ = ApplyDefaultsToAllAsync(message);
+
+    private static string? BuildPrimaryMessage(ApplyDefaultsToAllSyncsMessage message)
+    {
+        if (string.IsNullOrEmpty(message.Context) || message.Disabled == null)
+            return null;
+
+        var state = message.Disabled.Value ? "désactivée" : "activée";
+        return $"Synchronisation {message.Context} par défaut {state}.";
+    }
 
     private static string BuildSummaryMessage(int pairs, int groups)
     {

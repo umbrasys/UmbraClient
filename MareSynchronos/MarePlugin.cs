@@ -5,6 +5,7 @@ using MareSynchronos.PlayerData.Services;
 using MareSynchronos.Services;
 using MareSynchronos.Services.Mediator;
 using MareSynchronos.Services.ServerConfiguration;
+using MareSynchronos.Interop;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -152,6 +153,7 @@ public class MarePlugin : MediatorSubscriberBase, IHostedService
             _runtimeServiceScope.ServiceProvider.GetRequiredService<NotificationService>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<SyncDefaultsService>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<ChatService>();
+            _runtimeServiceScope.ServiceProvider.GetRequiredService<GameChatHooks>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<GuiHookService>();
 
 #if !DEBUG

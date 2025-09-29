@@ -117,7 +117,7 @@ public record NearbyDetectionToggled(bool Enabled) : MessageBase;
 public record AllowPairRequestsToggled(bool Enabled) : MessageBase;
 public record ApplyDefaultPairPermissionsMessage(UserPairDto Pair) : MessageBase;
 public record ApplyDefaultGroupPermissionsMessage(GroupPairFullInfoDto GroupPair) : MessageBase;
-public record ApplyDefaultsToAllSyncsMessage : MessageBase;
+public record ApplyDefaultsToAllSyncsMessage(string? Context = null, bool? Disabled = null) : MessageBase;
 public record PairSyncOverrideChanged(string Uid, bool? DisableSounds, bool? DisableAnimations, bool? DisableVfx) : MessageBase;
 public record GroupSyncOverrideChanged(string Gid, bool? DisableSounds, bool? DisableAnimations, bool? DisableVfx) : MessageBase;
 

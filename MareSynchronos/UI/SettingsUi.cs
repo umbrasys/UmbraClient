@@ -1086,7 +1086,9 @@ public class SettingsUi : WindowMediatorSubscriberBase
         var useNameColors = _configService.Current.UseNameColors;
         var nameColors = _configService.Current.NameColors;
         var autoPausedNameColors = _configService.Current.BlockedNameColors;
-        if (ImGui.Checkbox("Color nameplates of paired players", ref useNameColors))
+        var typingIndicatorNameplates = _configService.Current.TypingIndicatorShowOnNameplates;
+        var typingIndicatorPartyList = _configService.Current.TypingIndicatorShowOnPartyList;
+        if (ImGui.Checkbox("Coloriser les plaques de nom des paires", ref useNameColors))
         {
             _configService.Current.UseNameColors = useNameColors;
             _configService.Save();
@@ -1096,7 +1098,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         using (ImRaii.Disabled(!useNameColors))
         {
             using var indent = ImRaii.PushIndent();
-            if (InputDtrColors("Character Name Color", ref nameColors))
+            if (InputDtrColors("Couleur du nom", ref nameColors))
             {
                 _configService.Current.NameColors = nameColors;
                 _configService.Save();
@@ -1105,13 +1107,27 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
             ImGui.SameLine();
 
-            if (InputDtrColors("Blocked Character Color", ref autoPausedNameColors))
+            if (InputDtrColors("Couleur des noms bloqués", ref autoPausedNameColors))
             {
                 _configService.Current.BlockedNameColors = autoPausedNameColors;
                 _configService.Save();
                 _guiHookService.RequestRedraw();
             }
         }
+
+        if (ImGui.Checkbox("Afficher la bulle de frappe sur les plaques", ref typingIndicatorNameplates))
+        {
+            _configService.Current.TypingIndicatorShowOnNameplates = typingIndicatorNameplates;
+            _configService.Save();
+        }
+        _uiShared.DrawHelpText("Ajoute une bulle '...' sur la plaque des paires en train d'écrire.");
+
+        if (ImGui.Checkbox("Tracer la frappe dans la liste de groupe", ref typingIndicatorPartyList))
+        {
+            _configService.Current.TypingIndicatorShowOnPartyList = typingIndicatorPartyList;
+            _configService.Save();
+        }
+        _uiShared.DrawHelpText("Consigne dans les journaux quand une paire du groupe est en train d'écrire (bulle visuelle ultérieure).");
 
         if (ImGui.Checkbox("Show separate Visible group", ref showVisibleSeparate))
         {

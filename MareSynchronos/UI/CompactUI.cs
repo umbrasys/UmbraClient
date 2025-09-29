@@ -294,8 +294,7 @@ public class CompactUi : WindowMediatorSubscriberBase
                 {
                     _configService.Current.DefaultDisableSounds = state;
                     _configService.Save();
-                    PublishSyncDefaultNotification(soundSubject, state);
-                    Mediator.Publish(new ApplyDefaultsToAllSyncsMessage());
+                    Mediator.Publish(new ApplyDefaultsToAllSyncsMessage(soundSubject, state));
                 },
                 () => DisableStateTooltip(soundSubject, _configService.Current.DefaultDisableSounds));
 
@@ -304,8 +303,7 @@ public class CompactUi : WindowMediatorSubscriberBase
                 {
                     _configService.Current.DefaultDisableAnimations = state;
                     _configService.Save();
-                    PublishSyncDefaultNotification(animSubject, state);
-                    Mediator.Publish(new ApplyDefaultsToAllSyncsMessage());
+                    Mediator.Publish(new ApplyDefaultsToAllSyncsMessage(animSubject, state));
                 },
                 () => DisableStateTooltip(animSubject, _configService.Current.DefaultDisableAnimations), spacing);
 
@@ -314,8 +312,7 @@ public class CompactUi : WindowMediatorSubscriberBase
                 {
                     _configService.Current.DefaultDisableVfx = state;
                     _configService.Save();
-                    PublishSyncDefaultNotification(vfxSubject, state);
-                    Mediator.Publish(new ApplyDefaultsToAllSyncsMessage());
+                    Mediator.Publish(new ApplyDefaultsToAllSyncsMessage(vfxSubject, state));
                 },
                 () => DisableStateTooltip(vfxSubject, _configService.Current.DefaultDisableVfx), spacing);
 
@@ -353,13 +350,6 @@ public class CompactUi : WindowMediatorSubscriberBase
     {
         var state = disabled ? "désactivée" : "activée";
         return $"Synchronisation {context} par défaut : {state}.\nCliquez pour modifier.";
-    }
-
-    private void PublishSyncDefaultNotification(string context, bool disabled)
-    {
-        var state = disabled ? "désactivée" : "activée";
-        var message = $"Synchronisation {context} par défaut {state}.";
-        Mediator.Publish(new DualNotificationMessage("Préférence de synchronisation", message, NotificationType.Info));
     }
 
     private void DrawAddCharacter()

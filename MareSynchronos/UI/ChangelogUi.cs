@@ -169,11 +169,19 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
     {
         return new List<ChangelogEntry>
         {
+            new(new Version(0, 1, 9, 1), "0.1.9.1", new List<ChangelogLine>
+            {
+                new("Début correctif pour la bulle de frappe."),
+                new("Les bascules de synchronisation n'affichent plus qu'une seule notification résumée."),
+
+            }),
             new(new Version(0, 1, 9, 0), "0.1.9.0", new List<ChangelogLine>
             {
                 new("Il est désormais possible de configurer par défaut nos choix de synchronisation (VFX, Music, Animation)."),
-                new("La catégorie 'En attente' ne s'affice uniquement que si une invitation est en attente"),
-                new("(EN PRÉ VERSION) Il est désormais possible de voir quand une personne appairé est en train d'écrire avec une bulle qui s'affiche."),
+                new("La catégorie 'En attente' ne s'affiche uniquement que si une invitation est en attente"),
+                new("(EN PRÉ VERSION) Il est désormais possible de voir quand une personne appairée est en train d'écrire avec une bulle qui s'affiche."),
+                new("(EN PRÉ VERSION) La bulle de frappe s'affiche également sur votre propre plaque de nom lorsque vous écrivez."),
+                new("Les bascules de synchronisation n'affichent plus qu'une seule notification résumée."),
                 new("Correctif : Désormais, les invitation entrantes ne s'affichent qu'une seule fois au lieu de deux."),
             }),
             new(new Version(0, 1, 8, 2), "0.1.8.2", new List<ChangelogLine>
