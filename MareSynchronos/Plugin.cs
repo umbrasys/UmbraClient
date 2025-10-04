@@ -148,6 +148,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton<NotificationService>();
             collection.AddSingleton<TemporarySyncshellNotificationService>();
             collection.AddSingleton<PartyListTypingService>();
+            collection.AddSingleton<TypingIndicatorStateService>();
 
             collection.AddSingleton((s) => new MareConfigService(pluginInterface.ConfigDirectory.FullName));
             collection.AddSingleton((s) => new ServerConfigService(pluginInterface.ConfigDirectory.FullName));
@@ -191,6 +192,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddScoped<WindowMediatorSubscriberBase, CharaDataHubUi>();
             collection.AddScoped<WindowMediatorSubscriberBase, EditProfileUi>();
             collection.AddScoped<WindowMediatorSubscriberBase, PopupHandler>();
+            collection.AddScoped<WindowMediatorSubscriberBase, TypingIndicatorOverlay>();
             collection.AddScoped<IPopupHandler, ReportPopupHandler>();
             collection.AddScoped<IPopupHandler, BanUserPopupHandler>();
             collection.AddScoped<CacheCreationService>();
@@ -202,6 +204,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddScoped<UiSharedService>();
             collection.AddScoped<ChatService>();
             collection.AddScoped<GuiHookService>();
+            collection.AddScoped<ChatTypingDetectionService>();
 
             collection.AddHostedService(p => p.GetRequiredService<PluginWatcherService>());
             collection.AddHostedService(p => p.GetRequiredService<ConfigurationSaveService>());

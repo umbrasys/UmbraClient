@@ -34,7 +34,9 @@ public class ChatService : DisposableMediatorSubscriberBase
     private readonly object _typingLock = new();
     private CancellationTokenSource? _typingCts;
     private bool _isTypingAnnounced;
+    private DateTime _lastTypingSent = DateTime.MinValue;
     private static readonly TimeSpan TypingIdle = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan TypingResendInterval = TimeSpan.FromMilliseconds(750);
 
     public ChatService(ILogger<ChatService> logger, DalamudUtilService dalamudUtil, MareMediator mediator, ApiController apiController,
         PairManager pairManager, ILoggerFactory loggerFactory, IGameInteropProvider gameInteropProvider, IChatGui chatGui,
@@ -78,7 +80,8 @@ public class ChatService : DisposableMediatorSubscriberBase
     {
         lock (_typingLock)
         {
-            if (!_isTypingAnnounced)
+            var now = DateTime.UtcNow;
+            if (!_isTypingAnnounced || (now - _lastTypingSent) >= TypingResendInterval)
             {
                 _ = Task.Run(async () =>
                 {
@@ -86,6 +89,7 @@ public class ChatService : DisposableMediatorSubscriberBase
                     catch (Exception ex) { _logger.LogDebug(ex, "NotifyTypingKeystroke: failed to send typing=true"); }
                 });
                 _isTypingAnnounced = true;
+                _lastTypingSent = now;
             }
 
             _typingCts?.Cancel();
@@ -113,7 +117,10 @@ public class ChatService : DisposableMediatorSubscriberBase
                     lock (_typingLock)
                     {
                         if (!token.IsCancellationRequested)
+                        {
                             _isTypingAnnounced = false;
+                            _lastTypingSent = DateTime.MinValue;
+                        }
                     }
                 }
             });
@@ -133,9 +140,10 @@ public class ChatService : DisposableMediatorSubscriberBase
                     try { await _apiController.UserSetTypingState(false).ConfigureAwait(false); }
                     catch (Exception ex) { _logger.LogDebug(ex, "ClearTypingState: failed to send typing=false"); }
                 });
-                _isTypingAnnounced = false;
-            }
+            _isTypingAnnounced = false;
+            _lastTypingSent = DateTime.MinValue;
         }
+    }
     }
 
     private void HandleUserChat(UserChatMsgMessage message)

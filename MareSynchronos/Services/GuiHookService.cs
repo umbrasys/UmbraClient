@@ -1,14 +1,15 @@
+using System;
 using Dalamud.Game.Gui.NamePlate;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Plugin.Services;
+using MareSynchronos.API.Dto.User;
 using MareSynchronos.MareConfiguration;
 using MareSynchronos.PlayerData.Pairs;
 using MareSynchronos.Services.Mediator;
 using MareSynchronos.UI;
+using MareSynchronos.WebAPI;
 using Microsoft.Extensions.Logging;
-using MareSynchronos.API.Dto.User;
-using System.Collections.Concurrent;
 using Dalamud.Game.Text;
 
 namespace MareSynchronos.Services;
@@ -22,15 +23,18 @@ public class GuiHookService : DisposableMediatorSubscriberBase
     private readonly IGameConfig _gameConfig;
     private readonly IPartyList _partyList;
     private readonly PairManager _pairManager;
+    private readonly IClientState _clientState;
+    private readonly ApiController _apiController;
+    private readonly TypingIndicatorStateService _typingStateService;
 
-    private readonly ConcurrentDictionary<string, DateTime> _typingUsers = new();
     private static readonly TimeSpan TypingDisplayTime = TimeSpan.FromSeconds(2);
 
     private bool _isModified = false;
     private bool _namePlateRoleColorsEnabled = false;
 
     public GuiHookService(ILogger<GuiHookService> logger, DalamudUtilService dalamudUtil, MareMediator mediator, MareConfigService configService,
-        INamePlateGui namePlateGui, IGameConfig gameConfig, IPartyList partyList, PairManager pairManager)
+        INamePlateGui namePlateGui, IGameConfig gameConfig, IPartyList partyList, PairManager pairManager, ApiController apiController,
+        IClientState clientState, TypingIndicatorStateService typingStateService)
         : base(logger, mediator)
     {
         _logger = logger;
@@ -40,6 +44,9 @@ public class GuiHookService : DisposableMediatorSubscriberBase
         _gameConfig = gameConfig;
         _partyList = partyList;
         _pairManager = pairManager;
+        _apiController = apiController;
+        _clientState = clientState;
+        _typingStateService = typingStateService;
 
         _namePlateGui.OnNamePlateUpdate += OnNamePlateUpdate;
         _namePlateGui.RequestRedraw();
@@ -47,26 +54,22 @@ public class GuiHookService : DisposableMediatorSubscriberBase
         Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, (_) => GameSettingsCheck());
         Mediator.Subscribe<PairHandlerVisibleMessage>(this, (_) => RequestRedraw());
         Mediator.Subscribe<NameplateRedrawMessage>(this, (_) => RequestRedraw());
-        Mediator.Subscribe<UserTypingStateMessage>(this, (msg) =>
-        {
-            if (msg.Typing.IsTyping)
-            {
-                _typingUsers[msg.Typing.User.UID] = DateTime.UtcNow;
-            }
-            else
-            {
-                _typingUsers.TryRemove(msg.Typing.User.UID, out _);
-            }
-            RequestRedraw();
-        });
+        Mediator.Subscribe<UserTypingStateMessage>(this, (_) => RequestRedraw());
     }
 
     public void RequestRedraw(bool force = false)
     {
-        if (!_configService.Current.UseNameColors)
+        var useColors = _configService.Current.UseNameColors;
+        var showTyping = _configService.Current.TypingIndicatorShowOnNameplates;
+
+        if (!useColors && !showTyping)
         {
             if (!_isModified && !force)
                 return;
+            _isModified = false;
+        }
+        else if (!useColors)
+        {
             _isModified = false;
         }
 
@@ -87,10 +90,11 @@ public class GuiHookService : DisposableMediatorSubscriberBase
 
     private void OnNamePlateUpdate(INamePlateUpdateContext context, IReadOnlyList<INamePlateUpdateHandler> handlers)
     {
-        if (!_configService.Current.UseNameColors)
+        var applyColors = _configService.Current.UseNameColors;
+        var showTypingIndicator = _configService.Current.TypingIndicatorShowOnNameplates;
+        if (!applyColors && !showTypingIndicator)
             return;
 
-        var showTypingIndicator = _configService.Current.TypingIndicatorShowOnNameplates;
         var visibleUsers = _pairManager.GetOnlineUserPairs().Where(u => u.IsVisible && u.PlayerCharacterId != uint.MaxValue);
         var visibleUsersIds = visibleUsers.Select(u => (ulong)u.PlayerCharacterId).ToHashSet();
 
@@ -101,6 +105,11 @@ public class GuiHookService : DisposableMediatorSubscriberBase
         for (int i = 0; i < _partyList.Count; ++i)
             partyMembers[i] = _partyList[i]?.GameObject?.Address ?? nint.MaxValue;
 
+        var now = DateTime.UtcNow;
+        var activeTypers = _typingStateService.GetActiveTypers(TypingDisplayTime);
+        var selfTypingActive = showTypingIndicator && _typingStateService.TryGetSelfTyping(TypingDisplayTime, out _, out _);
+        var localPlayerAddress = selfTypingActive ? _clientState.LocalPlayer?.Address ?? nint.Zero : nint.Zero;
+
         foreach (var handler in handlers)
         {
             if (handler != null && visibleUsersIds.Contains(handler.GameObjectId))
@@ -108,24 +117,18 @@ public class GuiHookService : DisposableMediatorSubscriberBase
                 if (_namePlateRoleColorsEnabled && partyMembers.Contains(handler.GameObject?.Address ?? nint.MaxValue))
                     continue;
                 var pair = visibleUsersDict[handler.GameObjectId];
-                var colors = !pair.IsApplicationBlocked ? _configService.Current.NameColors : _configService.Current.BlockedNameColors;
-                handler.NameParts.TextWrap = (
-                    BuildColorStartSeString(colors),
-                    BuildColorEndSeString(colors)
-                );
-                _isModified = true;
-                if (showTypingIndicator
-                    && _typingUsers.TryGetValue(pair.UserData.UID, out var lastTyping)
-                    && (DateTime.UtcNow - lastTyping) < TypingDisplayTime)
+                if (applyColors)
                 {
-                    var ssb = new SeStringBuilder();
-                    ssb.Append(handler.Name);
-                    ssb.Add(new IconPayload(BitmapFontIcon.AutoTranslateBegin));
-                    ssb.AddText("...");
-                    ssb.Add(new IconPayload(BitmapFontIcon.AutoTranslateEnd));
-                    handler.Name = ssb.Build();
+                    var colors = !pair.IsApplicationBlocked ? _configService.Current.NameColors : _configService.Current.BlockedNameColors;
+                    handler.NameParts.TextWrap = (
+                        BuildColorStartSeString(colors),
+                        BuildColorEndSeString(colors)
+                    );
+                    _isModified = true;
                 }
+
             }
+
         }
     }
 

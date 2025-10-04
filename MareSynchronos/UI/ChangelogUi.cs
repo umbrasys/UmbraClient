@@ -169,6 +169,10 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
     {
         return new List<ChangelogEntry>
         {
+            new(new Version(0, 1, 9, 2), "0.1.9.2", new List<ChangelogLine>
+            {
+                new("Correctif de l'affichage de la bulle de frappe."),
+            }),
             new(new Version(0, 1, 9, 1), "0.1.9.1", new List<ChangelogLine>
             {
                 new("Début correctif pour la bulle de frappe."),
