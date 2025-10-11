@@ -111,7 +111,7 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
                 UiSharedService.ColorText(note, ImGuiColors.DalamudGrey);
             }
             string status = Pair.IsVisible ? "Visible" : (Pair.IsOnline ? "Online" : "Offline");
-            UiSharedService.ColorText(status, (Pair.IsVisible || Pair.IsOnline) ? ImGuiColors.HealerGreen : ImGuiColors.DalamudRed);
+            UiSharedService.ColorText(status, (Pair.IsVisible || Pair.IsOnline) ? ImGuiColors.HealerGreen : UiSharedService.AccentColor);
             if (Pair.IsVisible)
             {
                 ImGui.SameLine();

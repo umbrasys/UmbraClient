@@ -1,4 +1,4 @@
-using Dalamud.Bindings.ImGui;
+﻿using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
@@ -130,7 +130,15 @@ public class CompactUi : WindowMediatorSubscriberBase
 
     protected override void DrawInternal()
     {
-        UiSharedService.AccentColor = new Vector4(0.63f, 0.25f, 1f, 1f);
+        UiSharedService.AccentColor = new Vector4(0x8D / 255f, 0x37 / 255f, 0xC0 / 255f, 1f);
+        UiSharedService.AccentHoverColor = new Vector4(0x3A / 255f, 0x15 / 255f, 0x50 / 255f, 1f);
+        UiSharedService.AccentActiveColor = UiSharedService.AccentHoverColor;
+        var accent = UiSharedService.AccentColor;
+        using var titleBg = ImRaii.PushColor(ImGuiCol.TitleBg, accent);
+        using var titleBgActive = ImRaii.PushColor(ImGuiCol.TitleBgActive, accent);
+        using var titleBgCollapsed = ImRaii.PushColor(ImGuiCol.TitleBgCollapsed, accent);
+        using var buttonHover = ImRaii.PushColor(ImGuiCol.ButtonHovered, UiSharedService.AccentHoverColor);
+        using var buttonActive = ImRaii.PushColor(ImGuiCol.ButtonActive, UiSharedService.AccentActiveColor);
         ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGui.GetStyle().WindowPadding.Y - 1f * ImGuiHelpers.GlobalScale + ImGui.GetStyle().ItemSpacing.Y);
         WindowContentWidth = UiSharedService.GetWindowContentRegionWidth();
         if (!_apiController.IsCurrentVersion)
@@ -142,10 +150,10 @@ public class CompactUi : WindowMediatorSubscriberBase
                 var uidTextSize = ImGui.CalcTextSize(unsupported);
                 ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X + ImGui.GetWindowContentRegionMin().X) / 2 - uidTextSize.X / 2);
                 ImGui.AlignTextToFramePadding();
-                ImGui.TextColored(ImGuiColors.DalamudRed, unsupported);
+                ImGui.TextColored(UiSharedService.AccentColor, unsupported);
             }
             UiSharedService.ColorTextWrapped($"Your UmbraSync installation is out of date, the current version is {ver.Major}.{ver.Minor}.{ver.Build}. " +
-                $"It is highly recommended to keep UmbraSync up to date. Open /xlplugins and update the plugin.", ImGuiColors.DalamudRed);
+                $"It is highly recommended to keep UmbraSync up to date. Open /xlplugins and update the plugin.", UiSharedService.AccentColor);
         }
 
         using (ImRaii.PushId("header")) DrawUIDHeader();
@@ -156,40 +164,59 @@ public class CompactUi : WindowMediatorSubscriberBase
         {
             var hasShownSyncShells = _showSyncShells;
 
-            ImGui.PushFont(UiBuilder.IconFont);
+        using (var hoverColor = ImRaii.PushColor(ImGuiCol.ButtonHovered, UiSharedService.AccentHoverColor))
+        using (var activeColor = ImRaii.PushColor(ImGuiCol.ButtonActive, UiSharedService.AccentActiveColor))
+        {
             if (!hasShownSyncShells)
             {
-                ImGui.PushStyleColor(ImGuiCol.Button, ImGui.GetStyle().Colors[(int)ImGuiCol.ButtonHovered]);
+                using var selectedColor = ImRaii.PushColor(ImGuiCol.Button, accent);
+                using (ImRaii.PushFont(UiBuilder.IconFont))
+                {
+                    if (ImGui.Button(FontAwesomeIcon.User.ToIconString(), new Vector2((UiSharedService.GetWindowContentRegionWidth() - ImGui.GetWindowContentRegionMin().X) / 2, 30 * ImGuiHelpers.GlobalScale)))
+                    {
+                        _showSyncShells = false;
+                    }
+                }
             }
-            if (ImGui.Button(FontAwesomeIcon.User.ToIconString(), new Vector2((UiSharedService.GetWindowContentRegionWidth() - ImGui.GetWindowContentRegionMin().X) / 2, 30 * ImGuiHelpers.GlobalScale)))
+            else
             {
-                _showSyncShells = false;
+                using (ImRaii.PushFont(UiBuilder.IconFont))
+                {
+                    if (ImGui.Button(FontAwesomeIcon.User.ToIconString(), new Vector2((UiSharedService.GetWindowContentRegionWidth() - ImGui.GetWindowContentRegionMin().X) / 2, 30 * ImGuiHelpers.GlobalScale)))
+                    {
+                        _showSyncShells = false;
+                    }
+                }
             }
-            if (!hasShownSyncShells)
-            {
-                ImGui.PopStyleColor();
-            }
-            ImGui.PopFont();
+
             UiSharedService.AttachToolTip("Individual pairs");
 
             ImGui.SameLine();
 
-            ImGui.PushFont(UiBuilder.IconFont);
             if (hasShownSyncShells)
             {
-                ImGui.PushStyleColor(ImGuiCol.Button, ImGui.GetStyle().Colors[(int)ImGuiCol.ButtonHovered]);
+                using var selectedColor = ImRaii.PushColor(ImGuiCol.Button, accent);
+                using (ImRaii.PushFont(UiBuilder.IconFont))
+                {
+                    if (ImGui.Button(FontAwesomeIcon.UserFriends.ToIconString(), new Vector2((UiSharedService.GetWindowContentRegionWidth() - ImGui.GetWindowContentRegionMin().X) / 2, 30 * ImGuiHelpers.GlobalScale)))
+                    {
+                        _showSyncShells = true;
+                    }
+                }
             }
-            if (ImGui.Button(FontAwesomeIcon.UserFriends.ToIconString(), new Vector2((UiSharedService.GetWindowContentRegionWidth() - ImGui.GetWindowContentRegionMin().X) / 2, 30 * ImGuiHelpers.GlobalScale)))
+            else
             {
-                _showSyncShells = true;
+                using (ImRaii.PushFont(UiBuilder.IconFont))
+                {
+                    if (ImGui.Button(FontAwesomeIcon.UserFriends.ToIconString(), new Vector2((UiSharedService.GetWindowContentRegionWidth() - ImGui.GetWindowContentRegionMin().X) / 2, 30 * ImGuiHelpers.GlobalScale)))
+                    {
+                        _showSyncShells = true;
+                    }
+                }
             }
-            if (hasShownSyncShells)
-            {
-                ImGui.PopStyleColor();
-            }
-            ImGui.PopFont();
 
             UiSharedService.AttachToolTip("Syncshells");
+        }
 
             DrawDefaultSyncSettings();
             if (!hasShownSyncShells)
@@ -271,9 +298,9 @@ public class CompactUi : WindowMediatorSubscriberBase
             bool vfxDisabled = _configService.Current.DefaultDisableVfx;
             bool showNearby = _configService.Current.EnableAutoDetectDiscovery;
 
-            var soundIcon = soundsDisabled ? FontAwesomeIcon.VolumeUp : FontAwesomeIcon.VolumeMute;
-            var animIcon = animsDisabled ? FontAwesomeIcon.Running : FontAwesomeIcon.Stop;
-            var vfxIcon = vfxDisabled ? FontAwesomeIcon.Sun : FontAwesomeIcon.Circle;
+            var soundIcon = soundsDisabled ? FontAwesomeIcon.VolumeMute : FontAwesomeIcon.VolumeUp;
+            var animIcon = animsDisabled ? FontAwesomeIcon.WindowClose : FontAwesomeIcon.Running;
+            var vfxIcon = vfxDisabled ? FontAwesomeIcon.TimesCircle : FontAwesomeIcon.Sun;
 
             float spacing = ImGui.GetStyle().ItemSpacing.X;
             float audioWidth = _uiSharedService.GetIconTextButtonSize(soundIcon, soundLabel);
@@ -337,10 +364,22 @@ public class CompactUi : WindowMediatorSubscriberBase
             ImGui.SameLine(0, spacingOverride);
         }
 
+        var colorsPushed = 0;
+        if (currentState)
+        {
+            ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.95f, 0.35f, 0.35f, 1f));
+            colorsPushed++;
+        }
+
         if (_uiSharedService.IconTextButton(icon, label, width))
         {
             var newState = !currentState;
             onToggle(newState);
+        }
+
+        if (colorsPushed > 0)
+        {
+            ImGui.PopStyleColor(colorsPushed);
         }
 
         UiSharedService.AttachToolTip(tooltipProvider());
@@ -648,7 +687,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         else
         {
             ImGui.AlignTextToFramePadding();
-            ImGui.TextColored(ImGuiColors.DalamudRed, "Not connected to any server");
+            ImGui.TextColored(UiSharedService.AccentColor, "Not connected to any server");
         }
 
         if (printShard)
@@ -845,17 +884,17 @@ public class CompactUi : WindowMediatorSubscriberBase
         return _apiController.ServerState switch
         {
             ServerState.Connecting => ImGuiColors.DalamudYellow,
-            ServerState.Reconnecting => ImGuiColors.DalamudRed,
-            ServerState.Connected => new Vector4(0.63f, 0.25f, 1f, 1f),
+            ServerState.Reconnecting => UiSharedService.AccentColor,
+            ServerState.Connected => UiSharedService.AccentColor,
             ServerState.Disconnected => ImGuiColors.DalamudYellow,
             ServerState.Disconnecting => ImGuiColors.DalamudYellow,
-            ServerState.Unauthorized => ImGuiColors.DalamudRed,
-            ServerState.VersionMisMatch => ImGuiColors.DalamudRed,
-            ServerState.Offline => ImGuiColors.DalamudRed,
+            ServerState.Unauthorized => UiSharedService.AccentColor,
+            ServerState.VersionMisMatch => UiSharedService.AccentColor,
+            ServerState.Offline => UiSharedService.AccentColor,
             ServerState.RateLimited => ImGuiColors.DalamudYellow,
             ServerState.NoSecretKey => ImGuiColors.DalamudYellow,
             ServerState.MultiChara => ImGuiColors.DalamudYellow,
-            _ => ImGuiColors.DalamudRed
+            _ => UiSharedService.AccentColor
         };
     }
 

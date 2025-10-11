@@ -175,7 +175,7 @@ internal class EventViewerUI : WindowMediatorSubscriberBase
                 {
                     EventSeverity.Informational => new Vector4(),
                     EventSeverity.Warning => ImGuiColors.DalamudYellow,
-                    EventSeverity.Error => ImGuiColors.DalamudRed,
+                    EventSeverity.Error => UiSharedService.AccentColor,
                     _ => new Vector4()
                 };
 

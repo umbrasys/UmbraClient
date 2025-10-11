@@ -201,7 +201,7 @@ public class DrawGroupPair : DrawPairBase
                 if (individualSoundsDisabled)
                 {
                     var userSoundsText = "Sound sync disabled with " + _pair.UserData.AliasOrUID;
-                    _uiSharedService.IconText(FontAwesomeIcon.VolumeOff);
+                    _uiSharedService.IconText(FontAwesomeIcon.VolumeMute);
                     ImGui.SameLine(40 * ImGuiHelpers.GlobalScale);
                     ImGui.TextUnformatted(userSoundsText);
                     ImGui.NewLine();
@@ -212,7 +212,7 @@ public class DrawGroupPair : DrawPairBase
                 if (individualAnimDisabled)
                 {
                     var userAnimText = "Animation sync disabled with " + _pair.UserData.AliasOrUID;
-                    _uiSharedService.IconText(FontAwesomeIcon.Stop);
+                    _uiSharedService.IconText(FontAwesomeIcon.WindowClose);
                     ImGui.SameLine(40 * ImGuiHelpers.GlobalScale);
                     ImGui.TextUnformatted(userAnimText);
                     ImGui.NewLine();
@@ -223,7 +223,7 @@ public class DrawGroupPair : DrawPairBase
                 if (individualVFXDisabled)
                 {
                     var userVFXText = "VFX sync disabled with " + _pair.UserData.AliasOrUID;
-                    _uiSharedService.IconText(FontAwesomeIcon.Circle);
+                    _uiSharedService.IconText(FontAwesomeIcon.TimesCircle);
                     ImGui.SameLine(40 * ImGuiHelpers.GlobalScale);
                     ImGui.TextUnformatted(userVFXText);
                     ImGui.NewLine();
@@ -248,7 +248,7 @@ public class DrawGroupPair : DrawPairBase
                 if (soundsDisabled)
                 {
                     var userSoundsText = "Sound sync disabled by " + _pair.UserData.AliasOrUID;
-                    _uiSharedService.IconText(FontAwesomeIcon.VolumeOff);
+                    _uiSharedService.IconText(FontAwesomeIcon.VolumeMute);
                     ImGui.SameLine(40 * ImGuiHelpers.GlobalScale);
                     ImGui.TextUnformatted(userSoundsText);
                 }
@@ -256,7 +256,7 @@ public class DrawGroupPair : DrawPairBase
                 if (animDisabled)
                 {
                     var userAnimText = "Animation sync disabled by " + _pair.UserData.AliasOrUID;
-                    _uiSharedService.IconText(FontAwesomeIcon.Stop);
+                    _uiSharedService.IconText(FontAwesomeIcon.WindowClose);
                     ImGui.SameLine(40 * ImGuiHelpers.GlobalScale);
                     ImGui.TextUnformatted(userAnimText);
                 }
@@ -264,7 +264,7 @@ public class DrawGroupPair : DrawPairBase
                 if (vfxDisabled)
                 {
                     var userVFXText = "VFX sync disabled by " + _pair.UserData.AliasOrUID;
-                    _uiSharedService.IconText(FontAwesomeIcon.Circle);
+                    _uiSharedService.IconText(FontAwesomeIcon.TimesCircle);
                     ImGui.SameLine(40 * ImGuiHelpers.GlobalScale);
                     ImGui.TextUnformatted(userVFXText);
                 }

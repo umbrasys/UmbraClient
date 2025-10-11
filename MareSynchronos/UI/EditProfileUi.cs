@@ -12,6 +12,7 @@ using MareSynchronos.Services.ServerConfiguration;
 using MareSynchronos.Utils;
 using MareSynchronos.WebAPI;
 using Microsoft.Extensions.Logging;
+using System.Numerics;
 
 namespace MareSynchronos.UI;
 
@@ -65,12 +66,13 @@ public class EditProfileUi : WindowMediatorSubscriberBase
     protected override void DrawInternal()
     {
         _uiSharedService.BigText("Current Profile (as saved on server)");
+        ImGuiHelpers.ScaledDummy(new Vector2(0f, ImGui.GetStyle().ItemSpacing.Y / 2));
 
         var profile = _mareProfileManager.GetMareProfile(new UserData(_apiController.UID));
 
         if (profile.IsFlagged)
         {
-            UiSharedService.ColorTextWrapped(profile.Description, ImGuiColors.DalamudRed);
+            UiSharedService.ColorTextWrapped(profile.Description, UiSharedService.AccentColor);
             return;
         }
 
@@ -87,13 +89,12 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             _descriptionText = _profileDescription;
         }
 
+        var spacing = ImGui.GetStyle().ItemSpacing.X;
         if (_pfpTextureWrap != null)
         {
             ImGui.Image(_pfpTextureWrap.Handle, ImGuiHelpers.ScaledVector2(_pfpTextureWrap.Width, _pfpTextureWrap.Height));
+            ImGuiHelpers.ScaledRelativeSameLine(256, spacing);
         }
-
-        var spacing = ImGui.GetStyle().ItemSpacing.X;
-        ImGuiHelpers.ScaledRelativeSameLine(256, spacing);
         using (_uiSharedService.GameFont.Push())
         {
             var descriptionTextSize = ImGui.CalcTextSize(profile.Description, hideTextAfterDoubleHash: false, 256f);
@@ -157,7 +158,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
         UiSharedService.AttachToolTip("Clear your currently uploaded profile picture");
         if (_showFileDialogError)
         {
-            UiSharedService.ColorTextWrapped("The profile picture must be a PNG file with a maximum height and width of 256px and 250KiB size", ImGuiColors.DalamudRed);
+            UiSharedService.ColorTextWrapped("The profile picture must be a PNG file with a maximum height and width of 256px and 250KiB size", UiSharedService.AccentColor);
         }
         var isNsfw = profile.IsNSFW;
         if (ImGui.Checkbox("Profile is NSFW", ref isNsfw))

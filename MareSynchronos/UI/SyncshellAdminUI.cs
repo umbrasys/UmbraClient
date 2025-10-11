@@ -374,7 +374,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                 ImGui.TextUnformatted("Sound Sync");
                 _uiSharedService.BooleanToColoredIcon(!isDisableSounds);
                 ImGui.SameLine(230);
-                if (_uiSharedService.IconTextButton(isDisableSounds ? FontAwesomeIcon.VolumeUp : FontAwesomeIcon.VolumeMute,
+                if (_uiSharedService.IconTextButton(isDisableSounds ? FontAwesomeIcon.VolumeMute : FontAwesomeIcon.VolumeUp,
                     isDisableSounds ? "Enable sound sync" : "Disable sound sync"))
                 {
                     perm.SetDisableSounds(!perm.IsDisableSounds());
@@ -385,7 +385,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                 ImGui.TextUnformatted("Animation Sync");
                 _uiSharedService.BooleanToColoredIcon(!isDisableAnimations);
                 ImGui.SameLine(230);
-                if (_uiSharedService.IconTextButton(isDisableAnimations ? FontAwesomeIcon.Running : FontAwesomeIcon.Stop,
+                if (_uiSharedService.IconTextButton(isDisableAnimations ? FontAwesomeIcon.WindowClose : FontAwesomeIcon.Running,
                     isDisableAnimations ? "Enable animation sync" : "Disable animation sync"))
                 {
                     perm.SetDisableAnimations(!perm.IsDisableAnimations());
@@ -396,7 +396,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                 ImGui.TextUnformatted("VFX Sync");
                 _uiSharedService.BooleanToColoredIcon(!isDisableVfx);
                 ImGui.SameLine(230);
-                if (_uiSharedService.IconTextButton(isDisableVfx ? FontAwesomeIcon.Sun : FontAwesomeIcon.Circle,
+                if (_uiSharedService.IconTextButton(isDisableVfx ? FontAwesomeIcon.TimesCircle : FontAwesomeIcon.Sun,
                     isDisableVfx ? "Enable VFX sync" : "Disable VFX sync"))
                 {
                     perm.SetDisableVFX(!perm.IsDisableVFX());

@@ -69,17 +69,17 @@ public partial class IntroUi : WindowMediatorSubscriberBase
         return _uiShared.ApiController.ServerState switch
         {
             ServerState.Connecting => ImGuiColors.DalamudYellow,
-            ServerState.Reconnecting => ImGuiColors.DalamudRed,
+            ServerState.Reconnecting => UiSharedService.AccentColor,
             ServerState.Connected => ImGuiColors.HealerGreen,
             ServerState.Disconnected => ImGuiColors.DalamudYellow,
             ServerState.Disconnecting => ImGuiColors.DalamudYellow,
-            ServerState.Unauthorized => ImGuiColors.DalamudRed,
-            ServerState.VersionMisMatch => ImGuiColors.DalamudRed,
-            ServerState.Offline => ImGuiColors.DalamudRed,
+            ServerState.Unauthorized => UiSharedService.AccentColor,
+            ServerState.VersionMisMatch => UiSharedService.AccentColor,
+            ServerState.Offline => UiSharedService.AccentColor,
             ServerState.RateLimited => ImGuiColors.DalamudYellow,
             ServerState.NoSecretKey => ImGuiColors.DalamudYellow,
             ServerState.MultiChara => ImGuiColors.DalamudYellow,
-            _ => ImGuiColors.DalamudRed
+            _ => UiSharedService.AccentColor
         };
     }
 
@@ -140,46 +140,46 @@ public partial class IntroUi : WindowMediatorSubscriberBase
         {
             using (_uiShared.UidFont.Push())
             {
-                ImGui.TextUnformatted("Agreement of Usage of Service");
+                ImGui.TextUnformatted("Conditions d'utilisation");
             }
 
             ImGui.Separator();
             ImGui.SetWindowFontScale(1.5f);
-            string readThis = "READ THIS CAREFULLY";
+            string readThis = "MERCI DE LIRE ATTENTIVEMENT";
             Vector2 textSize = ImGui.CalcTextSize(readThis);
             ImGui.SetCursorPosX(ImGui.GetWindowSize().X / 2 - textSize.X / 2);
-            UiSharedService.ColorText(readThis, ImGuiColors.DalamudRed);
+            UiSharedService.ColorText(readThis, UiSharedService.AccentColor);
             ImGui.SetWindowFontScale(1.0f);
             ImGui.Separator();
             UiSharedService.TextWrapped("""
-                                        To use Umbra, you must be over the age of 18, or 21 in some jurisdictions. 
+                                        Pour utiliser les services UmbraSync, vous devez être âgé de plus de 18 ans, où plus de 21 ans dans certaines juridictions.
                                         """);
             UiSharedService.TextWrapped("""
-                                        All of the mod files currently active on your character as well as your current character state will be uploaded to the service you registered yourself at automatically. The plugin will exclusively upload the necessary mod files and not the whole mod.
+                                        Tout les mods actuellement actifs sur votre personnage et ses états associés seront automatiquement téléchargés vers le serveur UmbraSync auquel vous vous êtes inscrit.Il sera téléchargé exclusivement les fichiers nécessaires à la synchronisation et non l'intégralité du mod.
                                         """);
             UiSharedService.TextWrapped("""
-                                        If you are on a data capped internet connection, higher fees due to data usage depending on the amount of downloaded and uploaded mod files might occur. Mod files will be compressed on up- and download to save on bandwidth usage. Due to varying up- and download speeds, changes in characters might not be visible immediately. Files present on the service that already represent your active mod files will not be uploaded again.
+                                        Si vous disposez d'une connexion Internet limitée, des frais supplémentaires peuvent s'appliquer en fonction du nombre de fichiers envoyés et reçus. Les fichiers seront compressés afin d'économiser la bande passante. En raison des variations de vitesse de débit, les sychronisations peuvent ne pas être visible immédiatement.
                                         """);
             UiSharedService.TextWrapped("""
-                                        The mod files you are uploading are confidential and will not be distributed to parties other than the ones who are requesting the exact same mod files. Please think about who you are going to pair since it is unavoidable that they will receive and locally cache the necessary mod files that you have currently in use. Locally cached mod files will have arbitrary file names to discourage attempts at replicating the original mod.
+                                        Les fichiers téléchargés sont confidentiels et ne seront pas distribués à des solutions tierces où autres personnes. Uniquement les personnes avec qui vous êtes appairés demandent exactement les mêmes fichiers. Réfléchissez donc bien avec qui vous allez vous appairer.
                                         """);
             UiSharedService.TextWrapped("""
-                                        The plugin creator tried their best to keep you secure. However, there is no guarantee for 100% security. Do not blindly pair your client with everyone.
+                                        Le gentil dev' a fait de son mieux pour assurer votre sécurité. Cependant le risque 0 n'existe pas. Ne vous appairez pas aveuglément avec n'importe qui.
                                         """);
             UiSharedService.TextWrapped("""
-                                        Mod files that are saved on the service will remain on the service as long as there are requests for the files from clients. After a period of not being used, the mod files will be automatically deleted.
+                                        Après une periode d'inactivité, les mods enregistrés sur le serveur UmbraSync seront automatiquement supprimés.
                                         """);
             UiSharedService.TextWrapped("""
-                                        Accounts that are inactive for ninety (90) days will be deleted for privacy reasons.
+                                        Les comptes inactifs pendant 90 jours seront supprimés pour des raisons de stockage et de confidentialité.
                                         """);
             UiSharedService.TextWrapped("""
-                                        Umbra is operated from servers located in the European Union. You agree not to upload any content to the service that violates EU law; and more specifically, German law.
+                                        L'infrastructure Umbrasync est hebergé dans l'Union Européenne (Allemagne) et en Suisse. Vous acceptez alors de ne pas télécharger de contenu qui pourrait aller à l'encontre des législations de ces deux pays.
                                         """);
             UiSharedService.TextWrapped("""
-                                        You may delete your account at any time from within the Settings panel of the plugin. Any mods unique to you will then be removed from the server within 14 days.
+                                        Vous pouvez supprimer votre compte à tout moment. Votre compte et toutes les données associées seront supprimés dans un délai de 14 jours.
                                         """);
             UiSharedService.TextWrapped("""
-                                        This service is provided as-is.
+                                        Ce service est fourni tel quel.
                                         """);
 
             ImGui.Separator();
@@ -208,7 +208,7 @@ public partial class IntroUi : WindowMediatorSubscriberBase
 
             if (!_uiShared.HasValidPenumbraModPath)
             {
-                UiSharedService.ColorTextWrapped("You do not have a valid Penumbra path set. Open Penumbra and set up a valid path for the mod directory.", ImGuiColors.DalamudRed);
+                UiSharedService.ColorTextWrapped("You do not have a valid Penumbra path set. Open Penumbra and set up a valid path for the mod directory.", UiSharedService.AccentColor);
             }
             else
             {
@@ -330,11 +330,11 @@ public partial class IntroUi : WindowMediatorSubscriberBase
             ImGui.InputText("", ref _secretKey, 64);
             if (_secretKey.Length > 0 && _secretKey.Length != 64)
             {
-                UiSharedService.ColorTextWrapped("Your secret key must be exactly 64 characters long.", ImGuiColors.DalamudRed);
+                UiSharedService.ColorTextWrapped("Your secret key must be exactly 64 characters long.", UiSharedService.AccentColor);
             }
             else if (_secretKey.Length == 64 && !HexRegex().IsMatch(_secretKey))
             {
-                UiSharedService.ColorTextWrapped("Your secret key can only contain ABCDEF and the numbers 0-9.", ImGuiColors.DalamudRed);
+                UiSharedService.ColorTextWrapped("Your secret key can only contain ABCDEF and the numbers 0-9.", UiSharedService.AccentColor);
             }
             else if (_secretKey.Length == 64)
             {

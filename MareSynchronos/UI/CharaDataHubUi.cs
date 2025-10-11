@@ -170,7 +170,7 @@ internal sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
         if (!_charaDataManager.BrioAvailable)
         {
             ImGuiHelpers.ScaledDummy(3);
-            UiSharedService.DrawGroupedCenteredColorText("To utilize any features related to posing or spawning characters you require to have Brio installed.", ImGuiColors.DalamudRed);
+            UiSharedService.DrawGroupedCenteredColorText("To utilize any features related to posing or spawning characters you require to have Brio installed.", UiSharedService.AccentColor);
             UiSharedService.DistanceSeparator();
         }
 
@@ -194,7 +194,7 @@ internal sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
             }
             if (_charaDataManager.DataApplicationTask != null)
             {
-                UiSharedService.ColorTextWrapped("WARNING: During the data application avoid interacting with this actor to prevent potential crashes.", ImGuiColors.DalamudRed);
+                UiSharedService.ColorTextWrapped("WARNING: During the data application avoid interacting with this actor to prevent potential crashes.", UiSharedService.AccentColor);
                 ImGuiHelpers.ScaledDummy(5);
                 ImGui.Separator();
             }
@@ -648,7 +648,7 @@ internal sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
                 }
                 if ((_charaDataManager.DownloadMetaInfoTask?.IsCompleted ?? false) && !_charaDataManager.DownloadMetaInfoTask.Result.Success)
                 {
-                    UiSharedService.ColorTextWrapped(_charaDataManager.DownloadMetaInfoTask.Result.Result, ImGuiColors.DalamudRed);
+                    UiSharedService.ColorTextWrapped(_charaDataManager.DownloadMetaInfoTask.Result.Result, UiSharedService.AccentColor);
                 }
 
                 using (ImRaii.Disabled(_charaDataManager.LastDownloadedMetaInfo == null))
@@ -848,7 +848,7 @@ internal sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
                     if ((_charaDataManager.LoadedMcdfHeader?.IsFaulted ?? false) || (_charaDataManager.McdfApplicationTask?.IsFaulted ?? false))
                     {
                         UiSharedService.ColorTextWrapped("Failure to read MCDF file. MCDF file is possibly corrupt. Re-export the MCDF file and try again.",
-                            ImGuiColors.DalamudRed);
+                            UiSharedService.AccentColor);
                         UiSharedService.ColorTextWrapped("Note: if this is your MCDF, try redrawing yourself, wait and re-export the file. " +
                             "If you received it from someone else have them do the same.", ImGuiColors.DalamudYellow);
                     }

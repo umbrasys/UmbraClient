@@ -1,16 +1,19 @@
+using System;
+using System.Collections.Generic;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 using Dalamud.Plugin.Services;
+using MareSynchronos.API.Data;
 using MareSynchronos.MareConfiguration;
+using MareSynchronos.MareConfiguration.Models;
 using MareSynchronos.PlayerData.Pairs;
 using MareSynchronos.Services;
 using MareSynchronos.Services.Mediator;
-using Microsoft.Extensions.Logging;
 using MareSynchronos.WebAPI;
-using MareSynchronos.API.Data;
-using FFXIVClientStructs.Interop;
+using Microsoft.Extensions.Logging;
 using Dalamud.Interface.Textures.TextureWraps;
+using FFXIVClientStructs.Interop;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
@@ -72,22 +75,23 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
 
         var showParty = _configService.Current.TypingIndicatorShowOnPartyList;
         var showNameplates = _configService.Current.TypingIndicatorShowOnNameplates;
+
         if (!showParty && !showNameplates)
             return;
 
-        var drawList = ImGui.GetWindowDrawList();
+        var overlayDrawList = ImGui.GetWindowDrawList();
         var activeTypers = _typingStateService.GetActiveTypers(TypingDisplayTime);
         var hasSelf = _typingStateService.TryGetSelfTyping(TypingDisplayTime, out var selfStart, out var selfLast);
         var now = DateTime.UtcNow;
 
         if (showParty)
         {
-            DrawPartyIndicators(drawList, activeTypers, hasSelf, now, selfStart, selfLast);
+            DrawPartyIndicators(overlayDrawList, activeTypers, hasSelf, now, selfStart, selfLast);
         }
 
         if (showNameplates)
         {
-            DrawNameplateIndicators(drawList, activeTypers, hasSelf, now, selfStart, selfLast);
+            DrawNameplateIndicators(ImGui.GetWindowDrawList(), activeTypers, hasSelf, now, selfStart, selfLast);
         }
     }
 
@@ -169,7 +173,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         bool selfActive, DateTime now, DateTime selfStart, DateTime selfLast)
     {
         var iconWrap = _textureProvider.GetFromGameIcon(NameplateIconId).GetWrapOrEmpty();
-        if (iconWrap == null)
+        if (iconWrap == null || iconWrap.Handle == IntPtr.Zero)
             return;
 
         if (selfActive
@@ -178,12 +182,9 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
             && (now - selfLast) <= TypingDisplayFade)
         {
             var selfId = GetEntityId(_clientState.LocalPlayer.Address);
-            if (selfId != 0)
+            if (selfId != 0 && !TryDrawNameplateBubble(drawList, iconWrap, selfId))
             {
-                if (!DrawNameplateIcon(drawList, iconWrap, selfId))
-                {
-                    DrawWorldFallbackIcon(drawList, iconWrap, _clientState.LocalPlayer.Position);
-                }
+                DrawWorldFallbackIcon(drawList, iconWrap, _clientState.LocalPlayer.Position);
             }
         }
 
@@ -202,11 +203,9 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
                 _logger.LogInformation("TypingIndicator: no pair found for {uid}, attempting fallback", uid);
             }
 
-            var drawnOnNameplate = objectId != uint.MaxValue && objectId != 0 && DrawNameplateIcon(drawList, iconWrap, objectId);
-
-            if (drawnOnNameplate)
+            if (objectId != uint.MaxValue && objectId != 0 && TryDrawNameplateBubble(drawList, iconWrap, objectId))
             {
-                _logger.LogTrace("TypingIndicator: drew nameplate icon for {uid} (objectId={objectId})", uid, objectId);
+                _logger.LogTrace("TypingIndicator: drew nameplate bubble for {uid} (objectId={objectId})", uid, objectId);
                 continue;
             }
 
@@ -228,8 +227,28 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         }
     }
 
-    private unsafe bool DrawNameplateIcon(ImDrawListPtr drawList, IDalamudTextureWrap textureWrap, uint objectId)
+    private Vector2 GetConfiguredBubbleSize(float scaleX, float scaleY, bool isNameplateVisible, TypingIndicatorBubbleSize? overrideSize = null)
     {
+        var sizeSetting = overrideSize ?? _configService.Current.TypingIndicatorBubbleSize;
+        var baseSize = sizeSetting switch
+        {
+            TypingIndicatorBubbleSize.Small when isNameplateVisible => 32f,
+            TypingIndicatorBubbleSize.Medium when isNameplateVisible => 44f,
+            TypingIndicatorBubbleSize.Large when isNameplateVisible => 56f,
+            TypingIndicatorBubbleSize.Small => 15f,
+            TypingIndicatorBubbleSize.Medium => 25f,
+            TypingIndicatorBubbleSize.Large => 35f,
+            _ => 35f,
+        };
+
+        return new Vector2(baseSize * scaleX, baseSize * scaleY);
+    }
+
+    private unsafe bool TryDrawNameplateBubble(ImDrawListPtr drawList, IDalamudTextureWrap textureWrap, uint objectId)
+    {
+        if (textureWrap == null || textureWrap.Handle == IntPtr.Zero)
+            return false;
+
         var framework = Framework.Instance();
         if (framework == null)
             return false;
@@ -237,6 +256,13 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         var ui3D = framework->GetUIModule()->GetUI3DModule();
         if (ui3D == null)
             return false;
+
+        var addonNamePlate = (AddonNamePlate*)_gameGui.GetAddonByName("NamePlate", 1).Address;
+        if (addonNamePlate == null)
+            return false;
+
+        AddonNamePlate.NamePlateObject* namePlate = null;
+        float distance = 0f;
 
         for (var i = 0; i < ui3D->NamePlateObjectInfoCount; i++)
         {
@@ -247,47 +273,71 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
             if (objectInfo.Value->GameObject->EntityId != objectId)
                 continue;
 
-            var addonNamePlate = (AddonNamePlate*)_gameGui.GetAddonByName("NamePlate", 1).Address;
-            if (addonNamePlate == null)
+            if (objectInfo.Value->GameObject->YalmDistanceFromPlayerX > 35f)
                 return false;
 
-            var npObject = &addonNamePlate->NamePlateObjectArray[objectInfo.Value->NamePlateIndex];
-            if (npObject == null || npObject->RootComponentNode == null)
-                return false;
+            namePlate = &addonNamePlate->NamePlateObjectArray[objectInfo.Value->NamePlateIndex];
+            distance = objectInfo.Value->GameObject->YalmDistanceFromPlayerX;
+            break;
+        }
 
-            var iconNode = npObject->RootComponentNode->Component->UldManager.NodeList[0];
-            if (iconNode == null)
-                return false;
+        if (namePlate == null || namePlate->RootComponentNode == null)
+            return false;
 
-            var distance = objectInfo.Value->GameObject->YalmDistanceFromPlayerX;
-            var scaleX = npObject->RootComponentNode->AtkResNode.ScaleX;
-            var scaleY = npObject->RootComponentNode->AtkResNode.ScaleY;
-            var iconSize = new Vector2(40f * scaleX, 40f * scaleY);
+        var iconNode = namePlate->RootComponentNode->Component->UldManager.NodeList[0];
+        if (iconNode == null)
+            return false;
 
-            var iconPos = new Vector2(
-                npObject->RootComponentNode->AtkResNode.X + iconNode->X + iconNode->Width,
-                npObject->RootComponentNode->AtkResNode.Y + iconNode->Y);
+        var scaleX = namePlate->RootComponentNode->AtkResNode.ScaleX;
+        var scaleY = namePlate->RootComponentNode->AtkResNode.ScaleY;
+        var iconVisible = iconNode->IsVisible();
+        var sizeScaleFactor = 1f;
+        var scaleVector = new Vector2(scaleX, scaleY);
+        var rootPosition = new Vector2(namePlate->RootComponentNode->AtkResNode.X, namePlate->RootComponentNode->AtkResNode.Y);
+        var iconLocalPosition = new Vector2(iconNode->X, iconNode->Y) * scaleVector;
+        var iconDimensions = new Vector2(iconNode->Width, iconNode->Height) * scaleVector;
 
-            var iconOffset = new Vector2(distance / 1.5f, distance / 3f);
+        if (!iconVisible)
+        {
+            sizeScaleFactor = 2.5f;
+            var anchor = rootPosition + iconLocalPosition + new Vector2(iconDimensions.X * 0.5f, 0f);
+
+            var distanceOffset = new Vector2(0f, -16f + distance) * scaleVector;
             if (iconNode->Height == 24)
             {
-                iconOffset.Y -= 8f;
+                distanceOffset.Y += 16f * scaleY;
             }
+            distanceOffset.Y += 64f * scaleY;
 
-            iconPos += iconOffset;
-            var extraScaleX = Math.Max(scaleX - 1f, 0f);
-            var extraScaleY = Math.Max(scaleY - 1f, 0f);
-            if (extraScaleX > 0f || extraScaleY > 0f)
-            {
-                iconPos -= new Vector2(extraScaleX * 14f, extraScaleY * 14f);
-            }
+            var referenceSize = GetConfiguredBubbleSize(scaleX * sizeScaleFactor, scaleY * sizeScaleFactor, false, TypingIndicatorBubbleSize.Small);
+            var manualOffset = new Vector2(referenceSize.X * 2.00f, referenceSize.Y * 2.00f);
 
-            drawList.AddImage(textureWrap.Handle, iconPos, iconPos + iconSize, Vector2.Zero, Vector2.One,
+            var iconSizeHidden = GetConfiguredBubbleSize(scaleX * sizeScaleFactor, scaleY * sizeScaleFactor, false);
+            var center = anchor + distanceOffset + manualOffset;
+            var topLeft = center - (iconSizeHidden / 2f);
+
+            drawList.AddImage(textureWrap.Handle, topLeft, topLeft + iconSizeHidden, Vector2.Zero, Vector2.One,
                 ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0.95f)));
+
             return true;
         }
 
-        return false;
+        var iconPos = rootPosition + iconLocalPosition + new Vector2(iconDimensions.X, 0f);
+
+        var iconOffset = new Vector2(distance / 1.5f, distance / 3.5f) * scaleVector;
+        if (iconNode->Height == 24)
+        {
+            iconOffset.Y -= 8f * scaleY;
+        }
+
+        iconPos += iconOffset;
+
+        var iconSize = GetConfiguredBubbleSize(scaleX * sizeScaleFactor, scaleY * sizeScaleFactor, true);
+
+        drawList.AddImage(textureWrap.Handle, iconPos, iconPos + iconSize, Vector2.Zero, Vector2.One,
+            ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0.95f)));
+
+        return true;
     }
 
     private void DrawWorldFallbackIcon(ImDrawListPtr drawList, IDalamudTextureWrap textureWrap, Vector3 worldPosition)
@@ -296,7 +346,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         if (!_gameGui.WorldToScreen(offsetPosition, out var screenPos))
             return;
 
-        var iconSize = new Vector2(36f, 36f) * ImGuiHelpers.GlobalScale;
+        var iconSize = GetConfiguredBubbleSize(ImGuiHelpers.GlobalScale, ImGuiHelpers.GlobalScale, false);
         var iconPos = screenPos - (iconSize / 2f) - new Vector2(0f, iconSize.Y * 0.6f);
         drawList.AddImage(textureWrap.Handle, iconPos, iconPos + iconSize, Vector2.Zero, Vector2.One,
             ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0.95f)));

@@ -45,7 +45,7 @@ internal sealed partial class CharaDataHubUi
                 if (canUpdate)
                 {
                     ImGui.AlignTextToFramePadding();
-                    UiSharedService.ColorTextWrapped("Warning: You have unsaved changes!", ImGuiColors.DalamudRed);
+                    UiSharedService.ColorTextWrapped("Warning: You have unsaved changes!", UiSharedService.AccentColor);
                     ImGui.SameLine();
                     using (ImRaii.Disabled(_charaDataManager.CharaUpdateTask != null && !_charaDataManager.CharaUpdateTask.IsCompleted))
                     {
@@ -216,7 +216,7 @@ internal sealed partial class CharaDataHubUi
             }
             else
             {
-                UiSharedService.ColorTextWrapped($"{dataDto.MissingFiles.DistinctBy(k => k.HashOrFileSwap).Count()} files to download this character data are missing on the server", ImGuiColors.DalamudRed);
+                UiSharedService.ColorTextWrapped($"{dataDto.MissingFiles.DistinctBy(k => k.HashOrFileSwap).Count()} files to download this character data are missing on the server", UiSharedService.AccentColor);
                 ImGui.NewLine();
                 ImGui.SameLine(pos);
                 if (_uiSharedService.IconTextButton(FontAwesomeIcon.ArrowCircleUp, "Attempt to upload missing files and restore Character Data"))
@@ -401,7 +401,7 @@ internal sealed partial class CharaDataHubUi
         else if (!_charaDataManager.BrioAvailable)
         {
             ImGuiHelpers.ScaledDummy(5);
-            UiSharedService.DrawGroupedCenteredColorText("To attach pose and world data Brio requires to be installed.", ImGuiColors.DalamudRed);
+            UiSharedService.DrawGroupedCenteredColorText("To attach pose and world data Brio requires to be installed.", UiSharedService.AccentColor);
             ImGuiHelpers.ScaledDummy(5);
         }
 
@@ -685,7 +685,7 @@ internal sealed partial class CharaDataHubUi
         }
         else if (_charaDataManager.DataCreationTask != null && _charaDataManager.DataCreationTask.IsCompleted)
         {
-            var color = _charaDataManager.DataCreationTask.Result.Success ? ImGuiColors.HealerGreen : ImGuiColors.DalamudRed;
+            var color = _charaDataManager.DataCreationTask.Result.Success ? ImGuiColors.HealerGreen : UiSharedService.AccentColor;
             UiSharedService.ColorTextWrapped(_charaDataManager.DataCreationTask.Result.Output, color);
         }
 

@@ -657,7 +657,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 else if (_ipcProvider.MarePluginEnabled)
                     UiSharedService.ColorTextWrapped("Umbra API inactive: Umbra plugin is loaded", ImGuiColors.DalamudYellow);
                 else
-                    UiSharedService.ColorTextWrapped("Umbra API inactive: Unknown reason", ImGuiColors.DalamudRed);
+                    UiSharedService.ColorTextWrapped("Umbra API inactive: Unknown reason", UiSharedService.AccentColor);
             }
         }
 
@@ -991,7 +991,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         }
         else if (_notesSuccessfullyApplied.HasValue && !_notesSuccessfullyApplied.Value)
         {
-            UiSharedService.ColorTextWrapped("Attempt to import notes from clipboard failed. Check formatting and try again", ImGuiColors.DalamudRed);
+            UiSharedService.ColorTextWrapped("Attempt to import notes from clipboard failed. Check formatting and try again", UiSharedService.AccentColor);
         }
 
         var openPopupOnAddition = _configService.Current.OpenPopupOnAdd;
@@ -1121,6 +1121,29 @@ public class SettingsUi : WindowMediatorSubscriberBase
             _configService.Save();
         }
         _uiShared.DrawHelpText("Ajoute une bulle '...' sur la plaque des paires en train d'écrire.");
+
+        using (ImRaii.Disabled(!typingIndicatorNameplates))
+        {
+            using var indentTyping = ImRaii.PushIndent();
+            var bubbleSize = _configService.Current.TypingIndicatorBubbleSize;
+            TypingIndicatorBubbleSize? selectedBubbleSize = _uiShared.DrawCombo("Taille de la bulle de frappe##typingBubbleSize",
+                Enum.GetValues<TypingIndicatorBubbleSize>(),
+                size => size switch
+                {
+                    TypingIndicatorBubbleSize.Small => "Petite",
+                    TypingIndicatorBubbleSize.Medium => "Moyenne",
+                    TypingIndicatorBubbleSize.Large => "Grande",
+                    _ => size.ToString()
+                },
+                null,
+                bubbleSize);
+
+            if (selectedBubbleSize.HasValue && selectedBubbleSize.Value != bubbleSize)
+            {
+                _configService.Current.TypingIndicatorBubbleSize = selectedBubbleSize.Value;
+                _configService.Save();
+            }
+        }
 
         if (ImGui.Checkbox("Tracer la frappe dans la liste de groupe", ref typingIndicatorPartyList))
         {
@@ -1318,7 +1341,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         ImGui.SameLine();
         using (ImRaii.PushColor(ImGuiCol.Text, UiSharedService.AccentColor, totalVramBytes < 2.0 * 1024.0 * 1024.0 * 1024.0))
             using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudYellow, totalVramBytes >= 4.0 * 1024.0 * 1024.0 * 1024.0))
-                using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudRed, totalVramBytes >= 6.0 * 1024.0 * 1024.0 * 1024.0))
+                using (ImRaii.PushColor(ImGuiCol.Text, UiSharedService.AccentColor, totalVramBytes >= 6.0 * 1024.0 * 1024.0 * 1024.0))
                     ImGui.TextUnformatted($"{totalVramBytes / 1024.0 / 1024.0 / 1024.0:0.00} GiB");
 
         ImGui.Separator();
@@ -1920,6 +1943,11 @@ public class SettingsUi : WindowMediatorSubscriberBase
         ImGui.Separator();
         if (ImGui.BeginTabBar("mainTabBar"))
         {
+            var accent = UiSharedService.AccentColor;
+            var accentColor = ImGui.ColorConvertFloat4ToU32(accent);
+            ImGui.PushStyleColor(ImGuiCol.TabActive, accentColor);
+            ImGui.PushStyleColor(ImGuiCol.TabHovered, accentColor);
+
             if (ImGui.BeginTabItem("General"))
             {
                 DrawGeneral();
@@ -1957,6 +1985,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 DrawAdvanced();
                 ImGui.EndTabItem();
             }
+            ImGui.PopStyleColor(2);
 
             ImGui.EndTabBar();
         }

@@ -627,12 +627,12 @@ internal sealed class GroupPanel
         bool showInfoIcon = !invitesEnabled || soundsDisabled || animDisabled || vfxDisabled || userSoundsDisabled || userAnimDisabled || userVFXDisabled;
 
         var lockedIcon = invitesEnabled ? FontAwesomeIcon.LockOpen : FontAwesomeIcon.Lock;
-        var animIcon = animDisabled ? FontAwesomeIcon.Stop : FontAwesomeIcon.Running;
-        var soundsIcon = soundsDisabled ? FontAwesomeIcon.VolumeOff : FontAwesomeIcon.VolumeUp;
-        var vfxIcon = vfxDisabled ? FontAwesomeIcon.Circle : FontAwesomeIcon.Sun;
-        var userAnimIcon = userAnimDisabled ? FontAwesomeIcon.Stop : FontAwesomeIcon.Running;
-        var userSoundsIcon = userSoundsDisabled ? FontAwesomeIcon.VolumeOff : FontAwesomeIcon.VolumeUp;
-        var userVFXIcon = userVFXDisabled ? FontAwesomeIcon.Circle : FontAwesomeIcon.Sun;
+        var animIcon = animDisabled ? FontAwesomeIcon.WindowClose : FontAwesomeIcon.Running;
+        var soundsIcon = soundsDisabled ? FontAwesomeIcon.VolumeMute : FontAwesomeIcon.VolumeUp;
+        var vfxIcon = vfxDisabled ? FontAwesomeIcon.TimesCircle : FontAwesomeIcon.Sun;
+        var userAnimIcon = userAnimDisabled ? FontAwesomeIcon.WindowClose : FontAwesomeIcon.Running;
+        var userSoundsIcon = userSoundsDisabled ? FontAwesomeIcon.VolumeMute : FontAwesomeIcon.VolumeUp;
+        var userVFXIcon = userVFXDisabled ? FontAwesomeIcon.TimesCircle : FontAwesomeIcon.Sun;
 
         var iconSize = UiSharedService.GetIconSize(infoIcon);
         var barbuttonSize = _uiShared.GetIconButtonSize(FontAwesomeIcon.Bars);

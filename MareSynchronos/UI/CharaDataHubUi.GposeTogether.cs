@@ -15,14 +15,14 @@ internal sealed partial class CharaDataHubUi
         if (!_charaDataManager.BrioAvailable)
         {
             ImGuiHelpers.ScaledDummy(5);
-            UiSharedService.DrawGroupedCenteredColorText("BRIO IS MANDATORY FOR GPOSE TOGETHER.", ImGuiColors.DalamudRed);
+            UiSharedService.DrawGroupedCenteredColorText("BRIO IS MANDATORY FOR GPOSE TOGETHER.", UiSharedService.AccentColor);
             ImGuiHelpers.ScaledDummy(5);
         }
 
         if (!_uiSharedService.ApiController.IsConnected)
         {
             ImGuiHelpers.ScaledDummy(5);
-            UiSharedService.DrawGroupedCenteredColorText("CANNOT USE GPOSE TOGETHER WHILE DISCONNECTED FROM THE SERVER.", ImGuiColors.DalamudRed);
+            UiSharedService.DrawGroupedCenteredColorText("CANNOT USE GPOSE TOGETHER WHILE DISCONNECTED FROM THE SERVER.", UiSharedService.AccentColor);
             ImGuiHelpers.ScaledDummy(5);
         }
 
@@ -165,7 +165,7 @@ internal sealed partial class CharaDataHubUi
             UiSharedService.AttachToolTip(user.WorldDataDescriptor + UiSharedService.TooltipSeparator);
 
             ImGui.SameLine();
-            _uiSharedService.IconText(FontAwesomeIcon.Map, sameMapAndServer.SameMap ? ImGuiColors.ParsedGreen : ImGuiColors.DalamudRed);
+            _uiSharedService.IconText(FontAwesomeIcon.Map, sameMapAndServer.SameMap ? ImGuiColors.ParsedGreen : UiSharedService.AccentColor);
             if (ImGui.IsItemClicked(ImGuiMouseButton.Left) && user.WorldData != null)
             {
                 _dalamudUtilService.SetMarkerAndOpenMap(new(user.WorldData.Value.PositionX, user.WorldData.Value.PositionY, user.WorldData.Value.PositionZ), user.Map);
@@ -175,12 +175,12 @@ internal sealed partial class CharaDataHubUi
                 + "Note: For GPose synchronization to work properly, you must be on the same map.");
 
             ImGui.SameLine();
-            _uiSharedService.IconText(FontAwesomeIcon.Globe, sameMapAndServer.SameServer ? ImGuiColors.ParsedGreen : ImGuiColors.DalamudRed);
+            _uiSharedService.IconText(FontAwesomeIcon.Globe, sameMapAndServer.SameServer ? ImGuiColors.ParsedGreen : UiSharedService.AccentColor);
             UiSharedService.AttachToolTip((sameMapAndServer.SameMap ? "You are on the same server." : "You are not on the same server.") + UiSharedService.TooltipSeparator
                 + "Note: GPose synchronization is not dependent on the current server, but you will have to spawn a character for the other lobby users.");
 
             ImGui.SameLine();
-            _uiSharedService.IconText(FontAwesomeIcon.Running, sameMapAndServer.SameEverything ? ImGuiColors.ParsedGreen : ImGuiColors.DalamudRed);
+            _uiSharedService.IconText(FontAwesomeIcon.Running, sameMapAndServer.SameEverything ? ImGuiColors.ParsedGreen : UiSharedService.AccentColor);
             UiSharedService.AttachToolTip(sameMapAndServer.SameEverything ? "You are in the same instanced area." : "You are not the same instanced area." + UiSharedService.TooltipSeparator +
                 "Note: Users not in your instance, but on the same map, will be drawn as floating wisps." + Environment.NewLine
                 + "Note: GPose synchronization is not dependent on the current instance, but you will have to spawn a character for the other lobby users.");
@@ -217,7 +217,7 @@ internal sealed partial class CharaDataHubUi
                 if (_uiSharedService.IsInGpose && user.Address == nint.Zero)
                 {
                     ImGui.SameLine();
-                    _uiSharedService.IconText(FontAwesomeIcon.ExclamationTriangle, ImGuiColors.DalamudRed);
+                    _uiSharedService.IconText(FontAwesomeIcon.ExclamationTriangle, UiSharedService.AccentColor);
                     UiSharedService.AttachToolTip("No valid character assigned for this user. Pose data will not be applied.");
                 }
             }

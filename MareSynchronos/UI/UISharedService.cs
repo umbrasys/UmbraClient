@@ -37,6 +37,8 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
                                            ImGuiWindowFlags.NoScrollWithMouse;
 
     public static Vector4 AccentColor { get; set; } = ImGuiColors.DalamudViolet;
+    public static Vector4 AccentHoverColor { get; set; } = new Vector4(0x3A / 255f, 0x15 / 255f, 0x50 / 255f, 1f);
+    public static Vector4 AccentActiveColor { get; set; } = AccentHoverColor;
 
     public readonly FileDialogManager FileDialogManager;
 
@@ -311,7 +313,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         }
     }
 
-    public static Vector4 GetBoolColor(bool input) => input ? AccentColor : ImGuiColors.DalamudRed;
+    public static Vector4 GetBoolColor(bool input) => input ? AccentColor : UiSharedService.AccentColor;
 
     public float GetIconTextButtonSize(FontAwesomeIcon icon, string text)
     {
@@ -369,6 +371,8 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         Vector2 cursorScreenPos = ImGui.GetCursorScreenPos();
         float x = vector.X + ImGui.GetStyle().FramePadding.X * 2f;
         float frameHeight = height ?? ImGui.GetFrameHeight();
+        using var hoverColor = ImRaii.PushColor(ImGuiCol.ButtonHovered, AccentHoverColor);
+        using var activeColor = ImRaii.PushColor(ImGuiCol.ButtonActive, AccentActiveColor);
         bool result = ImGui.Button(string.Empty, new Vector2(x, frameHeight));
         Vector2 pos = new Vector2(cursorScreenPos.X + ImGui.GetStyle().FramePadding.X,
             cursorScreenPos.Y + (height ?? ImGui.GetFrameHeight()) / 2f - (vector.Y / 2f));
@@ -379,13 +383,19 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         return result;
     }
 
-    private bool IconTextButtonInternal(FontAwesomeIcon icon, string text, Vector4? defaultColor = null, float? width = null)
+    private bool IconTextButtonInternal(FontAwesomeIcon icon, string text, Vector4? defaultColor = null, float? width = null, bool useAccentHover = true)
     {
-        int num = 0;
+        int colorsPushed = 0;
         if (defaultColor.HasValue)
         {
             ImGui.PushStyleColor(ImGuiCol.Button, defaultColor.Value);
-            num++;
+            colorsPushed++;
+        }
+        if (useAccentHover)
+        {
+            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, AccentHoverColor);
+            ImGui.PushStyleColor(ImGuiCol.ButtonActive, AccentActiveColor);
+            colorsPushed += 2;
         }
 
         ImGui.PushID(text);
@@ -405,9 +415,9 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         Vector2 pos2 = new Vector2(pos.X + vector.X + num2, cursorScreenPos.Y + ImGui.GetStyle().FramePadding.Y);
         windowDrawList.AddText(pos2, ImGui.GetColorU32(ImGuiCol.Text), text);
         ImGui.PopID();
-        if (num > 0)
+        if (colorsPushed > 0)
         {
-            ImGui.PopStyleColor(num);
+            ImGui.PopStyleColor(colorsPushed);
         }
 
         return result;
@@ -417,7 +427,8 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     {
         return IconTextButtonInternal(icon, text,
             isInPopup ? ColorHelpers.RgbaUintToVector4(ImGui.GetColorU32(ImGuiCol.PopupBg)) : null,
-            width <= 0 ? null : width);
+            width <= 0 ? null : width,
+            !isInPopup);
     }
 
     public static bool IsDirectoryWritable(string dirPath, bool throwIfFails = false)
@@ -519,7 +530,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     public void BooleanToColoredIcon(bool value, bool inline = true)
     {
         using var colorgreen = ImRaii.PushColor(ImGuiCol.Text, AccentColor, value);
-        using var colorred = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudRed, !value);
+        using var colorred = ImRaii.PushColor(ImGuiCol.Text, UiSharedService.AccentColor, !value);
 
         if (inline) ImGui.SameLine();
 
@@ -593,24 +604,24 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
         if (_isPenumbraDirectory)
         {
-            ColorTextWrapped("Do not point the storage path directly to the Penumbra directory. If necessary, make a subfolder in it.", ImGuiColors.DalamudRed);
+            ColorTextWrapped("Do not point the storage path directly to the Penumbra directory. If necessary, make a subfolder in it.", UiSharedService.AccentColor);
         }
         else if (_isOneDrive)
         {
-            ColorTextWrapped("Do not point the storage path to a folder in OneDrive. Do not use OneDrive folders for any Mod related functionality.", ImGuiColors.DalamudRed);
+            ColorTextWrapped("Do not point the storage path to a folder in OneDrive. Do not use OneDrive folders for any Mod related functionality.", UiSharedService.AccentColor);
         }
         else if (!_isDirectoryWritable)
         {
-            ColorTextWrapped("The folder you selected does not exist or cannot be written to. Please provide a valid path.", ImGuiColors.DalamudRed);
+            ColorTextWrapped("The folder you selected does not exist or cannot be written to. Please provide a valid path.", UiSharedService.AccentColor);
         }
         else if (_cacheDirectoryHasOtherFilesThanCache)
         {
-            ColorTextWrapped("Your selected directory has files or directories inside that are not Umbra related. Use an empty directory or a previous storage directory only.", ImGuiColors.DalamudRed);
+            ColorTextWrapped("Your selected directory has files or directories inside that are not Umbra related. Use an empty directory or a previous storage directory only.", UiSharedService.AccentColor);
         }
         else if (!_cacheDirectoryIsValidPath)
         {
             ColorTextWrapped("Your selected directory contains illegal characters unreadable by FFXIV. " +
-                             "Restrict yourself to latin letters (A-Z), underscores (_), dashes (-) and arabic numbers (0-9).", ImGuiColors.DalamudRed);
+                             "Restrict yourself to latin letters (A-Z), underscores (_), dashes (-) and arabic numbers (0-9).", UiSharedService.AccentColor);
         }
 
         float maxCacheSize = (float)_configService.Current.MaxLocalCacheInGiB;
@@ -849,7 +860,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
         if (!_penumbraExists || !_glamourerExists)
         {
-            ImGui.TextColored(ImGuiColors.DalamudRed, "You need to install both Penumbra and Glamourer and keep them up to date to use Umbra.");
+            ImGui.TextColored(UiSharedService.AccentColor, "You need to install both Penumbra and Glamourer and keep them up to date to use Umbra.");
             return false;
         }
 

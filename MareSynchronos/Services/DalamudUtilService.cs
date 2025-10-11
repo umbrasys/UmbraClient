@@ -20,6 +20,8 @@ using Microsoft.Extensions.Logging;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System;
+using System.Collections.Generic;
 using GameObject = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
 using DalamudGameObject = Dalamud.Game.ClientState.Objects.Types.IGameObject;
 
@@ -52,6 +54,7 @@ public class DalamudUtilService : IHostedService, IMediatorSubscriber
     private readonly ILogger<DalamudUtilService> _logger;
     private readonly IObjectTable _objectTable;
     private readonly PerformanceCollectorService _performanceCollector;
+    private readonly Dictionary<string, ConditionFlag> _conditionLookup = new(StringComparer.OrdinalIgnoreCase);
     private uint? _classJobId = 0;
     private DateTime _delayedFrameworkUpdateCheck = DateTime.UtcNow;
     private string _lastGlobalBlockPlayer = string.Empty;
@@ -171,6 +174,20 @@ public class DalamudUtilService : IHostedService, IMediatorSubscriber
     public bool IsZoning => _condition[ConditionFlag.BetweenAreas] || _condition[ConditionFlag.BetweenAreas51];
     public bool IsInCombatOrPerforming { get; private set; } = false;
     public bool HasModifiedGameFiles => _gameData.HasModifiedGameDataFiles;
+
+    public bool IsConditionActive(string flagName)
+    {
+        if (_conditionLookup.TryGetValue(flagName, out var cachedFlag))
+            return _condition[cachedFlag];
+
+        if (Enum.TryParse<ConditionFlag>(flagName, true, out var flag))
+        {
+            _conditionLookup[flagName] = flag;
+            return _condition[flag];
+        }
+
+        return false;
+    }
 
     public Lazy<Dictionary<ushort, string>> WorldData { get; private set; }
     public Lazy<Dictionary<int, Lumina.Excel.Sheets.UIColor>> UiColors { get; private set; }

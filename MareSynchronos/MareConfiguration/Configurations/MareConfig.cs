@@ -86,6 +86,7 @@ public class MareConfig : IMareConfiguration
     public bool ExtraChatTags { get; set; } = false;
     public bool TypingIndicatorShowOnNameplates { get; set; } = true;
     public bool TypingIndicatorShowOnPartyList { get; set; } = true;
+    public TypingIndicatorBubbleSize TypingIndicatorBubbleSize { get; set; } = TypingIndicatorBubbleSize.Large;
 
     public bool MareAPI { get; set; } = true;
 }

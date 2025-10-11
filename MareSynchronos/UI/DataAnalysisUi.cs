@@ -285,7 +285,7 @@ public class DataAnalysisUi : WindowMediatorSubscriberBase
                         {
                             UiSharedService.ColorText("WARNING BC7 CONVERSION:", ImGuiColors.DalamudYellow);
                             ImGui.SameLine();
-                            UiSharedService.ColorText("Converting textures to BC7 is irreversible!", ImGuiColors.DalamudRed);
+                            UiSharedService.ColorText("Converting textures to BC7 is irreversible!", UiSharedService.AccentColor);
                             UiSharedService.ColorTextWrapped("- Converting textures to BC7 will reduce their size (compressed and uncompressed) drastically. It is recommended to be used for large (4k+) textures." +
                             Environment.NewLine + "- Some textures, especially ones utilizing colorsets, might not be suited for BC7 conversion and might produce visual artifacts." +
                             Environment.NewLine + "- Before converting textures, make sure to have the original files of the mod you are converting so you can reimport it in case of issues." +

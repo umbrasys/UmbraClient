@@ -35,7 +35,7 @@ internal class ReportPopupHandler : IPopupHandler
         UiSharedService.TextWrapped($"Note: Sending a report will disable the offending profile globally.{Environment.NewLine}" +
             $"The report will be sent to the team of your currently connected server.{Environment.NewLine}" +
             $"Depending on the severity of the offense the users profile or account can be permanently disabled or banned.");
-        UiSharedService.ColorTextWrapped("Report spam and wrong reports will not be tolerated and can lead to permanent account suspension.", ImGuiColors.DalamudRed);
+        UiSharedService.ColorTextWrapped("Report spam and wrong reports will not be tolerated and can lead to permanent account suspension.", UiSharedService.AccentColor);
         UiSharedService.ColorTextWrapped("This is not for reporting misbehavior but solely for the actual profile. " +
             "Reports that are not solely for the profile will be ignored.", ImGuiColors.DalamudYellow);
 
