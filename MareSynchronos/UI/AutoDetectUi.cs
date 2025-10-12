@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Colors;
 using Dalamud.Game.ClientState.Objects.SubKinds;
@@ -5,13 +9,15 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Plugin.Services;
 using MareSynchronos.MareConfiguration;
-using MareSynchronos.Services;
 using MareSynchronos.PlayerData.Pairs;
 using MareSynchronos.Services.Mediator;
 using Microsoft.Extensions.Logging;
 using System.Numerics;
 using System.Globalization;
 using System.Text;
+using MareSynchronos.Services;
+using MareSynchronos.Services.AutoDetect;
+using NotificationType = MareSynchronos.MareConfiguration.Models.NotificationType;
 
 namespace MareSynchronos.UI;
 
@@ -20,13 +26,15 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
     private readonly MareConfigService _configService;
     private readonly DalamudUtilService _dalamud;
     private readonly IObjectTable _objectTable;
-    private readonly Services.AutoDetect.AutoDetectRequestService _requestService;
+    private readonly AutoDetectRequestService _requestService;
+    private readonly NearbyPendingService _pendingService;
     private readonly PairManager _pairManager;
     private List<Services.Mediator.NearbyEntry> _entries = new();
+    private readonly HashSet<string> _acceptInFlight = new(StringComparer.Ordinal);
 
     public AutoDetectUi(ILogger<AutoDetectUi> logger, MareMediator mediator,
         MareConfigService configService, DalamudUtilService dalamudUtilService, IObjectTable objectTable,
-        Services.AutoDetect.AutoDetectRequestService requestService, PairManager pairManager,
+        AutoDetectRequestService requestService, NearbyPendingService pendingService, PairManager pairManager,
         PerformanceCollectorService performanceCollectorService)
         : base(logger, mediator, "AutoDetect", performanceCollectorService)
     {
@@ -34,6 +42,7 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
         _dalamud = dalamudUtilService;
         _objectTable = objectTable;
         _requestService = requestService;
+        _pendingService = pendingService;
         _pairManager = pairManager;
 
         Flags |= ImGuiWindowFlags.NoScrollbar;
@@ -53,9 +62,141 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
     {
         using var idScope = ImRaii.PushId("autodetect-ui");
 
+        var incomingInvites = _pendingService.Pending.ToList();
+        var outgoingInvites = _requestService.GetPendingRequestsSnapshot();
+
+        Vector4 accent = UiSharedService.AccentColor;
+        if (accent.W <= 0f) accent = ImGuiColors.ParsedPurple;
+        Vector4 inactiveTab = new(accent.X * 0.45f, accent.Y * 0.45f, accent.Z * 0.45f, Math.Clamp(accent.W + 0.15f, 0f, 1f));
+        Vector4 hoverTab = UiSharedService.AccentHoverColor;
+
+        using var tabs = ImRaii.TabBar("AutoDetectTabs");
+        if (!tabs.Success) return;
+
+        var incomingCount = incomingInvites.Count;
+        DrawStyledTab($"Invitations ({incomingCount})", accent, inactiveTab, hoverTab, () =>
+        {
+            DrawInvitationsTab(incomingInvites, outgoingInvites);
+        });
+
+        DrawStyledTab("Proximité", accent, inactiveTab, hoverTab, DrawNearbyTab);
+
+        using (ImRaii.Disabled(true))
+        {
+            DrawStyledTab("Syncshell", accent, inactiveTab, hoverTab, () =>
+            {
+                UiSharedService.ColorTextWrapped("Disponible prochainement.", ImGuiColors.DalamudGrey3);
+            }, true);
+        }
+    }
+
+    private static void DrawStyledTab(string label, Vector4 accent, Vector4 inactive, Vector4 hover, Action draw, bool disabled = false)
+    {
+        var tabColor = disabled ? ImGuiColors.DalamudGrey3 : inactive;
+        var tabHover = disabled ? ImGuiColors.DalamudGrey3 : hover;
+        var tabActive = disabled ? ImGuiColors.DalamudGrey2 : accent;
+        using var baseColor = ImRaii.PushColor(ImGuiCol.Tab, tabColor);
+        using var hoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, tabHover);
+        using var activeColor = ImRaii.PushColor(ImGuiCol.TabActive, tabActive);
+        using var activeText = ImRaii.PushColor(ImGuiCol.Text, disabled ? ImGuiColors.DalamudGrey2 : Vector4.One, false);
+        using var tab = ImRaii.TabItem(label);
+        if (tab.Success)
+        {
+            draw();
+        }
+    }
+
+    private void DrawInvitationsTab(List<KeyValuePair<string, string>> incomingInvites, IReadOnlyCollection<AutoDetectRequestService.PendingRequestInfo> outgoingInvites)
+    {
+        if (incomingInvites.Count == 0 && outgoingInvites.Count == 0)
+        {
+            UiSharedService.ColorTextWrapped("Aucune invitation en attente. Cette page regroupera les demandes reçues et celles que vous avez envoyées.", ImGuiColors.DalamudGrey3);
+            return;
+        }
+
+        if (incomingInvites.Count == 0)
+        {
+            UiSharedService.ColorTextWrapped("Vous n'avez aucune invitation de pair en attente pour le moment.", ImGuiColors.DalamudGrey3);
+        }
+
+        ImGuiHelpers.ScaledDummy(4);
+        float leftWidth = Math.Max(220f * ImGuiHelpers.GlobalScale, ImGui.CalcTextSize("Invitations reçues (00)").X + ImGui.GetStyle().FramePadding.X * 4f);
+        var avail = ImGui.GetContentRegionAvail();
+
+        ImGui.BeginChild("incoming-requests", new Vector2(leftWidth, avail.Y), true);
+        ImGui.TextColored(ImGuiColors.DalamudOrange, $"Invitations reçues ({incomingInvites.Count})");
+        ImGui.Separator();
+        if (incomingInvites.Count == 0)
+        {
+            ImGui.TextDisabled("Aucune invitation reçue.");
+        }
+        else
+        {
+            foreach (var (uid, name) in incomingInvites.OrderBy(k => k.Value, StringComparer.OrdinalIgnoreCase))
+            {
+                using var id = ImRaii.PushId(uid);
+                bool processing = _acceptInFlight.Contains(uid);
+                ImGui.TextUnformatted(name);
+                ImGui.TextDisabled(uid);
+                if (processing)
+                {
+                    ImGui.TextDisabled("Traitement en cours...");
+                }
+                else
+                {
+                    if (ImGui.Button("Accepter"))
+                    {
+                        TriggerAccept(uid);
+                    }
+                    ImGui.SameLine();
+                    if (ImGui.Button("Refuser"))
+                    {
+                        _pendingService.Remove(uid);
+                    }
+                }
+                ImGui.Separator();
+            }
+        }
+        ImGui.EndChild();
+
+        ImGui.SameLine();
+
+        ImGui.BeginChild("outgoing-requests", new Vector2(0, avail.Y), true);
+        ImGui.TextColored(ImGuiColors.DalamudOrange, $"Invitations envoyées ({outgoingInvites.Count})");
+        ImGui.Separator();
+        if (outgoingInvites.Count == 0)
+        {
+            ImGui.TextDisabled("Aucune invitation envoyée en attente.");
+            ImGui.EndChild();
+            return;
+        }
+
+        foreach (var info in outgoingInvites.OrderByDescending(i => i.SentAt))
+        {
+            using var id = ImRaii.PushId(info.Key);
+            ImGui.TextUnformatted(info.TargetDisplayName);
+            if (!string.IsNullOrEmpty(info.Uid))
+            {
+                ImGui.TextDisabled(info.Uid);
+            }
+
+            ImGui.TextDisabled($"Envoyée il y a {FormatDuration(DateTime.UtcNow - info.SentAt)}");
+            if (ImGui.Button("Retirer"))
+            {
+                _requestService.RemovePendingRequestByKey(info.Key);
+            }
+            UiSharedService.AttachToolTip("Retire uniquement cette entrée locale de suivi.");
+            ImGui.Separator();
+        }
+
+        ImGui.EndChild();
+    }
+
+    private void DrawNearbyTab()
+    {
         if (!_configService.Current.EnableAutoDetectDiscovery)
         {
-            UiSharedService.ColorTextWrapped("Nearby detection is disabled. Enable it in Settings to start detecting nearby Umbra users.", ImGuiColors.DalamudYellow);
+            UiSharedService.ColorTextWrapped("AutoDetect est désactivé. Activez-le dans les paramètres pour détecter les utilisateurs Umbra à proximité.", ImGuiColors.DalamudYellow);
             ImGuiHelpers.ScaledDummy(6);
         }
 
@@ -134,26 +275,6 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
         _entries = msg.Entries;
     }
 
-    private List<Services.Mediator.NearbyEntry> BuildLocalSnapshot(int maxDist)
-    {
-        var list = new List<Services.Mediator.NearbyEntry>();
-        var local = _dalamud.GetPlayerCharacter();
-        var localPos = local?.Position ?? Vector3.Zero;
-        for (int i = 0; i < 200; i += 2)
-        {
-            var obj = _objectTable[i];
-            if (obj == null || obj.ObjectKind != Dalamud.Game.ClientState.Objects.Enums.ObjectKind.Player) continue;
-            if (local != null && obj.Address == local.Address) continue;
-            float dist = local == null ? float.NaN : Vector3.Distance(localPos, obj.Position);
-            if (!float.IsNaN(dist) && dist > maxDist) continue;
-            string name = obj.Name.ToString();
-            ushort worldId = 0;
-            if (obj is IPlayerCharacter pc) worldId = (ushort)pc.HomeWorld.RowId;
-            list.Add(new Services.Mediator.NearbyEntry(name, worldId, dist, false, null, null, null));
-        }
-        return list;
-    }
-
     private bool IsAlreadyPairedByUidOrAlias(Services.Mediator.NearbyEntry e)
     {
         try
@@ -193,5 +314,38 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
                 sb.Append(char.ToLowerInvariant(ch));
         }
         return sb.ToString();
+    }
+
+    private void TriggerAccept(string uid)
+    {
+        if (!_acceptInFlight.Add(uid)) return;
+
+        Task.Run(async () =>
+        {
+            try
+            {
+                bool ok = await _pendingService.AcceptAsync(uid).ConfigureAwait(false);
+                if (!ok)
+                {
+                    Mediator.Publish(new NotificationMessage("AutoDetect", $"Impossible d'accepter l'invitation {uid}.", NotificationType.Warning, TimeSpan.FromSeconds(5)));
+                }
+            }
+            finally
+            {
+                _acceptInFlight.Remove(uid);
+            }
+        });
+    }
+
+    private static string FormatDuration(TimeSpan span)
+    {
+        if (span.TotalMinutes >= 1)
+        {
+            var minutes = Math.Max(1, (int)Math.Round(span.TotalMinutes));
+            return minutes == 1 ? "1 minute" : $"{minutes} minutes";
+        }
+
+        var seconds = Math.Max(1, (int)Math.Round(span.TotalSeconds));
+        return seconds == 1 ? "1 seconde" : $"{seconds} secondes";
     }
 }

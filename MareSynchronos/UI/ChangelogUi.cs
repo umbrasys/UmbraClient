@@ -169,6 +169,16 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
     {
         return new List<ChangelogEntry>
         {
+            new(new Version(0, 1, 9, 4), "0.1.9.4", new List<ChangelogLine>
+            {
+                new("Réécriture complète de la bulle de frappe avec la possibilité de choisir la taille de la bulle."),
+                new("Désactivation de l'AutoDetect en zone instanciée."),
+                new("Réécriture interface AutoDetect pour acceuillir les invitations en attente et préparer les synchsells publiques."),
+                new("Amélioration de la compréhension des activations / désactivations des préférences de synchronisation par défaut."),
+                new("Mise en avant du Self Analyse avec une alerte lorsqu'un seuil de donnée a été atteint."),
+                new("Ajout de l'alerte de la non-compatibilité du plugin Chat2."),
+                new("Divers fix de l'interface."),
+            }),
             new(new Version(0, 1, 9, 3), "0.1.9.3", new List<ChangelogLine>
             {
                 new("Correctif de l'affichage de la bulle de frappe quand l'interface est à + de 100%."),

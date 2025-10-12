@@ -85,7 +85,7 @@ public class NotificationService : DisposableMediatorSubscriberBase, IHostedServ
 
         bool appendInstruction;
         bool forceChat = ShouldForceChat(msg, out appendInstruction);
-        var effectiveMessage = forceChat && appendInstruction ? AppendUsyncInstruction(msg.Message) : msg.Message;
+        var effectiveMessage = forceChat && appendInstruction ? AppendAutoDetectInstruction(msg.Message) : msg.Message;
         var adjustedMsg = forceChat && appendInstruction ? msg with { Message = effectiveMessage } : msg;
 
         switch (adjustedMsg.Type)
@@ -155,13 +155,13 @@ public class NotificationService : DisposableMediatorSubscriberBase, IHostedServ
         return false;
     }
 
-    private static string AppendUsyncInstruction(string? message)
+    private static string AppendAutoDetectInstruction(string? message)
     {
-        const string suffix = " | Ouvrez /usync pour voir l'invitation.";
+        const string suffix = " | Ouvrez /autodetect pour gérer l'invitation.";
         if (string.IsNullOrWhiteSpace(message))
             return suffix.TrimStart(' ', '|');
 
-        if (message.Contains("/usync", StringComparison.OrdinalIgnoreCase))
+        if (message.Contains("/autodetect", StringComparison.OrdinalIgnoreCase))
             return message;
 
         return message.TrimEnd() + suffix;

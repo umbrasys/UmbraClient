@@ -101,6 +101,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton<MareSynchronos.Services.AutoDetect.AutoDetectRequestService>();
             collection.AddSingleton<MareSynchronos.Services.AutoDetect.NearbyDiscoveryService>();
             collection.AddSingleton<MareSynchronos.Services.AutoDetect.NearbyPendingService>();
+            collection.AddSingleton<MareSynchronos.Services.AutoDetect.AutoDetectSuppressionService>();
             collection.AddSingleton<MarePlugin>();
             collection.AddSingleton<MareProfileManager>();
             collection.AddSingleton<GameObjectHandlerFactory>();
@@ -149,6 +150,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton<TemporarySyncshellNotificationService>();
             collection.AddSingleton<PartyListTypingService>();
             collection.AddSingleton<TypingIndicatorStateService>();
+            collection.AddSingleton<ChatTwoCompatibilityService>();
 
             collection.AddSingleton((s) => new MareConfigService(pluginInterface.ConfigDirectory.FullName));
             collection.AddSingleton((s) => new ServerConfigService(pluginInterface.ConfigDirectory.FullName));
@@ -220,6 +222,8 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddHostedService(p => p.GetRequiredService<MarePlugin>());
             collection.AddHostedService(p => p.GetRequiredService<IpcProvider>());
             collection.AddHostedService(p => p.GetRequiredService<MareSynchronos.Services.AutoDetect.NearbyDiscoveryService>());
+            collection.AddHostedService(p => p.GetRequiredService<ChatTwoCompatibilityService>());
+            collection.AddHostedService(p => p.GetRequiredService<MareSynchronos.Services.AutoDetect.AutoDetectSuppressionService>());
         })
         .Build();
 

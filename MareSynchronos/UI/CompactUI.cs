@@ -62,7 +62,6 @@ public class CompactUi : WindowMediatorSubscriberBase
     private bool _showSyncShells;
     private bool _wasOpen;
     private bool _nearbyOpen = true;
-    private bool _pendingOpen = true;
     private List<Services.Mediator.NearbyEntry> _nearbyEntries = new();
 
     public CompactUi(ILogger<CompactUi> logger, UiSharedService uiShared, MareConfigService configService, ApiController apiController, PairManager pairManager, ChatService chatService,
@@ -297,6 +296,10 @@ public class CompactUi : WindowMediatorSubscriberBase
             bool animsDisabled = _configService.Current.DefaultDisableAnimations;
             bool vfxDisabled = _configService.Current.DefaultDisableVfx;
             bool showNearby = _configService.Current.EnableAutoDetectDiscovery;
+            int pendingInvites = _nearbyPending.Pending.Count;
+
+            const string nearbyLabel = "AutoDetect";
+
 
             var soundIcon = soundsDisabled ? FontAwesomeIcon.VolumeMute : FontAwesomeIcon.VolumeUp;
             var animIcon = animsDisabled ? FontAwesomeIcon.WindowClose : FontAwesomeIcon.Running;
@@ -306,7 +309,7 @@ public class CompactUi : WindowMediatorSubscriberBase
             float audioWidth = _uiSharedService.GetIconTextButtonSize(soundIcon, soundLabel);
             float animWidth = _uiSharedService.GetIconTextButtonSize(animIcon, animLabel);
             float vfxWidth = _uiSharedService.GetIconTextButtonSize(vfxIcon, vfxLabel);
-            float nearbyWidth = showNearby ? _uiSharedService.GetIconTextButtonSize(FontAwesomeIcon.UserPlus, "Nearby") : 0f;
+            float nearbyWidth = showNearby ? _uiSharedService.GetIconTextButtonSize(FontAwesomeIcon.UserPlus, pendingInvites > 0 ? $"{nearbyLabel} ({pendingInvites})" : nearbyLabel) : 0f;
             int buttonCount = 3 + (showNearby ? 1 : 0);
             float totalWidth = audioWidth + animWidth + vfxWidth + nearbyWidth + spacing * (buttonCount - 1);
             float available = ImGui.GetContentRegionAvail().X;
@@ -346,11 +349,15 @@ public class CompactUi : WindowMediatorSubscriberBase
             if (showNearby)
             {
                 ImGui.SameLine(0, spacing);
-                if (_uiSharedService.IconTextButton(FontAwesomeIcon.UserPlus, "Nearby", nearbyWidth))
+                var autodetectLabel = pendingInvites > 0 ? $"{nearbyLabel} ({pendingInvites})" : nearbyLabel;
+                if (_uiSharedService.IconTextButton(FontAwesomeIcon.UserPlus, autodetectLabel, nearbyWidth))
                 {
                     Mediator.Publish(new UiToggleMessage(typeof(AutoDetectUi)));
                 }
-                UiSharedService.AttachToolTip("Ouvrir la détection de proximité");
+                string tooltip = pendingInvites > 0
+                    ? string.Format("Vous avez {0} invitation{1} reçue. Ouvrez l\'interface AutoDetect pour y répondre.", pendingInvites, pendingInvites > 1 ? "s" : string.Empty)
+                    : "Ouvrir les outils AutoDetect (invitations et proximité).\n\nLes demandes reçues sont listées dans l\'onglet 'Invitations'.";
+                UiSharedService.AttachToolTip(tooltip);
             }
         }
         ImGui.Separator();
@@ -524,48 +531,11 @@ public class CompactUi : WindowMediatorSubscriberBase
 
         ImGui.BeginChild("list", new Vector2(WindowContentWidth, ySize), border: false);
 
-        try
-        {
-            // intentionally left blank; pending requests handled in collapsible section below
-        }
-        catch { }
-
         var pendingCount = _nearbyPending?.Pending.Count ?? 0;
         if (pendingCount > 0)
         {
-            using (ImRaii.PushId("group-Pending"))
-            {
-                var icon = _pendingOpen ? FontAwesomeIcon.CaretSquareDown : FontAwesomeIcon.CaretSquareRight;
-                _uiSharedService.IconText(icon);
-                if (ImGui.IsItemClicked(ImGuiMouseButton.Left)) _pendingOpen = !_pendingOpen;
-                ImGui.SameLine();
-                ImGui.TextUnformatted($"En attente ({pendingCount})");
-                if (ImGui.IsItemClicked(ImGuiMouseButton.Left)) _pendingOpen = !_pendingOpen;
-
-                if (_pendingOpen)
-                {
-                    ImGui.Indent();
-                    foreach (var kv in _nearbyPending!.Pending)
-                    {
-                        ImGui.AlignTextToFramePadding();
-                        ImGui.TextUnformatted($"{kv.Value} [{kv.Key}]");
-                        ImGui.SameLine();
-                        if (_uiSharedService.IconButton(FontAwesomeIcon.Check))
-                        {
-                            _ = _nearbyPending.AcceptAsync(kv.Key);
-                        }
-                        UiSharedService.AttachToolTip("Accept and add as pair");
-                        ImGui.SameLine();
-                        if (_uiSharedService.IconButton(FontAwesomeIcon.Times))
-                        {
-                            _nearbyPending.Remove(kv.Key);
-                        }
-                        UiSharedService.AttachToolTip("Dismiss request");
-                    }
-                    ImGui.Unindent();
-                    ImGui.Separator();
-                }
-            }
+            UiSharedService.ColorTextWrapped("Invitation AutoDetect en attente. Ouvrez l\'interface AutoDetect pour gérer vos demandes.", ImGuiColors.DalamudYellow);
+            ImGuiHelpers.ScaledDummy(4);
         }
 
         var onlineUsers = users.Where(u => u.UserPair!.OtherPermissions.IsPaired() && (u.IsOnline || u.UserPair!.OwnPermissions.IsPaused())).Select(c => new DrawUserPair("Online" + c.UserData.UID, c, _uidDisplayHandler, _apiController, Mediator, _selectGroupForPairUi, _uiSharedService, _charaDataManager)).ToList();

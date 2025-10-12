@@ -66,8 +66,8 @@ public class MareConfig : IMareConfiguration
     public bool DefaultDisableVfx { get; set; } = false;
     public Dictionary<string, SyncOverrideEntry> PairSyncOverrides { get; set; } = new(StringComparer.Ordinal);
     public Dictionary<string, SyncOverrideEntry> GroupSyncOverrides { get; set; } = new(StringComparer.Ordinal);
-    public bool EnableAutoDetectDiscovery { get; set; } = false;
-    public bool AllowAutoDetectPairRequests { get; set; } = false;
+    public bool EnableAutoDetectDiscovery { get; set; } = true;
+    public bool AllowAutoDetectPairRequests { get; set; } = true;
     public int AutoDetectMaxDistanceMeters { get; set; } = 40;
     public int AutoDetectMuteMinutes { get; set; } = 5;
     public int TimeSpanBetweenScansInSeconds { get; set; } = 30;

@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
 using Microsoft.Extensions.Logging;
 using MareSynchronos.WebAPI.AutoDetect;
 using MareSynchronos.MareConfiguration;
@@ -20,6 +23,7 @@ public class AutoDetectRequestService
     private readonly object _syncRoot = new();
     private readonly Dictionary<string, DateTime> _activeCooldowns = new(StringComparer.Ordinal);
     private readonly Dictionary<string, RefusalTracker> _refusalTrackers = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, PendingRequestInfo> _pendingRequests = new(StringComparer.Ordinal);
     private static readonly TimeSpan RequestCooldown = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan RefusalLockDuration = TimeSpan.FromMinutes(15);
 
@@ -118,6 +122,11 @@ public class AutoDetectRequestService
                 }
             }
             _mediator.Publish(new NotificationMessage("Nearby request sent", "The other user will receive a request notification.", NotificationType.Info));
+            var pendingKey = EnsureTargetKey(targetKey);
+            var label = !string.IsNullOrWhiteSpace(targetDisplayName)
+                ? targetDisplayName!
+                : (!string.IsNullOrEmpty(uid) ? uid : (!string.IsNullOrEmpty(token) ? token : pendingKey));
+            _pendingRequests[pendingKey] = new PendingRequestInfo(pendingKey, uid, token, label, DateTime.UtcNow);
         }
         else
         {
@@ -145,6 +154,7 @@ public class AutoDetectRequestService
                         tracker.LockUntil = now.Add(RefusalLockDuration);
                     }
                 }
+                _pendingRequests.TryRemove(targetKey, out _);
             }
             _mediator.Publish(new NotificationMessage("Nearby request failed", "The server rejected the request. Try again soon.", NotificationType.Warning));
         }
@@ -207,4 +217,35 @@ public class AutoDetectRequestService
         public int Count;
         public DateTime? LockUntil;
     }
+
+    public IReadOnlyCollection<PendingRequestInfo> GetPendingRequestsSnapshot()
+    {
+        return _pendingRequests.Values.OrderByDescending(v => v.SentAt).ToList();
+    }
+
+    public void RemovePendingRequestByUid(string uid)
+    {
+        if (string.IsNullOrEmpty(uid)) return;
+        foreach (var kvp in _pendingRequests)
+        {
+            if (string.Equals(kvp.Value.Uid, uid, StringComparison.Ordinal))
+            {
+                _pendingRequests.TryRemove(kvp.Key, out _);
+                break;
+            }
+        }
+    }
+
+    public void RemovePendingRequestByKey(string key)
+    {
+        if (string.IsNullOrEmpty(key)) return;
+        _pendingRequests.TryRemove(key, out _);
+    }
+
+    private static string EnsureTargetKey(string? targetKey)
+    {
+        return !string.IsNullOrEmpty(targetKey) ? targetKey! : "target:" + Guid.NewGuid().ToString("N");
+    }
+
+    public sealed record PendingRequestInfo(string Key, string? Uid, string? Token, string TargetDisplayName, DateTime SentAt);
 }

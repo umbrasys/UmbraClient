@@ -1,7 +1,9 @@
-﻿using Lumina.Data.Files;
+﻿using System;
+using Lumina.Data.Files;
 using MareSynchronos.API.Data;
 using MareSynchronos.API.Data.Enum;
 using MareSynchronos.FileCache;
+using MareSynchronos.MareConfiguration.Models;
 using MareSynchronos.Services.Mediator;
 using MareSynchronos.UI;
 using MareSynchronos.Utils;
@@ -16,6 +18,16 @@ public sealed class CharacterAnalyzer : DisposableMediatorSubscriberBase
     private CancellationTokenSource? _analysisCts;
     private CancellationTokenSource _baseAnalysisCts = new();
     private string _lastDataHash = string.Empty;
+    private CharacterAnalysisSummary _previousSummary = CharacterAnalysisSummary.Empty;
+    private DateTime _lastAutoAnalysis = DateTime.MinValue;
+    private string _lastAutoAnalysisHash = string.Empty;
+    private const int AutoAnalysisFileDeltaThreshold = 25;
+    private const long AutoAnalysisSizeDeltaThreshold = 50L * 1024 * 1024;
+    private static readonly TimeSpan AutoAnalysisCooldown = TimeSpan.FromMinutes(2);
+    private const long NotificationSizeThreshold = 300L * 1024 * 1024;
+    private const long NotificationTriangleThreshold = 150_000;
+    private bool _sizeWarningShown;
+    private bool _triangleWarningShown;
 
     public CharacterAnalyzer(ILogger<CharacterAnalyzer> logger, MareMediator mediator, FileCacheManager fileCacheManager, XivDataAnalyzer modelAnalyzer)
         : base(logger, mediator)
@@ -33,6 +45,7 @@ public sealed class CharacterAnalyzer : DisposableMediatorSubscriberBase
     public int CurrentFile { get; internal set; }
     public bool IsAnalysisRunning => _analysisCts != null;
     public int TotalFiles { get; internal set; }
+    public CharacterAnalysisSummary CurrentSummary { get; private set; } = CharacterAnalysisSummary.Empty;
     internal Dictionary<ObjectKind, Dictionary<string, FileDataEntry>> LastAnalysis { get; } = [];
 
     public void CancelAnalyze()
@@ -79,6 +92,8 @@ public sealed class CharacterAnalyzer : DisposableMediatorSubscriberBase
                 Mediator.Publish(new ResumeScanMessage(nameof(CharacterAnalyzer)));
             }
         }
+
+        RefreshSummary(false, _lastDataHash);
 
         Mediator.Publish(new CharacterDataAnalyzedMessage());
 
@@ -142,9 +157,11 @@ public sealed class CharacterAnalyzer : DisposableMediatorSubscriberBase
             LastAnalysis[obj.Key] = data;
         }
 
+        _lastDataHash = charaData.DataHash.Value;
+        RefreshSummary(true, _lastDataHash);
+
         Mediator.Publish(new CharacterDataAnalyzedMessage());
 
-        _lastDataHash = charaData.DataHash.Value;
     }
 
     private void PrintAnalysis()
@@ -191,6 +208,162 @@ public sealed class CharacterAnalyzer : DisposableMediatorSubscriberBase
             UiSharedService.ByteToString(LastAnalysis.Values.Sum(c => c.Values.Sum(v => v.OriginalSize))),
             UiSharedService.ByteToString(LastAnalysis.Values.Sum(c => c.Values.Sum(v => v.CompressedSize))));
         Logger.LogInformation("IMPORTANT NOTES:\n\r- For uploads and downloads only the compressed size is relevant.\n\r- An unusually high total files count beyond 200 and up will also increase your download time to others significantly.");
+    }
+
+    private void RefreshSummary(bool evaluateAutoAnalysis, string dataHash)
+    {
+        var summary = CalculateSummary();
+        CurrentSummary = summary;
+
+        if (evaluateAutoAnalysis)
+        {
+            EvaluateAutoAnalysis(summary, dataHash);
+        }
+        else
+        {
+            _previousSummary = summary;
+
+            if (!summary.HasUncomputedEntries && string.Equals(_lastAutoAnalysisHash, dataHash, StringComparison.Ordinal))
+            {
+                _lastAutoAnalysisHash = string.Empty;
+            }
+        }
+
+        EvaluateThresholdNotifications(summary);
+    }
+
+    private CharacterAnalysisSummary CalculateSummary()
+    {
+        if (LastAnalysis.Count == 0)
+        {
+            return CharacterAnalysisSummary.Empty;
+        }
+
+        long original = 0;
+        long compressed = 0;
+        long triangles = 0;
+        int files = 0;
+        bool hasUncomputed = false;
+
+        foreach (var obj in LastAnalysis.Values)
+        {
+            foreach (var entry in obj.Values)
+            {
+                files++;
+                original += entry.OriginalSize;
+                compressed += entry.CompressedSize;
+                triangles += entry.Triangles;
+                hasUncomputed |= !entry.IsComputed;
+            }
+        }
+
+        return new CharacterAnalysisSummary(files, original, compressed, triangles, hasUncomputed);
+    }
+
+    private void EvaluateAutoAnalysis(CharacterAnalysisSummary newSummary, string dataHash)
+    {
+        var previous = _previousSummary;
+        _previousSummary = newSummary;
+
+        if (newSummary.TotalFiles == 0)
+        {
+            return;
+        }
+
+        if (string.Equals(_lastAutoAnalysisHash, dataHash, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        if (IsAnalysisRunning)
+        {
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+        if (now - _lastAutoAnalysis < AutoAnalysisCooldown)
+        {
+            return;
+        }
+
+        bool firstSummary = previous.TotalFiles == 0;
+        bool filesIncreased = newSummary.TotalFiles - previous.TotalFiles >= AutoAnalysisFileDeltaThreshold;
+        bool sizeIncreased = newSummary.TotalCompressedSize - previous.TotalCompressedSize >= AutoAnalysisSizeDeltaThreshold;
+        bool needsCompute = newSummary.HasUncomputedEntries;
+
+        if (!firstSummary && !filesIncreased && !sizeIncreased && !needsCompute)
+        {
+            return;
+        }
+
+        _lastAutoAnalysis = now;
+        _lastAutoAnalysisHash = dataHash;
+        _ = ComputeAnalysis(print: false);
+    }
+
+    private void EvaluateThresholdNotifications(CharacterAnalysisSummary summary)
+    {
+        if (summary.IsEmpty || summary.HasUncomputedEntries)
+        {
+            ResetThresholdFlagsIfNeeded(summary);
+            return;
+        }
+
+        bool sizeExceeded = summary.TotalCompressedSize >= NotificationSizeThreshold;
+        bool trianglesExceeded = summary.TotalTriangles >= NotificationTriangleThreshold;
+        List<string> exceededReasons = new();
+
+        if (sizeExceeded && !_sizeWarningShown)
+        {
+            exceededReasons.Add($"un poids partagé de {UiSharedService.ByteToString(summary.TotalCompressedSize)} (≥ 300 MiB)");
+            _sizeWarningShown = true;
+        }
+        else if (!sizeExceeded && _sizeWarningShown)
+        {
+            _sizeWarningShown = false;
+        }
+
+        if (trianglesExceeded && !_triangleWarningShown)
+        {
+            exceededReasons.Add($"un total de {UiSharedService.TrisToString(summary.TotalTriangles)} triangles (≥ 150k)");
+            _triangleWarningShown = true;
+        }
+        else if (!trianglesExceeded && _triangleWarningShown)
+        {
+            _triangleWarningShown = false;
+        }
+
+        if (exceededReasons.Count == 0) return;
+
+        string combined = string.Join(" et ", exceededReasons);
+        string message = $"Attention : votre self-analysis indique {combined}. Des joueurs risquent de ne pas vous voir et UmbraSync peut activer un auto-pause. Pensez à réduire textures ou modèles lourds.";
+        Mediator.Publish(new DualNotificationMessage("Self Analysis", message, NotificationType.Warning));
+    }
+
+    private void ResetThresholdFlagsIfNeeded(CharacterAnalysisSummary summary)
+    {
+        if (summary.IsEmpty)
+        {
+            _sizeWarningShown = false;
+            _triangleWarningShown = false;
+            return;
+        }
+
+        if (summary.TotalCompressedSize < NotificationSizeThreshold)
+        {
+            _sizeWarningShown = false;
+        }
+
+        if (summary.TotalTriangles < NotificationTriangleThreshold)
+        {
+            _triangleWarningShown = false;
+        }
+    }
+
+    public readonly record struct CharacterAnalysisSummary(int TotalFiles, long TotalOriginalSize, long TotalCompressedSize, long TotalTriangles, bool HasUncomputedEntries)
+    {
+        public static CharacterAnalysisSummary Empty => new();
+        public bool IsEmpty => TotalFiles == 0 && TotalOriginalSize == 0 && TotalCompressedSize == 0 && TotalTriangles == 0;
     }
 
     internal sealed record FileDataEntry(string Hash, string FileType, List<string> GamePaths, List<string> FilePaths, long OriginalSize, long CompressedSize, long Triangles)

@@ -14,6 +14,7 @@ using MareSynchronos.MareConfiguration.Models;
 using MareSynchronos.PlayerData.Handlers;
 using MareSynchronos.PlayerData.Pairs;
 using MareSynchronos.Services;
+using MareSynchronos.Services.AutoDetect;
 using MareSynchronos.Services.Mediator;
 using MareSynchronos.Services.ServerConfiguration;
 using MareSynchronos.WebAPI;
@@ -44,6 +45,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private readonly PairManager _pairManager;
     private readonly ChatService _chatService;
     private readonly GuiHookService _guiHookService;
+    private readonly AutoDetectSuppressionService _autoDetectSuppressionService;
     private readonly PerformanceCollectorService _performanceCollector;
     private readonly PlayerPerformanceConfigService _playerPerformanceConfigService;
     private readonly PlayerPerformanceService _playerPerformanceService;
@@ -77,7 +79,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
         FileCacheManager fileCacheManager,
         FileCompactor fileCompactor, ApiController apiController,
         IpcManager ipcManager, IpcProvider ipcProvider, CacheMonitor cacheMonitor,
-        DalamudUtilService dalamudUtilService, AccountRegistrationService registerService) : base(logger, mediator, "Umbra Settings", performanceCollector)
+        DalamudUtilService dalamudUtilService, AccountRegistrationService registerService,
+        AutoDetectSuppressionService autoDetectSuppressionService) : base(logger, mediator, "Umbra Settings", performanceCollector)
     {
         _configService = configService;
         _pairManager = pairManager;
@@ -96,6 +99,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         _cacheMonitor = cacheMonitor;
         _dalamudUtilService = dalamudUtilService;
         _registerService = registerService;
+        _autoDetectSuppressionService = autoDetectSuppressionService;
         _fileCompactor = fileCompactor;
         _uiShared = uiShared;
         AllowClickthrough = false;
@@ -214,26 +218,34 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
         ImGui.Separator();
         _uiShared.BigText("AutoDetect");
+        bool isAutoDetectSuppressed = _autoDetectSuppressionService?.IsSuppressed ?? false;
         bool enableDiscovery = _configService.Current.EnableAutoDetectDiscovery;
-        if (ImGui.Checkbox("Enable Nearby detection (beta)", ref enableDiscovery))
+        using (ImRaii.Disabled(isAutoDetectSuppressed))
         {
-            _configService.Current.EnableAutoDetectDiscovery = enableDiscovery;
-            _configService.Save();
-
-            // notify services of toggle
-            Mediator.Publish(new NearbyDetectionToggled(enableDiscovery));
-
-            // if Nearby is turned OFF, force Allow Pair Requests OFF as well
-            if (!enableDiscovery && _configService.Current.AllowAutoDetectPairRequests)
+            if (ImGui.Checkbox("Enable AutoDetect", ref enableDiscovery))
             {
-                _configService.Current.AllowAutoDetectPairRequests = false;
+                _configService.Current.EnableAutoDetectDiscovery = enableDiscovery;
                 _configService.Save();
-                Mediator.Publish(new AllowPairRequestsToggled(false));
+
+                // notify services of toggle
+                Mediator.Publish(new NearbyDetectionToggled(enableDiscovery));
+
+                // if Nearby is turned OFF, force Allow Pair Requests OFF as well
+                if (!enableDiscovery && _configService.Current.AllowAutoDetectPairRequests)
+                {
+                    _configService.Current.AllowAutoDetectPairRequests = false;
+                    _configService.Save();
+                    Mediator.Publish(new AllowPairRequestsToggled(false));
+                }
+            }
+            if (isAutoDetectSuppressed && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+            {
+                UiSharedService.AttachToolTip("AutoDetect est temporairement désactivé dans cette zone instanciée.");
             }
         }
 
         // Allow Pair Requests is disabled when Nearby is OFF
-        using (ImRaii.Disabled(!enableDiscovery))
+        using (ImRaii.Disabled(isAutoDetectSuppressed || !enableDiscovery))
         {
             bool allowRequests = _configService.Current.AllowAutoDetectPairRequests;
             if (ImGui.Checkbox("Allow pair requests", ref allowRequests))
@@ -246,15 +258,19 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
                 // user-facing info toast
                 Mediator.Publish(new NotificationMessage(
-                    "Nearby Detection",
-                    allowRequests ? "Pair requests enabled: others can invite you." : "Pair requests disabled: others cannot invite you.",
+                    "AutoDetect",
+                    allowRequests ? "Invitations entrantes autorisées : les autres peuvent vous inviter." : "Invitations entrantes désactivées : les autres ne peuvent pas vous inviter.",
                     NotificationType.Info,
                     default));
+            }
+            if (isAutoDetectSuppressed && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+            {
+                UiSharedService.AttachToolTip("AutoDetect est temporairement désactivé dans cette zone instanciée.");
             }
         }
 
         // Radius only available when both Nearby and Allow Pair Requests are ON
-        if (enableDiscovery && _configService.Current.AllowAutoDetectPairRequests)
+        if (!isAutoDetectSuppressed && enableDiscovery && _configService.Current.AllowAutoDetectPairRequests)
         {
             ImGui.Indent();
             int maxMeters = _configService.Current.AutoDetectMaxDistanceMeters;
@@ -265,6 +281,10 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 _configService.Save();
             }
             ImGui.Unindent();
+        }
+        else if (isAutoDetectSuppressed)
+        {
+            UiSharedService.ColorTextWrapped("AutoDetect est verrouillé tant que vous restez dans une zone instanciée.", ImGuiColors.DalamudYellow);
         }
 
         ImGui.Separator();

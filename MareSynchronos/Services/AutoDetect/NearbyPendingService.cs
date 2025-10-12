@@ -41,6 +41,7 @@ public sealed class NearbyPendingService : IMediatorSubscriber
             {
                 _ = _api.UserAddPair(new MareSynchronos.API.Dto.User.UserDto(new MareSynchronos.API.Data.UserData(uidA)));
                 _pending.TryRemove(uidA, out _);
+                _requestService.RemovePendingRequestByUid(uidA);
                 _logger.LogInformation("NearbyPending: auto-accepted pairing with {uid}", uidA);
             }
             return;
@@ -67,6 +68,7 @@ public sealed class NearbyPendingService : IMediatorSubscriber
     public void Remove(string uid)
     {
         _pending.TryRemove(uid, out _);
+        _requestService.RemovePendingRequestByUid(uid);
     }
 
     public async Task<bool> AcceptAsync(string uid)
@@ -75,6 +77,7 @@ public sealed class NearbyPendingService : IMediatorSubscriber
         {
             await _api.UserAddPair(new MareSynchronos.API.Dto.User.UserDto(new MareSynchronos.API.Data.UserData(uid))).ConfigureAwait(false);
             _pending.TryRemove(uid, out _);
+            _requestService.RemovePendingRequestByUid(uid);
             _ = _requestService.SendAcceptNotifyAsync(uid);
             return true;
         }
