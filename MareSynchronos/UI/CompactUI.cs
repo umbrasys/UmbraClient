@@ -48,6 +48,7 @@ public class CompactUi : WindowMediatorSubscriberBase
     private readonly CharaDataManager _charaDataManager;
     private readonly NearbyPendingService _nearbyPending;
     private readonly AutoDetectRequestService _autoDetectRequestService;
+    private readonly CharacterAnalyzer _characterAnalyzer;
     private readonly UidDisplayHandler _uidDisplayHandler;
     private readonly UiSharedService _uiSharedService;
     private bool _buttonState;
@@ -63,11 +64,14 @@ public class CompactUi : WindowMediatorSubscriberBase
     private bool _wasOpen;
     private bool _nearbyOpen = true;
     private List<Services.Mediator.NearbyEntry> _nearbyEntries = new();
+    private const long SelfAnalysisSizeWarningThreshold = 300L * 1024 * 1024;
+    private const long SelfAnalysisTriangleWarningThreshold = 150_000;
 
     public CompactUi(ILogger<CompactUi> logger, UiSharedService uiShared, MareConfigService configService, ApiController apiController, PairManager pairManager, ChatService chatService,
         ServerConfigurationManager serverManager, MareMediator mediator, FileUploadManager fileTransferManager, UidDisplayHandler uidDisplayHandler, CharaDataManager charaDataManager,
         NearbyPendingService nearbyPendingService,
         AutoDetectRequestService autoDetectRequestService,
+        CharacterAnalyzer characterAnalyzer,
         PerformanceCollectorService performanceCollectorService)
         : base(logger, mediator, "###UmbraSyncMainUI", performanceCollectorService)
     {
@@ -81,6 +85,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         _charaDataManager = charaDataManager;
         _nearbyPending = nearbyPendingService;
         _autoDetectRequestService = autoDetectRequestService;
+        _characterAnalyzer = characterAnalyzer;
         var tagHandler = new TagHandler(_serverManager);
 
         _groupPanel = new(this, uiShared, _pairManager, chatService, uidDisplayHandler, _configService, _serverManager, _charaDataManager);
@@ -359,8 +364,152 @@ public class CompactUi : WindowMediatorSubscriberBase
                     : "Ouvrir les outils AutoDetect (invitations et proximité).\n\nLes demandes reçues sont listées dans l\'onglet 'Invitations'.";
                 UiSharedService.AttachToolTip(tooltip);
             }
+
+            DrawSelfAnalysisPreview();
         }
         ImGui.Separator();
+    }
+
+    private void DrawSelfAnalysisPreview()
+    {
+        using (ImRaii.PushId("self-analysis"))
+        {
+            if (!ImGui.CollapsingHeader("Self Analysis"))
+            {
+                return;
+            }
+
+            var summary = _characterAnalyzer.CurrentSummary;
+            bool isAnalyzing = _characterAnalyzer.IsAnalysisRunning;
+
+            if (isAnalyzing)
+            {
+                UiSharedService.ColorTextWrapped(
+                    $"Analyse en cours ({_characterAnalyzer.CurrentFile}/{System.Math.Max(_characterAnalyzer.TotalFiles, 1)})...",
+                    ImGuiColors.DalamudYellow);
+                if (_uiSharedService.IconTextButton(FontAwesomeIcon.StopCircle, "Annuler l'analyse"))
+                {
+                    _characterAnalyzer.CancelAnalyze();
+                }
+                UiSharedService.AttachToolTip("Stopper l'analyse en cours.");
+            }
+            else
+            {
+                bool recalculate = !summary.HasUncomputedEntries && !summary.IsEmpty;
+                var label = recalculate ? "Recalculer l'analyse" : "Lancer l'analyse";
+                var icon = recalculate ? FontAwesomeIcon.Sync : FontAwesomeIcon.PlayCircle;
+                if (_uiSharedService.IconTextButton(icon, label))
+                {
+                    _ = _characterAnalyzer.ComputeAnalysis(print: false, recalculate: recalculate);
+                }
+                UiSharedService.AttachToolTip(recalculate
+                    ? "Recalcule toutes les entrées pour mettre à jour les tailles partagées."
+                    : "Analyse vos fichiers actuels pour estimer le poids partagé.");
+            }
+
+            if (summary.IsEmpty && !isAnalyzing)
+            {
+                UiSharedService.ColorTextWrapped("Aucune donnée analysée pour l'instant. Lancez une analyse pour générer cet aperçu.",
+                    ImGuiColors.DalamudGrey2);
+                return;
+            }
+
+            if (summary.HasUncomputedEntries && !isAnalyzing)
+            {
+                UiSharedService.ColorTextWrapped("Certaines entrées n'ont pas encore de taille calculée. Lancez l'analyse pour compléter les données.",
+                    ImGuiColors.DalamudYellow);
+            }
+
+            ImGuiHelpers.ScaledDummy(4f);
+
+            UiSharedService.DrawGrouped(() =>
+            {
+                if (ImGui.BeginTable("self-analysis-stats", 2, ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.NoSavedSettings))
+                {
+                    ImGui.TableSetupColumn("label", ImGuiTableColumnFlags.WidthStretch, 0.55f);
+                    ImGui.TableSetupColumn("value", ImGuiTableColumnFlags.WidthStretch, 0.45f);
+
+                    DrawSelfAnalysisStatRow("Fichiers moddés", summary.TotalFiles.ToString("N0", CultureInfo.CurrentCulture));
+
+                    var compressedValue = UiSharedService.ByteToString(summary.TotalCompressedSize);
+                    Vector4? compressedColor = null;
+                    string? compressedTooltip = null;
+                    if (summary.HasUncomputedEntries)
+                    {
+                        compressedColor = ImGuiColors.DalamudYellow;
+                        compressedTooltip = "Lancez l'analyse pour calculer la taille de téléchargement exacte.";
+                    }
+                    else if (summary.TotalCompressedSize >= SelfAnalysisSizeWarningThreshold)
+                    {
+                        compressedColor = ImGuiColors.DalamudYellow;
+                        compressedTooltip = "Au-delà de 300 MiB, certains joueurs peuvent ne pas voir toutes vos modifications.";
+                    }
+
+                    DrawSelfAnalysisStatRow("Taille compressée", compressedValue, compressedColor, compressedTooltip);
+                    DrawSelfAnalysisStatRow("Taille extraite", UiSharedService.ByteToString(summary.TotalOriginalSize));
+
+                    Vector4? trianglesColor = null;
+                    string? trianglesTooltip = null;
+                    if (summary.TotalTriangles >= SelfAnalysisTriangleWarningThreshold)
+                    {
+                        trianglesColor = ImGuiColors.DalamudYellow;
+                        trianglesTooltip = "Plus de 150k triangles peuvent entraîner un auto-pause et impacter les performances.";
+                    }
+                    DrawSelfAnalysisStatRow("Triangles moddés", UiSharedService.TrisToString(summary.TotalTriangles), trianglesColor, trianglesTooltip);
+
+                    ImGui.EndTable();
+                }
+            }, rounding: 4f, expectedWidth: ImGui.GetContentRegionAvail().X);
+
+            string lastAnalysisText;
+            Vector4 lastAnalysisColor = ImGuiColors.DalamudGrey2;
+            if (isAnalyzing)
+            {
+                lastAnalysisText = "Dernière analyse : en cours...";
+                lastAnalysisColor = ImGuiColors.DalamudYellow;
+            }
+            else if (_characterAnalyzer.LastCompletedAnalysis.HasValue)
+            {
+                var localTime = _characterAnalyzer.LastCompletedAnalysis.Value.ToLocalTime();
+                lastAnalysisText = $"Dernière analyse : {localTime.ToString("g", CultureInfo.CurrentCulture)}";
+            }
+            else
+            {
+                lastAnalysisText = "Dernière analyse : jamais";
+            }
+
+            ImGuiHelpers.ScaledDummy(2f);
+            UiSharedService.ColorTextWrapped(lastAnalysisText, lastAnalysisColor);
+
+            ImGuiHelpers.ScaledDummy(4f);
+
+            if (_uiSharedService.IconTextButton(FontAwesomeIcon.PersonCircleQuestion, "Ouvrir l'analyse détaillée"))
+            {
+                Mediator.Publish(new UiToggleMessage(typeof(DataAnalysisUi)));
+            }
+        }
+    }
+
+    private static void DrawSelfAnalysisStatRow(string label, string value, Vector4? valueColor = null, string? tooltip = null)
+    {
+        ImGui.TableNextRow();
+        ImGui.TableNextColumn();
+        ImGui.TextUnformatted(label);
+        ImGui.TableNextColumn();
+        if (valueColor.HasValue)
+        {
+            using var color = ImRaii.PushColor(ImGuiCol.Text, valueColor.Value);
+            ImGui.TextUnformatted(value);
+        }
+        else
+        {
+            ImGui.TextUnformatted(value);
+        }
+
+        if (!string.IsNullOrEmpty(tooltip))
+        {
+            UiSharedService.AttachToolTip(tooltip);
+        }
     }
 
     private void DrawDefaultSyncButton(FontAwesomeIcon icon, string label, float width, bool currentState,

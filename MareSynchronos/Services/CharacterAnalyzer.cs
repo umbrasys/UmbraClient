@@ -46,6 +46,7 @@ public sealed class CharacterAnalyzer : DisposableMediatorSubscriberBase
     public bool IsAnalysisRunning => _analysisCts != null;
     public int TotalFiles { get; internal set; }
     public CharacterAnalysisSummary CurrentSummary { get; private set; } = CharacterAnalysisSummary.Empty;
+    public DateTime? LastCompletedAnalysis { get; private set; }
     internal Dictionary<ObjectKind, Dictionary<string, FileDataEntry>> LastAnalysis { get; } = [];
 
     public void CancelAnalyze()
@@ -96,6 +97,11 @@ public sealed class CharacterAnalyzer : DisposableMediatorSubscriberBase
         RefreshSummary(false, _lastDataHash);
 
         Mediator.Publish(new CharacterDataAnalyzedMessage());
+
+        if (!cancelToken.IsCancellationRequested)
+        {
+            LastCompletedAnalysis = DateTime.UtcNow;
+        }
 
         _analysisCts.CancelDispose();
         _analysisCts = null;
