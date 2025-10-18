@@ -11,6 +11,7 @@ using MareSynchronos.Services.Mediator;
 using MareSynchronos.UI.Handlers;
 using MareSynchronos.WebAPI;
 using System.Numerics;
+using MareSynchronos.Services.ServerConfiguration;
 
 namespace MareSynchronos.UI.Components;
 
@@ -20,10 +21,12 @@ public class DrawUserPair : DrawPairBase
     protected readonly MareMediator _mediator;
     private readonly SelectGroupForPairUi _selectGroupForPairUi;
     private readonly CharaDataManager _charaDataManager;
+    private readonly ServerConfigurationManager _serverConfigurationManager;
 
     public DrawUserPair(string id, Pair entry, UidDisplayHandler displayHandler, ApiController apiController,
         MareMediator mareMediator, SelectGroupForPairUi selectGroupForPairUi,
-        UiSharedService uiSharedService, CharaDataManager charaDataManager)
+        UiSharedService uiSharedService, CharaDataManager charaDataManager,
+        ServerConfigurationManager serverConfigurationManager)
         : base(id, entry, apiController, displayHandler, uiSharedService)
     {
         if (_pair.UserPair == null) throw new ArgumentException("Pair must be UserPair", nameof(entry));
@@ -31,6 +34,7 @@ public class DrawUserPair : DrawPairBase
         _selectGroupForPairUi = selectGroupForPairUi;
         _mediator = mareMediator;
         _charaDataManager = charaDataManager;
+        _serverConfigurationManager = serverConfigurationManager;
     }
 
     public bool IsOnline => _pair.IsOnline;
@@ -135,9 +139,9 @@ public class DrawUserPair : DrawPairBase
                 perm.SetPaused(!perm.IsPaused());
                 _ = _apiController.UserSetPairPermissions(new(_pair.UserData, perm));
             }
-            UiSharedService.AttachToolTip(!_pair.UserPair!.OwnPermissions.IsPaused()
+            UiSharedService.AttachToolTip(AppendSeenInfo(!_pair.UserPair!.OwnPermissions.IsPaused()
                 ? "Pause pairing with " + entryUID
-                : "Resume pairing with " + entryUID);
+                : "Resume pairing with " + entryUID));
 
 
             var individualSoundsDisabled = (_pair.UserPair?.OwnPermissions.IsDisableSounds() ?? false) || (_pair.UserPair?.OtherPermissions.IsDisableSounds() ?? false);
@@ -263,7 +267,7 @@ public class DrawUserPair : DrawPairBase
         {
             _selectGroupForPairUi.Open(entry);
         }
-        UiSharedService.AttachToolTip("Choose pair groups for " + entryUID);
+        UiSharedService.AttachToolTip(AppendSeenInfo("Choose pair groups for " + entryUID));
 
         var isDisableSounds = entry.UserPair!.OwnPermissions.IsDisableSounds();
         string disableSoundsText = isDisableSounds ? "Enable sound sync" : "Disable sound sync";
@@ -302,6 +306,16 @@ public class DrawUserPair : DrawPairBase
         {
             _ = _apiController.UserRemovePair(new(entry.UserData));
         }
-        UiSharedService.AttachToolTip("Hold CTRL and click to unpair permanently from " + entryUID);
+        UiSharedService.AttachToolTip(AppendSeenInfo("Hold CTRL and click to unpair permanently from " + entryUID));
+    }
+
+    private string AppendSeenInfo(string tooltip)
+    {
+        if (_pair.IsVisible) return tooltip;
+
+        var lastSeen = _serverConfigurationManager.GetNameForUid(_pair.UserData.UID);
+        if (string.IsNullOrWhiteSpace(lastSeen)) return tooltip;
+
+        return tooltip + " (Vu sous : " + lastSeen + ")";
     }
 }

@@ -12,6 +12,7 @@ using MareSynchronos.API.Dto.Group;
 using MareSynchronos.MareConfiguration;
 using MareSynchronos.PlayerData.Pairs;
 using MareSynchronos.Services;
+using MareSynchronos.Services.AutoDetect;
 using MareSynchronos.Services.Mediator;
 using MareSynchronos.Services.ServerConfiguration;
 using MareSynchronos.UI.Components;
@@ -32,6 +33,7 @@ internal sealed class GroupPanel
     private readonly MareConfigService _mareConfig;
     private readonly ServerConfigurationManager _serverConfigurationManager;
     private readonly CharaDataManager _charaDataManager;
+    private readonly AutoDetectRequestService _autoDetectRequestService;
     private readonly Dictionary<string, bool> _showGidForEntry = new(StringComparer.Ordinal);
     private readonly UidDisplayHandler _uidDisplayHandler;
     private readonly UiSharedService _uiShared;
@@ -74,7 +76,7 @@ internal sealed class GroupPanel
 
     public GroupPanel(CompactUi mainUi, UiSharedService uiShared, PairManager pairManager, ChatService chatServivce,
         UidDisplayHandler uidDisplayHandler, MareConfigService mareConfig, ServerConfigurationManager serverConfigurationManager,
-        CharaDataManager charaDataManager)
+        CharaDataManager charaDataManager, AutoDetectRequestService autoDetectRequestService)
     {
         _mainUi = mainUi;
         _uiShared = uiShared;
@@ -84,6 +86,7 @@ internal sealed class GroupPanel
         _mareConfig = mareConfig;
         _serverConfigurationManager = serverConfigurationManager;
         _charaDataManager = charaDataManager;
+        _autoDetectRequestService = autoDetectRequestService;
     }
 
     private ApiController ApiController => _uiShared.ApiController;
@@ -566,7 +569,9 @@ internal sealed class GroupPanel
                     ).Value,
                     _uidDisplayHandler,
                     _uiShared,
-                    _charaDataManager);
+                    _charaDataManager,
+                    _autoDetectRequestService,
+                    _serverConfigurationManager);
 
                 if (pair.IsVisible)
                     visibleUsers.Add(drawPair);

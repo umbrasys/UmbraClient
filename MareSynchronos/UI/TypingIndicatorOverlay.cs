@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Linq;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 using Dalamud.Plugin.Services;
 using MareSynchronos.API.Data;
+using MareSynchronos.API.Data.Extensions;
 using MareSynchronos.MareConfiguration;
 using MareSynchronos.MareConfiguration.Models;
 using MareSynchronos.PlayerData.Pairs;
@@ -115,25 +117,34 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
                 continue;
 
             var pair = _pairManager.GetPairByUID(uid);
-            if (pair == null)
-            {
-                var alias = entry.User.AliasOrUID;
-                if (string.IsNullOrEmpty(alias))
-                    continue;
+            var targetIndex = -1;
+            var playerName = pair?.PlayerName;
+            var objectId = pair?.PlayerCharacterId ?? uint.MaxValue;
 
-                var aliasIndex = GetPartyIndexForName(alias);
-                if (aliasIndex >= 0)
+            if (objectId != 0 && objectId != uint.MaxValue)
+            {
+                targetIndex = GetPartyIndexForObjectId(objectId);
+                if (targetIndex >= 0 && !string.IsNullOrEmpty(playerName))
                 {
-                    DrawPartyMemberTyping(drawList, partyAddon, aliasIndex);
+                    var member = _partyList[targetIndex];
+                    var memberName = member?.Name?.TextValue;
+                    if (!string.IsNullOrEmpty(memberName) && !memberName.Equals(playerName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        var nameIndex = GetPartyIndexForName(playerName);
+                        targetIndex = nameIndex;
+                    }
                 }
-                continue;
             }
 
-            var index = GetPartyIndexForObjectId(pair.PlayerCharacterId);
-            if (index < 0)
+            if (targetIndex < 0 && !string.IsNullOrEmpty(playerName))
+            {
+                targetIndex = GetPartyIndexForName(playerName);
+            }
+
+            if (targetIndex < 0)
                 continue;
 
-            DrawPartyMemberTyping(drawList, partyAddon, index);
+            DrawPartyMemberTyping(drawList, partyAddon, targetIndex);
         }
     }
 
@@ -198,10 +209,10 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
 
             var pair = _pairManager.GetPairByUID(uid);
             var objectId = pair?.PlayerCharacterId ?? 0;
-            if (pair == null)
-            {
-                _logger.LogInformation("TypingIndicator: no pair found for {uid}, attempting fallback", uid);
-            }
+            var pairName = pair?.PlayerName ?? entry.User.AliasOrUID ?? string.Empty;
+            var pairIdent = pair?.Ident ?? string.Empty;
+            var isPartyMember = IsPartyMember(objectId, pairName);
+            var isRelevantMember = IsPlayerRelevant(pair, isPartyMember);
 
             if (objectId != uint.MaxValue && objectId != 0 && TryDrawNameplateBubble(drawList, iconWrap, objectId))
             {
@@ -209,20 +220,28 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
                 continue;
             }
 
-            var pairName = pair?.PlayerName ?? entry.User.AliasOrUID ?? string.Empty;
-            var pairIdent = pair?.Ident ?? string.Empty;
+            var hasWorldPosition = TryResolveWorldPosition(pair, entry.User, objectId, out var worldPos);
+            var isNearby = hasWorldPosition && IsWithinRelevantDistance(worldPos);
 
-            _logger.LogInformation("TypingIndicator: fallback draw for {uid} (objectId={objectId}, name={name}, ident={ident})",
+            if (!isRelevantMember && !isNearby)
+                continue;
+
+            if (pair == null)
+            {
+                _logger.LogTrace("TypingIndicator: no pair found for {uid}, attempting fallback", uid);
+            }
+
+            _logger.LogTrace("TypingIndicator: fallback draw for {uid} (objectId={objectId}, name={name}, ident={ident})",
                 uid, objectId, pairName, pairIdent);
 
-            if (TryResolveWorldPosition(pair, entry.User, objectId, out var worldPos))
+            if (hasWorldPosition)
             {
                 DrawWorldFallbackIcon(drawList, iconWrap, worldPos);
-                _logger.LogInformation("TypingIndicator: fallback world draw for {uid} at {pos}", uid, worldPos);
+                _logger.LogTrace("TypingIndicator: fallback world draw for {uid} at {pos}", uid, worldPos);
             }
             else
             {
-                _logger.LogInformation("TypingIndicator: could not resolve position for {uid}", uid);
+                _logger.LogTrace("TypingIndicator: could not resolve position for {uid}", uid);
             }
         }
     }
@@ -462,6 +481,48 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         }
 
         return -1;
+    }
+
+    private bool IsPartyMember(uint objectId, string? playerName)
+    {
+        if (objectId != 0 && objectId != uint.MaxValue && GetPartyIndexForObjectId(objectId) >= 0)
+            return true;
+
+        if (!string.IsNullOrEmpty(playerName) && GetPartyIndexForName(playerName) >= 0)
+            return true;
+
+        return false;
+    }
+
+    private bool IsPlayerRelevant(Pair? pair, bool isPartyMember)
+    {
+        if (isPartyMember)
+            return true;
+
+        if (pair?.UserPair != null)
+        {
+            var userPair = pair.UserPair;
+            if (userPair.OtherPermissions.IsPaired() || userPair.OwnPermissions.IsPaired())
+                return true;
+        }
+
+        if (pair?.GroupPair != null && pair.GroupPair.Any(g =>
+                !g.Value.GroupUserPermissions.IsPaused() &&
+                !g.Key.GroupUserPermissions.IsPaused()))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool IsWithinRelevantDistance(Vector3 position)
+    {
+        if (_clientState.LocalPlayer == null)
+            return false;
+
+        var distance = Vector3.Distance(_clientState.LocalPlayer.Position, position);
+        return distance <= 40f;
     }
 
     private static unsafe uint GetEntityId(nint address)

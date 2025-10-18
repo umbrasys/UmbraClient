@@ -209,12 +209,24 @@ public class SettingsUi : WindowMediatorSubscriberBase
         ImGui.AlignTextToFramePadding();
         ImGui.TextUnformatted("0 = No limit/infinite");
 
+        bool enableDownloadQueue = _configService.Current.EnableDownloadQueue;
+        if (ImGui.Checkbox("Activer la file de téléchargements", ref enableDownloadQueue))
+        {
+            _configService.Current.EnableDownloadQueue = enableDownloadQueue;
+            _configService.Save();
+        }
+        UiSharedService.AttachToolTip("Lance les téléchargements de personnages de manière séquentielle plutôt que tous en même temps. "
+            + "Quand l'option est activée, seul le nombre configuré de téléchargements fonctionne en parallèle.");
+
         ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
         if (ImGui.SliderInt("Maximum Parallel Downloads", ref maxParallelDownloads, 1, 10))
         {
             _configService.Current.ParallelDownloads = maxParallelDownloads;
             _configService.Save();
         }
+        UiSharedService.AttachToolTip(enableDownloadQueue
+            ? "Nombre maximal de téléchargements de personnages autorisés simultanément lorsque la file est activée."
+            : "Nombre maximal de flux de fichiers lancés en parallèle pour chaque téléchargement.");
 
         ImGui.Separator();
         _uiShared.BigText("AutoDetect");
@@ -222,7 +234,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         bool enableDiscovery = _configService.Current.EnableAutoDetectDiscovery;
         using (ImRaii.Disabled(isAutoDetectSuppressed))
         {
-            if (ImGui.Checkbox("Enable AutoDetect", ref enableDiscovery))
+            if (ImGui.Checkbox("Activer l'AutoDetect", ref enableDiscovery))
             {
                 _configService.Current.EnableAutoDetectDiscovery = enableDiscovery;
                 _configService.Save();
@@ -248,7 +260,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         using (ImRaii.Disabled(isAutoDetectSuppressed || !enableDiscovery))
         {
             bool allowRequests = _configService.Current.AllowAutoDetectPairRequests;
-            if (ImGui.Checkbox("Allow pair requests", ref allowRequests))
+            if (ImGui.Checkbox("Activer les invitations entrantes", ref allowRequests))
             {
                 _configService.Current.AllowAutoDetectPairRequests = allowRequests;
                 _configService.Save();
@@ -275,7 +287,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             ImGui.Indent();
             int maxMeters = _configService.Current.AutoDetectMaxDistanceMeters;
             ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
-            if (ImGui.SliderInt("Max distance (meters)", ref maxMeters, 5, 100))
+            if (ImGui.SliderInt("Distance max (en mètre)", ref maxMeters, 5, 100))
             {
                 _configService.Current.AutoDetectMaxDistanceMeters = maxMeters;
                 _configService.Save();

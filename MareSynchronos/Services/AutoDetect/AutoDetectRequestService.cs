@@ -9,6 +9,9 @@ using MareSynchronos.MareConfiguration;
 using MareSynchronos.Services;
 using MareSynchronos.Services.Mediator;
 using NotificationType = MareSynchronos.MareConfiguration.Models.NotificationType;
+using MareSynchronos.WebAPI;
+using MareSynchronos.API.Dto.User;
+using MareSynchronos.API.Data;
 
 namespace MareSynchronos.Services.AutoDetect;
 
@@ -26,8 +29,9 @@ public class AutoDetectRequestService
     private readonly ConcurrentDictionary<string, PendingRequestInfo> _pendingRequests = new(StringComparer.Ordinal);
     private static readonly TimeSpan RequestCooldown = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan RefusalLockDuration = TimeSpan.FromMinutes(15);
+    private readonly ApiController _apiController;
 
-    public AutoDetectRequestService(ILogger<AutoDetectRequestService> logger, DiscoveryConfigProvider configProvider, DiscoveryApiClient client, MareConfigService configService, MareMediator mediator, DalamudUtilService dalamudUtilService)
+    public AutoDetectRequestService(ILogger<AutoDetectRequestService> logger, DiscoveryConfigProvider configProvider, DiscoveryApiClient client, MareConfigService configService, MareMediator mediator, DalamudUtilService dalamudUtilService, ApiController apiController)
     {
         _logger = logger;
         _configProvider = configProvider;
@@ -35,9 +39,10 @@ public class AutoDetectRequestService
         _configService = configService;
         _mediator = mediator;
         _dalamud = dalamudUtilService;
+        _apiController = apiController;
     }
 
-    public async Task<bool> SendRequestAsync(string token, string? uid = null, string? targetDisplayName = null, CancellationToken ct = default)
+    public async Task<bool> SendRequestAsync(string? token, string? uid = null, string? targetDisplayName = null, CancellationToken ct = default)
     {
         if (!_configService.Current.AllowAutoDetectPairRequests)
         {
@@ -45,6 +50,13 @@ public class AutoDetectRequestService
             _mediator.Publish(new NotificationMessage("Nearby request blocked", "Enable 'Allow pair requests' in Settings to send requests.", NotificationType.Info));
             return false;
         }
+
+        if (string.IsNullOrEmpty(token) && string.IsNullOrEmpty(uid))
+        {
+            _logger.LogDebug("Nearby request blocked: no token or UID provided");
+            return false;
+        }
+
         var targetKey = BuildTargetKey(uid, token, targetDisplayName);
         if (!string.IsNullOrEmpty(targetKey))
         {
@@ -101,8 +113,11 @@ public class AutoDetectRequestService
         }
         catch { }
 
+        var requestToken = string.IsNullOrEmpty(token) ? null : token;
+        var requestUid = requestToken == null ? uid : null;
+
         _logger.LogInformation("Nearby: sending pair request via {endpoint}", endpoint);
-        var ok = await _client.SendRequestAsync(endpoint!, token, displayName, ct).ConfigureAwait(false);
+        var ok = await _client.SendRequestAsync(endpoint!, requestToken, requestUid, displayName, ct).ConfigureAwait(false);
         if (ok)
         {
             if (!string.IsNullOrEmpty(targetKey))
@@ -178,6 +193,126 @@ public class AutoDetectRequestService
         catch { }
         _logger.LogInformation("Nearby: sending accept notify via {endpoint}", endpoint);
         return await _client.SendAcceptAsync(endpoint!, targetUid, displayName, ct).ConfigureAwait(false);
+    }
+
+    public async Task<bool> SendDirectUidRequestAsync(string uid, string? targetDisplayName = null, CancellationToken ct = default)
+    {
+        if (!_configService.Current.AllowAutoDetectPairRequests)
+        {
+            _logger.LogDebug("Nearby request blocked: AllowAutoDetectPairRequests is disabled");
+            _mediator.Publish(new NotificationMessage("Nearby request blocked", "Enable 'Allow pair requests' in Settings to send requests.", NotificationType.Info));
+            return false;
+        }
+
+        if (string.IsNullOrEmpty(uid))
+        {
+            _logger.LogDebug("Direct pair request aborted: UID is empty");
+            return false;
+        }
+
+        var targetKey = BuildTargetKey(uid, null, targetDisplayName);
+        if (!string.IsNullOrEmpty(targetKey))
+        {
+            var now = DateTime.UtcNow;
+            lock (_syncRoot)
+            {
+                if (_refusalTrackers.TryGetValue(targetKey, out var tracker))
+                {
+                    if (tracker.LockUntil.HasValue && tracker.LockUntil.Value > now)
+                    {
+                        PublishLockNotification(tracker.LockUntil.Value - now);
+                        return false;
+                    }
+
+                    if (tracker.LockUntil.HasValue && tracker.LockUntil.Value <= now)
+                    {
+                        tracker.LockUntil = null;
+                        tracker.Count = 0;
+                        if (tracker.Count == 0 && tracker.LockUntil == null)
+                        {
+                            _refusalTrackers.Remove(targetKey);
+                        }
+                    }
+                }
+
+                if (_activeCooldowns.TryGetValue(targetKey, out var lastSent))
+                {
+                    var elapsed = now - lastSent;
+                    if (elapsed < RequestCooldown)
+                    {
+                        PublishCooldownNotification(RequestCooldown - elapsed);
+                        return false;
+                    }
+
+                    if (elapsed >= RequestCooldown)
+                    {
+                        _activeCooldowns.Remove(targetKey);
+                    }
+                }
+            }
+        }
+
+        try
+        {
+            await _apiController.UserAddPair(new UserDto(new UserData(uid))).ConfigureAwait(false);
+
+            if (!string.IsNullOrEmpty(targetKey))
+            {
+                lock (_syncRoot)
+                {
+                    _activeCooldowns[targetKey] = DateTime.UtcNow;
+                    if (_refusalTrackers.TryGetValue(targetKey, out var tracker))
+                    {
+                        tracker.Count = 0;
+                        tracker.LockUntil = null;
+                        if (tracker.Count == 0 && tracker.LockUntil == null)
+                        {
+                            _refusalTrackers.Remove(targetKey);
+                        }
+                    }
+                }
+            }
+
+            _mediator.Publish(new NotificationMessage("Nearby request sent", "The other user will receive a request notification.", NotificationType.Info));
+            var pendingKey = EnsureTargetKey(targetKey);
+            var label = !string.IsNullOrWhiteSpace(targetDisplayName) ? targetDisplayName! : uid;
+            _pendingRequests[pendingKey] = new PendingRequestInfo(pendingKey, uid, null, label, DateTime.UtcNow);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Direct pair request failed for {uid}", uid);
+            if (!string.IsNullOrEmpty(targetKey))
+            {
+                var now = DateTime.UtcNow;
+                lock (_syncRoot)
+                {
+                    _activeCooldowns.Remove(targetKey);
+                    if (!_refusalTrackers.TryGetValue(targetKey, out var tracker))
+                    {
+                        tracker = new RefusalTracker();
+                        _refusalTrackers[targetKey] = tracker;
+                    }
+
+                    if (tracker.LockUntil.HasValue && tracker.LockUntil.Value <= now)
+                    {
+                        tracker.LockUntil = null;
+                        tracker.Count = 0;
+                    }
+
+                    tracker.Count++;
+                    if (tracker.Count >= 3)
+                    {
+                        tracker.LockUntil = now.Add(RefusalLockDuration);
+                    }
+                }
+                _pendingRequests.TryRemove(targetKey, out _);
+            }
+
+            _mediator.Publish(new NotificationMessage("Nearby request failed", "The server rejected the request. Try again soon.", NotificationType.Warning));
+            return false;
+        }
     }
 
     private static string? BuildTargetKey(string? uid, string? token, string? displayName)

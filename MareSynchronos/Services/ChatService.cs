@@ -1,3 +1,5 @@
+using System;
+using System.Text;
 using System.Threading;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
@@ -19,6 +21,7 @@ namespace MareSynchronos.Services;
 public class ChatService : DisposableMediatorSubscriberBase
 {
     public const int DefaultColor = 710;
+    private const string ManualPairInvitePrefix = "[UmbraPairInvite|";
     public const int CommandMaxNumber = 50;
 
     private readonly ILogger<ChatService> _logger;
@@ -191,6 +194,10 @@ public class ChatService : DisposableMediatorSubscriberBase
         var extraChatTags = _mareConfig.Current.ExtraChatTags;
         var logKind = ResolveShellLogKind(shellConfig.LogKind);
 
+        var payload = SeString.Parse(message.ChatMsg.PayloadContent);
+        if (TryHandleManualPairInvite(message, payload))
+            return;
+
         var msg = new SeStringBuilder();
         if (extraChatTags)
         {
@@ -209,7 +216,7 @@ public class ChatService : DisposableMediatorSubscriberBase
             msg.Add(new PlayerPayload(chatMsg.SenderName, chatMsg.SenderHomeWorldId));
         }
         msg.AddText("> ");
-        msg.Append(SeString.Parse(message.ChatMsg.PayloadContent));
+        msg.Append(payload);
         if (color != 0)
             msg.AddUiForegroundOff();
 
@@ -218,6 +225,52 @@ public class ChatService : DisposableMediatorSubscriberBase
             Name = chatMsg.SenderName,
             Type = logKind
         });
+    }
+
+    private bool TryHandleManualPairInvite(GroupChatMsgMessage message, SeString payload)
+    {
+        var textValue = payload.TextValue;
+        if (string.IsNullOrEmpty(textValue) || !textValue.StartsWith(ManualPairInvitePrefix, StringComparison.Ordinal))
+            return false;
+
+        var content = textValue[ManualPairInvitePrefix.Length..];
+        if (content.EndsWith("]", StringComparison.Ordinal))
+        {
+            content = content[..^1];
+        }
+
+        var parts = content.Split('|');
+        if (parts.Length < 4)
+            return true;
+
+        var sourceUid = parts[0];
+        var sourceAlias = DecodeInviteField(parts[1]);
+        var targetUid = parts[2];
+        var displayName = DecodeInviteField(parts[3]);
+        var inviteId = parts.Length > 4 ? parts[4] : Guid.NewGuid().ToString("N");
+
+        if (!string.Equals(targetUid, _apiController.UID, StringComparison.Ordinal))
+            return true;
+
+        Mediator.Publish(new ManualPairInviteMessage(sourceUid, sourceAlias, targetUid, string.IsNullOrEmpty(displayName) ? null : displayName, inviteId));
+        _logger.LogDebug("Received manual pair invite from {source} via syncshell", sourceUid);
+
+        return true;
+    }
+
+    private static string DecodeInviteField(string encoded)
+    {
+        if (string.IsNullOrEmpty(encoded)) return string.Empty;
+
+        try
+        {
+            var bytes = Convert.FromBase64String(encoded);
+            return Encoding.UTF8.GetString(bytes);
+        }
+        catch
+        {
+            return encoded;
+        }
     }
     public void PrintChannelExample(string message, string gid = "")
     {

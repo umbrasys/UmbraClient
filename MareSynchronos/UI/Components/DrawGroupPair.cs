@@ -1,15 +1,21 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Numerics;
+using System.Text;
+using System.Threading.Tasks;
+using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
+using MareSynchronos.API.Data;
 using MareSynchronos.API.Data.Enum;
 using MareSynchronos.API.Data.Extensions;
 using MareSynchronos.API.Dto.Group;
-using MareSynchronos.API.Dto.User;
 using MareSynchronos.PlayerData.Pairs;
 using MareSynchronos.Services;
+using MareSynchronos.Services.AutoDetect;
 using MareSynchronos.Services.Mediator;
+using MareSynchronos.Services.ServerConfiguration;
 using MareSynchronos.UI.Handlers;
 using MareSynchronos.WebAPI;
 
@@ -21,16 +27,22 @@ public class DrawGroupPair : DrawPairBase
     private readonly GroupPairFullInfoDto _fullInfoDto;
     private readonly GroupFullInfoDto _group;
     private readonly CharaDataManager _charaDataManager;
+    private readonly AutoDetectRequestService _autoDetectRequestService;
+    private readonly ServerConfigurationManager _serverConfigurationManager;
+    private const string ManualPairInvitePrefix = "[UmbraPairInvite|";
 
     public DrawGroupPair(string id, Pair entry, ApiController apiController,
         MareMediator mareMediator, GroupFullInfoDto group, GroupPairFullInfoDto fullInfoDto,
-        UidDisplayHandler handler, UiSharedService uiSharedService, CharaDataManager charaDataManager)
+        UidDisplayHandler handler, UiSharedService uiSharedService, CharaDataManager charaDataManager,
+        AutoDetectRequestService autoDetectRequestService, ServerConfigurationManager serverConfigurationManager)
         : base(id, entry, apiController, handler, uiSharedService)
     {
         _group = group;
         _fullInfoDto = fullInfoDto;
         _mediator = mareMediator;
         _charaDataManager = charaDataManager;
+        _autoDetectRequestService = autoDetectRequestService;
+        _serverConfigurationManager = serverConfigurationManager;
     }
 
     protected override void DrawLeftSide(float textPosY, float originalY)
@@ -153,8 +165,9 @@ public class DrawGroupPair : DrawPairBase
 
         bool showShared = _charaDataManager.SharedWithYouData.TryGetValue(_pair.UserData, out var sharedData);
         bool showInfo = (individualAnimDisabled || individualSoundsDisabled || animDisabled || soundsDisabled);
-        bool showPlus = _pair.UserPair == null;
+        bool showPlus = _pair.UserPair == null && _pair.IsOnline;
         bool showBars = (userIsOwner || (userIsModerator && !entryIsMod && !entryIsOwner)) || !_pair.IsPaused;
+        bool showPause = true;
 
         var spacing = ImGui.GetStyle().ItemSpacing.X;
         var permIcon = (individualAnimDisabled || individualSoundsDisabled || individualVFXDisabled) ? FontAwesomeIcon.ExclamationTriangle
@@ -162,12 +175,15 @@ public class DrawGroupPair : DrawPairBase
         var runningIconWidth = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Running).X;
         var infoIconWidth = UiSharedService.GetIconSize(permIcon).X;
         var plusButtonWidth = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Plus).X;
+        var pauseIcon = _fullInfoDto.GroupUserPermissions.IsPaused() ? FontAwesomeIcon.Play : FontAwesomeIcon.Pause;
+        var pauseButtonWidth = _uiSharedService.GetIconButtonSize(pauseIcon).X;
         var barButtonWidth = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Bars).X;
 
         var pos = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() + spacing
             - (showShared ? (runningIconWidth + spacing) : 0)
             - (showInfo ? (infoIconWidth + spacing) : 0)
             - (showPlus ? (plusButtonWidth + spacing) : 0)
+            - (showPause ? (pauseButtonWidth + spacing) : 0)
             - (showBars ? (barButtonWidth + spacing) : 0);
 
         ImGui.SameLine(pos);
@@ -280,9 +296,28 @@ public class DrawGroupPair : DrawPairBase
 
             if (_uiSharedService.IconButton(FontAwesomeIcon.Plus))
             {
-                _ = _apiController.UserAddPair(new UserDto(new(_pair.UserData.UID)));
+                var targetUid = _pair.UserData.UID;
+                if (!string.IsNullOrEmpty(targetUid))
+                {
+                    _ = SendGroupPairInviteAsync(targetUid, entryUID);
+                }
             }
-            UiSharedService.AttachToolTip("Pair with " + entryUID + " individually");
+            UiSharedService.AttachToolTip(AppendSeenInfo("Send pairing invite to " + entryUID));
+            ImGui.SameLine();
+        }
+
+        if (showPause)
+        {
+            ImGui.SetCursorPosY(originalY);
+
+            if (_uiSharedService.IconButton(pauseIcon))
+            {
+                var newPermissions = _fullInfoDto.GroupUserPermissions ^ GroupUserPermissions.Paused;
+                _fullInfoDto.GroupUserPermissions = newPermissions;
+                _ = _apiController.GroupChangeIndividualPermissionState(new GroupPairUserPermissionDto(_group.Group, _pair.UserData, newPermissions));
+            }
+
+            UiSharedService.AttachToolTip(AppendSeenInfo((_fullInfoDto.GroupUserPermissions.IsPaused() ? "Resume" : "Pause") + " syncing with " + entryUID));
             ImGui.SameLine();
         }
 
@@ -382,5 +417,75 @@ public class DrawGroupPair : DrawPairBase
         }
 
         return pos - spacing;
+    }
+
+    private string AppendSeenInfo(string tooltip)
+    {
+        if (_pair.IsVisible) return tooltip;
+
+        var lastSeen = _serverConfigurationManager.GetNameForUid(_pair.UserData.UID);
+        if (string.IsNullOrWhiteSpace(lastSeen)) return tooltip;
+
+        return tooltip + " (Vu sous : " + lastSeen + ")";
+    }
+
+    private async Task SendGroupPairInviteAsync(string targetUid, string displayName)
+    {
+        try
+        {
+            var ok = await _autoDetectRequestService.SendDirectUidRequestAsync(targetUid, displayName).ConfigureAwait(false);
+            if (!ok) return;
+
+            await SendManualInviteSignalAsync(targetUid, displayName).ConfigureAwait(false);
+        }
+        catch
+        {
+            // errors are logged within the request service; ignore here
+        }
+    }
+
+    private async Task SendManualInviteSignalAsync(string targetUid, string displayName)
+    {
+        if (string.IsNullOrEmpty(_apiController.UID)) return;
+
+        var senderAliasRaw = string.IsNullOrEmpty(_apiController.DisplayName) ? _apiController.UID : _apiController.DisplayName;
+        var senderAlias = EncodeInviteField(senderAliasRaw);
+        var targetDisplay = EncodeInviteField(displayName);
+        var inviteId = Guid.NewGuid().ToString("N");
+        var payloadText = new StringBuilder()
+            .Append(ManualPairInvitePrefix)
+            .Append(_apiController.UID)
+            .Append('|')
+            .Append(senderAlias)
+            .Append('|')
+            .Append(targetUid)
+            .Append('|')
+            .Append(targetDisplay)
+            .Append('|')
+            .Append(inviteId)
+            .Append(']')
+            .ToString();
+
+        var payload = new SeStringBuilder().AddText(payloadText).Build().Encode();
+        var chatMessage = new ChatMessage
+        {
+            SenderName = senderAlias,
+            PayloadContent = payload
+        };
+
+        try
+        {
+            await _apiController.GroupChatSendMsg(new GroupDto(_group.Group), chatMessage).ConfigureAwait(false);
+        }
+        catch
+        {
+            // ignore - invite remains tracked locally even if group chat signal fails
+        }
+    }
+
+    private static string EncodeInviteField(string value)
+    {
+        var bytes = Encoding.UTF8.GetBytes(value ?? string.Empty);
+        return Convert.ToBase64String(bytes);
     }
 }

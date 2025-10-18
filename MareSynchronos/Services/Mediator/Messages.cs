@@ -115,6 +115,7 @@ public record NearbyEntry(string Name, ushort WorldId, float Distance, bool IsMa
 public record DiscoveryListUpdated(List<NearbyEntry> Entries) : MessageBase;
 public record NearbyDetectionToggled(bool Enabled) : MessageBase;
 public record AllowPairRequestsToggled(bool Enabled) : MessageBase;
+public record ManualPairInviteMessage(string SourceUid, string SourceAlias, string TargetUid, string? DisplayName, string InviteId) : MessageBase;
 public record ApplyDefaultPairPermissionsMessage(UserPairDto Pair) : MessageBase;
 public record ApplyDefaultGroupPermissionsMessage(GroupPairFullInfoDto GroupPair) : MessageBase;
 public record ApplyDefaultsToAllSyncsMessage(string? Context = null, bool? Disabled = null) : MessageBase;

@@ -88,7 +88,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         _characterAnalyzer = characterAnalyzer;
         var tagHandler = new TagHandler(_serverManager);
 
-        _groupPanel = new(this, uiShared, _pairManager, chatService, uidDisplayHandler, _configService, _serverManager, _charaDataManager);
+        _groupPanel = new(this, uiShared, _pairManager, chatService, uidDisplayHandler, _configService, _serverManager, _charaDataManager, _autoDetectRequestService);
         _selectGroupForPairUi = new(tagHandler, uidDisplayHandler, _uiSharedService);
         _selectPairsForGroupUi = new(tagHandler, uidDisplayHandler);
         _pairGroupsUi = new(configService, tagHandler, uidDisplayHandler, apiController, _selectPairsForGroupUi, _uiSharedService);
@@ -433,6 +433,8 @@ public class CompactUi : WindowMediatorSubscriberBase
 
                     var compressedValue = UiSharedService.ByteToString(summary.TotalCompressedSize);
                     Vector4? compressedColor = null;
+                    FontAwesomeIcon? compressedIcon = null;
+                    Vector4? compressedIconColor = null;
                     string? compressedTooltip = null;
                     if (summary.HasUncomputedEntries)
                     {
@@ -443,19 +445,25 @@ public class CompactUi : WindowMediatorSubscriberBase
                     {
                         compressedColor = ImGuiColors.DalamudYellow;
                         compressedTooltip = "Au-delà de 300 MiB, certains joueurs peuvent ne pas voir toutes vos modifications.";
+                        compressedIcon = FontAwesomeIcon.ExclamationTriangle;
+                        compressedIconColor = ImGuiColors.DalamudYellow;
                     }
 
-                    DrawSelfAnalysisStatRow("Taille compressée", compressedValue, compressedColor, compressedTooltip);
+                    DrawSelfAnalysisStatRow("Taille compressée", compressedValue, compressedColor, compressedTooltip, compressedIcon, compressedIconColor);
                     DrawSelfAnalysisStatRow("Taille extraite", UiSharedService.ByteToString(summary.TotalOriginalSize));
 
                     Vector4? trianglesColor = null;
+                    FontAwesomeIcon? trianglesIcon = null;
+                    Vector4? trianglesIconColor = null;
                     string? trianglesTooltip = null;
                     if (summary.TotalTriangles >= SelfAnalysisTriangleWarningThreshold)
                     {
                         trianglesColor = ImGuiColors.DalamudYellow;
                         trianglesTooltip = "Plus de 150k triangles peuvent entraîner un auto-pause et impacter les performances.";
+                        trianglesIcon = FontAwesomeIcon.ExclamationTriangle;
+                        trianglesIconColor = ImGuiColors.DalamudYellow;
                     }
-                    DrawSelfAnalysisStatRow("Triangles moddés", UiSharedService.TrisToString(summary.TotalTriangles), trianglesColor, trianglesTooltip);
+                    DrawSelfAnalysisStatRow("Triangles moddés", UiSharedService.TrisToString(summary.TotalTriangles), trianglesColor, trianglesTooltip, trianglesIcon, trianglesIconColor);
 
                     ImGui.EndTable();
                 }
@@ -490,12 +498,29 @@ public class CompactUi : WindowMediatorSubscriberBase
         }
     }
 
-    private static void DrawSelfAnalysisStatRow(string label, string value, Vector4? valueColor = null, string? tooltip = null)
+    private static void DrawSelfAnalysisStatRow(string label, string value, Vector4? valueColor = null, string? tooltip = null, FontAwesomeIcon? icon = null, Vector4? iconColor = null)
     {
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
         ImGui.TextUnformatted(label);
         ImGui.TableNextColumn();
+        if (icon.HasValue)
+        {
+            using (ImRaii.PushFont(UiBuilder.IconFont))
+            {
+                if (iconColor.HasValue)
+                {
+                    using var iconColorPush = ImRaii.PushColor(ImGuiCol.Text, iconColor.Value);
+                    ImGui.TextUnformatted(icon.Value.ToIconString());
+                }
+                else
+                {
+                    ImGui.TextUnformatted(icon.Value.ToIconString());
+                }
+            }
+            ImGui.SameLine(0f, 4f);
+        }
+
         if (valueColor.HasValue)
         {
             using var color = ImRaii.PushColor(ImGuiCol.Text, valueColor.Value);
@@ -687,9 +712,9 @@ public class CompactUi : WindowMediatorSubscriberBase
             ImGuiHelpers.ScaledDummy(4);
         }
 
-        var onlineUsers = users.Where(u => u.UserPair!.OtherPermissions.IsPaired() && (u.IsOnline || u.UserPair!.OwnPermissions.IsPaused())).Select(c => new DrawUserPair("Online" + c.UserData.UID, c, _uidDisplayHandler, _apiController, Mediator, _selectGroupForPairUi, _uiSharedService, _charaDataManager)).ToList();
-        var visibleUsers = users.Where(u => u.IsVisible).Select(c => new DrawUserPair("Visible" + c.UserData.UID, c, _uidDisplayHandler, _apiController, Mediator, _selectGroupForPairUi, _uiSharedService, _charaDataManager)).ToList();
-        var offlineUsers = users.Where(u => !u.UserPair!.OtherPermissions.IsPaired() || (!u.IsOnline && !u.UserPair!.OwnPermissions.IsPaused())).Select(c => new DrawUserPair("Offline" + c.UserData.UID, c, _uidDisplayHandler, _apiController, Mediator, _selectGroupForPairUi, _uiSharedService, _charaDataManager)).ToList();
+        var onlineUsers = users.Where(u => u.UserPair!.OtherPermissions.IsPaired() && (u.IsOnline || u.UserPair!.OwnPermissions.IsPaused())).Select(c => new DrawUserPair("Online" + c.UserData.UID, c, _uidDisplayHandler, _apiController, Mediator, _selectGroupForPairUi, _uiSharedService, _charaDataManager, _serverManager)).ToList();
+        var visibleUsers = users.Where(u => u.IsVisible).Select(c => new DrawUserPair("Visible" + c.UserData.UID, c, _uidDisplayHandler, _apiController, Mediator, _selectGroupForPairUi, _uiSharedService, _charaDataManager, _serverManager)).ToList();
+        var offlineUsers = users.Where(u => !u.UserPair!.OtherPermissions.IsPaired() || (!u.IsOnline && !u.UserPair!.OwnPermissions.IsPaused())).Select(c => new DrawUserPair("Offline" + c.UserData.UID, c, _uidDisplayHandler, _apiController, Mediator, _selectGroupForPairUi, _uiSharedService, _charaDataManager, _serverManager)).ToList();
 
         _pairGroupsUi.Draw(visibleUsers, onlineUsers, offlineUsers);
 

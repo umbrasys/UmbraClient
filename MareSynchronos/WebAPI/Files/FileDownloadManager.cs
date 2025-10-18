@@ -4,6 +4,7 @@ using MareSynchronos.API.Data;
 using MareSynchronos.API.Dto.Files;
 using MareSynchronos.API.Routes;
 using MareSynchronos.FileCache;
+using MareSynchronos.MareConfiguration;
 using MareSynchronos.PlayerData.Handlers;
 using MareSynchronos.Services.Mediator;
 using MareSynchronos.Utils;
@@ -20,17 +21,22 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
     private readonly Dictionary<string, FileDownloadStatus> _downloadStatus;
     private readonly FileCompactor _fileCompactor;
     private readonly FileCacheManager _fileDbManager;
+    private readonly MareConfigService _mareConfigService;
     private readonly FileTransferOrchestrator _orchestrator;
     private readonly List<ThrottledStream> _activeDownloadStreams;
+    private readonly object _queueLock = new();
+    private SemaphoreSlim? _downloadQueueSemaphore;
+    private int _downloadQueueCapacity = -1;
 
     public FileDownloadManager(ILogger<FileDownloadManager> logger, MareMediator mediator,
         FileTransferOrchestrator orchestrator,
-        FileCacheManager fileCacheManager, FileCompactor fileCompactor) : base(logger, mediator)
+        FileCacheManager fileCacheManager, FileCompactor fileCompactor, MareConfigService mareConfigService) : base(logger, mediator)
     {
         _downloadStatus = new Dictionary<string, FileDownloadStatus>(StringComparer.Ordinal);
         _orchestrator = orchestrator;
         _fileDbManager = fileCacheManager;
         _fileCompactor = fileCompactor;
+        _mareConfigService = mareConfigService;
         _activeDownloadStreams = [];
 
         Mediator.Subscribe<DownloadLimitChangedMessage>(this, (msg) =>
@@ -59,6 +65,14 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
 
     public async Task DownloadFiles(GameObjectHandler gameObject, List<FileReplacementData> fileReplacementDto, CancellationToken ct)
     {
+        SemaphoreSlim? queueSemaphore = null;
+        if (_mareConfigService.Current.EnableDownloadQueue)
+        {
+            queueSemaphore = GetQueueSemaphore();
+            Logger.LogTrace("Queueing download for {name}. Currently queued: {queued}", gameObject.Name, queueSemaphore.CurrentCount);
+            await queueSemaphore.WaitAsync(ct).ConfigureAwait(false);
+        }
+
         Mediator.Publish(new HaltScanMessage(nameof(DownloadFiles)));
         try
         {
@@ -70,6 +84,11 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
         }
         finally
         {
+            if (queueSemaphore != null)
+            {
+                queueSemaphore.Release();
+            }
+
             Mediator.Publish(new DownloadFinishedMessage(gameObject));
             Mediator.Publish(new ResumeScanMessage(nameof(DownloadFiles)));
         }
@@ -130,6 +149,22 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
         if (fileLength.Count == 0)
             fileLength.Add('0');
         return (string.Join("", hashName), long.Parse(string.Join("", fileLength)));
+    }
+
+    private SemaphoreSlim GetQueueSemaphore()
+    {
+        var desiredCapacity = Math.Clamp(_mareConfigService.Current.ParallelDownloads, 1, 10);
+
+        lock (_queueLock)
+        {
+            if (_downloadQueueSemaphore == null || _downloadQueueCapacity != desiredCapacity)
+            {
+                _downloadQueueSemaphore = new SemaphoreSlim(desiredCapacity, desiredCapacity);
+                _downloadQueueCapacity = desiredCapacity;
+            }
+
+            return _downloadQueueSemaphore;
+        }
     }
 
     private async Task DownloadAndMungeFileHttpClient(string downloadGroup, Guid requestId, List<DownloadFileTransfer> fileTransfer, string tempPath, IProgress<long> progress, CancellationToken ct)

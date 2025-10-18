@@ -266,26 +266,47 @@ public sealed class CharaDataNearbyManager : DisposableMediatorSubscriberBase
 
     private void ManageWispsNearby(List<PoseEntryExtended> previousPoses)
     {
-        foreach (var data in _nearbyData.Keys)
+        int maxWisps = _charaDataConfigService.Current.NearbyMaxWisps;
+        if (maxWisps <= 0)
         {
-            if (_poseVfx.TryGetValue(data, out var _)) continue;
+            ClearAllVfx();
+            return;
+        }
 
-            Guid? vfxGuid;
-            if (data.MetaInfo.IsOwnData)
-            {
-                vfxGuid = _vfxSpawnManager.SpawnObject(data.Position, data.Rotation, Vector3.One * 2, 0.8f, 0.5f, 0.0f, 0.7f);
-            }
-            else
-            {
-                vfxGuid = _vfxSpawnManager.SpawnObject(data.Position, data.Rotation, Vector3.One * 2);
-            }
+        const int hardLimit = 200;
+        if (maxWisps > hardLimit) maxWisps = hardLimit;
+
+        var orderedAllowedPoses = _nearbyData
+            .OrderBy(kvp => kvp.Value.Distance)
+            .Take(maxWisps)
+            .Select(kvp => kvp.Key)
+            .ToList();
+
+        var allowedPoseSet = orderedAllowedPoses.ToHashSet();
+
+        foreach (var data in orderedAllowedPoses)
+        {
+            if (_poseVfx.TryGetValue(data, out _)) continue;
+
+            Guid? vfxGuid = data.MetaInfo.IsOwnData
+                ? _vfxSpawnManager.SpawnObject(data.Position, data.Rotation, Vector3.One * 2, 0.8f, 0.5f, 0.0f, 0.7f)
+                : _vfxSpawnManager.SpawnObject(data.Position, data.Rotation, Vector3.One * 2);
+
             if (vfxGuid != null)
             {
                 _poseVfx[data] = vfxGuid.Value;
             }
         }
 
-        foreach (var data in previousPoses.Except(_nearbyData.Keys))
+        foreach (var data in previousPoses.Except(allowedPoseSet))
+        {
+            if (_poseVfx.Remove(data, out var guid))
+            {
+                _vfxSpawnManager.DespawnObject(guid);
+            }
+        }
+
+        foreach (var data in _poseVfx.Keys.Except(allowedPoseSet).ToList())
         {
             if (_poseVfx.Remove(data, out var guid))
             {

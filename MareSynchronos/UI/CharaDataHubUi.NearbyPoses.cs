@@ -57,6 +57,14 @@ internal partial class CharaDataHubUi
                 _configService.Save();
             }
             _uiSharedService.DrawHelpText("Draw floating wisps where other's poses are in the world.");
+            int maxWisps = _configService.Current.NearbyMaxWisps;
+            ImGui.SetNextItemWidth(140);
+            if (ImGui.SliderInt("Maximum wisps", ref maxWisps, 0, 200))
+            {
+                _configService.Current.NearbyMaxWisps = maxWisps;
+                _configService.Save();
+            }
+            _uiSharedService.DrawHelpText("Limit how many wisps are active at once. Set to 0 to disable wisps even when enabled above.");
             int poseDetectionDistance = _configService.Current.NearbyDistanceFilter;
             ImGui.SetNextItemWidth(100);
             if (ImGui.SliderInt("Detection Distance", ref poseDetectionDistance, 5, 1000))

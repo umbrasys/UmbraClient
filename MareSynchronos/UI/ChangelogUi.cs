@@ -169,6 +169,14 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
     {
         return new List<ChangelogEntry>
         {
+            new(new Version(0, 1, 9, 5), "0.1.9.5", new List<ChangelogLine>
+            {
+                new("Fix l'affichage de la bulle dans la liste du groupe."),
+                new("Amélioration de l'ajout des utilisateurs via le bouton +."),
+                new("Possibilité de mettre en pause individuellement des utilisateurs d'une syncshell."),
+                new("Amélioration de la stabilité du plugin en cas de petite connexion / petite configuration."),
+                new("Divers fix de l'interface."),
+            }),
             new(new Version(0, 1, 9, 4), "0.1.9.4", new List<ChangelogLine>
             {
                 new("Réécriture complète de la bulle de frappe avec la possibilité de choisir la taille de la bulle."),

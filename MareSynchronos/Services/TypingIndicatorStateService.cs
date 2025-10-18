@@ -76,12 +76,10 @@ public sealed class TypingIndicatorStateService : IMediatorSubscriber, IDisposab
             _typingUsers.AddOrUpdate(uid,
                 _ => new TypingEntry(msg.Typing.User, now, now),
                 (_, existing) => new TypingEntry(msg.Typing.User, existing.FirstSeen, now));
-            _logger.LogInformation("Typing state {uid} -> true", uid);
         }
         else
         {
             _typingUsers.TryRemove(uid, out _);
-            _logger.LogInformation("Typing state {uid} -> false", uid);
         }
     }
 

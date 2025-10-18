@@ -12,6 +12,7 @@ public class CharaDataConfig : IMareConfiguration
     public bool NearbyOwnServerOnly { get; set; } = false;
     public bool NearbyIgnoreHousingLimitations { get; set; } = false;
     public bool NearbyDrawWisps { get; set; } = true;
+    public int NearbyMaxWisps { get; set; } = 20;
     public int NearbyDistanceFilter { get; set; } = 100;
     public bool NearbyShowOwnData { get; set; } = false;
     public bool ShowHelpTexts { get; set; } = true;

@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
+using MareSynchronos.MareConfiguration.Models;
 using MareSynchronos.Services.Mediator;
 using MareSynchronos.WebAPI;
 using Microsoft.Extensions.Logging;
@@ -23,6 +25,7 @@ public sealed class NearbyPendingService : IMediatorSubscriber
         _api = api;
         _requestService = requestService;
         _mediator.Subscribe<NotificationMessage>(this, OnNotification);
+        _mediator.Subscribe<ManualPairInviteMessage>(this, OnManualPairInvite);
     }
 
     public MareMediator Mediator => _mediator;
@@ -63,6 +66,20 @@ public sealed class NearbyPendingService : IMediatorSubscriber
         catch { name = uid; }
         _pending[uid] = name;
         _logger.LogInformation("NearbyPending: received request from {uid} ({name})", uid, name);
+    }
+
+    private void OnManualPairInvite(ManualPairInviteMessage msg)
+    {
+        if (!string.Equals(msg.TargetUid, _api.UID, StringComparison.Ordinal))
+            return;
+
+        var display = !string.IsNullOrWhiteSpace(msg.DisplayName)
+            ? msg.DisplayName!
+            : (!string.IsNullOrWhiteSpace(msg.SourceAlias) ? msg.SourceAlias : msg.SourceUid);
+
+        _pending[msg.SourceUid] = display;
+        _logger.LogInformation("NearbyPending: received manual invite from {uid} ({name})", msg.SourceUid, display);
+        _mediator.Publish(new NotificationMessage("Nearby request", $"{display} vous a envoyé une invitation de pair.", NotificationType.Info, TimeSpan.FromSeconds(5)));
     }
 
     public void Remove(string uid)
