@@ -41,6 +41,28 @@ public class DrawUserPair : DrawPairBase
     public bool IsVisible => _pair.IsVisible;
     public UserPairDto UserPair => _pair.UserPair!;
 
+    protected override float GetRightSideExtraWidth()
+    {
+        float width = 0f;
+        var spacingX = ImGui.GetStyle().ItemSpacing.X;
+
+        var individualSoundsDisabled = (_pair.UserPair?.OwnPermissions.IsDisableSounds() ?? false) || (_pair.UserPair?.OtherPermissions.IsDisableSounds() ?? false);
+        var individualAnimDisabled = (_pair.UserPair?.OwnPermissions.IsDisableAnimations() ?? false) || (_pair.UserPair?.OtherPermissions.IsDisableAnimations() ?? false);
+        var individualVFXDisabled = (_pair.UserPair?.OwnPermissions.IsDisableVFX() ?? false) || (_pair.UserPair?.OtherPermissions.IsDisableVFX() ?? false);
+
+        if (individualSoundsDisabled || individualAnimDisabled || individualVFXDisabled)
+        {
+            width += _uiSharedService.GetIconButtonSize(FontAwesomeIcon.ExclamationTriangle).X + spacingX * 0.5f;
+        }
+
+        if (_charaDataManager.SharedWithYouData.TryGetValue(_pair.UserData, out var sharedData))
+        {
+            width += _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Running).X + spacingX * 0.5f;
+        }
+
+        return width;
+    }
+
     protected override void DrawLeftSide(float textPosY, float originalY)
     {
         var online = _pair.IsOnline;
@@ -110,7 +132,8 @@ public class DrawUserPair : DrawPairBase
         var barButtonSize = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Bars);
         var entryUID = _pair.UserData.AliasOrUID;
         var spacingX = ImGui.GetStyle().ItemSpacing.X;
-        var windowEndX = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth();
+        var edgePadding = ImGui.GetStyle().WindowPadding.X + 4f * ImGuiHelpers.GlobalScale;
+        var windowEndX = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - edgePadding;
         var rightSidePos = windowEndX - barButtonSize.X;
 
         // Flyout Menu

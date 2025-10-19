@@ -65,6 +65,16 @@ public class EditProfileUi : WindowMediatorSubscriberBase
 
     protected override void DrawInternal()
     {
+        DrawProfileContent();
+    }
+
+    public void DrawInline()
+    {
+        DrawProfileContent();
+    }
+
+    private void DrawProfileContent()
+    {
         _uiSharedService.BigText("Current Profile (as saved on server)");
         ImGuiHelpers.ScaledDummy(new Vector2(0f, ImGui.GetStyle().ItemSpacing.Y / 2));
 

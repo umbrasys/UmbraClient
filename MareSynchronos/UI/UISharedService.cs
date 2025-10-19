@@ -20,6 +20,7 @@ using MareSynchronos.Services.Mediator;
 using MareSynchronos.Services.ServerConfiguration;
 using MareSynchronos.WebAPI;
 using Microsoft.Extensions.Logging;
+using System;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -216,7 +217,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
     public static bool CtrlPressed() => (GetKeyState(0xA2) & 0x8000) != 0 || (GetKeyState(0xA3) & 0x8000) != 0;
 
-    public static void DrawGrouped(Action imguiDrawAction, float rounding = 5f, float? expectedWidth = null)
+    public static void DrawGrouped(Action imguiDrawAction, float rounding = 5f, float? expectedWidth = null, bool drawBorder = true)
     {
         var cursorPos = ImGui.GetCursorPos();
         using (ImRaii.Group())
@@ -230,10 +231,122 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             imguiDrawAction.Invoke();
         }
 
-        ImGui.GetWindowDrawList().AddRect(
-            ImGui.GetItemRectMin() - ImGui.GetStyle().ItemInnerSpacing,
-            ImGui.GetItemRectMax() + ImGui.GetStyle().ItemInnerSpacing,
-            Color(ImGuiColors.DalamudGrey2), rounding);
+        if (drawBorder)
+        {
+            ImGui.GetWindowDrawList().AddRect(
+                ImGui.GetItemRectMin() - ImGui.GetStyle().ItemInnerSpacing,
+                ImGui.GetItemRectMax() + ImGui.GetStyle().ItemInnerSpacing,
+                Color(ImGuiColors.DalamudGrey2), rounding);
+        }
+    }
+
+    public static void DrawCard(string id, Action draw, Vector2? padding = null, Vector4? background = null,
+        Vector4? border = null, float? rounding = null, bool stretchWidth = false)
+    {
+        var style = ImGui.GetStyle();
+        var padBase = style.FramePadding;
+        var pad = padding ?? new Vector2(
+            padBase.X + 4f * ImGuiHelpers.GlobalScale,
+            padBase.Y + 3f * ImGuiHelpers.GlobalScale);
+        var cardBg = background ?? new Vector4(0.08f, 0.08f, 0.10f, 0.94f);
+        var cardBorder = border ?? new Vector4(0f, 0f, 0f, 0.85f);
+        float cardRounding = rounding ?? Math.Max(style.FrameRounding, 8f * ImGuiHelpers.GlobalScale);
+        float borderThickness = Math.Max(1f, Math.Max(style.FrameBorderSize, 1f) * ImGuiHelpers.GlobalScale);
+        float borderInset = borderThickness;
+
+        var originalCursor = ImGui.GetCursorPos();
+        if (stretchWidth)
+        {
+            ImGui.SetCursorPosX(ImGui.GetWindowContentRegionMin().X);
+        }
+
+        var startCursor = ImGui.GetCursorPos();
+        var drawList = ImGui.GetWindowDrawList();
+        drawList.ChannelsSplit(2);
+        drawList.ChannelsSetCurrent(1);
+
+        ImGui.PushID(id);
+        ImGui.SetCursorPos(new Vector2(startCursor.X + pad.X, startCursor.Y + pad.Y));
+        ImGui.BeginGroup();
+        draw();
+        ImGui.EndGroup();
+        ImGui.PopID();
+
+        var contentMin = ImGui.GetItemRectMin();
+        var contentMax = ImGui.GetItemRectMax();
+        var cardMin = contentMin - pad;
+        var cardMax = contentMax + pad;
+        var outerMin = cardMin;
+        var outerMax = cardMax;
+
+        if (stretchWidth)
+        {
+            var windowPos = ImGui.GetWindowPos();
+            var regionMin = ImGui.GetWindowContentRegionMin();
+            var regionMax = ImGui.GetWindowContentRegionMax();
+            var scrollX = ImGui.GetScrollX();
+            cardMin.X = windowPos.X + regionMin.X + scrollX;
+            cardMax.X = windowPos.X + regionMax.X + scrollX;
+            outerMin.X = cardMin.X;
+            outerMax.X = cardMax.X;
+            startCursor.X = ImGui.GetWindowContentRegionMin().X;
+        }
+
+        var drawMin = new Vector2(cardMin.X + borderInset, cardMin.Y + borderInset);
+        var drawMax = new Vector2(cardMax.X - borderInset, cardMax.Y - borderInset);
+        var clipMin = drawList.GetClipRectMin();
+        var clipMax = drawList.GetClipRectMax();
+        var clipInset = new Vector2(borderThickness * 0.5f + 0.5f, borderThickness * 0.5f + 0.5f);
+        drawMin = Vector2.Max(drawMin, clipMin + clipInset);
+        drawMax = Vector2.Min(drawMax, clipMax - clipInset);
+        if (drawMax.X <= drawMin.X)
+        {
+            drawMax.X = drawMin.X + borderThickness;
+        }
+        if (drawMax.Y <= drawMin.Y)
+        {
+            drawMax.Y = drawMin.Y + borderThickness;
+        }
+
+        drawList.ChannelsSetCurrent(0);
+        drawList.AddRectFilled(drawMin, drawMax, ImGui.ColorConvertFloat4ToU32(cardBg), cardRounding);
+        if (cardBorder.W > 0f && borderThickness > 0f)
+        {
+            drawList.AddRect(drawMin, drawMax, ImGui.ColorConvertFloat4ToU32(cardBorder), cardRounding, ImDrawFlags.None, borderThickness);
+        }
+        drawList.ChannelsMerge();
+
+        ImGui.SetCursorPos(startCursor);
+        var dummyWidth = outerMax.X - outerMin.X;
+        var dummyHeight = outerMax.Y - outerMin.Y;
+        ImGui.Dummy(new Vector2(dummyWidth, dummyHeight));
+        ImGui.SetCursorPos(new Vector2(startCursor.X, startCursor.Y + dummyHeight));
+
+        if (!stretchWidth)
+        {
+            ImGui.SetCursorPosX(originalCursor.X);
+        }
+        else
+        {
+            ImGui.SetCursorPosX(startCursor.X);
+        }
+    }
+
+    public static bool DrawArrowToggle(ref bool state, string id)
+    {
+        var framePadding = ImGui.GetStyle().FramePadding;
+        ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(framePadding.X, framePadding.Y * 0.85f));
+        ImGui.PushStyleColor(ImGuiCol.Button, Vector4.Zero);
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(1f, 1f, 1f, 0.08f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(1f, 1f, 1f, 0.16f));
+        bool clicked = ImGui.ArrowButton(id, state ? ImGuiDir.Down : ImGuiDir.Right);
+        ImGui.PopStyleColor(3);
+        ImGui.PopStyleVar();
+        if (clicked)
+        {
+            state = !state;
+        }
+        return state;
     }
 
     public static void DrawGroupedCenteredColorText(string text, Vector4 color, float? maxWidth = null)

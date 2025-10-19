@@ -1,5 +1,8 @@
-﻿using Dalamud.Bindings.ImGui;
+﻿using System;
+using System.Numerics;
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
+using Dalamud.Interface.Utility;
 using MareSynchronos.PlayerData.Pairs;
 using MareSynchronos.UI.Handlers;
 using MareSynchronos.WebAPI;
@@ -28,35 +31,74 @@ public abstract class DrawPairBase
 
     public void DrawPairedClient()
     {
-        var originalY = ImGui.GetCursorPosY();
-        var pauseIconSize = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Play);
-        var textSize = ImGui.CalcTextSize(_pair.UserData.AliasOrUID);
+        var style = ImGui.GetStyle();
+        var padding = style.FramePadding;
+        var spacing = style.ItemSpacing;
+        var rowStartCursor = ImGui.GetCursorPos();
+        var rowStartScreen = ImGui.GetCursorScreenPos();
 
-        var startPos = ImGui.GetCursorStartPos();
+        var pauseButtonSize = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Pause);
+        var playButtonSize = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Play);
+        var menuButtonSize = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Bars);
 
-        var framePadding = ImGui.GetStyle().FramePadding;
-        var lineHeight = textSize.Y + framePadding.Y * 2;
+        float pauseClusterWidth = Math.Max(pauseButtonSize.X, playButtonSize.X);
+        float pauseClusterHeight = Math.Max(pauseButtonSize.Y, playButtonSize.Y);
+        float reservedSpacing = style.ItemSpacing.X * 2.4f;
+        float rightButtonWidth =
+            menuButtonSize.X +
+            pauseClusterWidth +
+            reservedSpacing +
+            GetRightSideExtraWidth();
 
-        var off = startPos.Y;
-        var height = UiSharedService.GetWindowContentRegionHeight();
+        float availableWidth = Math.Max(ImGui.GetContentRegionAvail().X - rightButtonWidth, 1f);
+        float textHeight = ImGui.GetFontSize();
+        var presenceIconSize = UiSharedService.GetIconSize(FontAwesomeIcon.Moon);
+        float iconHeight = presenceIconSize.Y;
+        float contentHeight = Math.Max(textHeight, Math.Max(iconHeight, pauseClusterHeight));
+        float rowHeight = contentHeight + padding.Y * 2f;
+        float totalHeight = rowHeight + spacing.Y;
 
-        if ((originalY + off) < -lineHeight || (originalY + off) > height)
+        var origin = ImGui.GetCursorStartPos();
+        var top = origin.Y + rowStartCursor.Y;
+        var bottom = top + totalHeight;
+        var visibleHeight = UiSharedService.GetWindowContentRegionHeight();
+        if (bottom < 0 || top > visibleHeight)
         {
-            ImGui.Dummy(new System.Numerics.Vector2(0f, lineHeight));
+            ImGui.SetCursorPos(new Vector2(rowStartCursor.X, rowStartCursor.Y + totalHeight));
             return;
         }
 
-        var textPosY = originalY + pauseIconSize.Y / 2 - textSize.Y / 2;
-        DrawLeftSide(textPosY, originalY);
+        var drawList = ImGui.GetWindowDrawList();
+        var backgroundColor = new Vector4(0.10f, 0.10f, 0.14f, 0.95f);
+        var borderColor = new Vector4(0f, 0f, 0f, 0.9f);
+        float rounding = Math.Max(style.FrameRounding, 7f * ImGuiHelpers.GlobalScale);
+
+        var panelMin = rowStartScreen + new Vector2(0f, spacing.Y * 0.15f);
+        var panelMax = panelMin + new Vector2(availableWidth, rowHeight - spacing.Y * 0.3f);
+        drawList.AddRectFilled(panelMin, panelMax, ImGui.ColorConvertFloat4ToU32(backgroundColor), rounding);
+        drawList.AddRect(panelMin, panelMax, ImGui.ColorConvertFloat4ToU32(borderColor), rounding);
+
+        float iconTop = rowStartCursor.Y + (rowHeight - iconHeight) / 2f;
+        float textTop = rowStartCursor.Y + (rowHeight - textHeight) / 2f - padding.Y * 0.6f;
+        float buttonTop = rowStartCursor.Y + (rowHeight - pauseClusterHeight) / 2f;
+
+        ImGui.SetCursorPos(new Vector2(rowStartCursor.X + padding.X, iconTop));
+        DrawLeftSide(iconTop, iconTop);
         ImGui.SameLine();
+        ImGui.SetCursorPosY(textTop);
         var posX = ImGui.GetCursorPosX();
-        var rightSide = DrawRightSide(textPosY, originalY);
-        DrawName(originalY, posX, rightSide);
+        var rightSide = DrawRightSide(buttonTop, buttonTop);
+        DrawName(textTop + padding.Y * 0.15f, posX, rightSide);
+
+        ImGui.SetCursorPos(new Vector2(rowStartCursor.X, rowStartCursor.Y + totalHeight));
+        ImGui.SetCursorPosX(rowStartCursor.X);
     }
 
     protected abstract void DrawLeftSide(float textPosY, float originalY);
 
     protected abstract float DrawRightSide(float textPosY, float originalY);
+
+    protected virtual float GetRightSideExtraWidth() => 0f;
 
     private void DrawName(float originalY, float leftSide, float rightSide)
     {

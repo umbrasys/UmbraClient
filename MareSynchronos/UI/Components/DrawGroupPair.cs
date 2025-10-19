@@ -45,6 +45,43 @@ public class DrawGroupPair : DrawPairBase
         _serverConfigurationManager = serverConfigurationManager;
     }
 
+    protected override float GetRightSideExtraWidth()
+    {
+        float width = 0f;
+        float spacing = ImGui.GetStyle().ItemSpacing.X;
+
+        var soundsDisabled = _fullInfoDto.GroupUserPermissions.IsDisableSounds();
+        var animDisabled = _fullInfoDto.GroupUserPermissions.IsDisableAnimations();
+        var vfxDisabled = _fullInfoDto.GroupUserPermissions.IsDisableVFX();
+        var individualSoundsDisabled = (_pair.UserPair?.OwnPermissions.IsDisableSounds() ?? false) || (_pair.UserPair?.OtherPermissions.IsDisableSounds() ?? false);
+        var individualAnimDisabled = (_pair.UserPair?.OwnPermissions.IsDisableAnimations() ?? false) || (_pair.UserPair?.OtherPermissions.IsDisableAnimations() ?? false);
+        var individualVFXDisabled = (_pair.UserPair?.OwnPermissions.IsDisableVFX() ?? false) || (_pair.UserPair?.OtherPermissions.IsDisableVFX() ?? false);
+
+        bool showInfo = individualAnimDisabled || individualSoundsDisabled || individualVFXDisabled || animDisabled || soundsDisabled || vfxDisabled;
+        bool showShared = _charaDataManager.SharedWithYouData.TryGetValue(_pair.UserData, out var sharedData);
+        bool showPlus = _pair.UserPair == null && _pair.IsOnline;
+
+        if (showShared)
+        {
+            width += _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Running).X + spacing;
+        }
+
+        if (showInfo)
+        {
+            var icon = (individualAnimDisabled || individualSoundsDisabled || individualVFXDisabled)
+                ? FontAwesomeIcon.ExclamationTriangle
+                : FontAwesomeIcon.InfoCircle;
+            width += UiSharedService.GetIconSize(icon).X + spacing;
+        }
+
+        if (showPlus)
+        {
+            width += _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Plus).X + spacing;
+        }
+
+        return width;
+    }
+
     protected override void DrawLeftSide(float textPosY, float originalY)
     {
         var entryUID = _pair.UserData.AliasOrUID;

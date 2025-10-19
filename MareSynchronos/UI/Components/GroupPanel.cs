@@ -313,19 +313,20 @@ internal sealed class GroupPanel
         int shellNumber = _serverConfigurationManager.GetShellNumberForGid(groupDto.GID);
 
         var name = groupDto.Group.Alias ?? groupDto.GID;
-        if (!_expandedGroupState.TryGetValue(groupDto.GID, out bool isExpanded))
+        if (!_expandedGroupState.ContainsKey(groupDto.GID))
         {
-            isExpanded = false;
-            _expandedGroupState.Add(groupDto.GID, isExpanded);
+            _expandedGroupState[groupDto.GID] = false;
         }
 
-        var icon = isExpanded ? FontAwesomeIcon.CaretSquareDown : FontAwesomeIcon.CaretSquareRight;
-        _uiShared.IconText(icon);
-        if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
+        UiSharedService.DrawCard($"syncshell-card-{groupDto.GID}", () =>
         {
-            _expandedGroupState[groupDto.GID] = !_expandedGroupState[groupDto.GID];
+        bool expandedState = _expandedGroupState[groupDto.GID];
+        UiSharedService.DrawArrowToggle(ref expandedState, $"##syncshell-toggle-{groupDto.GID}");
+        if (expandedState != _expandedGroupState[groupDto.GID])
+        {
+            _expandedGroupState[groupDto.GID] = expandedState;
         }
-        ImGui.SameLine();
+        ImGui.SameLine(0f, 6f * ImGuiHelpers.GlobalScale);
 
         var textIsGid = true;
         string groupName = groupDto.GroupAliasOrGID;
@@ -547,7 +548,7 @@ internal sealed class GroupPanel
         bool hideOfflineUsers = pairsInGroup.Count > 1000;
 
         ImGui.Indent(20);
-        if (_expandedGroupState[groupDto.GID])
+        if (expandedState)
         {
             var sortedPairs = pairsInGroup
                 .OrderByDescending(u => string.Equals(u.UserData.UID, groupDto.OwnerUID, StringComparison.Ordinal))
@@ -614,6 +615,9 @@ internal sealed class GroupPanel
             ImGui.Separator();
         }
         ImGui.Unindent(20);
+        }, background: new Vector4(0.15f, 0.15f, 0.20f, 0.94f), border: new Vector4(0f, 0f, 0f, 0.78f), stretchWidth: true);
+
+        ImGuiHelpers.ScaledDummy(4f);
     }
 
     private void DrawSyncShellButtons(GroupFullInfoDto groupDto, List<Pair> groupPairs)
@@ -828,9 +832,22 @@ internal sealed class GroupPanel
 
     private void DrawSyncshellList()
     {
-        var ySize = _mainUi.TransferPartHeight == 0
-            ? 1
-            : (ImGui.GetWindowContentRegionMax().Y - ImGui.GetWindowContentRegionMin().Y) - _mainUi.TransferPartHeight - ImGui.GetCursorPosY();
+        float availableHeight = ImGui.GetContentRegionAvail().Y;
+        float ySize;
+        if (_mainUi.TransferPartHeight <= 0)
+        {
+            float reserve = ImGui.GetFrameHeightWithSpacing() * 2f;
+            ySize = availableHeight - reserve;
+            if (ySize <= 0)
+            {
+                ySize = System.Math.Max(availableHeight, 1f);
+            }
+        }
+        else
+        {
+            ySize = (ImGui.GetWindowContentRegionMax().Y - ImGui.GetWindowContentRegionMin().Y) - _mainUi.TransferPartHeight - ImGui.GetCursorPosY();
+        }
+
         ImGui.BeginChild("list", new Vector2(_mainUi.WindowContentWidth, ySize), border: false);
         foreach (var entry in _pairManager.GroupPairs.OrderBy(g => g.Key.Group.AliasOrGID, StringComparer.OrdinalIgnoreCase).ToList())
         {

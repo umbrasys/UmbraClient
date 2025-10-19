@@ -182,17 +182,22 @@ public sealed class Plugin : IDalamudPlugin
             // add scoped services
             collection.AddScoped<CacheMonitor>();
             collection.AddScoped<UiFactory>();
-            collection.AddScoped<WindowMediatorSubscriberBase, SettingsUi>();
-            collection.AddScoped<WindowMediatorSubscriberBase, CompactUi>();
+            collection.AddScoped<SettingsUi>();
+            collection.AddScoped<CompactUi>();
+            collection.AddScoped<EditProfileUi>();
+            collection.AddScoped<DataAnalysisUi>();
+            collection.AddScoped<AutoDetectUi>();
+            collection.AddScoped<WindowMediatorSubscriberBase>(sp => sp.GetRequiredService<SettingsUi>());
+            collection.AddScoped<WindowMediatorSubscriberBase>(sp => sp.GetRequiredService<CompactUi>());
             collection.AddScoped<WindowMediatorSubscriberBase, IntroUi>();
             collection.AddScoped<WindowMediatorSubscriberBase, DownloadUi>();
-            collection.AddScoped<WindowMediatorSubscriberBase, AutoDetectUi>();
+            collection.AddScoped<WindowMediatorSubscriberBase>(sp => sp.GetRequiredService<AutoDetectUi>());
             collection.AddScoped<WindowMediatorSubscriberBase, ChangelogUi>();
             collection.AddScoped<WindowMediatorSubscriberBase, PopoutProfileUi>();
-            collection.AddScoped<WindowMediatorSubscriberBase, DataAnalysisUi>();
+            collection.AddScoped<WindowMediatorSubscriberBase>(sp => sp.GetRequiredService<DataAnalysisUi>());
             collection.AddScoped<WindowMediatorSubscriberBase, EventViewerUI>();
             collection.AddScoped<WindowMediatorSubscriberBase, CharaDataHubUi>();
-            collection.AddScoped<WindowMediatorSubscriberBase, EditProfileUi>();
+            collection.AddScoped<WindowMediatorSubscriberBase>(sp => sp.GetRequiredService<EditProfileUi>());
             collection.AddScoped<WindowMediatorSubscriberBase, PopupHandler>();
             collection.AddScoped<WindowMediatorSubscriberBase, TypingIndicatorOverlay>();
             collection.AddScoped<IPopupHandler, ReportPopupHandler>();

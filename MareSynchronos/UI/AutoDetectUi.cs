@@ -90,6 +90,11 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
         }
     }
 
+    public void DrawInline()
+    {
+        DrawInternal();
+    }
+
     private static void DrawStyledTab(string label, Vector4 accent, Vector4 inactive, Vector4 hover, Action draw, bool disabled = false)
     {
         var tabColor = disabled ? ImGuiColors.DalamudGrey3 : inactive;

@@ -1,10 +1,14 @@
 ﻿using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
+using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using MareSynchronos.API.Data.Extensions;
 using MareSynchronos.MareConfiguration;
 using MareSynchronos.UI.Handlers;
 using MareSynchronos.WebAPI;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace MareSynchronos.UI.Components;
 
@@ -28,7 +32,7 @@ public class PairGroupsUi
         _uiSharedService = uiSharedService;
     }
 
-    public void Draw<T>(List<T> visibleUsers, List<T> onlineUsers, List<T> offlineUsers) where T : DrawPairBase
+    public void Draw<T>(List<T> visibleUsers, List<T> onlineUsers, List<T> offlineUsers, Action? drawVisibleExtras = null) where T : DrawPairBase
     {
         // Only render those tags that actually have pairs in them, otherwise
         // we can end up with a bunch of useless pair groups
@@ -36,7 +40,7 @@ public class PairGroupsUi
         var allUsers = onlineUsers.Concat(offlineUsers).ToList();
         if (typeof(T) == typeof(DrawUserPair))
         {
-            DrawUserPairs(tagsWithPairsInThem, allUsers.Cast<DrawUserPair>().ToList(), visibleUsers.Cast<DrawUserPair>(), onlineUsers.Cast<DrawUserPair>(), offlineUsers.Cast<DrawUserPair>());
+            DrawUserPairs(tagsWithPairsInThem, allUsers.Cast<DrawUserPair>().ToList(), visibleUsers.Cast<DrawUserPair>(), onlineUsers.Cast<DrawUserPair>(), offlineUsers.Cast<DrawUserPair>(), drawVisibleExtras);
         }
     }
 
@@ -44,14 +48,15 @@ public class PairGroupsUi
     {
         var allArePaused = availablePairsInThisTag.All(pair => pair.UserPair!.OwnPermissions.IsPaused());
         var pauseButton = allArePaused ? FontAwesomeIcon.Play : FontAwesomeIcon.Pause;
-        var flyoutMenuX = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Bars).X;
-        var pauseButtonX = _uiSharedService.GetIconButtonSize(pauseButton).X;
-        var windowX = ImGui.GetWindowContentRegionMin().X;
-        var windowWidth = UiSharedService.GetWindowContentRegionWidth();
+        var flyoutMenuSize = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Bars);
+        var pauseButtonSize = _uiSharedService.GetIconButtonSize(pauseButton);
         var spacingX = ImGui.GetStyle().ItemSpacing.X;
+        var currentX = ImGui.GetCursorPosX();
+        var availableWidth = ImGui.GetContentRegionAvail().X;
+        var buttonsWidth = pauseButtonSize.X + flyoutMenuSize.X + spacingX;
+        var pauseStart = Math.Max(currentX, currentX + availableWidth - buttonsWidth);
 
-        var buttonPauseOffset = windowX + windowWidth - flyoutMenuX - spacingX - pauseButtonX;
-        ImGui.SameLine(buttonPauseOffset);
+        ImGui.SameLine(pauseStart);
         if (_uiSharedService.IconButton(pauseButton))
         {
             if (allArePaused)
@@ -72,8 +77,8 @@ public class PairGroupsUi
             UiSharedService.AttachToolTip($"Pause pairing with all pairs in {tag}");
         }
 
-        var buttonDeleteOffset = windowX + windowWidth - flyoutMenuX;
-        ImGui.SameLine(buttonDeleteOffset);
+        var menuStart = Math.Max(pauseStart + pauseButtonSize.X + spacingX, currentX);
+        ImGui.SameLine(menuStart);
         if (_uiSharedService.IconButton(FontAwesomeIcon.Bars))
         {
             ImGui.OpenPopup("Group Flyout Menu");
@@ -86,7 +91,7 @@ public class PairGroupsUi
         }
     }
 
-    private void DrawCategory(string tag, IEnumerable<DrawPairBase> onlineUsers, IEnumerable<DrawPairBase> allUsers, IEnumerable<DrawPairBase>? visibleUsers = null)
+    private void DrawCategory(string tag, IEnumerable<DrawPairBase> onlineUsers, IEnumerable<DrawPairBase> allUsers, IEnumerable<DrawPairBase>? visibleUsers = null, Action? drawExtraContent = null)
     {
         IEnumerable<DrawPairBase> usersInThisTag;
         HashSet<string>? otherUidsTaggedWithTag = null;
@@ -108,26 +113,25 @@ public class PairGroupsUi
 
         if (isSpecialTag && !usersInThisTag.Any()) return;
 
-        DrawName(tag, isSpecialTag, visibleInThisTag, usersInThisTag.Count(), otherUidsTaggedWithTag?.Count);
-        if (!isSpecialTag)
+        UiSharedService.DrawCard($"pair-group-{tag}", () =>
         {
-            using (ImRaii.PushId($"group-{tag}-buttons")) DrawButtons(tag, allUsers.Cast<DrawUserPair>().Where(p => otherUidsTaggedWithTag!.Contains(p.UID)).ToList());
-        }
-        else
-        {
-            if (!_tagHandler.IsTagOpen(tag))
+            DrawName(tag, isSpecialTag, visibleInThisTag, usersInThisTag.Count(), otherUidsTaggedWithTag?.Count);
+            if (!isSpecialTag)
             {
-                var size = ImGui.CalcTextSize("").Y + ImGui.GetStyle().FramePadding.Y * 2f;
-                ImGui.SameLine();
-                ImGui.Dummy(new(size, size));
+                using (ImRaii.PushId($"group-{tag}-buttons")) DrawButtons(tag, allUsers.Cast<DrawUserPair>().Where(p => otherUidsTaggedWithTag!.Contains(p.UID)).ToList());
             }
-        }
 
-        if (!_tagHandler.IsTagOpen(tag)) return;
+            if (!_tagHandler.IsTagOpen(tag)) return;
 
-        ImGui.Indent(20);
-        DrawPairs(tag, usersInThisTag);
-        ImGui.Unindent(20);
+            ImGuiHelpers.ScaledDummy(4f);
+            var indent = 18f * ImGuiHelpers.GlobalScale;
+            ImGui.Indent(indent);
+            DrawPairs(tag, usersInThisTag);
+            drawExtraContent?.Invoke();
+            ImGui.Unindent(indent);
+        }, stretchWidth: true);
+
+        ImGuiHelpers.ScaledDummy(4f);
     }
 
     private void DrawGroupMenu(string tag)
@@ -157,17 +161,21 @@ public class PairGroupsUi
         };
 
         string resultFolderName = !isSpecialTag ? $"{displayedName} ({visible}/{online}/{total} Pairs)" : $"{displayedName} ({online} Pairs)";
-        var icon = _tagHandler.IsTagOpen(tag) ? FontAwesomeIcon.CaretSquareDown : FontAwesomeIcon.CaretSquareRight;
-        _uiSharedService.IconText(icon);
-        if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
+        bool isOpen = _tagHandler.IsTagOpen(tag);
+        bool previousState = isOpen;
+        UiSharedService.DrawArrowToggle(ref isOpen, $"##group-toggle-{tag}");
+        if (isOpen != previousState)
         {
-            ToggleTagOpen(tag);
+            _tagHandler.SetTagOpen(tag, isOpen);
         }
-        ImGui.SameLine();
+        ImGui.SameLine(0f, 6f * ImGuiHelpers.GlobalScale);
+        ImGui.AlignTextToFramePadding();
         ImGui.TextUnformatted(resultFolderName);
         if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
         {
-            ToggleTagOpen(tag);
+            bool newState = !_tagHandler.IsTagOpen(tag);
+            _tagHandler.SetTagOpen(tag, newState);
+            isOpen = newState;
         }
 
         if (!isSpecialTag && ImGui.IsItemHovered())
@@ -186,14 +194,13 @@ public class PairGroupsUi
     {
         // These are all the OtherUIDs that are tagged with this tag
         _uidDisplayHandler.RenderPairList(availablePairsInThisCategory);
-        ImGui.Separator();
     }
 
-    private void DrawUserPairs(List<string> tagsWithPairsInThem, List<DrawUserPair> allUsers, IEnumerable<DrawUserPair> visibleUsers, IEnumerable<DrawUserPair> onlineUsers, IEnumerable<DrawUserPair> offlineUsers)
+    private void DrawUserPairs(List<string> tagsWithPairsInThem, List<DrawUserPair> allUsers, IEnumerable<DrawUserPair> visibleUsers, IEnumerable<DrawUserPair> onlineUsers, IEnumerable<DrawUserPair> offlineUsers, Action? drawVisibleExtras)
     {
         if (_mareConfig.Current.ShowVisibleUsersSeparately)
         {
-            using (ImRaii.PushId("$group-VisibleCustomTag")) DrawCategory(TagHandler.CustomVisibleTag, visibleUsers, allUsers);
+            using (ImRaii.PushId("$group-VisibleCustomTag")) DrawCategory(TagHandler.CustomVisibleTag, visibleUsers, allUsers, drawExtraContent: drawVisibleExtras);
         }
         foreach (var tag in tagsWithPairsInThem)
         {

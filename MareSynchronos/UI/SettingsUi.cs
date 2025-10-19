@@ -131,6 +131,11 @@ public class SettingsUi : WindowMediatorSubscriberBase
         DrawSettingsContent();
     }
 
+    public void DrawInline()
+    {
+        DrawSettingsContent();
+    }
+
     public override void OnClose()
     {
         _uiShared.EditTrackerPosition = false;
@@ -1002,7 +1007,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
         _lastTab = "General";
 
-        _uiShared.BigText("Notes");
+                _uiShared.BigText("Notes");
         if (_uiShared.IconTextButton(FontAwesomeIcon.StickyNote, "Export all your user notes to clipboard"))
         {
             ImGui.SetClipboardText(UiSharedService.GetNotes(_pairManager.DirectPairs.UnionBy(_pairManager.GroupPairs.SelectMany(p => p.Value), p => p.UserData, UserDataComparer.Instance).ToList()));
