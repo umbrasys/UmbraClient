@@ -249,9 +249,4 @@ public class PairGroupsUi
         }
     }
 
-    private void ToggleTagOpen(string tag)
-    {
-        bool open = !_tagHandler.IsTagOpen(tag);
-        _tagHandler.SetTagOpen(tag, open);
-    }
 }

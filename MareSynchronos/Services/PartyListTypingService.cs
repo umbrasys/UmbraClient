@@ -21,7 +21,6 @@ public class PartyListTypingService : DisposableMediatorSubscriberBase
     private readonly PairManager _pairManager;
     private readonly TypingIndicatorStateService _typingStateService;
     private static readonly TimeSpan TypingDisplayTime = TimeSpan.FromSeconds(2);
-    private static readonly TimeSpan TypingDisplayDelay = TimeSpan.FromMilliseconds(500);
     private static readonly TimeSpan TypingDisplayFade = TypingDisplayTime;
 
     public PartyListTypingService(ILogger<PartyListTypingService> logger,

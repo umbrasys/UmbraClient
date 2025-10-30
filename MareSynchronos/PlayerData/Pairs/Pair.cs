@@ -270,6 +270,20 @@ public class Pair : DisposableMediatorSubscriberBase
         }
     }
 
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+        try
+        {
+            _applicationCts.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+
+        _applicationCts.Dispose();
+    }
+
     public void SetNote(string note)
     {
         _serverConfigurationManager.SetNoteForUid(UserData.UID, note);

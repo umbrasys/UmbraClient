@@ -1,4 +1,5 @@
-﻿using MareSynchronos.API.Data;
+﻿using System;
+using MareSynchronos.API.Data;
 using MareSynchronos.API.Data.Enum;
 using MareSynchronos.FileCache;
 using MareSynchronos.PlayerData.Pairs;
@@ -14,7 +15,7 @@ public sealed class PairAnalyzer : DisposableMediatorSubscriberBase
     private readonly FileCacheManager _fileCacheManager;
     private readonly XivDataAnalyzer _xivDataAnalyzer;
     private CancellationTokenSource? _analysisCts;
-    private CancellationTokenSource _baseAnalysisCts = new();
+    private CancellationTokenSource? _baseAnalysisCts = new();
     private string _lastDataHash = string.Empty;
 
     public PairAnalyzer(ILogger<PairAnalyzer> logger, Pair pair, MareMediator mediator, FileCacheManager fileCacheManager, XivDataAnalyzer modelAnalyzer)
@@ -24,8 +25,8 @@ public sealed class PairAnalyzer : DisposableMediatorSubscriberBase
 #if DEBUG
         Mediator.SubscribeKeyed<PairDataAppliedMessage>(this, pair.UserData.UID, (msg) =>
         {
-            _baseAnalysisCts = _baseAnalysisCts.CancelRecreate();
-            var token = _baseAnalysisCts.Token;
+            var tokenSource = EnsureFreshCts(ref _baseAnalysisCts);
+            var token = tokenSource.Token;
             if (msg.CharacterData != null)
             {
                 _ = BaseAnalysis(msg.CharacterData, token);
@@ -56,17 +57,15 @@ public sealed class PairAnalyzer : DisposableMediatorSubscriberBase
 
     public void CancelAnalyze()
     {
-        _analysisCts?.CancelDispose();
-        _analysisCts = null;
+        CancelAndDispose(ref _analysisCts);
     }
 
     public async Task ComputeAnalysis(bool print = true, bool recalculate = false)
     {
         Logger.LogDebug("=== Calculating Character Analysis ===");
 
-        _analysisCts = _analysisCts?.CancelRecreate() ?? new();
-
-        var cancelToken = _analysisCts.Token;
+        var analysisCts = EnsureFreshCts(ref _analysisCts);
+        var cancelToken = analysisCts.Token;
 
         var allFiles = LastAnalysis.SelectMany(v => v.Value.Select(d => d.Value)).ToList();
         if (allFiles.Exists(c => !c.IsComputed || recalculate))
@@ -102,8 +101,7 @@ public sealed class PairAnalyzer : DisposableMediatorSubscriberBase
         LastPlayerName = Pair.PlayerName ?? string.Empty;
         Mediator.Publish(new PairDataAnalyzedMessage(Pair.UserData.UID));
 
-        _analysisCts.CancelDispose();
-        _analysisCts = null;
+        CancelAndDispose(ref _analysisCts);
 
         if (print) PrintAnalysis();
     }
@@ -114,8 +112,8 @@ public sealed class PairAnalyzer : DisposableMediatorSubscriberBase
 
         if (!disposing) return;
 
-        _analysisCts?.CancelDispose();
-        _baseAnalysisCts.CancelDispose();
+        CancelAndDispose(ref _analysisCts);
+        CancelAndDispose(ref _baseAnalysisCts);
     }
 
     private async Task BaseAnalysis(CharacterData charaData, CancellationToken token)
@@ -210,5 +208,27 @@ public sealed class PairAnalyzer : DisposableMediatorSubscriberBase
             LastAnalysis.Values.Sum(v => v.Values.Count),
             UiSharedService.ByteToString(LastAnalysis.Values.Sum(c => c.Values.Sum(v => v.OriginalSize))),
             UiSharedService.ByteToString(LastAnalysis.Values.Sum(c => c.Values.Sum(v => v.CompressedSize))));
+    }
+
+    private static CancellationTokenSource EnsureFreshCts(ref CancellationTokenSource? cts)
+    {
+        CancelAndDispose(ref cts);
+        cts = new CancellationTokenSource();
+        return cts;
+    }
+
+    private static void CancelAndDispose(ref CancellationTokenSource? cts)
+    {
+        if (cts == null) return;
+        try
+        {
+            cts.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+
+        cts.Dispose();
+        cts = null;
     }
 }

@@ -7,7 +7,7 @@ using System.Text;
 
 namespace MareSynchronos.Services.Mediator;
 
-public sealed class MareMediator : IHostedService
+public sealed class MareMediator : IHostedService, IDisposable
 {
     private readonly Lock _addRemoveLock = new();
     private readonly ConcurrentDictionary<SubscriberAction, DateTime> _lastErrorTime = [];
@@ -107,6 +107,12 @@ public sealed class MareMediator : IHostedService
 
             _logger.LogTrace("Subscriber added for message {message}: {sub}", typeof(T).Name, subscriber.GetType().Name);
         }
+    }
+
+    public void Dispose()
+    {
+        _loopCts.Cancel();
+        _loopCts.Dispose();
     }
 
     public void SubscribeKeyed<T>(IMediatorSubscriber subscriber, string key, Action<T> action) where T : MessageBase

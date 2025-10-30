@@ -17,7 +17,6 @@ public class DiscoveryConfigProvider
     private readonly TokenProvider _tokenProvider;
 
     private WellKnownRoot? _config;
-    private DateTimeOffset _lastLoad = DateTimeOffset.MinValue;
 
     public DiscoveryConfigProvider(ILogger<DiscoveryConfigProvider> logger, ServerConfigurationManager serverManager, TokenProvider tokenProvider)
     {
@@ -51,7 +50,6 @@ public class DiscoveryConfigProvider
 
             root.NearbyDiscovery?.Hydrate();
             _config = root;
-            _lastLoad = DateTimeOffset.UtcNow;
             _logger.LogDebug("Loaded Nearby well-known (stapled), enabled={enabled}, expires={exp}", NearbyEnabled, _config?.NearbyDiscovery?.SaltExpiresAt);
             return true;
         }
@@ -97,7 +95,6 @@ public class DiscoveryConfigProvider
 
                     root.NearbyDiscovery?.Hydrate();
                     _config = root;
-                    _lastLoad = DateTimeOffset.UtcNow;
                     _logger.LogInformation("Loaded Nearby well-known (http {path}), enabled={enabled}", path, NearbyEnabled);
                     return true;
                 }

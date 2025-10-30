@@ -16,25 +16,22 @@ namespace MareSynchronos.UI;
 public class PopoutProfileUi : WindowMediatorSubscriberBase
 {
     private readonly MareProfileManager _mareProfileManager;
-    private readonly PairManager _pairManager;
     private readonly ServerConfigurationManager _serverManager;
     private readonly UiSharedService _uiSharedService;
     private Vector2 _lastMainPos = Vector2.Zero;
     private Vector2 _lastMainSize = Vector2.Zero;
     private byte[] _lastProfilePicture = [];
-    private byte[] _lastSupporterPicture = [];
     private Pair? _pair;
     private IDalamudTextureWrap? _supporterTextureWrap;
     private IDalamudTextureWrap? _textureWrap;
 
     public PopoutProfileUi(ILogger<PopoutProfileUi> logger, MareMediator mediator, UiSharedService uiSharedService,
         ServerConfigurationManager serverManager, MareConfigService mareConfigService,
-        MareProfileManager mareProfileManager, PairManager pairManager, PerformanceCollectorService performanceCollectorService) : base(logger, mediator, "###UmbraSyncPopoutProfileUI", performanceCollectorService)
+        MareProfileManager mareProfileManager, PerformanceCollectorService performanceCollectorService) : base(logger, mediator, "###UmbraSyncPopoutProfileUI", performanceCollectorService)
     {
         _uiSharedService = uiSharedService;
         _serverManager = serverManager;
         _mareProfileManager = mareProfileManager;
-        _pairManager = pairManager;
         Flags = ImGuiWindowFlags.NoDecoration;
 
         Mediator.Subscribe<ProfilePopoutToggle>(this, (msg) =>
@@ -42,7 +39,6 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
             IsOpen = msg.Pair != null;
             _pair = msg.Pair;
             _lastProfilePicture = [];
-            _lastSupporterPicture = [];
             _textureWrap?.Dispose();
             _textureWrap = null;
             _supporterTextureWrap?.Dispose();

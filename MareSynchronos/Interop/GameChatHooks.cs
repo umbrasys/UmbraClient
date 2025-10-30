@@ -17,8 +17,8 @@ namespace MareSynchronos.Interop;
 
 public record ChatChannelOverride
 {
-    public string ChannelName = string.Empty;
-    public Action<byte[]>? ChatMessageHandler;
+    public string ChannelName { get; set; } = string.Empty;
+    public Action<byte[]>? ChatMessageHandler { get; set; }
 }
 
 public unsafe sealed class GameChatHooks : IDisposable

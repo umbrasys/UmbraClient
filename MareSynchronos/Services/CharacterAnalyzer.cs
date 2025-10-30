@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 using Lumina.Data.Files;
 using MareSynchronos.API.Data;
 using MareSynchronos.API.Data.Enum;
@@ -16,7 +17,7 @@ public sealed class CharacterAnalyzer : DisposableMediatorSubscriberBase
     private readonly FileCacheManager _fileCacheManager;
     private readonly XivDataAnalyzer _xivDataAnalyzer;
     private CancellationTokenSource? _analysisCts;
-    private CancellationTokenSource _baseAnalysisCts = new();
+    private CancellationTokenSource? _baseAnalysisCts = new();
     private string _lastDataHash = string.Empty;
     private CharacterAnalysisSummary _previousSummary = CharacterAnalysisSummary.Empty;
     private DateTime _lastAutoAnalysis = DateTime.MinValue;
@@ -34,8 +35,8 @@ public sealed class CharacterAnalyzer : DisposableMediatorSubscriberBase
     {
         Mediator.Subscribe<CharacterDataCreatedMessage>(this, (msg) =>
         {
-            _baseAnalysisCts = _baseAnalysisCts.CancelRecreate();
-            var token = _baseAnalysisCts.Token;
+            var tokenSource = EnsureFreshCts(ref _baseAnalysisCts);
+            var token = tokenSource.Token;
             _ = BaseAnalysis(msg.CharacterData, token);
         });
         _fileCacheManager = fileCacheManager;
@@ -51,17 +52,15 @@ public sealed class CharacterAnalyzer : DisposableMediatorSubscriberBase
 
     public void CancelAnalyze()
     {
-        _analysisCts?.CancelDispose();
-        _analysisCts = null;
+        CancelAndDispose(ref _analysisCts);
     }
 
     public async Task ComputeAnalysis(bool print = true, bool recalculate = false)
     {
         Logger.LogDebug("=== Calculating Character Analysis ===");
 
-        _analysisCts = _analysisCts?.CancelRecreate() ?? new();
-
-        var cancelToken = _analysisCts.Token;
+        var analysisCts = EnsureFreshCts(ref _analysisCts);
+        var cancelToken = analysisCts.Token;
 
         var allFiles = LastAnalysis.SelectMany(v => v.Value.Select(d => d.Value)).ToList();
         if (allFiles.Exists(c => !c.IsComputed || recalculate))
@@ -103,8 +102,7 @@ public sealed class CharacterAnalyzer : DisposableMediatorSubscriberBase
             LastCompletedAnalysis = DateTime.UtcNow;
         }
 
-        _analysisCts.CancelDispose();
-        _analysisCts = null;
+        CancelAndDispose(ref _analysisCts);
 
         if (print) PrintAnalysis();
     }
@@ -115,8 +113,8 @@ public sealed class CharacterAnalyzer : DisposableMediatorSubscriberBase
 
         if (!disposing) return;
 
-        _analysisCts?.CancelDispose();
-        _baseAnalysisCts.CancelDispose();
+        CancelAndDispose(ref _analysisCts);
+        CancelAndDispose(ref _baseAnalysisCts);
     }
 
     private async Task BaseAnalysis(CharacterData charaData, CancellationToken token)
@@ -366,6 +364,7 @@ public sealed class CharacterAnalyzer : DisposableMediatorSubscriberBase
         }
     }
 
+    [StructLayout(LayoutKind.Auto)]
     public readonly record struct CharacterAnalysisSummary(int TotalFiles, long TotalOriginalSize, long TotalCompressedSize, long TotalTriangles, bool HasUncomputedEntries)
     {
         public static CharacterAnalysisSummary Empty => new();
@@ -417,5 +416,27 @@ public sealed class CharacterAnalyzer : DisposableMediatorSubscriberBase
                     return string.Empty;
             }
         });
+    }
+
+    private static CancellationTokenSource EnsureFreshCts(ref CancellationTokenSource? cts)
+    {
+        CancelAndDispose(ref cts);
+        cts = new CancellationTokenSource();
+        return cts;
+    }
+
+    private static void CancelAndDispose(ref CancellationTokenSource? cts)
+    {
+        if (cts == null) return;
+        try
+        {
+            cts.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+
+        cts.Dispose();
+        cts = null;
     }
 }

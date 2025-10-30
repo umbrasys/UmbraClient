@@ -22,7 +22,6 @@ public class EditProfileUi : WindowMediatorSubscriberBase
     private readonly FileDialogManager _fileDialogManager;
     private readonly MareProfileManager _mareProfileManager;
     private readonly UiSharedService _uiSharedService;
-    private readonly ServerConfigurationManager _serverConfigurationManager;
     private bool _adjustedForScollBarsLocalProfile = false;
     private bool _adjustedForScollBarsOnlineProfile = false;
     private string _descriptionText = string.Empty;
@@ -34,7 +33,6 @@ public class EditProfileUi : WindowMediatorSubscriberBase
 
     public EditProfileUi(ILogger<EditProfileUi> logger, MareMediator mediator,
         ApiController apiController, UiSharedService uiSharedService, FileDialogManager fileDialogManager,
-        ServerConfigurationManager serverConfigurationManager,
         MareProfileManager mareProfileManager, PerformanceCollectorService performanceCollectorService)
         : base(logger, mediator, "Umbra Edit Profile###UmbraSyncEditProfileUI", performanceCollectorService)
     {
@@ -47,7 +45,6 @@ public class EditProfileUi : WindowMediatorSubscriberBase
         _apiController = apiController;
         _uiSharedService = uiSharedService;
         _fileDialogManager = fileDialogManager;
-        _serverConfigurationManager = serverConfigurationManager;
         _mareProfileManager = mareProfileManager;
 
         Mediator.Subscribe<GposeStartMessage>(this, (_) => { _wasOpen = IsOpen; IsOpen = false; });

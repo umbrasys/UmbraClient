@@ -9,6 +9,7 @@ using MareSynchronos.Services.Mediator;
 using MareSynchronos.Utils;
 using Microsoft.Extensions.Logging;
 using System.Numerics;
+using System;
 
 namespace MareSynchronos.UI;
 
@@ -20,7 +21,7 @@ public class DataAnalysisUi : WindowMediatorSubscriberBase
     private readonly UiSharedService _uiSharedService;
     private readonly Dictionary<string, string[]> _texturesToConvert = new(StringComparer.Ordinal);
     private Dictionary<ObjectKind, Dictionary<string, CharacterAnalyzer.FileDataEntry>>? _cachedAnalysis;
-    private CancellationTokenSource _conversionCancellationTokenSource = new();
+    private CancellationTokenSource? _conversionCancellationTokenSource = new();
     private string _conversionCurrentFileName = string.Empty;
     private int _conversionCurrentFileProgress = 0;
     private Task? _conversionTask;
@@ -74,7 +75,7 @@ public class DataAnalysisUi : WindowMediatorSubscriberBase
                 UiSharedService.TextWrapped("Current file: " + _conversionCurrentFileName);
                 if (_uiSharedService.IconTextButton(FontAwesomeIcon.StopCircle, "Cancel conversion"))
                 {
-                    _conversionCancellationTokenSource.Cancel();
+                    TryCancel(_conversionCancellationTokenSource);
                 }
                 UiSharedService.SetScaledWindowSize(500);
                 ImGui.EndPopup();
@@ -294,8 +295,8 @@ public class DataAnalysisUi : WindowMediatorSubscriberBase
                                 , ImGuiColors.DalamudYellow);
                             if (_texturesToConvert.Count > 0 && _uiSharedService.IconTextButton(FontAwesomeIcon.PlayCircle, "Start conversion of " + _texturesToConvert.Count + " texture(s)"))
                             {
-                                _conversionCancellationTokenSource = _conversionCancellationTokenSource.CancelRecreate();
-                                _conversionTask = _ipcManager.Penumbra.ConvertTextureFiles(_logger, _texturesToConvert, _conversionProgress, _conversionCancellationTokenSource.Token);
+                                var conversionCts = EnsureFreshCts(ref _conversionCancellationTokenSource);
+                                _conversionTask = _ipcManager.Penumbra.ConvertTextureFiles(_logger, _texturesToConvert, _conversionProgress, conversionCts.Token);
                             }
                         }
                     }
@@ -354,8 +355,13 @@ public class DataAnalysisUi : WindowMediatorSubscriberBase
 
     protected override void Dispose(bool disposing)
     {
+        if (disposing)
+        {
+            CancelAndDispose(ref _conversionCancellationTokenSource);
+            _conversionProgress.ProgressChanged -= ConversionProgress_ProgressChanged;
+        }
+
         base.Dispose(disposing);
-        _conversionProgress.ProgressChanged -= ConversionProgress_ProgressChanged;
     }
 
     private void ConversionProgress_ProgressChanged(object? sender, (string, int) e)
@@ -487,6 +493,33 @@ public class DataAnalysisUi : WindowMediatorSubscriberBase
                 ImGui.TextUnformatted(UiSharedService.TrisToString(item.Triangles));
                 if (ImGui.IsItemClicked()) _selectedHash = item.Hash;
             }
+        }
+    }
+
+    private static CancellationTokenSource EnsureFreshCts(ref CancellationTokenSource? cts)
+    {
+        CancelAndDispose(ref cts);
+        cts = new CancellationTokenSource();
+        return cts;
+    }
+
+    private static void CancelAndDispose(ref CancellationTokenSource? cts)
+    {
+        if (cts == null) return;
+        TryCancel(cts);
+        cts.Dispose();
+        cts = null;
+    }
+
+    private static void TryCancel(CancellationTokenSource? cts)
+    {
+        if (cts == null) return;
+        try
+        {
+            cts.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
         }
     }
 }

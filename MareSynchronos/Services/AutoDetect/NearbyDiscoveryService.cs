@@ -1,3 +1,4 @@
+using System;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
 using MareSynchronos.Services.Mediator;
@@ -52,6 +53,7 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
+        CancelAndDispose(ref _loopCts);
         _loopCts = new CancellationTokenSource();
         _mediator.Subscribe<ConnectedMessage>(this, _ => { _isConnected = true; _configProvider.TryLoadFromStapled(); });
         _mediator.Subscribe<DisconnectedMessage>(this, _ => { _isConnected = false; _lastPublishedSignature = null; });
@@ -128,8 +130,23 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
     public Task StopAsync(CancellationToken cancellationToken)
     {
         _mediator.UnsubscribeAll(this);
-        try { _loopCts?.Cancel(); } catch { }
+        CancelAndDispose(ref _loopCts);
         return Task.CompletedTask;
+    }
+
+    private static void CancelAndDispose(ref CancellationTokenSource? cts)
+    {
+        if (cts == null) return;
+        try
+        {
+            cts.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+
+        cts.Dispose();
+        cts = null;
     }
 
     private async Task Loop(CancellationToken ct)

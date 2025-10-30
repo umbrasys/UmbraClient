@@ -544,7 +544,8 @@ internal sealed partial class CharaDataHubUi
         {
             if (_uiSharedService.IconTextButton(FontAwesomeIcon.ArrowCircleDown, "Download your Online Character Data from Server"))
             {
-                _ = _charaDataManager.GetAllData(_disposalCts.Token);
+                var cts = EnsureFreshCts(ref _disposalCts);
+                _ = _charaDataManager.GetAllData(cts.Token);
             }
         }
         if (_charaDataManager.DataGetTimeoutTask != null && !_charaDataManager.DataGetTimeoutTask.IsCompleted)
@@ -654,7 +655,8 @@ internal sealed partial class CharaDataHubUi
         {
             if (_uiSharedService.IconTextButton(FontAwesomeIcon.Plus, "New Character Data Entry"))
             {
-                _charaDataManager.CreateCharaDataEntry(_closalCts.Token);
+                var cts = EnsureFreshCts(ref _closalCts);
+                _charaDataManager.CreateCharaDataEntry(cts.Token);
                 _selectNewEntry = true;
             }
         }

@@ -7,7 +7,6 @@ using MareSynchronos.PlayerData.Pairs;
 using MareSynchronos.Services;
 using MareSynchronos.Services.Events;
 using MareSynchronos.Services.Mediator;
-using MareSynchronos.Services.ServerConfiguration;
 using MareSynchronos.Utils;
 using MareSynchronos.WebAPI.Files;
 using Microsoft.Extensions.Hosting;
@@ -29,7 +28,6 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     private readonly GameObjectHandlerFactory _gameObjectHandlerFactory;
     private readonly IpcManager _ipcManager;
     private readonly PlayerPerformanceService _playerPerformanceService;
-    private readonly ServerConfigurationManager _serverConfigManager;
     private readonly PluginWarningNotificationService _pluginWarningNotificationManager;
     private readonly VisibilityService _visibilityService;
     private CancellationTokenSource? _applicationCancellationTokenSource = new();
@@ -53,7 +51,6 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         DalamudUtilService dalamudUtil, IHostApplicationLifetime lifetime,
         FileCacheManager fileDbManager, MareMediator mediator,
         PlayerPerformanceService playerPerformanceService,
-        ServerConfigurationManager serverConfigManager,
         MareConfigService configService, VisibilityService visibilityService) : base(logger, mediator)
     {
         Pair = pair;
@@ -65,7 +62,6 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         _dalamudUtil = dalamudUtil;
         _fileDbManager = fileDbManager;
         _playerPerformanceService = playerPerformanceService;
-        _serverConfigManager = serverConfigManager;
         _configService = configService;
         _visibilityService = visibilityService;
 

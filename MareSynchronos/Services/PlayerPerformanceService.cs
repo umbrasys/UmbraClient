@@ -23,7 +23,6 @@ public class PlayerPerformanceService : DisposableMediatorSubscriberBase
     private readonly MareMediator _mediator;
     private readonly ServerConfigurationManager _serverConfigurationManager;
     private readonly PlayerPerformanceConfigService _playerPerformanceConfigService;
-    private readonly Dictionary<string, bool> _warnedForPlayers = new(StringComparer.Ordinal);
 
     public PlayerPerformanceService(ILogger<PlayerPerformanceService> logger, MareMediator mediator,
         ServerConfigurationManager serverConfigurationManager,

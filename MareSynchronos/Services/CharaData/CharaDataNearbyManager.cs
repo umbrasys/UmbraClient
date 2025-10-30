@@ -28,7 +28,7 @@ public sealed class CharaDataNearbyManager : DisposableMediatorSubscriberBase
     private Task? _filterEntriesRunningTask;
     private (Guid VfxId, PoseEntryExtended Pose)? _hoveredVfx = null;
     private DateTime _lastExecutionTime = DateTime.UtcNow;
-    private SemaphoreSlim _sharedDataUpdateSemaphore = new(1, 1);
+    private readonly SemaphoreSlim _sharedDataUpdateSemaphore = new(1, 1);
     public CharaDataNearbyManager(ILogger<CharaDataNearbyManager> logger, MareMediator mediator,
         DalamudUtilService dalamudUtilService, VfxSpawnManager vfxSpawnManager,
         ServerConfigurationManager serverConfigurationManager,

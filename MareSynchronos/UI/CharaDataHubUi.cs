@@ -1,4 +1,5 @@
-﻿using Dalamud.Bindings.ImGui;
+﻿using System;
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.ImGuiFileDialog;
@@ -30,9 +31,9 @@ internal sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
     private readonly CharaDataGposeTogetherManager _charaDataGposeTogetherManager;
     private readonly ServerConfigurationManager _serverConfigurationManager;
     private readonly UiSharedService _uiSharedService;
-    private CancellationTokenSource _closalCts = new();
+    private CancellationTokenSource? _closalCts = new();
     private bool _disableUI = false;
-    private CancellationTokenSource _disposalCts = new();
+    private CancellationTokenSource? _disposalCts = new();
     private string _exportDescription = string.Empty;
     private string _filterCodeNote = string.Empty;
     private string _filterDescription = string.Empty;
@@ -123,7 +124,14 @@ internal sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
             return;
         }
 
-        _closalCts.Cancel();
+        try
+        {
+            _closalCts?.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        EnsureFreshCts(ref _closalCts);
         SelectedDtoId = string.Empty;
         _filteredDict = null;
         _sharedWithYouOwnerFilter = string.Empty;
@@ -135,15 +143,15 @@ internal sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
 
     public override void OnOpen()
     {
-        _closalCts = _closalCts.CancelRecreate();
+        EnsureFreshCts(ref _closalCts);
     }
 
     protected override void Dispose(bool disposing)
     {
         if (disposing)
         {
-            _closalCts.CancelDispose();
-            _disposalCts.CancelDispose();
+            CancelAndDispose(ref _closalCts);
+            CancelAndDispose(ref _disposalCts);
         }
 
         base.Dispose(disposing);
@@ -689,7 +697,8 @@ internal sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
                 {
                     if (_uiSharedService.IconTextButton(FontAwesomeIcon.ArrowCircleDown, "Download your Character Data"))
                     {
-                        _ = _charaDataManager.GetAllData(_disposalCts.Token);
+                        var cts = EnsureFreshCts(ref _disposalCts);
+                        _ = _charaDataManager.GetAllData(cts.Token);
                     }
                 }
                 if (_charaDataManager.DataGetTimeoutTask != null && !_charaDataManager.DataGetTimeoutTask.IsCompleted)
@@ -1103,5 +1112,27 @@ internal sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
         if (_disableUI) ImGui.EndDisabled();
         drawAction();
         if (_disableUI) ImGui.BeginDisabled();
+    }
+
+    private static CancellationTokenSource EnsureFreshCts(ref CancellationTokenSource? cts)
+    {
+        CancelAndDispose(ref cts);
+        cts = new CancellationTokenSource();
+        return cts;
+    }
+
+    private static void CancelAndDispose(ref CancellationTokenSource? cts)
+    {
+        if (cts == null) return;
+        try
+        {
+            cts.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+
+        cts.Dispose();
+        cts = null;
     }
 }

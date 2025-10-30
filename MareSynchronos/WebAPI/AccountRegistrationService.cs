@@ -4,7 +4,6 @@ using MareSynchronos.Services;
 using MareSynchronos.Services.ServerConfiguration;
 using MareSynchronos.Utils;
 using MareSynchronos.WebAPI.SignalR;
-using Microsoft.Extensions.Logging;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Reflection;
@@ -15,17 +14,15 @@ namespace MareSynchronos.WebAPI;
 public sealed class AccountRegistrationService : IDisposable
 {
     private readonly HttpClient _httpClient;
-    private readonly ILogger<AccountRegistrationService> _logger;
     private readonly ServerConfigurationManager _serverManager;
 
-    private string GenerateSecretKey()
+    private static string GenerateSecretKey()
     {
         return Convert.ToHexString(SHA256.HashData(RandomNumberGenerator.GetBytes(64)));
     }
 
-    public AccountRegistrationService(ILogger<AccountRegistrationService> logger, ServerConfigurationManager serverManager)
+    public AccountRegistrationService(ServerConfigurationManager serverManager)
     {
-        _logger = logger;
         _serverManager = serverManager;
         _httpClient = new(
             new HttpClientHandler

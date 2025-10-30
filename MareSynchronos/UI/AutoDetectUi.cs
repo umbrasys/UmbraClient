@@ -4,10 +4,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Colors;
-using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using Dalamud.Plugin.Services;
 using MareSynchronos.MareConfiguration;
 using MareSynchronos.PlayerData.Pairs;
 using MareSynchronos.Services.Mediator;
@@ -25,7 +23,6 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
 {
     private readonly MareConfigService _configService;
     private readonly DalamudUtilService _dalamud;
-    private readonly IObjectTable _objectTable;
     private readonly AutoDetectRequestService _requestService;
     private readonly NearbyPendingService _pendingService;
     private readonly PairManager _pairManager;
@@ -33,14 +30,13 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
     private readonly HashSet<string> _acceptInFlight = new(StringComparer.Ordinal);
 
     public AutoDetectUi(ILogger<AutoDetectUi> logger, MareMediator mediator,
-        MareConfigService configService, DalamudUtilService dalamudUtilService, IObjectTable objectTable,
+        MareConfigService configService, DalamudUtilService dalamudUtilService,
         AutoDetectRequestService requestService, NearbyPendingService pendingService, PairManager pairManager,
         PerformanceCollectorService performanceCollectorService)
         : base(logger, mediator, "AutoDetect", performanceCollectorService)
     {
         _configService = configService;
         _dalamud = dalamudUtilService;
-        _objectTable = objectTable;
         _requestService = requestService;
         _pendingService = pendingService;
         _pairManager = pairManager;

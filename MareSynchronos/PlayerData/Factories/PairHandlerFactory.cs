@@ -5,7 +5,6 @@ using MareSynchronos.PlayerData.Handlers;
 using MareSynchronos.PlayerData.Pairs;
 using MareSynchronos.Services;
 using MareSynchronos.Services.Mediator;
-using MareSynchronos.Services.ServerConfiguration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -23,7 +22,6 @@ public class PairHandlerFactory
     private readonly ILoggerFactory _loggerFactory;
     private readonly MareMediator _mareMediator;
     private readonly PlayerPerformanceService _playerPerformanceService;
-    private readonly ServerConfigurationManager _serverConfigManager;
     private readonly PluginWarningNotificationService _pluginWarningNotificationManager;
     private readonly PairAnalyzerFactory _pairAnalyzerFactory;
     private readonly VisibilityService _visibilityService;
@@ -32,7 +30,7 @@ public class PairHandlerFactory
         FileDownloadManagerFactory fileDownloadManagerFactory, DalamudUtilService dalamudUtilService,
         PluginWarningNotificationService pluginWarningNotificationManager, IHostApplicationLifetime hostApplicationLifetime,
         FileCacheManager fileCacheManager, MareMediator mareMediator, PlayerPerformanceService playerPerformanceService,
-        ServerConfigurationManager serverConfigManager, PairAnalyzerFactory pairAnalyzerFactory,
+        PairAnalyzerFactory pairAnalyzerFactory,
         MareConfigService configService, VisibilityService visibilityService)
     {
         _loggerFactory = loggerFactory;
@@ -45,7 +43,6 @@ public class PairHandlerFactory
         _fileCacheManager = fileCacheManager;
         _mareMediator = mareMediator;
         _playerPerformanceService = playerPerformanceService;
-        _serverConfigManager = serverConfigManager;
         _pairAnalyzerFactory = pairAnalyzerFactory;
         _configService = configService;
         _visibilityService = visibilityService;
@@ -55,6 +52,6 @@ public class PairHandlerFactory
     {
         return new PairHandler(_loggerFactory.CreateLogger<PairHandler>(), pair, _pairAnalyzerFactory.Create(pair), _gameObjectHandlerFactory,
             _ipcManager, _fileDownloadManagerFactory.Create(), _pluginWarningNotificationManager, _dalamudUtilService, _hostApplicationLifetime,
-            _fileCacheManager, _mareMediator, _playerPerformanceService, _serverConfigManager, _configService, _visibilityService);
+            _fileCacheManager, _mareMediator, _playerPerformanceService, _configService, _visibilityService);
     }
 }

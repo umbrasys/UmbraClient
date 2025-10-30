@@ -1,6 +1,6 @@
 namespace MareSynchronos.Utils;
 
-public class PngHdr
+public static class PngHdr
 {
 	private static readonly byte[] _magicSignature = [137, 80, 78, 71, 13, 10, 26, 10];
 	private static readonly byte[] _IHDR = [(byte)'I', (byte)'H', (byte)'D', (byte)'R'];

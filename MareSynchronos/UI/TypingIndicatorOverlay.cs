@@ -29,7 +29,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
     private static readonly TimeSpan TypingDisplayDelay = TimeSpan.FromMilliseconds(500);
     private static readonly TimeSpan TypingDisplayFade = TypingDisplayTime;
 
-    private readonly ILogger<TypingIndicatorOverlay> _logger;
+    private readonly ILogger<TypingIndicatorOverlay> _typedLogger;
     private readonly MareConfigService _configService;
     private readonly IGameGui _gameGui;
     private readonly ITextureProvider _textureProvider;
@@ -47,7 +47,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         TypingIndicatorStateService typingStateService, ApiController apiController)
         : base(logger, mediator, nameof(TypingIndicatorOverlay), performanceCollectorService)
     {
-        _logger = logger;
+        _typedLogger = logger;
         _configService = configService;
         _gameGui = gameGui;
         _textureProvider = textureProvider;
@@ -216,7 +216,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
 
             if (objectId != uint.MaxValue && objectId != 0 && TryDrawNameplateBubble(drawList, iconWrap, objectId))
             {
-                _logger.LogTrace("TypingIndicator: drew nameplate bubble for {uid} (objectId={objectId})", uid, objectId);
+                _typedLogger.LogTrace("TypingIndicator: drew nameplate bubble for {uid} (objectId={objectId})", uid, objectId);
                 continue;
             }
 
@@ -228,20 +228,20 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
 
             if (pair == null)
             {
-                _logger.LogTrace("TypingIndicator: no pair found for {uid}, attempting fallback", uid);
+                _typedLogger.LogTrace("TypingIndicator: no pair found for {uid}, attempting fallback", uid);
             }
 
-            _logger.LogTrace("TypingIndicator: fallback draw for {uid} (objectId={objectId}, name={name}, ident={ident})",
+            _typedLogger.LogTrace("TypingIndicator: fallback draw for {uid} (objectId={objectId}, name={name}, ident={ident})",
                 uid, objectId, pairName, pairIdent);
 
             if (hasWorldPosition)
             {
                 DrawWorldFallbackIcon(drawList, iconWrap, worldPos);
-                _logger.LogTrace("TypingIndicator: fallback world draw for {uid} at {pos}", uid, worldPos);
+                _typedLogger.LogTrace("TypingIndicator: fallback world draw for {uid} at {pos}", uid, worldPos);
             }
             else
             {
-                _logger.LogTrace("TypingIndicator: could not resolve position for {uid}", uid);
+                _typedLogger.LogTrace("TypingIndicator: could not resolve position for {uid}", uid);
             }
         }
     }
@@ -393,7 +393,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
     {
         if (TryGetWorldPosition(objectId, out position))
         {
-            _logger.LogTrace("TypingIndicator: resolved by objectId {objectId}", objectId);
+            _typedLogger.LogTrace("TypingIndicator: resolved by objectId {objectId}", objectId);
             return true;
         }
 
@@ -402,7 +402,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
             var name = pair.PlayerName;
             if (!string.IsNullOrEmpty(name) && TryGetWorldPositionByName(name!, out position))
             {
-                _logger.LogTrace("TypingIndicator: resolved by pair name {name}", name);
+                _typedLogger.LogTrace("TypingIndicator: resolved by pair name {name}", name);
                 return true;
             }
 
@@ -412,7 +412,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
                 var cached = _dalamudUtil.FindPlayerByNameHash(ident);
                 if (!string.IsNullOrEmpty(cached.Name) && TryGetWorldPositionByName(cached.Name, out position))
                 {
-                    _logger.LogTrace("TypingIndicator: resolved by cached name {name}", cached.Name);
+                    _typedLogger.LogTrace("TypingIndicator: resolved by cached name {name}", cached.Name);
                     return true;
                 }
 
@@ -422,7 +422,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
                     if (objRef != null)
                     {
                         position = objRef.Position;
-                        _logger.LogTrace("TypingIndicator: resolved by cached address {addr}", cached.Address);
+                        _typedLogger.LogTrace("TypingIndicator: resolved by cached address {addr}", cached.Address);
                         return true;
                     }
                 }
@@ -432,7 +432,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         var alias = userData.AliasOrUID;
         if (!string.IsNullOrEmpty(alias) && TryGetWorldPositionByName(alias, out position))
         {
-            _logger.LogTrace("TypingIndicator: resolved by user alias {alias}", alias);
+            _typedLogger.LogTrace("TypingIndicator: resolved by user alias {alias}", alias);
             return true;
         }
 

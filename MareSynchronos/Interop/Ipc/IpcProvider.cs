@@ -1,4 +1,5 @@
 ﻿using Dalamud.Game.ClientState.Objects.Types;
+using System;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
 using MareSynchronos.MareConfiguration;
@@ -29,7 +30,7 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
     private bool _marePluginEnabled = false;
     private bool _impersonating = false;
     private DateTime _unregisterTime = DateTime.UtcNow;
-    private CancellationTokenSource _registerDelayCts = new();
+    private CancellationTokenSource? _registerDelayCts = new();
 
     public bool MarePluginEnabled => _marePluginEnabled;
     public bool ImpersonationActive => _impersonating;
@@ -100,7 +101,7 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
         {
             if (_mareConfig.Current.MareAPI)
             {
-                var cancelToken = _registerDelayCts.Token;
+                var cancelToken = EnsureFreshCts(ref _registerDelayCts).Token;
                 Task.Run(async () =>
                 {
                     // Wait before registering to reduce the chance of a race condition
@@ -125,7 +126,7 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
             }
             else
             {
-                _registerDelayCts = _registerDelayCts.CancelRecreate();
+                EnsureFreshCts(ref _registerDelayCts);
                 if (_impersonating)
                 {
                     _loadFileProviderMare?.UnregisterFunc();
@@ -146,7 +147,7 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
         _loadFileAsyncProvider?.UnregisterFunc();
         _handledGameAddresses?.UnregisterFunc();
 
-        _registerDelayCts.Cancel();
+        TryCancel(_registerDelayCts);
         if (_impersonating)
         {
             _loadFileProviderMare?.UnregisterFunc();
@@ -155,6 +156,7 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
         }
 
         Mediator.UnsubscribeAll(this);
+        CancelAndDispose(ref _registerDelayCts);
         return Task.CompletedTask;
     }
 
@@ -192,5 +194,32 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
         }
 
         return _activeGameObjectHandlers.Where(g => g.Address != nint.Zero).Select(g => g.Address).Distinct().ToList();
+    }
+
+    private static CancellationTokenSource EnsureFreshCts(ref CancellationTokenSource? cts)
+    {
+        CancelAndDispose(ref cts);
+        cts = new CancellationTokenSource();
+        return cts;
+    }
+
+    private static void CancelAndDispose(ref CancellationTokenSource? cts)
+    {
+        if (cts == null) return;
+        TryCancel(cts);
+        cts.Dispose();
+        cts = null;
+    }
+
+    private static void TryCancel(CancellationTokenSource? cts)
+    {
+        if (cts == null) return;
+        try
+        {
+            cts.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
     }
 }

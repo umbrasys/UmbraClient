@@ -1,4 +1,5 @@
-﻿using MareSynchronos.Interop.Ipc;
+﻿using System;
+using MareSynchronos.Interop.Ipc;
 using MareSynchronos.MareConfiguration;
 using MareSynchronos.Services;
 using MareSynchronos.Services.Mediator;
@@ -606,14 +607,35 @@ public sealed class CacheMonitor : DisposableMediatorSubscriberBase
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
-        _scanCancellationTokenSource?.Cancel();
+        try
+        {
+            _scanCancellationTokenSource.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        _scanCancellationTokenSource.Dispose();
         PenumbraWatcher?.Dispose();
         MareWatcher?.Dispose();
         SubstWatcher?.Dispose();
-        _penumbraFswCts?.CancelDispose();
-        _mareFswCts?.CancelDispose();
-        _substFswCts?.CancelDispose();
-        _periodicCalculationTokenSource?.CancelDispose();
+        TryCancelAndDispose(_penumbraFswCts);
+        TryCancelAndDispose(_mareFswCts);
+        TryCancelAndDispose(_substFswCts);
+        TryCancelAndDispose(_periodicCalculationTokenSource);
+    }
+
+    private static void TryCancelAndDispose(CancellationTokenSource? cts)
+    {
+        if (cts == null) return;
+        try
+        {
+            cts.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+
+        cts.Dispose();
     }
 
     private void FullFileScan(CancellationToken ct)

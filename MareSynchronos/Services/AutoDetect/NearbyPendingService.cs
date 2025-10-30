@@ -15,8 +15,9 @@ public sealed class NearbyPendingService : IMediatorSubscriber
     private readonly ApiController _api;
     private readonly AutoDetectRequestService _requestService;
     private readonly ConcurrentDictionary<string, string> _pending = new(StringComparer.Ordinal);
-    private static readonly Regex ReqRegex = new(@"^Nearby Request: (.+) \[(?<uid>[A-Z0-9]+)\]$", RegexOptions.Compiled);
-    private static readonly Regex AcceptRegex = new(@"^Nearby Accept: (.+) \[(?<uid>[A-Z0-9]+)\]$", RegexOptions.Compiled);
+    private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(1);
+    private static readonly Regex ReqRegex = new(@"^Nearby Request: .+ \[(?<uid>[A-Z0-9]+)\]$", RegexOptions.Compiled | RegexOptions.ExplicitCapture, RegexTimeout);
+    private static readonly Regex AcceptRegex = new(@"^Nearby Accept: .+ \[(?<uid>[A-Z0-9]+)\]$", RegexOptions.Compiled | RegexOptions.ExplicitCapture, RegexTimeout);
 
     public NearbyPendingService(ILogger<NearbyPendingService> logger, MareMediator mediator, ApiController api, AutoDetectRequestService requestService)
     {

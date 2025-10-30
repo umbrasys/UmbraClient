@@ -16,37 +16,26 @@ namespace MareSynchronos.Services;
 
 public class GuiHookService : DisposableMediatorSubscriberBase
 {
-    private readonly ILogger<GuiHookService> _logger;
     private readonly DalamudUtilService _dalamudUtil;
     private readonly MareConfigService _configService;
     private readonly INamePlateGui _namePlateGui;
     private readonly IGameConfig _gameConfig;
     private readonly IPartyList _partyList;
     private readonly PairManager _pairManager;
-    private readonly IClientState _clientState;
-    private readonly ApiController _apiController;
-    private readonly TypingIndicatorStateService _typingStateService;
-
-    private static readonly TimeSpan TypingDisplayTime = TimeSpan.FromSeconds(2);
 
     private bool _isModified = false;
     private bool _namePlateRoleColorsEnabled = false;
 
     public GuiHookService(ILogger<GuiHookService> logger, DalamudUtilService dalamudUtil, MareMediator mediator, MareConfigService configService,
-        INamePlateGui namePlateGui, IGameConfig gameConfig, IPartyList partyList, PairManager pairManager, ApiController apiController,
-        IClientState clientState, TypingIndicatorStateService typingStateService)
+        INamePlateGui namePlateGui, IGameConfig gameConfig, IPartyList partyList, PairManager pairManager)
         : base(logger, mediator)
     {
-        _logger = logger;
         _dalamudUtil = dalamudUtil;
         _configService = configService;
         _namePlateGui = namePlateGui;
         _gameConfig = gameConfig;
         _partyList = partyList;
         _pairManager = pairManager;
-        _apiController = apiController;
-        _clientState = clientState;
-        _typingStateService = typingStateService;
 
         _namePlateGui.OnNamePlateUpdate += OnNamePlateUpdate;
         _namePlateGui.RequestRedraw();
@@ -60,16 +49,11 @@ public class GuiHookService : DisposableMediatorSubscriberBase
     public void RequestRedraw(bool force = false)
     {
         var useColors = _configService.Current.UseNameColors;
-        var showTyping = _configService.Current.TypingIndicatorShowOnNameplates;
 
-        if (!useColors && !showTyping)
+        if (!useColors)
         {
             if (!_isModified && !force)
                 return;
-            _isModified = false;
-        }
-        else if (!useColors)
-        {
             _isModified = false;
         }
 
@@ -91,8 +75,7 @@ public class GuiHookService : DisposableMediatorSubscriberBase
     private void OnNamePlateUpdate(INamePlateUpdateContext context, IReadOnlyList<INamePlateUpdateHandler> handlers)
     {
         var applyColors = _configService.Current.UseNameColors;
-        var showTypingIndicator = _configService.Current.TypingIndicatorShowOnNameplates;
-        if (!applyColors && !showTypingIndicator)
+        if (!applyColors)
             return;
 
         var visibleUsers = _pairManager.GetOnlineUserPairs().Where(u => u.IsVisible && u.PlayerCharacterId != uint.MaxValue);
@@ -104,11 +87,6 @@ public class GuiHookService : DisposableMediatorSubscriberBase
 
         for (int i = 0; i < _partyList.Count; ++i)
             partyMembers[i] = _partyList[i]?.GameObject?.Address ?? nint.MaxValue;
-
-        var now = DateTime.UtcNow;
-        var activeTypers = _typingStateService.GetActiveTypers(TypingDisplayTime);
-        var selfTypingActive = showTypingIndicator && _typingStateService.TryGetSelfTyping(TypingDisplayTime, out _, out _);
-        var localPlayerAddress = selfTypingActive ? _clientState.LocalPlayer?.Address ?? nint.Zero : nint.Zero;
 
         foreach (var handler in handlers)
         {

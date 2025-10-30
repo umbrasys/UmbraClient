@@ -2,7 +2,6 @@
 using MareSynchronos.API.Data.Comparer;
 using MareSynchronos.MareConfiguration;
 using MareSynchronos.Services.Mediator;
-using MareSynchronos.Services.ServerConfiguration;
 using MareSynchronos.WebAPI;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
@@ -15,7 +14,6 @@ public class MareProfileManager : MediatorSubscriberBase
     private const string _nsfw = "Profile not displayed - NSFW";
     private readonly ApiController _apiController;
     private readonly MareConfigService _mareConfigService;
-    private readonly ServerConfigurationManager _serverConfigurationManager;
     private readonly ConcurrentDictionary<UserData, MareProfileData> _mareProfiles = new(UserDataComparer.Instance);
 
     private readonly MareProfileData _defaultProfileData = new(IsFlagged: false, IsNSFW: false, string.Empty, _noDescription);
@@ -23,11 +21,10 @@ public class MareProfileManager : MediatorSubscriberBase
     private readonly MareProfileData _nsfwProfileData = new(IsFlagged: false, IsNSFW: false, string.Empty, _nsfw);
 
     public MareProfileManager(ILogger<MareProfileManager> logger, MareConfigService mareConfigService,
-        MareMediator mediator, ApiController apiController, ServerConfigurationManager serverConfigurationManager) : base(logger, mediator)
+        MareMediator mediator, ApiController apiController) : base(logger, mediator)
     {
         _mareConfigService = mareConfigService;
         _apiController = apiController;
-        _serverConfigurationManager = serverConfigurationManager;
 
         Mediator.Subscribe<ClearProfileDataMessage>(this, (msg) =>
         {

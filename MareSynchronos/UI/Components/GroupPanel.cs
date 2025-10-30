@@ -30,7 +30,6 @@ internal sealed class GroupPanel
     private readonly CompactUi _mainUi;
     private readonly PairManager _pairManager;
     private readonly ChatService _chatService;
-    private readonly MareConfigService _mareConfig;
     private readonly ServerConfigurationManager _serverConfigurationManager;
     private readonly CharaDataManager _charaDataManager;
     private readonly AutoDetectRequestService _autoDetectRequestService;
@@ -75,7 +74,7 @@ internal sealed class GroupPanel
     private string _syncShellToJoin = string.Empty;
 
     public GroupPanel(CompactUi mainUi, UiSharedService uiShared, PairManager pairManager, ChatService chatServivce,
-        UidDisplayHandler uidDisplayHandler, MareConfigService mareConfig, ServerConfigurationManager serverConfigurationManager,
+        UidDisplayHandler uidDisplayHandler, ServerConfigurationManager serverConfigurationManager,
         CharaDataManager charaDataManager, AutoDetectRequestService autoDetectRequestService)
     {
         _mainUi = mainUi;
@@ -83,7 +82,6 @@ internal sealed class GroupPanel
         _pairManager = pairManager;
         _chatService = chatServivce;
         _uidDisplayHandler = uidDisplayHandler;
-        _mareConfig = mareConfig;
         _serverConfigurationManager = serverConfigurationManager;
         _charaDataManager = charaDataManager;
         _autoDetectRequestService = autoDetectRequestService;

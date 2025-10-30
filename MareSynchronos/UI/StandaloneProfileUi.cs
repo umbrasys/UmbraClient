@@ -16,7 +16,6 @@ namespace MareSynchronos.UI;
 public class StandaloneProfileUi : WindowMediatorSubscriberBase
 {
     private readonly MareProfileManager _mareProfileManager;
-    private readonly PairManager _pairManager;
     private readonly ServerConfigurationManager _serverManager;
     private readonly UiSharedService _uiSharedService;
     private bool _adjustedForScrollBars = false;
@@ -24,7 +23,7 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
     private IDalamudTextureWrap? _textureWrap;
 
     public StandaloneProfileUi(ILogger<StandaloneProfileUi> logger, MareMediator mediator, UiSharedService uiBuilder,
-        ServerConfigurationManager serverManager, MareProfileManager mareProfileManager, PairManager pairManager, Pair pair,
+        ServerConfigurationManager serverManager, MareProfileManager mareProfileManager, Pair pair,
         PerformanceCollectorService performanceCollector)
         : base(logger, mediator, "Profile of " + pair.UserData.AliasOrUID + "##UmbraSyncStandaloneProfileUI" + pair.UserData.AliasOrUID, performanceCollector)
     {
@@ -32,7 +31,6 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
         _serverManager = serverManager;
         _mareProfileManager = mareProfileManager;
         Pair = pair;
-        _pairManager = pairManager;
         Flags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.AlwaysAutoResize;
 
         var spacing = ImGui.GetStyle().ItemSpacing;

@@ -19,6 +19,6 @@ public class DownloadFileTransfer : FileTransfer
         get => Dto.Size;
     }
 
-    public long TotalRaw => 0; // XXX
+    public long TotalRaw => Dto.Size;
     private DownloadFileDto Dto => (DownloadFileDto)TransferDto;
 }
