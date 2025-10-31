@@ -1328,6 +1328,14 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
         _uiShared.BigText("Global Configuration");
 
+        bool showSelfAnalysisWarnings = _playerPerformanceConfigService.Current.ShowSelfAnalysisWarnings;
+        if (ImGui.Checkbox("Display self-analysis warnings", ref showSelfAnalysisWarnings))
+        {
+            _playerPerformanceConfigService.Current.ShowSelfAnalysisWarnings = showSelfAnalysisWarnings;
+            _playerPerformanceConfigService.Save();
+        }
+        _uiShared.DrawHelpText("Disable to suppress UmbraSync chat warnings when your character exceeds the self-analysis thresholds.");
+
         bool alwaysShrinkTextures = _playerPerformanceConfigService.Current.TextureShrinkMode == TextureShrinkMode.Always;
         bool deleteOriginalTextures = _playerPerformanceConfigService.Current.TextureShrinkDeleteOriginal;
 

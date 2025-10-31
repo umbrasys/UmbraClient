@@ -3,6 +3,7 @@ using Lumina.Data.Files;
 using MareSynchronos.API.Data;
 using MareSynchronos.API.Data.Enum;
 using MareSynchronos.FileCache;
+using MareSynchronos.MareConfiguration;
 using MareSynchronos.MareConfiguration.Models;
 using MareSynchronos.Services.Mediator;
 using MareSynchronos.UI;
@@ -15,6 +16,7 @@ public sealed class CharacterAnalyzer : DisposableMediatorSubscriberBase
 {
     private readonly FileCacheManager _fileCacheManager;
     private readonly XivDataAnalyzer _xivDataAnalyzer;
+    private readonly PlayerPerformanceConfigService _playerPerformanceConfigService;
     private CancellationTokenSource? _analysisCts;
     private CancellationTokenSource _baseAnalysisCts = new();
     private string _lastDataHash = string.Empty;
@@ -29,7 +31,7 @@ public sealed class CharacterAnalyzer : DisposableMediatorSubscriberBase
     private bool _sizeWarningShown;
     private bool _triangleWarningShown;
 
-    public CharacterAnalyzer(ILogger<CharacterAnalyzer> logger, MareMediator mediator, FileCacheManager fileCacheManager, XivDataAnalyzer modelAnalyzer)
+    public CharacterAnalyzer(ILogger<CharacterAnalyzer> logger, MareMediator mediator, FileCacheManager fileCacheManager, XivDataAnalyzer modelAnalyzer, PlayerPerformanceConfigService playerPerformanceConfigService)
         : base(logger, mediator)
     {
         Mediator.Subscribe<CharacterDataCreatedMessage>(this, (msg) =>
@@ -40,6 +42,7 @@ public sealed class CharacterAnalyzer : DisposableMediatorSubscriberBase
         });
         _fileCacheManager = fileCacheManager;
         _xivDataAnalyzer = modelAnalyzer;
+        _playerPerformanceConfigService = playerPerformanceConfigService;
     }
 
     public int CurrentFile { get; internal set; }
@@ -310,6 +313,12 @@ public sealed class CharacterAnalyzer : DisposableMediatorSubscriberBase
     private void EvaluateThresholdNotifications(CharacterAnalysisSummary summary)
     {
         if (summary.IsEmpty || summary.HasUncomputedEntries)
+        {
+            ResetThresholdFlagsIfNeeded(summary);
+            return;
+        }
+
+        if (!_playerPerformanceConfigService.Current.ShowSelfAnalysisWarnings)
         {
             ResetThresholdFlagsIfNeeded(summary);
             return;

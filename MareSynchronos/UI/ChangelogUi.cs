@@ -169,6 +169,10 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
     {
         return new List<ChangelogEntry>
         {
+                new(new Version(0, 1, 9, 6), "0.1.9.6", new List<ChangelogLine>
+            {
+                new("Possibilité de désactiver l'alerte self-analysis (Settings => Performance)."),
+            }),
             new(new Version(0, 1, 9, 5), "0.1.9.5", new List<ChangelogLine>
             {
                 new("Fix l'affichage de la bulle dans la liste du groupe."),
