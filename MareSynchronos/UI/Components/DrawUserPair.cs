@@ -132,7 +132,7 @@ public class DrawUserPair : DrawPairBase
         var barButtonSize = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Bars);
         var entryUID = _pair.UserData.AliasOrUID;
         var spacingX = ImGui.GetStyle().ItemSpacing.X;
-        var edgePadding = ImGui.GetStyle().WindowPadding.X + 4f * ImGuiHelpers.GlobalScale;
+        var edgePadding = UiSharedService.GetCardContentPaddingX() + 6f * ImGuiHelpers.GlobalScale;
         var windowEndX = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - edgePadding;
         var rightSidePos = windowEndX - barButtonSize.X;
 

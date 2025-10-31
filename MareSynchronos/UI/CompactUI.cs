@@ -68,6 +68,7 @@ public class CompactUi : WindowMediatorSubscriberBase
     private bool _showModalForUserAddition;
     private bool _wasOpen;
     private bool _nearbyOpen = true;
+    private bool _visibleOpen = true;
     private bool _selfAnalysisOpen = false;
     private List<Services.Mediator.NearbyEntry> _nearbyEntries = new();
     private const long SelfAnalysisSizeWarningThreshold = 300L * 1024 * 1024;
@@ -682,6 +683,9 @@ if (showNearby && pendingInvites > 0)
         var allUsers = GetFilteredUsers().OrderBy(u => u.GetPairSortKey(), StringComparer.Ordinal).ToList();
         var visibleUsersSource = allUsers.Where(u => u.IsVisible).ToList();
         var nonVisibleUsers = allUsers.Where(u => !u.IsVisible).ToList();
+        var nearbyEntriesForDisplay = _configService.Current.EnableAutoDetectDiscovery
+            ? GetNearbyEntriesForDisplay()
+            : new List<Services.Mediator.NearbyEntry>();
 
         ImGui.BeginChild("list", new Vector2(WindowContentWidth, ySize), border: false);
 
@@ -698,21 +702,35 @@ if (showNearby && pendingInvites > 0)
         if (mode == PairContentMode.VisibleOnly)
         {
             var visibleUsers = visibleUsersSource.Select(c => new DrawUserPair("Visible" + c.UserData.UID, c, _uidDisplayHandler, _apiController, Mediator, _selectGroupForPairUi, _uiSharedService, _charaDataManager, _serverManager)).ToList();
-            if (visibleUsers.Count == 0)
+            bool showVisibleCard = visibleUsers.Count > 0;
+            bool showNearbyCard = nearbyEntriesForDisplay.Count > 0;
+
+            if (!showVisibleCard && !showNearbyCard)
             {
-                UiSharedService.ColorTextWrapped("Aucune paire visible pour l'instant.", ImGuiColors.DalamudGrey3);
+                const string calmMessage = "C'est bien trop calme ici... Il n'y a rien pour le moment.";
+                using (_uiSharedService.UidFont.Push())
+                {
+                    var regionMin = ImGui.GetWindowContentRegionMin();
+                    var availableWidth = UiSharedService.GetWindowContentRegionWidth();
+                    var regionHeight = UiSharedService.GetWindowContentRegionHeight();
+                    var textSize = ImGui.CalcTextSize(calmMessage, hideTextAfterDoubleHash: false, availableWidth);
+                    var xOffset = MathF.Max(0f, (availableWidth - textSize.X) / 2f);
+                    var yOffset = MathF.Max(0f, (regionHeight - textSize.Y) / 2f);
+                    ImGui.SetCursorPos(new Vector2(regionMin.X + xOffset, regionMin.Y + yOffset));
+                    UiSharedService.ColorTextWrapped(calmMessage, ImGuiColors.DalamudGrey3, regionMin.X + availableWidth);
+                }
             }
             else
             {
-                foreach (var visibleUser in visibleUsers)
+                if (showVisibleCard)
                 {
-                    visibleUser.DrawPairedClient();
+                    DrawVisibleCard(visibleUsers);
                 }
-            }
 
-            if (_configService.Current.EnableAutoDetectDiscovery)
-            {
-                DrawNearbyCard();
+                if (showNearbyCard)
+                {
+                    DrawNearbyCard(nearbyEntriesForDisplay);
+                }
             }
         }
         else
@@ -726,9 +744,10 @@ if (showNearby && pendingInvites > 0)
                 .ToList();
 
             Action? drawVisibleExtras = null;
-            if (_configService.Current.EnableAutoDetectDiscovery)
+            if (nearbyEntriesForDisplay.Count > 0)
             {
-                drawVisibleExtras = () => DrawNearbyCard();
+                var entriesForExtras = nearbyEntriesForDisplay;
+                drawVisibleExtras = () => DrawNearbyCard(entriesForExtras);
             }
 
             _pairGroupsUi.Draw(visibleUsers, onlineUsers, offlineUsers, drawVisibleExtras);
@@ -737,8 +756,71 @@ if (showNearby && pendingInvites > 0)
         ImGui.EndChild();
     }
 
-    private void DrawNearbyCard()
+    private List<Services.Mediator.NearbyEntry> GetNearbyEntriesForDisplay()
     {
+        if (_nearbyEntries == null || _nearbyEntries.Count == 0)
+        {
+            return new List<Services.Mediator.NearbyEntry>();
+        }
+
+        return _nearbyEntries
+            .Where(e => e.IsMatch && e.AcceptPairRequests && !string.IsNullOrEmpty(e.Token) && !IsAlreadyPairedQuickMenu(e))
+            .OrderBy(e => e.Distance)
+            .ToList();
+    }
+
+    private void DrawVisibleCard(List<DrawUserPair> visibleUsers)
+    {
+        if (visibleUsers.Count == 0)
+        {
+            return;
+        }
+
+        ImGuiHelpers.ScaledDummy(4f);
+        using (ImRaii.PushId("group-Visible"))
+        {
+            UiSharedService.DrawCard("visible-card", () =>
+            {
+                bool visibleState = _visibleOpen;
+                UiSharedService.DrawArrowToggle(ref visibleState, "##visible-toggle");
+                if (visibleState != _visibleOpen)
+                {
+                    _visibleOpen = visibleState;
+                }
+
+                ImGui.SameLine(0f, 6f * ImGuiHelpers.GlobalScale);
+                ImGui.AlignTextToFramePadding();
+                ImGui.TextUnformatted($"Visible ({visibleUsers.Count})");
+                if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
+                {
+                    _visibleOpen = !_visibleOpen;
+                }
+
+                if (!_visibleOpen)
+                {
+                    return;
+                }
+
+                ImGuiHelpers.ScaledDummy(4f);
+                var indent = 18f * ImGuiHelpers.GlobalScale;
+                ImGui.Indent(indent);
+                foreach (var visibleUser in visibleUsers)
+                {
+                    visibleUser.DrawPairedClient();
+                }
+                ImGui.Unindent(indent);
+            }, stretchWidth: true);
+        }
+        ImGuiHelpers.ScaledDummy(4f);
+    }
+
+    private void DrawNearbyCard(IReadOnlyList<Services.Mediator.NearbyEntry> nearbyEntries)
+    {
+        if (nearbyEntries.Count == 0)
+        {
+            return;
+        }
+
         ImGuiHelpers.ScaledDummy(4f);
         using (ImRaii.PushId("group-Nearby"))
         {
@@ -752,7 +834,7 @@ if (showNearby && pendingInvites > 0)
                 }
 
                 ImGui.SameLine(0f, 6f * ImGuiHelpers.GlobalScale);
-                var onUmbra = _nearbyEntries?.Count(e => e.IsMatch && e.AcceptPairRequests && !string.IsNullOrEmpty(e.Token) && !IsAlreadyPairedQuickMenu(e)) ?? 0;
+                var onUmbra = nearbyEntries.Count;
                 ImGui.AlignTextToFramePadding();
                 ImGui.TextUnformatted($"Nearby ({onUmbra})");
                 if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
@@ -768,51 +850,41 @@ if (showNearby && pendingInvites > 0)
                 ImGuiHelpers.ScaledDummy(4f);
                 var indent = 18f * ImGuiHelpers.GlobalScale;
                 ImGui.Indent(indent);
-                var nearby = _nearbyEntries == null
-                    ? new List<Services.Mediator.NearbyEntry>()
-                    : _nearbyEntries.Where(e => e.IsMatch && e.AcceptPairRequests && !string.IsNullOrEmpty(e.Token) && !IsAlreadyPairedQuickMenu(e))
-                        .OrderBy(e => e.Distance)
-                        .ToList();
-                if (nearby.Count == 0)
+                foreach (var e in nearbyEntries)
                 {
-                    UiSharedService.ColorTextWrapped("Aucun nouveau joueur detecté.", ImGuiColors.DalamudGrey3);
-                }
-                else
-                {
-                    foreach (var e in nearby)
+                    if (!e.AcceptPairRequests || string.IsNullOrEmpty(e.Token))
                     {
-                        if (!e.AcceptPairRequests || string.IsNullOrEmpty(e.Token))
-                            continue;
+                        continue;
+                    }
 
-                        var name = e.DisplayName ?? e.Name;
-                        ImGui.AlignTextToFramePadding();
-                        ImGui.TextUnformatted(name);
-                        var right = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth();
-                        ImGui.SameLine();
+                    var name = e.DisplayName ?? e.Name;
+                    ImGui.AlignTextToFramePadding();
+                    ImGui.TextUnformatted(name);
+                    var right = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth();
+                    ImGui.SameLine();
 
-                        var statusButtonSize = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.UserPlus);
-                        ImGui.SetCursorPosX(right - statusButtonSize.X);
-                        if (!e.AcceptPairRequests)
+                    var statusButtonSize = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.UserPlus);
+                    ImGui.SetCursorPosX(right - statusButtonSize.X);
+                    if (!e.AcceptPairRequests)
+                    {
+                        _uiSharedService.IconText(FontAwesomeIcon.Ban, ImGuiColors.DalamudGrey3);
+                        UiSharedService.AttachToolTip("Les demandes sont désactivées pour ce joueur");
+                    }
+                    else if (!string.IsNullOrEmpty(e.Token))
+                    {
+                        using (ImRaii.PushId(e.Token ?? e.Uid ?? e.Name ?? string.Empty))
                         {
-                            _uiSharedService.IconText(FontAwesomeIcon.Ban, ImGuiColors.DalamudGrey3);
-                            UiSharedService.AttachToolTip("Les demandes sont désactivées pour ce joueur");
-                        }
-                        else if (!string.IsNullOrEmpty(e.Token))
-                        {
-                            using (ImRaii.PushId(e.Token ?? e.Uid ?? e.Name ?? string.Empty))
+                            if (_uiSharedService.IconButton(FontAwesomeIcon.UserPlus))
                             {
-                                if (_uiSharedService.IconButton(FontAwesomeIcon.UserPlus))
-                                {
-                                    _ = _autoDetectRequestService.SendRequestAsync(e.Token!, e.Uid, e.DisplayName);
-                                }
+                                _ = _autoDetectRequestService.SendRequestAsync(e.Token!, e.Uid, e.DisplayName);
                             }
-                            UiSharedService.AttachToolTip("Envoyer une invitation d'apparaige");
                         }
-                        else
-                        {
-                            _uiSharedService.IconText(FontAwesomeIcon.QuestionCircle, ImGuiColors.DalamudGrey3);
-                            UiSharedService.AttachToolTip("Impossible d'inviter ce joueur");
-                        }
+                        UiSharedService.AttachToolTip("Envoyer une invitation d'apparaige");
+                    }
+                    else
+                    {
+                        _uiSharedService.IconText(FontAwesomeIcon.QuestionCircle, ImGuiColors.DalamudGrey3);
+                        UiSharedService.AttachToolTip("Impossible d'inviter ce joueur");
                     }
                 }
                 ImGui.Unindent(indent);

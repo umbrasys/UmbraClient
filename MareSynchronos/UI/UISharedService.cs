@@ -118,7 +118,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         {
             e.OnPreBuild(tk => tk.AddDalamudAssetFont(Dalamud.DalamudAsset.NotoSansJpMedium, new()
             {
-                SizePx = 35,
+                SizePx = 27,
                 GlyphRanges = [0x20, 0x7E, 0]
             }));
         });
@@ -347,6 +347,12 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             state = !state;
         }
         return state;
+    }
+
+    public static float GetCardContentPaddingX()
+    {
+        var style = ImGui.GetStyle();
+        return style.FramePadding.X + 4f * ImGuiHelpers.GlobalScale;
     }
 
     public static void DrawGroupedCenteredColorText(string text, Vector4 color, float? maxWidth = null)

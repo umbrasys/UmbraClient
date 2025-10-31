@@ -646,7 +646,8 @@ internal sealed class GroupPanel
         var isOwner = string.Equals(groupDto.OwnerUID, ApiController.UID, StringComparison.Ordinal);
 
         var spacingX = ImGui.GetStyle().ItemSpacing.X;
-        var windowEndX = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth();
+        var cardPaddingX = UiSharedService.GetCardContentPaddingX();
+        var windowEndX = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - cardPaddingX - 6f * ImGuiHelpers.GlobalScale;
         var pauseIcon = groupDto.GroupUserPermissions.IsPaused() ? FontAwesomeIcon.Play : FontAwesomeIcon.Pause;
         var pauseIconSize = _uiShared.GetIconButtonSize(pauseIcon);
 
