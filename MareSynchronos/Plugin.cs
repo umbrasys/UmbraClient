@@ -15,6 +15,7 @@ using MareSynchronos.Services;
 using MareSynchronos.Services.Events;
 using MareSynchronos.Services.Mediator;
 using MareSynchronos.Services.ServerConfiguration;
+using MareSynchronos.Services.Notifications;
 using MareSynchronos.UI;
 using MareSynchronos.UI.Components;
 using MareSynchronos.UI.Components.Popup;
@@ -102,6 +103,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton<MareSynchronos.Services.AutoDetect.NearbyDiscoveryService>();
             collection.AddSingleton<MareSynchronos.Services.AutoDetect.NearbyPendingService>();
             collection.AddSingleton<MareSynchronos.Services.AutoDetect.AutoDetectSuppressionService>();
+            collection.AddSingleton<MareSynchronos.Services.AutoDetect.SyncshellDiscoveryService>();
             collection.AddSingleton<MarePlugin>();
             collection.AddSingleton<MareProfileManager>();
             collection.AddSingleton<GameObjectHandlerFactory>();
@@ -126,6 +128,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton<CharaDataCharacterHandler>();
             collection.AddSingleton<CharaDataNearbyManager>();
             collection.AddSingleton<CharaDataGposeTogetherManager>();
+            collection.AddSingleton<McdfShareManager>();
 
             collection.AddSingleton<VfxSpawnManager>();
             collection.AddSingleton<BlockedCharacterHandler>();
@@ -151,6 +154,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton<PartyListTypingService>();
             collection.AddSingleton<TypingIndicatorStateService>();
             collection.AddSingleton<ChatTwoCompatibilityService>();
+            collection.AddSingleton<NotificationTracker>();
 
             collection.AddSingleton((s) => new MareConfigService(pluginInterface.ConfigDirectory.FullName));
             collection.AddSingleton((s) => new ServerConfigService(pluginInterface.ConfigDirectory.FullName));
@@ -186,6 +190,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddScoped<CompactUi>();
             collection.AddScoped<EditProfileUi>();
             collection.AddScoped<DataAnalysisUi>();
+            collection.AddScoped<CharaDataHubUi>();
             collection.AddScoped<AutoDetectUi>();
             collection.AddScoped<WindowMediatorSubscriberBase>(sp => sp.GetRequiredService<SettingsUi>());
             collection.AddScoped<WindowMediatorSubscriberBase>(sp => sp.GetRequiredService<CompactUi>());
@@ -227,6 +232,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddHostedService(p => p.GetRequiredService<MarePlugin>());
             collection.AddHostedService(p => p.GetRequiredService<IpcProvider>());
             collection.AddHostedService(p => p.GetRequiredService<MareSynchronos.Services.AutoDetect.NearbyDiscoveryService>());
+            collection.AddHostedService(p => p.GetRequiredService<MareSynchronos.Services.AutoDetect.SyncshellDiscoveryService>());
             collection.AddHostedService(p => p.GetRequiredService<ChatTwoCompatibilityService>());
             collection.AddHostedService(p => p.GetRequiredService<MareSynchronos.Services.AutoDetect.AutoDetectSuppressionService>());
         })

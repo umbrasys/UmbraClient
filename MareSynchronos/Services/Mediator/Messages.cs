@@ -115,12 +115,15 @@ public record NearbyEntry(string Name, ushort WorldId, float Distance, bool IsMa
 public record DiscoveryListUpdated(List<NearbyEntry> Entries) : MessageBase;
 public record NearbyDetectionToggled(bool Enabled) : MessageBase;
 public record AllowPairRequestsToggled(bool Enabled) : MessageBase;
+public record SyncshellDiscoveryUpdated(List<SyncshellDiscoveryEntryDto> Entries) : MessageBase;
+public record SyncshellAutoDetectStateChanged(string Gid, bool Visible, bool PasswordTemporarilyDisabled) : MessageBase;
 public record ManualPairInviteMessage(string SourceUid, string SourceAlias, string TargetUid, string? DisplayName, string InviteId) : MessageBase;
 public record ApplyDefaultPairPermissionsMessage(UserPairDto Pair) : MessageBase;
 public record ApplyDefaultGroupPermissionsMessage(GroupPairFullInfoDto GroupPair) : MessageBase;
 public record ApplyDefaultsToAllSyncsMessage(string? Context = null, bool? Disabled = null) : MessageBase;
 public record PairSyncOverrideChanged(string Uid, bool? DisableSounds, bool? DisableAnimations, bool? DisableVfx) : MessageBase;
 public record GroupSyncOverrideChanged(string Gid, bool? DisableSounds, bool? DisableAnimations, bool? DisableVfx) : MessageBase;
+public record NotificationStateChanged(int TotalCount) : MessageBase;
 
 public record PluginChangeMessage(string InternalName, Version Version, bool IsLoaded) : KeyedMessage(InternalName);
 #pragma warning restore S2094

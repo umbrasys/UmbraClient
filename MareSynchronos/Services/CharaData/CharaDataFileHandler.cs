@@ -11,6 +11,7 @@ using MareSynchronos.Services.CharaData.Models;
 using MareSynchronos.Utils;
 using MareSynchronos.WebAPI.Files;
 using Microsoft.Extensions.Logging;
+using System.Threading;
 
 namespace MareSynchronos.Services;
 
@@ -292,6 +293,32 @@ public sealed class CharaDataFileHandler : IDisposable
         {
             _logger.LogError(ex, "Failure Saving Mare Chara File, deleting output");
             File.Delete(tempFilePath);
+        }
+    }
+
+    internal async Task<byte[]?> CreateCharaFileBytesAsync(string description, CancellationToken token = default)
+    {
+        var tempFilePath = Path.Combine(Path.GetTempPath(), "umbra_mcdfshare_" + Guid.NewGuid().ToString("N") + ".mcdf");
+        try
+        {
+            await SaveCharaFileAsync(description, tempFilePath).ConfigureAwait(false);
+            if (!File.Exists(tempFilePath)) return null;
+            token.ThrowIfCancellationRequested();
+            return await File.ReadAllBytesAsync(tempFilePath, token).ConfigureAwait(false);
+        }
+        finally
+        {
+            try
+            {
+                if (File.Exists(tempFilePath))
+                {
+                    File.Delete(tempFilePath);
+                }
+            }
+            catch
+            {
+                // ignored
+            }
         }
     }
 

@@ -1,5 +1,6 @@
 ﻿using MareSynchronos.API.Dto.Group;
 using MareSynchronos.PlayerData.Pairs;
+using MareSynchronos.Services.AutoDetect;
 using MareSynchronos.Services.Mediator;
 using MareSynchronos.Services.ServerConfiguration;
 using MareSynchronos.UI;
@@ -19,9 +20,10 @@ public class UiFactory
     private readonly ServerConfigurationManager _serverConfigManager;
     private readonly MareProfileManager _mareProfileManager;
     private readonly PerformanceCollectorService _performanceCollectorService;
+    private readonly SyncshellDiscoveryService _syncshellDiscoveryService;
 
     public UiFactory(ILoggerFactory loggerFactory, MareMediator mareMediator, ApiController apiController,
-        UiSharedService uiSharedService, PairManager pairManager, ServerConfigurationManager serverConfigManager,
+        UiSharedService uiSharedService, PairManager pairManager, SyncshellDiscoveryService syncshellDiscoveryService, ServerConfigurationManager serverConfigManager,
         MareProfileManager mareProfileManager, PerformanceCollectorService performanceCollectorService)
     {
         _loggerFactory = loggerFactory;
@@ -29,6 +31,7 @@ public class UiFactory
         _apiController = apiController;
         _uiSharedService = uiSharedService;
         _pairManager = pairManager;
+        _syncshellDiscoveryService = syncshellDiscoveryService;
         _serverConfigManager = serverConfigManager;
         _mareProfileManager = mareProfileManager;
         _performanceCollectorService = performanceCollectorService;
@@ -37,7 +40,7 @@ public class UiFactory
     public SyncshellAdminUI CreateSyncshellAdminUi(GroupFullInfoDto dto)
     {
         return new SyncshellAdminUI(_loggerFactory.CreateLogger<SyncshellAdminUI>(), _mareMediator,
-            _apiController, _uiSharedService, _pairManager, dto, _performanceCollectorService);
+            _apiController, _uiSharedService, _pairManager, _syncshellDiscoveryService, dto, _performanceCollectorService);
     }
 
     public StandaloneProfileUi CreateStandaloneProfileUi(Pair pair)

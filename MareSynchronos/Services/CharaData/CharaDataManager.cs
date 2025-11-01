@@ -13,7 +13,9 @@ using MareSynchronos.Utils;
 using MareSynchronos.WebAPI;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
+using System.IO;
 using System.Text;
+using System.Threading;
 
 namespace MareSynchronos.Services;
 
@@ -455,6 +457,14 @@ public sealed partial class CharaDataManager : DisposableMediatorSubscriberBase
     public void LoadMcdf(string filePath)
     {
         LoadedMcdfHeader = _fileHandler.LoadCharaFileHeader(filePath);
+    }
+
+    public async Task<string> LoadMcdfFromBytes(byte[] data, CancellationToken token = default)
+    {
+        var tempFilePath = Path.Combine(Path.GetTempPath(), "umbra_mcdfshare_" + Guid.NewGuid().ToString("N") + ".mcdf");
+        await File.WriteAllBytesAsync(tempFilePath, data, token).ConfigureAwait(false);
+        LoadedMcdfHeader = _fileHandler.LoadCharaFileHeader(tempFilePath);
+        return tempFilePath;
     }
 
     public void McdfApplyToTarget(string charaName)

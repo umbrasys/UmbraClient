@@ -3,15 +3,19 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using System;
 using MareSynchronos.API.Data.Enum;
 using MareSynchronos.API.Data.Extensions;
 using MareSynchronos.API.Dto.Group;
 using MareSynchronos.PlayerData.Pairs;
 using MareSynchronos.Services;
+using MareSynchronos.Services.AutoDetect;
 using MareSynchronos.Services.Mediator;
 using MareSynchronos.WebAPI;
 using Microsoft.Extensions.Logging;
 using System.Globalization;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace MareSynchronos.UI.Components.Popup;
 
@@ -23,6 +27,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
     private readonly List<string> _oneTimeInvites = [];
     private readonly PairManager _pairManager;
     private readonly UiSharedService _uiSharedService;
+    private readonly SyncshellDiscoveryService _syncshellDiscoveryService;
     private List<BannedGroupUserDto> _bannedUsers = [];
     private int _multiInvites;
     private string _newPassword;
@@ -30,20 +35,31 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
     private Task<int>? _pruneTestTask;
     private Task<int>? _pruneTask;
     private int _pruneDays = 14;
+    private bool _autoDetectStateInitialized;
+    private bool _autoDetectStateLoading;
+    private bool _autoDetectToggleInFlight;
+    private bool _autoDetectVisible;
+    private bool _autoDetectPasswordDisabled;
+    private string? _autoDetectMessage;
 
     public SyncshellAdminUI(ILogger<SyncshellAdminUI> logger, MareMediator mediator, ApiController apiController,
-        UiSharedService uiSharedService, PairManager pairManager, GroupFullInfoDto groupFullInfo, PerformanceCollectorService performanceCollectorService)
+        UiSharedService uiSharedService, PairManager pairManager, SyncshellDiscoveryService syncshellDiscoveryService,
+        GroupFullInfoDto groupFullInfo, PerformanceCollectorService performanceCollectorService)
         : base(logger, mediator, "Syncshell Admin Panel (" + groupFullInfo.GroupAliasOrGID + ")", performanceCollectorService)
     {
         GroupFullInfo = groupFullInfo;
         _apiController = apiController;
         _uiSharedService = uiSharedService;
         _pairManager = pairManager;
+        _syncshellDiscoveryService = syncshellDiscoveryService;
         _isOwner = string.Equals(GroupFullInfo.OwnerUID, _apiController.UID, StringComparison.Ordinal);
         _isModerator = GroupFullInfo.GroupUserInfo.IsModerator();
         _newPassword = string.Empty;
         _multiInvites = 30;
         _pwChangeSuccess = true;
+        _autoDetectVisible = groupFullInfo.AutoDetectVisible;
+        _autoDetectPasswordDisabled = groupFullInfo.PasswordTemporarilyDisabled;
+        Mediator.Subscribe<SyncshellAutoDetectStateChanged>(this, OnSyncshellAutoDetectStateChanged);
         IsOpen = true;
         SizeConstraints = new WindowSizeConstraints()
         {
@@ -59,6 +75,11 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
         if (!_isModerator && !_isOwner) return;
 
         GroupFullInfo = _pairManager.Groups[GroupFullInfo.Group];
+        if (!_autoDetectToggleInFlight && !_autoDetectStateLoading)
+        {
+            _autoDetectVisible = GroupFullInfo.AutoDetectVisible;
+            _autoDetectPasswordDisabled = GroupFullInfo.PasswordTemporarilyDisabled;
+        }
 
         using var id = ImRaii.PushId("syncshell_admin_" + GroupFullInfo.GID);
 
@@ -363,6 +384,13 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
             }
             mgmtTab.Dispose();
 
+            var discoveryTab = ImRaii.TabItem("AutoDetect");
+            if (discoveryTab)
+            {
+                DrawAutoDetectTab();
+            }
+            discoveryTab.Dispose();
+
             var permissionTab = ImRaii.TabItem("Permissions");
             if (permissionTab)
             {
@@ -446,6 +474,128 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                 ownerTab.Dispose();
             }
         }
+    }
+
+    private void DrawAutoDetectTab()
+    {
+        if (!_autoDetectStateInitialized && !_autoDetectStateLoading)
+        {
+            _autoDetectStateInitialized = true;
+            _autoDetectStateLoading = true;
+            _ = EnsureAutoDetectStateAsync();
+        }
+
+        UiSharedService.TextWrapped("Activer l'affichage AutoDetect rend la Syncshell visible dans l'onglet AutoDetect et désactive temporairement le mot de passe.");
+        ImGuiHelpers.ScaledDummy(4);
+
+        if (_autoDetectStateLoading)
+        {
+            ImGui.TextDisabled("Chargement de l'état en cours...");
+        }
+
+        if (!string.IsNullOrEmpty(_autoDetectMessage))
+        {
+            UiSharedService.ColorTextWrapped(_autoDetectMessage!, ImGuiColors.DalamudYellow);
+        }
+
+        bool desiredVisibility = _autoDetectVisible;
+        using (ImRaii.Disabled(_autoDetectToggleInFlight || _autoDetectStateLoading))
+        {
+            if (ImGui.Checkbox("Afficher cette Syncshell dans l'AutoDetect", ref desiredVisibility))
+            {
+                _ = ToggleAutoDetectAsync(desiredVisibility);
+            }
+        }
+        _uiSharedService.DrawHelpText("Quand cette option est activée, le mot de passe devient inactif tant que la visibilité est maintenue.");
+
+        if (_autoDetectPasswordDisabled && _autoDetectVisible)
+        {
+            UiSharedService.ColorTextWrapped("Le mot de passe est actuellement désactivé pendant la visibilité AutoDetect.", ImGuiColors.DalamudYellow);
+        }
+
+        ImGuiHelpers.ScaledDummy(6);
+        if (ImGui.Button("Recharger l'état"))
+        {
+            _autoDetectStateLoading = true;
+            _ = EnsureAutoDetectStateAsync(true);
+        }
+    }
+
+    private async Task EnsureAutoDetectStateAsync(bool force = false)
+    {
+        try
+        {
+            var state = await _syncshellDiscoveryService.GetStateAsync(GroupFullInfo.GID, CancellationToken.None).ConfigureAwait(false);
+            if (state != null)
+            {
+                ApplyAutoDetectState(state.AutoDetectVisible, state.PasswordTemporarilyDisabled, true);
+                _autoDetectMessage = null;
+            }
+            else if (force)
+            {
+                _autoDetectMessage = "Impossible de récupérer l'état AutoDetect.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _autoDetectMessage = force ? $"Erreur lors du rafraîchissement : {ex.Message}" : _autoDetectMessage;
+        }
+        finally
+        {
+            _autoDetectStateLoading = false;
+        }
+    }
+
+    private async Task ToggleAutoDetectAsync(bool desiredVisibility)
+    {
+        if (_autoDetectToggleInFlight)
+        {
+            return;
+        }
+
+        _autoDetectToggleInFlight = true;
+        _autoDetectMessage = null;
+
+        try
+        {
+            var success = await _syncshellDiscoveryService.SetVisibilityAsync(GroupFullInfo.GID, desiredVisibility, CancellationToken.None).ConfigureAwait(false);
+            if (!success)
+            {
+                _autoDetectMessage = "Impossible de mettre à jour la visibilité AutoDetect.";
+                return;
+            }
+
+            await EnsureAutoDetectStateAsync(true).ConfigureAwait(false);
+            _autoDetectMessage = desiredVisibility
+                ? "La Syncshell est désormais visible dans AutoDetect."
+                : "La Syncshell n'est plus visible dans AutoDetect.";
+        }
+        catch (Exception ex)
+        {
+            _autoDetectMessage = $"Erreur lors de la mise à jour AutoDetect : {ex.Message}";
+        }
+        finally
+        {
+            _autoDetectToggleInFlight = false;
+        }
+    }
+
+    private void ApplyAutoDetectState(bool visible, bool passwordDisabled, bool fromServer)
+    {
+        _autoDetectVisible = visible;
+        _autoDetectPasswordDisabled = passwordDisabled;
+        if (fromServer)
+        {
+            GroupFullInfo.AutoDetectVisible = visible;
+            GroupFullInfo.PasswordTemporarilyDisabled = passwordDisabled;
+        }
+    }
+
+    private void OnSyncshellAutoDetectStateChanged(SyncshellAutoDetectStateChanged msg)
+    {
+        if (!string.Equals(msg.Gid, GroupFullInfo.GID, StringComparison.OrdinalIgnoreCase)) return;
+        ApplyAutoDetectState(msg.Visible, msg.PasswordTemporarilyDisabled, true);
+        _autoDetectMessage = null;
     }
 
     public override void OnClose()

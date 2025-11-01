@@ -14,6 +14,7 @@ using MareSynchronos.Services;
 using MareSynchronos.Services.Mediator;
 using MareSynchronos.Services.ServerConfiguration;
 using MareSynchronos.Services.AutoDetect;
+using MareSynchronos.Services.Notifications;
 using MareSynchronos.UI.Components;
 using MareSynchronos.UI.Handlers;
 using MareSynchronos.WebAPI;
@@ -28,6 +29,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Numerics;
 using System.Reflection;
+using System.Threading.Tasks;
 using System.Linq;
 
 namespace MareSynchronos.UI;
@@ -57,6 +59,8 @@ public class CompactUi : WindowMediatorSubscriberBase
     private readonly SettingsUi _settingsUi;
     private readonly AutoDetectUi _autoDetectUi;
     private readonly DataAnalysisUi _dataAnalysisUi;
+    private readonly CharaDataHubUi _charaDataHubUi;
+    private readonly NotificationTracker _notificationTracker;
     private bool _buttonState;
     private string _characterOrCommentFilter = string.Empty;
     private Pair? _lastAddedUser;
@@ -71,6 +75,7 @@ public class CompactUi : WindowMediatorSubscriberBase
     private bool _visibleOpen = true;
     private bool _selfAnalysisOpen = false;
     private List<Services.Mediator.NearbyEntry> _nearbyEntries = new();
+    private int _notificationCount;
     private const long SelfAnalysisSizeWarningThreshold = 300L * 1024 * 1024;
     private const long SelfAnalysisTriangleWarningThreshold = 150_000;
     private CompactUiSection _activeSection = CompactUiSection.VisiblePairs;
@@ -84,6 +89,7 @@ public class CompactUi : WindowMediatorSubscriberBase
     private enum CompactUiSection
     {
         VisiblePairs,
+        Notifications,
         IndividualPairs,
         Syncshells,
         AutoDetect,
@@ -108,7 +114,9 @@ public class CompactUi : WindowMediatorSubscriberBase
         EditProfileUi editProfileUi,
         SettingsUi settingsUi,
         AutoDetectUi autoDetectUi,
-        DataAnalysisUi dataAnalysisUi)
+        DataAnalysisUi dataAnalysisUi,
+        CharaDataHubUi charaDataHubUi,
+        NotificationTracker notificationTracker)
         : base(logger, mediator, "###UmbraSyncMainUI", performanceCollectorService)
     {
         _uiSharedService = uiShared;
@@ -126,6 +134,8 @@ public class CompactUi : WindowMediatorSubscriberBase
         _settingsUi = settingsUi;
         _autoDetectUi = autoDetectUi;
         _dataAnalysisUi = dataAnalysisUi;
+        _charaDataHubUi = charaDataHubUi;
+        _notificationTracker = notificationTracker;
         var tagHandler = new TagHandler(_serverManager);
 
         _groupPanel = new(this, uiShared, _pairManager, chatService, uidDisplayHandler, _serverManager, _charaDataManager, _autoDetectRequestService);
@@ -162,6 +172,8 @@ public class CompactUi : WindowMediatorSubscriberBase
                 }
             }
         });
+        Mediator.Subscribe<NotificationStateChanged>(this, msg => _notificationCount = msg.TotalCount);
+        _notificationCount = _notificationTracker.Count;
 
         Flags |= ImGuiWindowFlags.NoDocking;
 
@@ -706,7 +718,7 @@ if (showNearby && pendingInvites > 0)
 
             if (!showVisibleCard && !showNearbyCard)
             {
-                const string calmMessage = "C'est bien trop calme ici... Il n'y a rien pour le moment.";
+                const string calmMessage = "C'est bien trop calme ici... Il n'y a personne pour le moment.";
                 using (_uiSharedService.UidFont.Push())
                 {
                     var regionMin = ImGui.GetWindowContentRegionMin();
@@ -898,6 +910,8 @@ if (showNearby && pendingInvites > 0)
         ImGuiHelpers.ScaledDummy(6f);
         DrawConnectionIcon();
         ImGuiHelpers.ScaledDummy(12f);
+        DrawSidebarButton(FontAwesomeIcon.Bell, "Notifications", CompactUiSection.Notifications, true, _notificationCount > 0, _notificationCount, null, ImGuiColors.DalamudOrange);
+        ImGuiHelpers.ScaledDummy(3f);
 
         DrawSidebarButton(FontAwesomeIcon.Eye, "Visible pairs", CompactUiSection.VisiblePairs, isConnected);
         ImGuiHelpers.ScaledDummy(3f);
@@ -912,15 +926,9 @@ if (showNearby && pendingInvites > 0)
             : "AutoDetect";
         DrawSidebarButton(FontAwesomeIcon.BroadcastTower, autoDetectTooltip, CompactUiSection.AutoDetect, isConnected, highlightAutoDetect, pendingInvites);
         ImGuiHelpers.ScaledDummy(3f);
-        DrawSidebarButton(FontAwesomeIcon.PersonCircleQuestion, "Character Analysis", CompactUiSection.CharacterAnalysis, isConnected, _dataAnalysisUi.IsOpen, 0, () =>
-        {
-            Mediator.Publish(new UiToggleMessage(typeof(DataAnalysisUi)));
-        });
+        DrawSidebarButton(FontAwesomeIcon.PersonCircleQuestion, "Character Analysis", CompactUiSection.CharacterAnalysis, isConnected);
         ImGuiHelpers.ScaledDummy(3f);
-        DrawSidebarButton(FontAwesomeIcon.Running, "Character Data Hub", CompactUiSection.CharacterDataHub, isConnected, false, 0, () =>
-        {
-            Mediator.Publish(new UiToggleMessage(typeof(CharaDataHubUi)));
-        });
+        DrawSidebarButton(FontAwesomeIcon.Running, "Character Data Hub", CompactUiSection.CharacterDataHub, isConnected);
         ImGuiHelpers.ScaledDummy(12f);
         DrawSidebarButton(FontAwesomeIcon.UserCircle, "Edit Profile", CompactUiSection.EditProfile, isConnected);
         ImGuiHelpers.ScaledDummy(3f);
@@ -930,7 +938,7 @@ if (showNearby && pendingInvites > 0)
         });
     }
 
-    private void DrawSidebarButton(FontAwesomeIcon icon, string tooltip, CompactUiSection section, bool enabled = true, bool highlight = false, int badgeCount = 0, Action? onClick = null)
+    private void DrawSidebarButton(FontAwesomeIcon icon, string tooltip, CompactUiSection section, bool enabled = true, bool highlight = false, int badgeCount = 0, Action? onClick = null, Vector4? highlightColor = null)
     {
         using var id = ImRaii.PushId((int)section);
         float regionWidth = ImGui.GetContentRegionAvail().X;
@@ -940,7 +948,7 @@ if (showNearby && pendingInvites > 0)
 
         bool isActive = _activeSection == section;
 
-        if (DrawSidebarSquareButton(icon, isActive, highlight, enabled, badgeCount))
+        if (DrawSidebarSquareButton(icon, isActive, highlight, enabled, badgeCount, highlightColor))
         {
             if (onClick != null)
             {
@@ -970,7 +978,7 @@ if (showNearby && pendingInvites > 0)
 
         bool isTogglingDisabled = !hasServer || state is ServerState.Reconnecting or ServerState.Disconnecting;
 
-        if (DrawSidebarSquareButton(icon, isLinked, false, !isTogglingDisabled, 0) && !isTogglingDisabled)
+        if (DrawSidebarSquareButton(icon, isLinked, false, !isTogglingDisabled, 0, null) && !isTogglingDisabled)
         {
             ToggleConnection();
         }
@@ -988,7 +996,7 @@ if (showNearby && pendingInvites > 0)
         }
     }
 
-    private bool DrawSidebarSquareButton(FontAwesomeIcon icon, bool isActive, bool highlight, bool enabled, int badgeCount)
+    private bool DrawSidebarSquareButton(FontAwesomeIcon icon, bool isActive, bool highlight, bool enabled, int badgeCount, Vector4? highlightColor)
     {
         float size = SidebarIconSize * ImGuiHelpers.GlobalScale;
 
@@ -1021,9 +1029,14 @@ if (showNearby && pendingInvites > 0)
                 start.Y + (size - iconSize.Y) / 2f);
             uint iconColor = ImGui.ColorConvertFloat4ToU32(new Vector4(0.85f, 0.85f, 0.9f, 1f));
             if (highlight)
-                iconColor = ImGui.ColorConvertFloat4ToU32(new Vector4(0.45f, 0.85f, 0.45f, 1f));
+            {
+                var color = highlightColor ?? new Vector4(0.45f, 0.85f, 0.45f, 1f);
+                iconColor = ImGui.ColorConvertFloat4ToU32(color);
+            }
             else if (isActive)
+            {
                 iconColor = ImGui.GetColorU32(ImGuiCol.Text);
+            }
             ImGui.GetWindowDrawList().AddText(textPos, iconColor, iconText);
         }
 
@@ -1093,6 +1106,9 @@ if (showNearby && pendingInvites > 0)
             case CompactUiSection.VisiblePairs:
                 DrawPairSection(PairContentMode.VisibleOnly);
                 break;
+            case CompactUiSection.Notifications:
+                DrawNotificationsSection();
+                break;
             case CompactUiSection.IndividualPairs:
                 DrawPairSection(PairContentMode.All);
                 break;
@@ -1101,6 +1117,14 @@ if (showNearby && pendingInvites > 0)
                 break;
             case CompactUiSection.AutoDetect:
                 DrawAutoDetectSection();
+                break;
+            case CompactUiSection.CharacterAnalysis:
+                if (_dataAnalysisUi.IsOpen) _dataAnalysisUi.IsOpen = false;
+                _dataAnalysisUi.DrawInline();
+                break;
+            case CompactUiSection.CharacterDataHub:
+                if (_charaDataHubUi.IsOpen) _charaDataHubUi.IsOpen = false;
+                _charaDataHubUi.DrawInline();
                 break;
         }
 
@@ -1131,6 +1155,98 @@ if (showNearby && pendingInvites > 0)
     private void DrawAutoDetectSection()
     {
         using (ImRaii.PushId("autodetect-inline")) _autoDetectUi.DrawInline();
+    }
+
+    private void DrawNotificationsSection()
+    {
+        var notifications = _notificationTracker.GetEntries();
+        if (notifications.Count == 0)
+        {
+            UiSharedService.ColorTextWrapped("Aucune notification en attente.", ImGuiColors.DalamudGrey3);
+            return;
+        }
+
+        foreach (var notification in notifications.OrderByDescending(n => n.CreatedAt))
+        {
+            switch (notification.Category)
+            {
+                case NotificationCategory.AutoDetect:
+                    DrawAutoDetectNotification(notification);
+                    break;
+                default:
+                    UiSharedService.DrawCard($"notification-{notification.Category}-{notification.Id}", () =>
+                    {
+                        ImGui.TextUnformatted(notification.Title);
+                        if (!string.IsNullOrEmpty(notification.Description))
+                        {
+                            ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudGrey3);
+                            ImGui.TextUnformatted(notification.Description);
+                            ImGui.PopStyleColor();
+                        }
+                    }, stretchWidth: true);
+                    break;
+            }
+
+            ImGuiHelpers.ScaledDummy(4f);
+        }
+    }
+
+    private void DrawAutoDetectNotification(NotificationEntry notification)
+    {
+        UiSharedService.DrawCard($"notification-autodetect-{notification.Id}", () =>
+        {
+            var label = _nearbyPending.Pending.TryGetValue(notification.Id, out var displayName)
+                ? displayName
+                : notification.Title;
+
+            ImGui.TextUnformatted(label);
+            if (!string.IsNullOrEmpty(notification.Description))
+            {
+                ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudGrey3);
+                ImGui.TextWrapped(notification.Description);
+                ImGui.PopStyleColor();
+            }
+
+            ImGuiHelpers.ScaledDummy(3f);
+
+            bool hasPending = _nearbyPending.Pending.ContainsKey(notification.Id);
+            using (ImRaii.PushId(notification.Id))
+            {
+                using (ImRaii.Disabled(!hasPending))
+                {
+                    if (ImGui.Button("Accepter"))
+                    {
+                        TriggerAcceptAutoDetectNotification(notification.Id);
+                    }
+                    ImGui.SameLine();
+                    if (ImGui.Button("Refuser"))
+                    {
+                        _nearbyPending.Remove(notification.Id);
+                    }
+                }
+
+                if (!hasPending)
+                {
+                    ImGui.SameLine();
+                    if (ImGui.Button("Effacer"))
+                    {
+                        _notificationTracker.Remove(NotificationCategory.AutoDetect, notification.Id);
+                    }
+                }
+            }
+        }, stretchWidth: true);
+    }
+
+    private void TriggerAcceptAutoDetectNotification(string uid)
+    {
+        _ = Task.Run(async () =>
+        {
+            bool accepted = await _nearbyPending.AcceptAsync(uid).ConfigureAwait(false);
+            if (!accepted)
+            {
+                Mediator.Publish(new NotificationMessage("AutoDetect", $"Impossible d'accepter l'invitation {uid}.", NotificationType.Warning, TimeSpan.FromSeconds(5)));
+            }
+        });
     }
 
     private void DrawNewUserNoteModal()
@@ -1171,9 +1287,12 @@ if (showNearby && pendingInvites > 0)
     private static bool RequiresServerConnection(CompactUiSection section)
     {
         return section is CompactUiSection.VisiblePairs
+            or CompactUiSection.Notifications
             or CompactUiSection.IndividualPairs
             or CompactUiSection.Syncshells
-            or CompactUiSection.AutoDetect;
+            or CompactUiSection.AutoDetect
+            or CompactUiSection.CharacterAnalysis
+            or CompactUiSection.CharacterDataHub;
     }
 
     private bool IsAlreadyPairedQuickMenu(Services.Mediator.NearbyEntry entry)
@@ -1288,37 +1407,61 @@ if (showNearby && pendingInvites > 0)
 
         var originalPos = ImGui.GetCursorPos();
         UiSharedService.SetFontScale(1.5f);
-        Vector2 buttonSize = Vector2.Zero;
         float spacingX = ImGui.GetStyle().ItemSpacing.X;
-
-        if (_apiController.ServerState is ServerState.Connected)
-        {
-            buttonSize = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Copy);
-            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - buttonSize.X);
-            ImGui.SetCursorPosY(originalPos.Y + uidTextSize.Y / 2f - buttonSize.Y / 2f);
-            if (_uiSharedService.IconButton(FontAwesomeIcon.Copy))
-            {
-                ImGui.SetClipboardText(_apiController.DisplayName);
-            }
-            UiSharedService.AttachToolTip("Copy your UID to clipboard");
-            ImGui.SameLine();
-        }
-
-        ImGui.SetCursorPos(originalPos);
-        UiSharedService.SetFontScale(1f);
-
-        float referenceHeight = buttonSize.Y > 0f ? buttonSize.Y : ImGui.GetFrameHeight();
-        ImGui.SetCursorPosY(originalPos.Y + referenceHeight / 2f - uidTextSize.Y / 2f - spacingX / 2f);
         float contentMin = ImGui.GetWindowContentRegionMin().X;
         float contentMax = ImGui.GetWindowContentRegionMax().X;
         float availableWidth = contentMax - contentMin;
         float center = contentMin + availableWidth / 2f;
-        ImGui.SetCursorPosX(center - uidTextSize.X / 2f);
+
+        bool isConnected = _apiController.ServerState is ServerState.Connected;
+        float buttonSize = 18f * ImGuiHelpers.GlobalScale;
+        float textPosY = originalPos.Y + MathF.Max(buttonSize, uidTextSize.Y) / 2f - uidTextSize.Y / 2f;
+        float textPosX = center - uidTextSize.X / 2f;
+
+        if (isConnected)
+        {
+            float buttonX = textPosX - spacingX - buttonSize;
+            float buttonVerticalOffset = 7f * ImGuiHelpers.GlobalScale;
+            float buttonY = textPosY + uidTextSize.Y - buttonSize + buttonVerticalOffset;
+            ImGui.SetCursorPos(new Vector2(buttonX, buttonY));
+            if (ImGui.Button("##copy", new Vector2(buttonSize, buttonSize)))
+            {
+                ImGui.SetClipboardText(_apiController.DisplayName);
+            }
+            var buttonMin = ImGui.GetItemRectMin();
+            var drawList = ImGui.GetWindowDrawList();
+            using (_uiSharedService.IconFont.Push())
+            {
+                string iconText = FontAwesomeIcon.Copy.ToIconString();
+                var baseSize = ImGui.CalcTextSize(iconText);
+                float maxDimension = MathF.Max(MathF.Max(baseSize.X, baseSize.Y), 1f);
+                float available = buttonSize - 4f;
+                float scale = MathF.Min(1f, available / maxDimension);
+                float iconWidth = baseSize.X * scale;
+                float iconHeight = baseSize.Y * scale;
+                var iconPos = new Vector2(
+                    buttonMin.X + (buttonSize - iconWidth) / 2f,
+                    buttonMin.Y + (buttonSize - iconHeight) / 2f);
+                var font = ImGui.GetFont();
+                float fontSize = ImGui.GetFontSize() * scale;
+                drawList.AddText(font, fontSize, iconPos, ImGui.GetColorU32(ImGuiCol.Text), iconText);
+            }
+            UiSharedService.AttachToolTip("Copy your UID to clipboard");
+            ImGui.SameLine(0f, spacingX);
+        }
+        else
+        {
+            ImGui.SetCursorPos(originalPos);
+        }
+
+        ImGui.SetCursorPos(new Vector2(textPosX, textPosY));
 
         using (_uiSharedService.UidFont.Push())
             ImGui.TextColored(GetUidColor(), uidText);
 
-        if (_apiController.ServerState is not ServerState.Connected)
+        UiSharedService.SetFontScale(1f);
+
+        if (!isConnected)
             UiSharedService.ColorTextWrapped(GetServerError(), GetUidColor());
         {
             if (_apiController.ServerState is ServerState.NoSecretKey)

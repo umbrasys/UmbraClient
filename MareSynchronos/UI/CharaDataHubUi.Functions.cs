@@ -6,7 +6,7 @@ using System.Text;
 
 namespace MareSynchronos.UI;
 
-internal sealed partial class CharaDataHubUi
+public sealed partial class CharaDataHubUi
 {
 	private static string GetAccessTypeString(AccessTypeDto dto) => dto switch
 	{

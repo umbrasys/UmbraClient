@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using MareSynchronos.API.Dto.Group;
 using MareSynchronos.MareConfiguration;
 using MareSynchronos.PlayerData.Pairs;
 using MareSynchronos.Services.Mediator;
@@ -29,11 +31,16 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
     private readonly PairManager _pairManager;
     private List<Services.Mediator.NearbyEntry> _entries;
     private readonly HashSet<string> _acceptInFlight = new(StringComparer.Ordinal);
+    private readonly SyncshellDiscoveryService _syncshellDiscoveryService;
+    private List<SyncshellDiscoveryEntryDto> _syncshellEntries = [];
+    private bool _syncshellInitialized;
+    private readonly HashSet<string> _syncshellJoinInFlight = new(StringComparer.OrdinalIgnoreCase);
+    private string? _syncshellLastError;
 
     public AutoDetectUi(ILogger<AutoDetectUi> logger, MareMediator mediator,
         MareConfigService configService, DalamudUtilService dalamudUtilService,
         AutoDetectRequestService requestService, NearbyPendingService pendingService, PairManager pairManager,
-        NearbyDiscoveryService discoveryService,
+        NearbyDiscoveryService discoveryService, SyncshellDiscoveryService syncshellDiscoveryService,
         PerformanceCollectorService performanceCollectorService)
         : base(logger, mediator, "AutoDetect", performanceCollectorService)
     {
@@ -43,7 +50,9 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
         _pendingService = pendingService;
         _pairManager = pairManager;
         _discoveryService = discoveryService;
+        _syncshellDiscoveryService = syncshellDiscoveryService;
         Mediator.Subscribe<Services.Mediator.DiscoveryListUpdated>(this, OnDiscoveryUpdated);
+        Mediator.Subscribe<SyncshellDiscoveryUpdated>(this, OnSyncshellDiscoveryUpdated);
         _entries = _discoveryService.SnapshotEntries();
 
         Flags |= ImGuiWindowFlags.NoScrollbar;
@@ -81,14 +90,7 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
         });
 
         DrawStyledTab("Proximité", accent, inactiveTab, hoverTab, DrawNearbyTab);
-
-        using (ImRaii.Disabled(true))
-        {
-            DrawStyledTab("Syncshell", accent, inactiveTab, hoverTab, () =>
-            {
-                UiSharedService.ColorTextWrapped("Disponible prochainement.", ImGuiColors.DalamudGrey3);
-            }, true);
-        }
+        DrawStyledTab("Syncshell", accent, inactiveTab, hoverTab, DrawSyncshellTab);
     }
 
     public void DrawInline()
@@ -221,6 +223,7 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
 
         var sourceEntries = _entries.Count > 0 ? _entries : _discoveryService.SnapshotEntries();
         var orderedEntries = sourceEntries
+            .Where(e => e.IsMatch)
             .OrderBy(e => float.IsNaN(e.Distance) ? float.MaxValue : e.Distance)
             .ToList();
 
@@ -245,10 +248,9 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
         for (int i = 0; i < orderedEntries.Count; i++)
         {
             var entry = orderedEntries[i];
-            bool isMatch = entry.IsMatch;
             bool alreadyPaired = IsAlreadyPairedByUidOrAlias(entry);
             bool overDistance = !float.IsNaN(entry.Distance) && entry.Distance > maxDist;
-            bool canRequest = isMatch && entry.AcceptPairRequests && !string.IsNullOrEmpty(entry.Token) && !alreadyPaired;
+            bool canRequest = entry.AcceptPairRequests && !string.IsNullOrEmpty(entry.Token) && !alreadyPaired;
 
             string displayName = entry.DisplayName ?? entry.Name;
             string worldName = entry.WorldId == 0
@@ -260,13 +262,11 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
                 ? "Déjà appairé"
                 : overDistance
                     ? $"Hors portée (> {maxDist} m)"
-                    : !isMatch
-                        ? "Umbra non activé"
-                        : !entry.AcceptPairRequests
-                            ? "Invitations refusées"
-                            : string.IsNullOrEmpty(entry.Token)
-                                ? "Indisponible"
-                                : "Disponible";
+                    : !entry.AcceptPairRequests
+                        ? "Invitations refusées"
+                        : string.IsNullOrEmpty(entry.Token)
+                            ? "Indisponible"
+                            : "Disponible";
 
             ImGui.TableNextColumn();
             ImGui.TextUnformatted(displayName);
@@ -297,13 +297,11 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
                         ? "Vous êtes déjà appairé avec ce joueur."
                         : overDistance
                             ? $"Ce joueur est au-delà de la distance maximale configurée ({maxDist} m)."
-                            : !isMatch
-                                ? "Ce joueur n'utilise pas UmbraSync ou ne s'est pas rendu détectable."
-                                : !entry.AcceptPairRequests
-                                    ? "Ce joueur a désactivé la réception automatique des invitations."
-                                    : string.IsNullOrEmpty(entry.Token)
-                                        ? "Impossible d'obtenir un jeton d'invitation pour ce joueur."
-                                        : string.Empty;
+                            : !entry.AcceptPairRequests
+                                ? "Ce joueur a désactivé la réception automatique des invitations."
+                                : string.IsNullOrEmpty(entry.Token)
+                                    ? "Impossible d'obtenir un jeton d'invitation pour ce joueur."
+                                    : string.Empty;
 
                     ImGui.TextDisabled(status);
                     if (!string.IsNullOrEmpty(reason))
@@ -317,9 +315,145 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
         ImGui.EndTable();
     }
 
+    private async Task JoinSyncshellAsync(SyncshellDiscoveryEntryDto entry)
+    {
+        if (!_syncshellJoinInFlight.Add(entry.GID))
+        {
+            return;
+        }
+
+        try
+        {
+            var joined = await _syncshellDiscoveryService.JoinAsync(entry.GID, CancellationToken.None).ConfigureAwait(false);
+            if (joined)
+            {
+                Mediator.Publish(new NotificationMessage("AutoDetect Syncshell", $"Rejoint {entry.Alias ?? entry.GID}.", NotificationType.Info, TimeSpan.FromSeconds(5)));
+                await _syncshellDiscoveryService.RefreshAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+            else
+            {
+                _syncshellLastError = $"Impossible de rejoindre {entry.Alias ?? entry.GID}.";
+                Mediator.Publish(new NotificationMessage("AutoDetect Syncshell", _syncshellLastError, NotificationType.Warning, TimeSpan.FromSeconds(5)));
+            }
+        }
+        catch (Exception ex)
+        {
+            _syncshellLastError = $"Erreur lors de l'adhésion : {ex.Message}";
+            Mediator.Publish(new NotificationMessage("AutoDetect Syncshell", _syncshellLastError, NotificationType.Error, TimeSpan.FromSeconds(5)));
+        }
+        finally
+        {
+            _syncshellJoinInFlight.Remove(entry.GID);
+        }
+    }
+
+    private void DrawSyncshellTab()
+    {
+        if (!_syncshellInitialized)
+        {
+            _syncshellInitialized = true;
+            _ = _syncshellDiscoveryService.RefreshAsync(CancellationToken.None);
+        }
+
+        bool isRefreshing = _syncshellDiscoveryService.IsRefreshing;
+        var serviceError = _syncshellDiscoveryService.LastError;
+
+        if (ImGui.Button("Actualiser la liste"))
+        {
+            _ = _syncshellDiscoveryService.RefreshAsync(CancellationToken.None);
+        }
+        UiSharedService.AttachToolTip("Met à jour la liste des Syncshells ayant activé l'AutoDetect.");
+
+        if (isRefreshing)
+        {
+            ImGui.SameLine();
+            ImGui.TextDisabled("Actualisation...");
+        }
+
+        ImGuiHelpers.ScaledDummy(4);
+        UiSharedService.TextWrapped("Les Syncshells affichées ont temporairement désactivé leur mot de passe pour permettre un accès direct via AutoDetect. Rejoignez-les uniquement si vous faites confiance aux administrateurs.");
+
+        if (!string.IsNullOrEmpty(serviceError))
+        {
+            UiSharedService.ColorTextWrapped(serviceError, ImGuiColors.DalamudRed);
+        }
+        else if (!string.IsNullOrEmpty(_syncshellLastError))
+        {
+            UiSharedService.ColorTextWrapped(_syncshellLastError!, ImGuiColors.DalamudOrange);
+        }
+
+        var entries = _syncshellEntries.Count > 0 ? _syncshellEntries : _syncshellDiscoveryService.Entries.ToList();
+        if (entries.Count == 0)
+        {
+            ImGuiHelpers.ScaledDummy(4);
+            UiSharedService.ColorTextWrapped("Aucune Syncshell n'est actuellement visible dans AutoDetect.", ImGuiColors.DalamudGrey3);
+            return;
+        }
+
+        if (!ImGui.BeginTable("autodetect-syncshells", 5, ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.RowBg))
+        {
+            return;
+        }
+
+        ImGui.TableSetupColumn("Nom");
+        ImGui.TableSetupColumn("Propriétaire");
+        ImGui.TableSetupColumn("Membres");
+        ImGui.TableSetupColumn("Invitations");
+        ImGui.TableSetupColumn("Action");
+        ImGui.TableHeadersRow();
+
+        foreach (var entry in entries.OrderBy(e => e.Alias ?? e.GID, StringComparer.OrdinalIgnoreCase))
+        {
+            bool alreadyMember = _pairManager.Groups.Keys.Any(g => string.Equals(g.GID, entry.GID, StringComparison.OrdinalIgnoreCase));
+            bool joining = _syncshellJoinInFlight.Contains(entry.GID);
+
+            ImGui.TableNextColumn();
+            ImGui.TextUnformatted(string.IsNullOrEmpty(entry.Alias) ? entry.GID : $"{entry.Alias} ({entry.GID})");
+
+            ImGui.TableNextColumn();
+            ImGui.TextUnformatted(string.IsNullOrEmpty(entry.OwnerAlias) ? entry.OwnerUID : $"{entry.OwnerAlias} ({entry.OwnerUID})");
+
+            ImGui.TableNextColumn();
+            ImGui.TextUnformatted(entry.MemberCount.ToString(CultureInfo.InvariantCulture));
+
+            ImGui.TableNextColumn();
+            string inviteMode = entry.AutoAcceptPairs ? "Auto" : "Manuel";
+            ImGui.TextUnformatted(inviteMode);
+            if (!entry.AutoAcceptPairs)
+            {
+                UiSharedService.AttachToolTip("L'administrateur doit approuver manuellement les nouveaux membres.");
+            }
+
+            ImGui.TableNextColumn();
+            using (ImRaii.Disabled(alreadyMember || joining))
+            {
+                if (alreadyMember)
+                {
+                    ImGui.TextDisabled("Déjà membre");
+                }
+                else if (joining)
+                {
+                    ImGui.TextDisabled("Connexion...");
+                }
+                else if (ImGui.Button("Rejoindre"))
+                {
+                    _syncshellLastError = null;
+                    _ = JoinSyncshellAsync(entry);
+                }
+            }
+        }
+
+        ImGui.EndTable();
+    }
+
     private void OnDiscoveryUpdated(Services.Mediator.DiscoveryListUpdated msg)
     {
         _entries = msg.Entries;
+    }
+
+    private void OnSyncshellDiscoveryUpdated(SyncshellDiscoveryUpdated msg)
+    {
+        _syncshellEntries = msg.Entries;
     }
 
     private bool IsAlreadyPairedByUidOrAlias(Services.Mediator.NearbyEntry e)

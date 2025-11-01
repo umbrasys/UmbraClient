@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
@@ -16,10 +17,13 @@ using MareSynchronos.Services.Mediator;
 using MareSynchronos.Services.ServerConfiguration;
 using MareSynchronos.Utils;
 using Microsoft.Extensions.Logging;
+using System.IO;
+using System.Linq;
+using System.Threading;
 
 namespace MareSynchronos.UI;
 
-internal sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
+public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
 {
     private const int maxPoses = 10;
     private readonly CharaDataManager _charaDataManager;
@@ -31,6 +35,7 @@ internal sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
     private readonly CharaDataGposeTogetherManager _charaDataGposeTogetherManager;
     private readonly ServerConfigurationManager _serverConfigurationManager;
     private readonly UiSharedService _uiSharedService;
+    private readonly McdfShareManager _mcdfShareManager;
     private CancellationTokenSource? _closalCts = new();
     private bool _disableUI = false;
     private CancellationTokenSource? _disposalCts = new();
@@ -63,6 +68,15 @@ internal sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
 
         }
     }
+
+    private static string SanitizeFileName(string? candidate, string fallback)
+    {
+        var invalidChars = Path.GetInvalidFileNameChars();
+        if (string.IsNullOrWhiteSpace(candidate)) return fallback;
+
+        var sanitized = new string(candidate.Select(ch => invalidChars.Contains(ch) ? '_' : ch).ToArray()).Trim('_');
+        return string.IsNullOrWhiteSpace(sanitized) ? fallback : sanitized;
+    }
     private string _selectedSpecificUserIndividual = string.Empty;
     private string _selectedSpecificGroupIndividual = string.Empty;
     private string _sharedWithYouDescriptionFilter = string.Empty;
@@ -74,12 +88,21 @@ internal sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
     private string? _openComboHybridId = null;
     private (string Id, string? Alias, string AliasOrId, string? Note)[]? _openComboHybridEntries = null;
     private bool _comboHybridUsedLastFrame = false;
+    private bool _mcdfShareInitialized;
+    private string _mcdfShareDescription = string.Empty;
+    private readonly List<string> _mcdfShareAllowedIndividuals = new();
+    private readonly List<string> _mcdfShareAllowedSyncshells = new();
+    private string _mcdfShareIndividualDropdownSelection = string.Empty;
+    private string _mcdfShareIndividualInput = string.Empty;
+    private string _mcdfShareSyncshellDropdownSelection = string.Empty;
+    private string _mcdfShareSyncshellInput = string.Empty;
+    private int _mcdfShareExpireDays;
 
     public CharaDataHubUi(ILogger<CharaDataHubUi> logger, MareMediator mediator, PerformanceCollectorService performanceCollectorService,
                          CharaDataManager charaDataManager, CharaDataNearbyManager charaDataNearbyManager, CharaDataConfigService configService,
                          UiSharedService uiSharedService, ServerConfigurationManager serverConfigurationManager,
                          DalamudUtilService dalamudUtilService, FileDialogManager fileDialogManager, PairManager pairManager,
-                         CharaDataGposeTogetherManager charaDataGposeTogetherManager)
+                         CharaDataGposeTogetherManager charaDataGposeTogetherManager, McdfShareManager mcdfShareManager)
         : base(logger, mediator, "Umbra Character Data Hub###UmbraCharaDataUI", performanceCollectorService)
     {
         SetWindowSizeConstraints();
@@ -93,6 +116,7 @@ internal sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
         _fileDialogManager = fileDialogManager;
         _pairManager = pairManager;
         _charaDataGposeTogetherManager = charaDataGposeTogetherManager;
+        _mcdfShareManager = mcdfShareManager;
         Mediator.Subscribe<GposeStartMessage>(this, (_) => IsOpen |= _configService.Current.OpenMareHubOnGposeStart);
         Mediator.Subscribe<OpenCharaDataHubWithFilterMessage>(this, (msg) =>
         {
@@ -159,6 +183,19 @@ internal sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
 
     protected override void DrawInternal()
     {
+        DrawHubContent();
+    }
+
+    public void DrawInline()
+    {
+        using (ImRaii.PushId("CharaDataHubInline"))
+        {
+            DrawHubContent();
+        }
+    }
+
+    private void DrawHubContent()
+    {
         if (!_comboHybridUsedLastFrame)
         {
             _openComboHybridId = null;
@@ -198,7 +235,7 @@ internal sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
             }
             if (!string.IsNullOrEmpty(_charaDataManager.DataApplicationProgress))
             {
-                UiSharedService.ColorTextWrapped(_charaDataManager.DataApplicationProgress, ImGuiColors.DalamudYellow);
+                UiSharedService.ColorTextWrapped(_charaDataManager.DataApplicationProgress, UiSharedService.AccentColor);
             }
             if (_charaDataManager.DataApplicationTask != null)
             {
@@ -208,115 +245,140 @@ internal sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
             }
         });
 
-        using var tabs = ImRaii.TabBar("TabsTopLevel");
         bool smallUi = false;
-
-        _isHandlingSelf = _charaDataManager.HandledCharaData.Any(c => c.Value.IsSelf);
-        if (_isHandlingSelf) _openMcdOnlineOnNextRun = false;
-
-        using (var gposeTogetherTabItem = ImRaii.TabItem("GPose Together"))
+        using (var topTabColor = ImRaii.PushColor(ImGuiCol.Tab, UiSharedService.AccentColor))
+        using (var topTabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, UiSharedService.AccentHoverColor))
+        using (var topTabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, UiSharedService.AccentActiveColor))
         {
-            if (gposeTogetherTabItem)
+            using var tabs = ImRaii.TabBar("TabsTopLevel");
+
+            _isHandlingSelf = _charaDataManager.HandledCharaData.Any(c => c.Value.IsSelf);
+            if (_isHandlingSelf) _openMcdOnlineOnNextRun = false;
+
+            using (var gposeTogetherTabItem = ImRaii.TabItem("GPose Together"))
             {
-                smallUi = true;
-
-                DrawGposeTogether();
-            }
-        }
-
-        using (var applicationTabItem = ImRaii.TabItem("Data Application", _openDataApplicationShared ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None))
-        {
-            if (applicationTabItem)
-            {
-                smallUi = true;
-                using var appTabs = ImRaii.TabBar("TabsApplicationLevel");
-
-                using (ImRaii.Disabled(!_uiSharedService.IsInGpose))
+                if (gposeTogetherTabItem)
                 {
-                    using (var gposeTabItem = ImRaii.TabItem("GPose Actors"))
+                    smallUi = true;
+
+                    DrawGposeTogether();
+                }
+            }
+
+            using (var applicationTabItem = ImRaii.TabItem("Data Application", _openDataApplicationShared ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None))
+            {
+                if (applicationTabItem)
+                {
+                    smallUi = true;
+                    using (var appTabColor = ImRaii.PushColor(ImGuiCol.Tab, UiSharedService.AccentColor))
+                    using (var appTabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, UiSharedService.AccentHoverColor))
+                    using (var appTabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, UiSharedService.AccentActiveColor))
                     {
-                        if (gposeTabItem)
+                        using var appTabs = ImRaii.TabBar("TabsApplicationLevel");
+
+                        using (ImRaii.Disabled(!_uiSharedService.IsInGpose))
                         {
-                            using var id = ImRaii.PushId("gposeControls");
-                            DrawGposeControls();
+                            using (var gposeTabItem = ImRaii.TabItem("GPose Actors"))
+                            {
+                                if (gposeTabItem)
+                                {
+                                    using var id = ImRaii.PushId("gposeControls");
+                                    DrawGposeControls();
+                                }
+                            }
+                        }
+                        if (!_uiSharedService.IsInGpose)
+                            UiSharedService.AttachToolTip("Only available in GPose");
+
+                        using (var nearbyPosesTabItem = ImRaii.TabItem("Poses Nearby"))
+                        {
+                            if (nearbyPosesTabItem)
+                            {
+                                using var id = ImRaii.PushId("nearbyPoseControls");
+                                _charaDataNearbyManager.ComputeNearbyData = true;
+
+                                DrawNearbyPoses();
+                            }
+                            else
+                            {
+                                _charaDataNearbyManager.ComputeNearbyData = false;
+                            }
+                        }
+
+                        using (var gposeTabItem = ImRaii.TabItem("Apply Data", _openDataApplicationShared ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None))
+                        {
+                            if (gposeTabItem)
+                            {
+                                smallUi |= true;
+                                using var id = ImRaii.PushId("applyData");
+                                DrawDataApplication();
+                            }
                         }
                     }
                 }
-                if (!_uiSharedService.IsInGpose)
-                    UiSharedService.AttachToolTip("Only available in GPose");
-
-                using (var nearbyPosesTabItem = ImRaii.TabItem("Poses Nearby"))
+                else
                 {
-                    if (nearbyPosesTabItem)
-                    {
-                        using var id = ImRaii.PushId("nearbyPoseControls");
-                        _charaDataNearbyManager.ComputeNearbyData = true;
-
-                        DrawNearbyPoses();
-                    }
-                    else
-                    {
-                        _charaDataNearbyManager.ComputeNearbyData = false;
-                    }
-                }
-
-                using (var gposeTabItem = ImRaii.TabItem("Apply Data", _openDataApplicationShared ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None))
-                {
-                    if (gposeTabItem)
-                    {
-                        smallUi |= true;
-                        using var id = ImRaii.PushId("applyData");
-                        DrawDataApplication();
-                    }
+                    _charaDataNearbyManager.ComputeNearbyData = false;
                 }
             }
-            else
-            {
-                _charaDataNearbyManager.ComputeNearbyData = false;
-            }
-        }
 
-        using (ImRaii.Disabled(_isHandlingSelf))
-        {
-            ImGuiTabItemFlags flagsTopLevel = ImGuiTabItemFlags.None;
-            if (_openMcdOnlineOnNextRun)
+            using (ImRaii.Disabled(_isHandlingSelf))
             {
-                flagsTopLevel = ImGuiTabItemFlags.SetSelected;
-                _openMcdOnlineOnNextRun = false;
-            }
-
-            using (var creationTabItem = ImRaii.TabItem("Data Creation", flagsTopLevel))
-            {
-                if (creationTabItem)
+                ImGuiTabItemFlags flagsTopLevel = ImGuiTabItemFlags.None;
+                if (_openMcdOnlineOnNextRun)
                 {
-                    using var creationTabs = ImRaii.TabBar("TabsCreationLevel");
+                    flagsTopLevel = ImGuiTabItemFlags.SetSelected;
+                    _openMcdOnlineOnNextRun = false;
+                }
 
-                    ImGuiTabItemFlags flags = ImGuiTabItemFlags.None;
-                    if (_openMcdOnlineOnNextRun)
+                using (var creationTabItem = ImRaii.TabItem("Data Creation", flagsTopLevel))
+                {
+                    if (creationTabItem)
                     {
-                        flags = ImGuiTabItemFlags.SetSelected;
-                        _openMcdOnlineOnNextRun = false;
-                    }
-                    using (var mcdOnlineTabItem = ImRaii.TabItem("Online Data", flags))
-                    {
-                        if (mcdOnlineTabItem)
+                        using (var creationTabColor = ImRaii.PushColor(ImGuiCol.Tab, UiSharedService.AccentColor))
+                        using (var creationTabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, UiSharedService.AccentHoverColor))
+                        using (var creationTabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, UiSharedService.AccentActiveColor))
                         {
-                            using var id = ImRaii.PushId("mcdOnline");
-                            DrawMcdOnline();
-                        }
-                    }
+                            using var creationTabs = ImRaii.TabBar("TabsCreationLevel");
 
-                    using (var mcdfTabItem = ImRaii.TabItem("MCDF Export"))
-                    {
-                        if (mcdfTabItem)
-                        {
-                            using var id = ImRaii.PushId("mcdfExport");
-                            DrawMcdfExport();
+                            ImGuiTabItemFlags flags = ImGuiTabItemFlags.None;
+                            if (_openMcdOnlineOnNextRun)
+                            {
+                                flags = ImGuiTabItemFlags.SetSelected;
+                                _openMcdOnlineOnNextRun = false;
+                            }
+                            using (var mcdOnlineTabItem = ImRaii.TabItem("Online Data", flags))
+                            {
+                                if (mcdOnlineTabItem)
+                                {
+                                    using var id = ImRaii.PushId("mcdOnline");
+                                    DrawMcdOnline();
+                                }
+                            }
+
+                            using (var mcdfTabItem = ImRaii.TabItem("MCDF Export"))
+                            {
+                                if (mcdfTabItem)
+                                {
+                                    using var id = ImRaii.PushId("mcdfExport");
+                                    DrawMcdfExport();
+                                }
+                            }
+
+                            using (var mcdfShareTabItem = ImRaii.TabItem("Partage MCDF"))
+                            {
+                                if (mcdfShareTabItem)
+                                {
+                                    using var id = ImRaii.PushId("mcdfShare");
+                                    DrawMcdfShare();
+                                }
+                            }
                         }
                     }
                 }
             }
         }
+
         if (_isHandlingSelf)
         {
             UiSharedService.AttachToolTip("Cannot use creation tools while having Character Data applied to self.");
@@ -444,14 +506,18 @@ internal sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
         if (!_hasValidGposeTarget)
         {
             ImGuiHelpers.ScaledDummy(3);
-            UiSharedService.DrawGroupedCenteredColorText("Applying data is only available in GPose with a valid selected GPose target.", ImGuiColors.DalamudYellow, 350);
+            UiSharedService.DrawGroupedCenteredColorText("Applying data is only available in GPose with a valid selected GPose target.", UiSharedService.AccentColor, 350);
         }
 
         ImGuiHelpers.ScaledDummy(10);
 
-        using var tabs = ImRaii.TabBar("Tabs");
+        using (var applyTabColor = ImRaii.PushColor(ImGuiCol.Tab, UiSharedService.AccentColor))
+        using (var applyTabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, UiSharedService.AccentHoverColor))
+        using (var applyTabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, UiSharedService.AccentActiveColor))
+        {
+            using var tabs = ImRaii.TabBar("Tabs");
 
-        using (var byFavoriteTabItem = ImRaii.TabItem("Favorites"))
+            using (var byFavoriteTabItem = ImRaii.TabItem("Favorites"))
         {
             if (byFavoriteTabItem)
             {
@@ -603,7 +669,7 @@ internal sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
 
                 if (_configService.Current.FavoriteCodes.Count == 0)
                 {
-                    UiSharedService.ColorTextWrapped("You have no favorites added. Add Favorites through the other tabs before you can use this tab.", ImGuiColors.DalamudYellow);
+                    UiSharedService.ColorTextWrapped("You have no favorites added. Add Favorites through the other tabs before you can use this tab.", UiSharedService.AccentColor);
                 }
             }
         }
@@ -652,7 +718,7 @@ internal sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
                 ImGui.NewLine();
                 if (!_charaDataManager.DownloadMetaInfoTask?.IsCompleted ?? false)
                 {
-                    UiSharedService.ColorTextWrapped("Downloading meta info. Please wait.", ImGuiColors.DalamudYellow);
+                    UiSharedService.ColorTextWrapped("Downloading meta info. Please wait.", UiSharedService.AccentColor);
                 }
                 if ((_charaDataManager.DownloadMetaInfoTask?.IsCompleted ?? false) && !_charaDataManager.DownloadMetaInfoTask.Result.Success)
                 {
@@ -859,14 +925,15 @@ internal sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
                         UiSharedService.ColorTextWrapped("Failure to read MCDF file. MCDF file is possibly corrupt. Re-export the MCDF file and try again.",
                             UiSharedService.AccentColor);
                         UiSharedService.ColorTextWrapped("Note: if this is your MCDF, try redrawing yourself, wait and re-export the file. " +
-                            "If you received it from someone else have them do the same.", ImGuiColors.DalamudYellow);
+                            "If you received it from someone else have them do the same.", UiSharedService.AccentColor);
                     }
                 }
                 else
                 {
-                    UiSharedService.ColorTextWrapped("Loading Character...", ImGuiColors.DalamudYellow);
+                    UiSharedService.ColorTextWrapped("Loading Character...", UiSharedService.AccentColor);
                 }
             }
+        }
         }
     }
 
@@ -892,7 +959,7 @@ internal sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
             {
                 string defaultFileName = string.IsNullOrEmpty(_exportDescription)
                     ? "export.mcdf"
-                    : string.Join('_', $"{_exportDescription}.mcdf".Split(Path.GetInvalidFileNameChars()));
+                    : SanitizeFileName(_exportDescription, "export") + ".mcdf";
                 _uiSharedService.FileDialogManager.SaveFileDialog("Export Character to file", ".mcdf", defaultFileName, ".mcdf", (success, path) =>
                 {
                     if (!success) return;
@@ -905,10 +972,416 @@ internal sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
                 }, Directory.Exists(_configService.Current.LastSavedCharaDataLocation) ? _configService.Current.LastSavedCharaDataLocation : null);
             }
             UiSharedService.ColorTextWrapped("Note: For best results make sure you have everything you want to be shared as well as the correct character appearance" +
-                " equipped and redraw your character before exporting.", ImGuiColors.DalamudYellow);
+                " equipped and redraw your character before exporting.", UiSharedService.AccentColor);
 
             ImGui.Unindent();
         }
+    }
+
+    private void DrawMcdfShare()
+    {
+        if (!_mcdfShareInitialized && !_mcdfShareManager.IsBusy)
+        {
+            _mcdfShareInitialized = true;
+            _ = _mcdfShareManager.RefreshAsync(CancellationToken.None);
+        }
+
+        if (_mcdfShareManager.IsBusy)
+        {
+            UiSharedService.ColorTextWrapped("Traitement en cours...", ImGuiColors.DalamudYellow);
+        }
+
+        if (!string.IsNullOrEmpty(_mcdfShareManager.LastError))
+        {
+            UiSharedService.ColorTextWrapped(_mcdfShareManager.LastError!, ImGuiColors.DalamudRed);
+        }
+        else if (!string.IsNullOrEmpty(_mcdfShareManager.LastSuccess))
+        {
+            UiSharedService.ColorTextWrapped(_mcdfShareManager.LastSuccess!, ImGuiColors.HealerGreen);
+        }
+
+        if (ImGui.Button("Actualiser les partages"))
+        {
+            _ = _mcdfShareManager.RefreshAsync(CancellationToken.None);
+        }
+
+        ImGui.Separator();
+        _uiSharedService.BigText("Créer un partage MCDF");
+
+        ImGui.InputTextWithHint("##mcdfShareDescription", "Description", ref _mcdfShareDescription, 128);
+        ImGui.InputInt("Expiration (jours, 0 = jamais)", ref _mcdfShareExpireDays);
+
+        DrawMcdfShareIndividualDropdown();
+        ImGui.SameLine();
+        ImGui.SetNextItemWidth(220f);
+        if (ImGui.InputTextWithHint("##mcdfShareUidInput", "UID ou vanity", ref _mcdfShareIndividualInput, 32))
+        {
+            _mcdfShareIndividualDropdownSelection = string.Empty;
+        }
+        ImGui.SameLine();
+        var normalizedUid = NormalizeUidCandidate(_mcdfShareIndividualInput);
+        using (ImRaii.Disabled(string.IsNullOrEmpty(normalizedUid)
+            || _mcdfShareAllowedIndividuals.Any(p => string.Equals(p, normalizedUid, StringComparison.OrdinalIgnoreCase))))
+        {
+            if (ImGui.SmallButton("Ajouter"))
+            {
+                _mcdfShareAllowedIndividuals.Add(normalizedUid);
+                _mcdfShareIndividualInput = string.Empty;
+                _mcdfShareIndividualDropdownSelection = string.Empty;
+            }
+        }
+        ImGui.SameLine();
+        ImGui.TextUnformatted("UID synchronisé à ajouter");
+        _uiSharedService.DrawHelpText("Choisissez un pair synchronisé dans la liste ou saisissez un UID. Les utilisateurs listés pourront récupérer ce partage MCDF.");
+
+        foreach (var uid in _mcdfShareAllowedIndividuals.ToArray())
+        {
+            using (ImRaii.PushId("mcdfShareUid" + uid))
+            {
+                ImGui.BulletText(FormatPairLabel(uid));
+                ImGui.SameLine();
+                if (ImGui.SmallButton("Retirer"))
+                {
+                    _mcdfShareAllowedIndividuals.Remove(uid);
+                }
+            }
+        }
+
+        DrawMcdfShareSyncshellDropdown();
+        ImGui.SameLine();
+        ImGui.SetNextItemWidth(220f);
+        if (ImGui.InputTextWithHint("##mcdfShareSyncshellInput", "GID ou alias", ref _mcdfShareSyncshellInput, 32))
+        {
+            _mcdfShareSyncshellDropdownSelection = string.Empty;
+        }
+        ImGui.SameLine();
+        var normalizedSyncshell = NormalizeSyncshellCandidate(_mcdfShareSyncshellInput);
+        using (ImRaii.Disabled(string.IsNullOrEmpty(normalizedSyncshell)
+            || _mcdfShareAllowedSyncshells.Any(p => string.Equals(p, normalizedSyncshell, StringComparison.OrdinalIgnoreCase))))
+        {
+            if (ImGui.SmallButton("Ajouter"))
+            {
+                _mcdfShareAllowedSyncshells.Add(normalizedSyncshell);
+                _mcdfShareSyncshellInput = string.Empty;
+                _mcdfShareSyncshellDropdownSelection = string.Empty;
+            }
+        }
+        ImGui.SameLine();
+        ImGui.TextUnformatted("Syncshell à ajouter");
+        _uiSharedService.DrawHelpText("Sélectionnez une syncshell synchronisée ou saisissez un identifiant. Les syncshells listées auront accès au partage.");
+
+        foreach (var shell in _mcdfShareAllowedSyncshells.ToArray())
+        {
+            using (ImRaii.PushId("mcdfShareShell" + shell))
+            {
+                ImGui.BulletText(FormatSyncshellLabel(shell));
+                ImGui.SameLine();
+                if (ImGui.SmallButton("Retirer"))
+                {
+                    _mcdfShareAllowedSyncshells.Remove(shell);
+                }
+            }
+        }
+
+        using (ImRaii.Disabled(_mcdfShareManager.IsBusy))
+        {
+            if (ImGui.Button("Créer"))
+            {
+                DateTime? expiresAt = _mcdfShareExpireDays <= 0 ? null : DateTime.UtcNow.AddDays(_mcdfShareExpireDays);
+                _ = _mcdfShareManager.CreateShareAsync(_mcdfShareDescription, _mcdfShareAllowedIndividuals.ToList(), _mcdfShareAllowedSyncshells.ToList(), expiresAt, CancellationToken.None);
+                _mcdfShareDescription = string.Empty;
+                _mcdfShareAllowedIndividuals.Clear();
+                _mcdfShareAllowedSyncshells.Clear();
+                _mcdfShareIndividualInput = string.Empty;
+                _mcdfShareIndividualDropdownSelection = string.Empty;
+                _mcdfShareSyncshellInput = string.Empty;
+                _mcdfShareSyncshellDropdownSelection = string.Empty;
+                _mcdfShareExpireDays = 0;
+            }
+        }
+
+        ImGui.Separator();
+        _uiSharedService.BigText("Mes partages : ");
+
+        if (_mcdfShareManager.OwnShares.Count == 0)
+        {
+            ImGui.TextDisabled("Aucun partage MCDF créé.");
+        }
+        else if (ImGui.BeginTable("mcdf-own-shares", 6, ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersOuter))
+        {
+            ImGui.TableSetupColumn("Description");
+            ImGui.TableSetupColumn("Créé le");
+            ImGui.TableSetupColumn("Expire");
+            ImGui.TableSetupColumn("Téléchargements");
+            ImGui.TableSetupColumn("Accès");
+            ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed, 220f);
+            ImGui.TableHeadersRow();
+
+            foreach (var entry in _mcdfShareManager.OwnShares)
+            {
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                ImGui.TextUnformatted(string.IsNullOrEmpty(entry.Description) ? entry.Id.ToString() : entry.Description);
+
+                ImGui.TableNextColumn();
+                ImGui.TextUnformatted(entry.CreatedUtc.ToLocalTime().ToString("g"));
+
+                ImGui.TableNextColumn();
+                ImGui.TextUnformatted(entry.ExpiresAtUtc.HasValue ? entry.ExpiresAtUtc.Value.ToLocalTime().ToString("g") : "Jamais");
+
+                ImGui.TableNextColumn();
+                ImGui.TextUnformatted(entry.DownloadCount.ToString());
+
+                ImGui.TableNextColumn();
+                ImGui.TextUnformatted($"UID : {entry.AllowedIndividuals.Count}, Syncshells : {entry.AllowedSyncshells.Count}");
+
+                ImGui.TableNextColumn();
+                using (ImRaii.PushId("ownShare" + entry.Id))
+                {
+                    if (ImGui.SmallButton("Appliquer en GPose"))
+                    {
+                        _ = _mcdfShareManager.ApplyShareAsync(entry.Id, CancellationToken.None);
+                    }
+                    ImGui.SameLine();
+                    if (ImGui.SmallButton("Enregistrer"))
+                    {
+                        var baseName = SanitizeFileName(entry.Description, entry.Id.ToString());
+                        var defaultName = baseName + ".mcdf";
+                        _fileDialogManager.SaveFileDialog("Enregistrer le partage MCDF", ".mcdf", defaultName, ".mcdf", async (success, path) =>
+                        {
+                            if (!success || string.IsNullOrEmpty(path)) return;
+                            await _mcdfShareManager.ExportShareAsync(entry.Id, path, CancellationToken.None).ConfigureAwait(false);
+                        });
+                    }
+                    ImGui.SameLine();
+                    if (ImGui.SmallButton("Supprimer"))
+                    {
+                        _ = _mcdfShareManager.DeleteShareAsync(entry.Id);
+                    }
+                }
+            }
+
+            ImGui.EndTable();
+        }
+
+        ImGui.Separator();
+        _uiSharedService.BigText("Partagés avec moi : ");
+
+        if (_mcdfShareManager.SharedShares.Count == 0)
+        {
+            ImGui.TextDisabled("Aucun partage MCDF reçu.");
+        }
+        else if (ImGui.BeginTable("mcdf-shared-shares", 5, ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersOuter))
+        {
+            ImGui.TableSetupColumn("Description");
+            ImGui.TableSetupColumn("Propriétaire");
+            ImGui.TableSetupColumn("Expire");
+            ImGui.TableSetupColumn("Téléchargements");
+            ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed, 180f);
+            ImGui.TableHeadersRow();
+
+            foreach (var entry in _mcdfShareManager.SharedShares)
+            {
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                ImGui.TextUnformatted(string.IsNullOrEmpty(entry.Description) ? entry.Id.ToString() : entry.Description);
+
+                ImGui.TableNextColumn();
+                ImGui.TextUnformatted(string.IsNullOrEmpty(entry.OwnerAlias) ? entry.OwnerUid : entry.OwnerAlias);
+
+                ImGui.TableNextColumn();
+                ImGui.TextUnformatted(entry.ExpiresAtUtc.HasValue ? entry.ExpiresAtUtc.Value.ToLocalTime().ToString("g") : "Jamais");
+
+                ImGui.TableNextColumn();
+                ImGui.TextUnformatted(entry.DownloadCount.ToString());
+
+                ImGui.TableNextColumn();
+                using (ImRaii.PushId("sharedShare" + entry.Id))
+                {
+                    if (ImGui.SmallButton("Appliquer"))
+                    {
+                        _ = _mcdfShareManager.ApplyShareAsync(entry.Id, CancellationToken.None);
+                    }
+                    ImGui.SameLine();
+                    if (ImGui.SmallButton("Enregistrer"))
+                    {
+                        var baseName = SanitizeFileName(entry.Description, entry.Id.ToString());
+                        var defaultName = baseName + ".mcdf";
+                        _fileDialogManager.SaveFileDialog("Enregistrer le partage MCDF", ".mcdf", defaultName, ".mcdf", async (success, path) =>
+                        {
+                            if (!success || string.IsNullOrEmpty(path)) return;
+                            await _mcdfShareManager.ExportShareAsync(entry.Id, path, CancellationToken.None).ConfigureAwait(false);
+                        });
+                    }
+                }
+            }
+
+            ImGui.EndTable();
+        }
+    }
+
+    private void DrawMcdfShareIndividualDropdown()
+    {
+        ImGui.SetNextItemWidth(220f);
+        var previewSource = string.IsNullOrEmpty(_mcdfShareIndividualDropdownSelection)
+            ? _mcdfShareIndividualInput
+            : _mcdfShareIndividualDropdownSelection;
+        var previewLabel = string.IsNullOrEmpty(previewSource)
+            ? "Sélectionner un pair synchronisé..."
+            : FormatPairLabel(previewSource);
+
+        using var combo = ImRaii.Combo("##mcdfShareUidDropdown", previewLabel, ImGuiComboFlags.None);
+        if (!combo)
+        {
+            return;
+        }
+
+        foreach (var pair in _pairManager.DirectPairs
+            .OrderBy(p => p.GetNoteOrName() ?? p.UserData.AliasOrUID, StringComparer.OrdinalIgnoreCase))
+        {
+            var normalized = pair.UserData.UID;
+            var display = FormatPairLabel(normalized);
+            bool selected = string.Equals(normalized, _mcdfShareIndividualDropdownSelection, StringComparison.OrdinalIgnoreCase);
+            if (ImGui.Selectable(display, selected))
+            {
+                _mcdfShareIndividualDropdownSelection = normalized;
+                _mcdfShareIndividualInput = normalized;
+            }
+        }
+    }
+
+    private void DrawMcdfShareSyncshellDropdown()
+    {
+        ImGui.SetNextItemWidth(220f);
+        var previewSource = string.IsNullOrEmpty(_mcdfShareSyncshellDropdownSelection)
+            ? _mcdfShareSyncshellInput
+            : _mcdfShareSyncshellDropdownSelection;
+        var previewLabel = string.IsNullOrEmpty(previewSource)
+            ? "Sélectionner une syncshell..."
+            : FormatSyncshellLabel(previewSource);
+
+        using var combo = ImRaii.Combo("##mcdfShareSyncshellDropdown", previewLabel, ImGuiComboFlags.None);
+        if (!combo)
+        {
+            return;
+        }
+
+        foreach (var group in _pairManager.Groups.Values
+            .OrderBy(g => _serverConfigurationManager.GetNoteForGid(g.GID) ?? g.GroupAliasOrGID, StringComparer.OrdinalIgnoreCase))
+        {
+            var gid = group.GID;
+            var display = FormatSyncshellLabel(gid);
+            bool selected = string.Equals(gid, _mcdfShareSyncshellDropdownSelection, StringComparison.OrdinalIgnoreCase);
+            if (ImGui.Selectable(display, selected))
+            {
+                _mcdfShareSyncshellDropdownSelection = gid;
+                _mcdfShareSyncshellInput = gid;
+            }
+        }
+    }
+
+    private string NormalizeUidCandidate(string candidate)
+    {
+        if (string.IsNullOrWhiteSpace(candidate))
+        {
+            return string.Empty;
+        }
+
+        var trimmed = candidate.Trim();
+
+        foreach (var pair in _pairManager.DirectPairs)
+        {
+            var alias = pair.UserData.Alias;
+            var aliasOrUid = pair.UserData.AliasOrUID;
+            var note = pair.GetNoteOrName();
+
+            if (string.Equals(pair.UserData.UID, trimmed, StringComparison.OrdinalIgnoreCase)
+                || (!string.IsNullOrEmpty(alias) && string.Equals(alias, trimmed, StringComparison.OrdinalIgnoreCase))
+                || string.Equals(aliasOrUid, trimmed, StringComparison.OrdinalIgnoreCase)
+                || (!string.IsNullOrEmpty(note) && string.Equals(note, trimmed, StringComparison.OrdinalIgnoreCase)))
+            {
+                return pair.UserData.UID;
+            }
+        }
+
+        return trimmed.ToUpperInvariant();
+    }
+
+    private string NormalizeSyncshellCandidate(string candidate)
+    {
+        if (string.IsNullOrWhiteSpace(candidate))
+        {
+            return string.Empty;
+        }
+
+        var trimmed = candidate.Trim();
+
+        foreach (var group in _pairManager.Groups.Values)
+        {
+            var alias = group.GroupAlias;
+            var aliasOrGid = group.GroupAliasOrGID;
+            var note = _serverConfigurationManager.GetNoteForGid(group.GID);
+
+            if (string.Equals(group.GID, trimmed, StringComparison.OrdinalIgnoreCase)
+                || (!string.IsNullOrEmpty(alias) && string.Equals(alias, trimmed, StringComparison.OrdinalIgnoreCase))
+                || string.Equals(aliasOrGid, trimmed, StringComparison.OrdinalIgnoreCase)
+                || (!string.IsNullOrEmpty(note) && string.Equals(note, trimmed, StringComparison.OrdinalIgnoreCase)))
+            {
+                return group.GID;
+            }
+        }
+
+        return trimmed.ToUpperInvariant();
+    }
+
+    private string FormatPairLabel(string candidate)
+    {
+        if (string.IsNullOrEmpty(candidate))
+        {
+            return string.Empty;
+        }
+
+        foreach (var pair in _pairManager.DirectPairs)
+        {
+            var alias = pair.UserData.Alias;
+            var aliasOrUid = pair.UserData.AliasOrUID;
+            var note = pair.GetNoteOrName();
+
+            if (string.Equals(pair.UserData.UID, candidate, StringComparison.OrdinalIgnoreCase)
+                || (!string.IsNullOrEmpty(alias) && string.Equals(alias, candidate, StringComparison.OrdinalIgnoreCase))
+                || string.Equals(aliasOrUid, candidate, StringComparison.OrdinalIgnoreCase)
+                || (!string.IsNullOrEmpty(note) && string.Equals(note, candidate, StringComparison.OrdinalIgnoreCase)))
+            {
+                return string.IsNullOrEmpty(note) ? aliasOrUid : $"{note} ({aliasOrUid})";
+            }
+        }
+
+        return candidate;
+    }
+
+    private string FormatSyncshellLabel(string candidate)
+    {
+        if (string.IsNullOrEmpty(candidate))
+        {
+            return string.Empty;
+        }
+
+        foreach (var group in _pairManager.Groups.Values)
+        {
+            var alias = group.GroupAlias;
+            var aliasOrGid = group.GroupAliasOrGID;
+            var note = _serverConfigurationManager.GetNoteForGid(group.GID);
+
+            if (string.Equals(group.GID, candidate, StringComparison.OrdinalIgnoreCase)
+                || (!string.IsNullOrEmpty(alias) && string.Equals(alias, candidate, StringComparison.OrdinalIgnoreCase))
+                || string.Equals(aliasOrGid, candidate, StringComparison.OrdinalIgnoreCase)
+                || (!string.IsNullOrEmpty(note) && string.Equals(note, candidate, StringComparison.OrdinalIgnoreCase)))
+            {
+                return string.IsNullOrEmpty(note) ? aliasOrGid : $"{note} ({aliasOrGid})";
+            }
+        }
+
+        return candidate;
     }
 
     private void DrawMetaInfoData(string selectedGposeActor, bool hasValidGposeTarget, CharaDataMetaInfoExtendedDto data, bool canOpen = false)

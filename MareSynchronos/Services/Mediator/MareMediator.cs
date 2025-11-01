@@ -109,9 +109,23 @@ public sealed class MareMediator : IHostedService, IDisposable
         }
     }
 
+    private bool _disposed;
+
     public void Dispose()
     {
-        _loopCts.Cancel();
+        if (_disposed) return;
+        _disposed = true;
+        if (!_loopCts.IsCancellationRequested)
+        {
+            try
+            {
+                _loopCts.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                // already disposed, swallow
+            }
+        }
         _loopCts.Dispose();
     }
 

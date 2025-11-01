@@ -7,7 +7,7 @@ using MareSynchronos.Services.CharaData.Models;
 
 namespace MareSynchronos.UI;
 
-internal sealed partial class CharaDataHubUi
+public sealed partial class CharaDataHubUi
 {
     private string _joinLobbyId = string.Empty;
     private void DrawGposeTogether()
@@ -90,7 +90,7 @@ internal sealed partial class CharaDataHubUi
             if (!_uiSharedService.IsInGpose)
             {
                 ImGuiHelpers.ScaledDummy(5);
-                UiSharedService.DrawGroupedCenteredColorText("Assigning users to characters is only available in GPose.", ImGuiColors.DalamudYellow, 300);
+                UiSharedService.DrawGroupedCenteredColorText("Assigning users to characters is only available in GPose.", UiSharedService.AccentColor, 300);
             }
             UiSharedService.DistanceSeparator();
             ImGui.TextUnformatted("Users In Lobby");
@@ -104,7 +104,7 @@ internal sealed partial class CharaDataHubUi
 
                 if (!_charaDataGposeTogetherManager.UsersInLobby.Any() && !string.IsNullOrEmpty(_charaDataGposeTogetherManager.CurrentGPoseLobbyId))
                 {
-                    UiSharedService.DrawGroupedCenteredColorText("No other users in current GPose lobby", ImGuiColors.DalamudYellow);
+                    UiSharedService.DrawGroupedCenteredColorText("No other users in current GPose lobby", UiSharedService.AccentColor);
                 }
                 else
                 {

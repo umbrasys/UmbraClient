@@ -9,7 +9,7 @@ using System.Numerics;
 
 namespace MareSynchronos.UI;
 
-internal sealed partial class CharaDataHubUi
+public sealed partial class CharaDataHubUi
 {
     private void DrawEditCharaData(CharaDataFullExtendedDto? dataDto)
     {
@@ -18,7 +18,7 @@ internal sealed partial class CharaDataHubUi
         if (dataDto == null)
         {
             ImGuiHelpers.ScaledDummy(5);
-            UiSharedService.DrawGroupedCenteredColorText("Select an entry above to edit its data.", ImGuiColors.DalamudYellow);
+            UiSharedService.DrawGroupedCenteredColorText("Select an entry above to edit its data.", UiSharedService.AccentColor);
             return;
         }
 
@@ -26,7 +26,7 @@ internal sealed partial class CharaDataHubUi
 
         if (updateDto == null)
         {
-            UiSharedService.DrawGroupedCenteredColorText("Something went awfully wrong and there's no update DTO. Try updating Character Data via the button above.", ImGuiColors.DalamudYellow);
+            UiSharedService.DrawGroupedCenteredColorText("Something went awfully wrong and there's no update DTO. Try updating Character Data via the button above.", UiSharedService.AccentColor);
             return;
         }
 
@@ -61,7 +61,7 @@ internal sealed partial class CharaDataHubUi
                     }
                     if (_charaDataManager.CharaUpdateTask != null && !_charaDataManager.CharaUpdateTask.IsCompleted)
                     {
-                        UiSharedService.ColorTextWrapped("Updating data on server, please wait.", ImGuiColors.DalamudYellow);
+                        UiSharedService.ColorTextWrapped("Updating data on server, please wait.", UiSharedService.AccentColor);
                     }
                 }
 
@@ -71,7 +71,7 @@ internal sealed partial class CharaDataHubUi
                     {
                         if (_charaDataManager.UploadProgress != null)
                         {
-                            UiSharedService.ColorTextWrapped(_charaDataManager.UploadProgress.Value ?? string.Empty, ImGuiColors.DalamudYellow);
+                            UiSharedService.ColorTextWrapped(_charaDataManager.UploadProgress.Value ?? string.Empty, UiSharedService.AccentColor);
                         }
                         if ((!_charaDataManager.UploadTask?.IsCompleted ?? false) && _uiSharedService.IconTextButton(FontAwesomeIcon.Ban, "Cancel Upload"))
                         {
@@ -230,7 +230,7 @@ internal sealed partial class CharaDataHubUi
             ImGui.SameLine();
             ImGuiHelpers.ScaledDummy(20, 1);
             ImGui.SameLine();
-            UiSharedService.ColorTextWrapped("New data was set. It may contain files that require to be uploaded (will happen on Saving to server)", ImGuiColors.DalamudYellow);
+            UiSharedService.ColorTextWrapped("New data was set. It may contain files that require to be uploaded (will happen on Saving to server)", UiSharedService.AccentColor);
         }
 
         ImGui.TextUnformatted("Contains Manipulation Data");
@@ -385,7 +385,7 @@ internal sealed partial class CharaDataHubUi
             }
         }
         ImGui.SameLine();
-        using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudYellow, poseCount == maxPoses))
+        using (ImRaii.PushColor(ImGuiCol.Text, UiSharedService.AccentColor, poseCount == maxPoses))
             ImGui.TextUnformatted($"{poseCount}/{maxPoses} poses attached");
         ImGuiHelpers.ScaledDummy(5);
 
@@ -395,7 +395,7 @@ internal sealed partial class CharaDataHubUi
         if (!_uiSharedService.IsInGpose && _charaDataManager.BrioAvailable)
         {
             ImGuiHelpers.ScaledDummy(5);
-            UiSharedService.DrawGroupedCenteredColorText("To attach pose and world data you need to be in GPose.", ImGuiColors.DalamudYellow);
+            UiSharedService.DrawGroupedCenteredColorText("To attach pose and world data you need to be in GPose.", UiSharedService.AccentColor);
             ImGuiHelpers.ScaledDummy(5);
         }
         else if (!_charaDataManager.BrioAvailable)
@@ -414,7 +414,7 @@ internal sealed partial class CharaDataHubUi
             if (pose.Id == null)
             {
                 ImGui.SameLine(50);
-                _uiSharedService.IconText(FontAwesomeIcon.Plus, ImGuiColors.DalamudYellow);
+                _uiSharedService.IconText(FontAwesomeIcon.Plus, UiSharedService.AccentColor);
                 UiSharedService.AttachToolTip("This pose has not been added to the server yet. Save changes to upload this Pose data.");
             }
 
@@ -422,14 +422,14 @@ internal sealed partial class CharaDataHubUi
             if (poseHasChanges)
             {
                 ImGui.SameLine(50);
-                _uiSharedService.IconText(FontAwesomeIcon.ExclamationTriangle, ImGuiColors.DalamudYellow);
+                _uiSharedService.IconText(FontAwesomeIcon.ExclamationTriangle, UiSharedService.AccentColor);
                 UiSharedService.AttachToolTip("This pose has changes that have not been saved to the server yet.");
             }
 
             ImGui.SameLine(75);
             if (pose.Description == null && pose.WorldData == null && pose.PoseData == null)
             {
-                UiSharedService.ColorText("Pose scheduled for deletion", ImGuiColors.DalamudYellow);
+                UiSharedService.ColorText("Pose scheduled for deletion", UiSharedService.AccentColor);
             }
             else
             {
@@ -586,7 +586,7 @@ internal sealed partial class CharaDataHubUi
                     var idText = entry.FullId;
                     if (uDto?.HasChanges ?? false)
                     {
-                        UiSharedService.ColorText(idText, ImGuiColors.DalamudYellow);
+                        UiSharedService.ColorText(idText, UiSharedService.AccentColor);
                         UiSharedService.AttachToolTip("This entry has unsaved changes");
                     }
                     else
@@ -641,7 +641,7 @@ internal sealed partial class CharaDataHubUi
                     FontAwesomeIcon eIcon = FontAwesomeIcon.None;
                     if (!Equals(DateTime.MaxValue, entry.ExpiryDate))
                         eIcon = FontAwesomeIcon.Clock;
-                    _uiSharedService.IconText(eIcon, ImGuiColors.DalamudYellow);
+                    _uiSharedService.IconText(eIcon, UiSharedService.AccentColor);
                     if (ImGui.IsItemClicked()) SelectedDtoId = entry.Id;
                     if (eIcon != FontAwesomeIcon.None)
                     {
@@ -677,13 +677,13 @@ internal sealed partial class CharaDataHubUi
             if (_charaDataManager.OwnCharaData.Count == _charaDataManager.MaxCreatableCharaData)
             {
                 ImGui.AlignTextToFramePadding();
-                UiSharedService.ColorTextWrapped("You have reached the maximum Character Data entries and cannot create more.", ImGuiColors.DalamudYellow);
+                UiSharedService.ColorTextWrapped("You have reached the maximum Character Data entries and cannot create more.", UiSharedService.AccentColor);
             }
         }
 
         if (_charaDataManager.DataCreationTask != null && !_charaDataManager.DataCreationTask.IsCompleted)
         {
-            UiSharedService.ColorTextWrapped("Creating new character data entry on server...", ImGuiColors.DalamudYellow);
+            UiSharedService.ColorTextWrapped("Creating new character data entry on server...", UiSharedService.AccentColor);
         }
         else if (_charaDataManager.DataCreationTask != null && _charaDataManager.DataCreationTask.IsCompleted)
         {

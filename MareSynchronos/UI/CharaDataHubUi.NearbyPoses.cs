@@ -7,7 +7,7 @@ using System.Numerics;
 
 namespace MareSynchronos.UI;
 
-internal partial class CharaDataHubUi
+public sealed partial class CharaDataHubUi
 {
     private void DrawNearbyPoses()
     {
@@ -86,7 +86,7 @@ internal partial class CharaDataHubUi
         if (!_uiSharedService.IsInGpose)
         {
             ImGuiHelpers.ScaledDummy(5);
-            UiSharedService.DrawGroupedCenteredColorText("Spawning and applying pose data is only available in GPose.", ImGuiColors.DalamudYellow);
+            UiSharedService.DrawGroupedCenteredColorText("Spawning and applying pose data is only available in GPose.", UiSharedService.AccentColor);
             ImGuiHelpers.ScaledDummy(5);
         }
 
@@ -101,7 +101,7 @@ internal partial class CharaDataHubUi
         using var indent = ImRaii.PushIndent(5f);
         if (_charaDataNearbyManager.NearbyData.Count == 0)
         {
-            UiSharedService.DrawGroupedCenteredColorText("No Shared World Poses found nearby.", ImGuiColors.DalamudYellow);
+            UiSharedService.DrawGroupedCenteredColorText("No Shared World Poses found nearby.", UiSharedService.AccentColor);
         }
 
         bool wasAnythingHovered = false;
