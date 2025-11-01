@@ -144,12 +144,12 @@ public partial class IntroUi : WindowMediatorSubscriberBase
             }
 
             ImGui.Separator();
-            ImGui.SetWindowFontScale(1.5f);
+            UiSharedService.SetFontScale(1.5f);
             string readThis = "MERCI DE LIRE ATTENTIVEMENT";
             Vector2 textSize = ImGui.CalcTextSize(readThis);
             ImGui.SetCursorPosX(ImGui.GetWindowSize().X / 2 - textSize.X / 2);
             UiSharedService.ColorText(readThis, UiSharedService.AccentColor);
-            ImGui.SetWindowFontScale(1.0f);
+            UiSharedService.SetFontScale(1.0f);
             ImGui.Separator();
             UiSharedService.TextWrapped("""
                                         Pour utiliser les services UmbraSync, vous devez être âgé de plus de 18 ans, où plus de 21 ans dans certaines juridictions.

@@ -8,6 +8,7 @@ using MareSynchronos.WebAPI.AutoDetect;
 using Dalamud.Plugin.Services;
 using System.Numerics;
 using System.Linq;
+using System.Collections.Generic;
 using MareSynchronos.Utils;
 
 namespace MareSynchronos.Services.AutoDetect;
@@ -35,6 +36,8 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
     private bool _lastAutoDetectState;
     private DateTime _lastHeartbeat = DateTime.MinValue;
     private static readonly TimeSpan HeartbeatInterval = TimeSpan.FromSeconds(75);
+    private readonly object _entriesLock = new();
+    private List<NearbyEntry> _lastEntries = [];
 
     public NearbyDiscoveryService(ILogger<NearbyDiscoveryService> logger, MareMediator mediator,
         MareConfigService config, DiscoveryConfigProvider configProvider, DalamudUtilService dalamudUtilService,
@@ -132,6 +135,22 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
         _mediator.UnsubscribeAll(this);
         CancelAndDispose(ref _loopCts);
         return Task.CompletedTask;
+    }
+
+    public List<NearbyEntry> SnapshotEntries()
+    {
+        lock (_entriesLock)
+        {
+            return _lastEntries.ToList();
+        }
+    }
+
+    private void UpdateSnapshot(List<NearbyEntry> entries)
+    {
+        lock (_entriesLock)
+        {
+            _lastEntries = entries.ToList();
+        }
     }
 
     private static void CancelAndDispose(ref CancellationTokenSource? cts)
@@ -443,6 +462,7 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                         _logger.LogDebug("Nearby: well-known not available or disabled; running in local-only mode");
                     }
                 }
+                UpdateSnapshot(entries);
                 _mediator.Publish(new DiscoveryListUpdated(entries));
 
                 var delayMs = Math.Max(1000, _configProvider.MinQueryIntervalMs);

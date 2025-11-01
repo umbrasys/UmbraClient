@@ -76,7 +76,7 @@ public class CompactUi : WindowMediatorSubscriberBase
     private CompactUiSection _activeSection = CompactUiSection.VisiblePairs;
     private const float SidebarWidth = 42f;
     private const float SidebarIconSize = 22f;
-    private const float ContentFontScale = 0.92f;
+    private const float ContentFontScale = UiSharedService.ContentFontScale;
     private static readonly Vector4 SidebarButtonColor = new(0.08f, 0.08f, 0.10f, 0.92f);
     private static readonly Vector4 SidebarButtonHoverColor = new(0.12f, 0.12f, 0.16f, 0.95f);
     private static readonly Vector4 SidebarButtonActiveColor = new(0.16f, 0.16f, 0.22f, 0.95f);
@@ -186,7 +186,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGui.GetStyle().WindowPadding.Y - 1f * ImGuiHelpers.GlobalScale + ImGui.GetStyle().ItemSpacing.Y);
         var sidebarWidth = ImGuiHelpers.ScaledVector2(SidebarWidth, 0).X;
 
-        ImGui.SetWindowFontScale(ContentFontScale);
+        using var fontScale = UiSharedService.PushFontScale(ContentFontScale);
         ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, ImGui.GetStyle().FramePadding * ContentFontScale);
 
         ImGui.BeginChild("compact-sidebar", new Vector2(sidebarWidth, 0), false, ImGuiWindowFlags.NoScrollbar);
@@ -232,7 +232,6 @@ public class CompactUi : WindowMediatorSubscriberBase
         }
 
         ImGui.PopStyleVar();
-        ImGui.SetWindowFontScale(1f);
     }
 
     public override void OnClose()
@@ -735,7 +734,6 @@ if (showNearby && pendingInvites > 0)
         }
         else
         {
-            var visibleUsers = visibleUsersSource.Select(c => new DrawUserPair("Visible" + c.UserData.UID, c, _uidDisplayHandler, _apiController, Mediator, _selectGroupForPairUi, _uiSharedService, _charaDataManager, _serverManager)).ToList();
             var onlineUsers = nonVisibleUsers.Where(u => u.UserPair!.OtherPermissions.IsPaired() && (u.IsOnline || u.UserPair!.OwnPermissions.IsPaused()))
                 .Select(c => new DrawUserPair("Online" + c.UserData.UID, c, _uidDisplayHandler, _apiController, Mediator, _selectGroupForPairUi, _uiSharedService, _charaDataManager, _serverManager))
                 .ToList();
@@ -750,7 +748,7 @@ if (showNearby && pendingInvites > 0)
                 drawVisibleExtras = () => DrawNearbyCard(entriesForExtras);
             }
 
-            _pairGroupsUi.Draw(visibleUsers, onlineUsers, offlineUsers, drawVisibleExtras);
+            _pairGroupsUi.Draw(Array.Empty<DrawUserPair>().ToList(), onlineUsers, offlineUsers, drawVisibleExtras);
         }
 
         ImGui.EndChild();
@@ -1289,7 +1287,7 @@ if (showNearby && pendingInvites > 0)
         }
 
         var originalPos = ImGui.GetCursorPos();
-        ImGui.SetWindowFontScale(1.5f);
+        UiSharedService.SetFontScale(1.5f);
         Vector2 buttonSize = Vector2.Zero;
         float spacingX = ImGui.GetStyle().ItemSpacing.X;
 
@@ -1307,7 +1305,7 @@ if (showNearby && pendingInvites > 0)
         }
 
         ImGui.SetCursorPos(originalPos);
-        ImGui.SetWindowFontScale(1f);
+        UiSharedService.SetFontScale(1f);
 
         float referenceHeight = buttonSize.Y > 0f ? buttonSize.Y : ImGui.GetFrameHeight();
         ImGui.SetCursorPosY(originalPos.Y + referenceHeight / 2f - uidTextSize.Y / 2f - spacingX / 2f);

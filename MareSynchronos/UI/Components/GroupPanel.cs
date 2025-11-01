@@ -91,6 +91,7 @@ internal sealed class GroupPanel
 
     public void DrawSyncshells()
     {
+        using var fontScale = UiSharedService.PushFontScale(UiSharedService.ContentFontScale);
         using (ImRaii.PushId("addsyncshell")) DrawAddSyncshell();
         using (ImRaii.PushId("syncshelllist")) DrawSyncshellList();
         _mainUi.TransferPartHeight = ImGui.GetCursorPosY();
@@ -613,7 +614,7 @@ internal sealed class GroupPanel
             ImGui.Separator();
         }
         ImGui.Unindent(20);
-        }, background: new Vector4(0.15f, 0.15f, 0.20f, 0.94f), border: new Vector4(0f, 0f, 0f, 0.78f), stretchWidth: true);
+        }, stretchWidth: true);
 
         ImGuiHelpers.ScaledDummy(4f);
     }

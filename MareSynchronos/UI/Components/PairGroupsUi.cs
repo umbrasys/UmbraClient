@@ -198,10 +198,7 @@ public class PairGroupsUi
 
     private void DrawUserPairs(List<string> tagsWithPairsInThem, List<DrawUserPair> allUsers, IEnumerable<DrawUserPair> visibleUsers, IEnumerable<DrawUserPair> onlineUsers, IEnumerable<DrawUserPair> offlineUsers, Action? drawVisibleExtras)
     {
-        if (_mareConfig.Current.ShowVisibleUsersSeparately)
-        {
-            using (ImRaii.PushId("$group-VisibleCustomTag")) DrawCategory(TagHandler.CustomVisibleTag, visibleUsers, allUsers, drawExtraContent: drawVisibleExtras);
-        }
+        // Visible section intentionally omitted for Individual Pairs view.
         foreach (var tag in tagsWithPairsInThem)
         {
             if (_mareConfig.Current.ShowOfflineUsersSeparately)

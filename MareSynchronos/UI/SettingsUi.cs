@@ -534,9 +534,9 @@ public class SettingsUi : WindowMediatorSubscriberBase
         }, globalChatTypeIdx);
         _uiShared.DrawHelpText("FFXIV chat channel to output chat messages on.");
 
-        ImGui.SetWindowFontScale(0.6f);
+        UiSharedService.SetFontScale(0.6f);
         _uiShared.BigText("\"Chat 2\" Plugin Integration");
-        ImGui.SetWindowFontScale(1.0f);
+        UiSharedService.SetFontScale(1.0f);
 
         var extraChatTags = _configService.Current.ExtraChatTags;
         if (ImGui.Checkbox("Tag messages as ExtraChat", ref extraChatTags))
@@ -577,9 +577,9 @@ public class SettingsUi : WindowMediatorSubscriberBase
             if (shellEnabled)
                 shellName = $"[{shellNumber}] {shellName}";
 
-            ImGui.SetWindowFontScale(0.6f);
+            UiSharedService.SetFontScale(0.6f);
             _uiShared.BigText(shellName);
-            ImGui.SetWindowFontScale(1.0f);
+            UiSharedService.SetFontScale(1.0f);
 
             using var pushIndent = ImRaii.PushIndent();
 
@@ -1332,6 +1332,14 @@ public class SettingsUi : WindowMediatorSubscriberBase
         string? recalculatePerformanceUID = null;
 
         _uiShared.BigText("Global Configuration");
+
+        bool showSelfAnalysisWarnings = _playerPerformanceConfigService.Current.ShowSelfAnalysisWarnings;
+        if (ImGui.Checkbox("Display self-analysis warnings", ref showSelfAnalysisWarnings))
+        {
+            _playerPerformanceConfigService.Current.ShowSelfAnalysisWarnings = showSelfAnalysisWarnings;
+            _playerPerformanceConfigService.Save();
+        }
+        _uiShared.DrawHelpText("Disable to suppress UmbraSync chat warnings when your character exceeds the self-analysis thresholds.");
 
         bool alwaysShrinkTextures = _playerPerformanceConfigService.Current.TextureShrinkMode == TextureShrinkMode.Always;
         bool deleteOriginalTextures = _playerPerformanceConfigService.Current.TextureShrinkDeleteOriginal;

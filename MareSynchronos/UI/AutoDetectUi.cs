@@ -24,14 +24,16 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
     private readonly MareConfigService _configService;
     private readonly DalamudUtilService _dalamud;
     private readonly AutoDetectRequestService _requestService;
+    private readonly NearbyDiscoveryService _discoveryService;
     private readonly NearbyPendingService _pendingService;
     private readonly PairManager _pairManager;
-    private List<Services.Mediator.NearbyEntry> _entries = new();
+    private List<Services.Mediator.NearbyEntry> _entries;
     private readonly HashSet<string> _acceptInFlight = new(StringComparer.Ordinal);
 
     public AutoDetectUi(ILogger<AutoDetectUi> logger, MareMediator mediator,
         MareConfigService configService, DalamudUtilService dalamudUtilService,
         AutoDetectRequestService requestService, NearbyPendingService pendingService, PairManager pairManager,
+        NearbyDiscoveryService discoveryService,
         PerformanceCollectorService performanceCollectorService)
         : base(logger, mediator, "AutoDetect", performanceCollectorService)
     {
@@ -40,6 +42,9 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
         _requestService = requestService;
         _pendingService = pendingService;
         _pairManager = pairManager;
+        _discoveryService = discoveryService;
+        Mediator.Subscribe<Services.Mediator.DiscoveryListUpdated>(this, OnDiscoveryUpdated);
+        _entries = _discoveryService.SnapshotEntries();
 
         Flags |= ImGuiWindowFlags.NoScrollbar;
         SizeConstraints = new WindowSizeConstraints()
@@ -214,61 +219,102 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
 
         ImGuiHelpers.ScaledDummy(6);
 
-        // Table header
-        if (ImGui.BeginTable("autodetect-nearby", 5, ImGuiTableFlags.SizingStretchProp))
-        {
-            ImGui.TableSetupColumn("Name");
-            ImGui.TableSetupColumn("World");
-            ImGui.TableSetupColumn("Distance");
-            ImGui.TableSetupColumn("Status");
-            ImGui.TableSetupColumn("Action");
-            ImGui.TableHeadersRow();
+        var sourceEntries = _entries.Count > 0 ? _entries : _discoveryService.SnapshotEntries();
+        var orderedEntries = sourceEntries
+            .OrderBy(e => float.IsNaN(e.Distance) ? float.MaxValue : e.Distance)
+            .ToList();
 
-            var data = _entries.Count > 0 ? _entries.Where(e => e.IsMatch).ToList() : new List<Services.Mediator.NearbyEntry>();
-            foreach (var e in data)
+        if (orderedEntries.Count == 0)
+        {
+            UiSharedService.ColorTextWrapped("Aucune présence UmbraSync détectée à proximité pour le moment.", ImGuiColors.DalamudGrey3);
+            return;
+        }
+
+        if (!ImGui.BeginTable("autodetect-nearby", 5, ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.RowBg))
+        {
+            return;
+        }
+
+        ImGui.TableSetupColumn("Nom");
+        ImGui.TableSetupColumn("Monde");
+        ImGui.TableSetupColumn("Distance");
+        ImGui.TableSetupColumn("Statut");
+        ImGui.TableSetupColumn("Action");
+        ImGui.TableHeadersRow();
+
+        for (int i = 0; i < orderedEntries.Count; i++)
+        {
+            var entry = orderedEntries[i];
+            bool isMatch = entry.IsMatch;
+            bool alreadyPaired = IsAlreadyPairedByUidOrAlias(entry);
+            bool overDistance = !float.IsNaN(entry.Distance) && entry.Distance > maxDist;
+            bool canRequest = isMatch && entry.AcceptPairRequests && !string.IsNullOrEmpty(entry.Token) && !alreadyPaired;
+
+            string displayName = entry.DisplayName ?? entry.Name;
+            string worldName = entry.WorldId == 0
+                ? "-"
+                : (_dalamud.WorldData.Value.TryGetValue(entry.WorldId, out var mappedWorld) ? mappedWorld : entry.WorldId.ToString(CultureInfo.InvariantCulture));
+            string distanceText = float.IsNaN(entry.Distance) ? "-" : $"{entry.Distance:0.0} m";
+
+            string status = alreadyPaired
+                ? "Déjà appairé"
+                : overDistance
+                    ? $"Hors portée (> {maxDist} m)"
+                    : !isMatch
+                        ? "Umbra non activé"
+                        : !entry.AcceptPairRequests
+                            ? "Invitations refusées"
+                            : string.IsNullOrEmpty(entry.Token)
+                                ? "Indisponible"
+                                : "Disponible";
+
+            ImGui.TableNextColumn();
+            ImGui.TextUnformatted(displayName);
+
+            ImGui.TableNextColumn();
+            ImGui.TextUnformatted(worldName);
+
+            ImGui.TableNextColumn();
+            ImGui.TextUnformatted(distanceText);
+
+            ImGui.TableNextColumn();
+            ImGui.TextUnformatted(status);
+
+            ImGui.TableNextColumn();
+            using (ImRaii.PushId(i))
             {
-                ImGui.TableNextColumn();
-                ImGui.TextUnformatted(e.Name);
-                ImGui.TableNextColumn();
-                ImGui.TextUnformatted(e.WorldId == 0 ? "-" : (_dalamud.WorldData.Value.TryGetValue(e.WorldId, out var w) ? w : e.WorldId.ToString()));
-                ImGui.TableNextColumn();
-                ImGui.TextUnformatted(float.IsNaN(e.Distance) ? "-" : $"{e.Distance:0.0} m");
-                ImGui.TableNextColumn();
-                bool alreadyPaired = IsAlreadyPairedByUidOrAlias(e);
-                string status = alreadyPaired ? "Paired" : (string.IsNullOrEmpty(e.Token) ? "Requests disabled" : "On Umbra");
-                ImGui.TextUnformatted(status);
-                ImGui.TableNextColumn();
-                using (ImRaii.Disabled(alreadyPaired || string.IsNullOrEmpty(e.Token)))
+                if (canRequest && !overDistance)
                 {
-                    if (alreadyPaired)
+                    if (ImGui.Button("Envoyer invitation"))
                     {
-                        ImGui.Button($"Already sync##{e.Name}");
+                        _ = _requestService.SendRequestAsync(entry.Token!, entry.Uid, entry.DisplayName);
                     }
-                    else if (string.IsNullOrEmpty(e.Token))
+                    UiSharedService.AttachToolTip("Envoie une demande d'appairage via AutoDetect.");
+                }
+                else
+                {
+                    string reason = alreadyPaired
+                        ? "Vous êtes déjà appairé avec ce joueur."
+                        : overDistance
+                            ? $"Ce joueur est au-delà de la distance maximale configurée ({maxDist} m)."
+                            : !isMatch
+                                ? "Ce joueur n'utilise pas UmbraSync ou ne s'est pas rendu détectable."
+                                : !entry.AcceptPairRequests
+                                    ? "Ce joueur a désactivé la réception automatique des invitations."
+                                    : string.IsNullOrEmpty(entry.Token)
+                                        ? "Impossible d'obtenir un jeton d'invitation pour ce joueur."
+                                        : string.Empty;
+
+                    ImGui.TextDisabled(status);
+                    if (!string.IsNullOrEmpty(reason))
                     {
-                        ImGui.Button($"Requests disabled##{e.Name}");
-                    }
-                    else if (ImGui.Button($"Send request##{e.Name}"))
-                    {
-                        _ = _requestService.SendRequestAsync(e.Token!, e.Uid, e.DisplayName);
+                        UiSharedService.AttachToolTip(reason);
                     }
                 }
             }
-
-            ImGui.EndTable();
         }
-    }
 
-    public override void OnOpen()
-    {
-        base.OnOpen();
-        Mediator.Subscribe<Services.Mediator.DiscoveryListUpdated>(this, OnDiscoveryUpdated);
-    }
-
-    public override void OnClose()
-    {
-        Mediator.Unsubscribe<Services.Mediator.DiscoveryListUpdated>(this);
-        base.OnClose();
+        ImGui.EndTable();
     }
 
     private void OnDiscoveryUpdated(Services.Mediator.DiscoveryListUpdated msg)

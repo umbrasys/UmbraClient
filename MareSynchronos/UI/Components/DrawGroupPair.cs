@@ -201,7 +201,7 @@ public class DrawGroupPair : DrawPairBase
         var individualVFXDisabled = (_pair.UserPair?.OwnPermissions.IsDisableVFX() ?? false) || (_pair.UserPair?.OtherPermissions.IsDisableVFX() ?? false);
 
         bool showShared = _charaDataManager.SharedWithYouData.TryGetValue(_pair.UserData, out var sharedData);
-        bool showInfo = (individualAnimDisabled || individualSoundsDisabled || animDisabled || soundsDisabled);
+        bool showInfo = (individualAnimDisabled || individualSoundsDisabled || individualVFXDisabled || animDisabled || soundsDisabled || vfxDisabled);
         bool showPlus = _pair.UserPair == null && _pair.IsOnline;
         bool showBars = (userIsOwner || (userIsModerator && !entryIsMod && !entryIsOwner)) || !_pair.IsPaused;
         bool showPause = true;
@@ -267,7 +267,7 @@ public class DrawGroupPair : DrawPairBase
         if (showInfo && infoIconWidth > 0f)
         {
             ImGui.SetCursorPosY(textPosY);
-            if (individualAnimDisabled || individualSoundsDisabled)
+            if (individualAnimDisabled || individualSoundsDisabled || individualVFXDisabled)
             {
                 ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudYellow);
                 _uiSharedService.IconText(permIcon);

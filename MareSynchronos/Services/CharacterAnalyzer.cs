@@ -4,6 +4,7 @@ using Lumina.Data.Files;
 using MareSynchronos.API.Data;
 using MareSynchronos.API.Data.Enum;
 using MareSynchronos.FileCache;
+using MareSynchronos.MareConfiguration;
 using MareSynchronos.MareConfiguration.Models;
 using MareSynchronos.Services.Mediator;
 using MareSynchronos.UI;
@@ -29,8 +30,9 @@ public sealed class CharacterAnalyzer : DisposableMediatorSubscriberBase
     private const long NotificationTriangleThreshold = 150_000;
     private bool _sizeWarningShown;
     private bool _triangleWarningShown;
+    private readonly PlayerPerformanceConfigService _playerPerformanceConfigService;
 
-    public CharacterAnalyzer(ILogger<CharacterAnalyzer> logger, MareMediator mediator, FileCacheManager fileCacheManager, XivDataAnalyzer modelAnalyzer)
+    public CharacterAnalyzer(ILogger<CharacterAnalyzer> logger, MareMediator mediator, FileCacheManager fileCacheManager, XivDataAnalyzer modelAnalyzer, PlayerPerformanceConfigService playerPerformanceConfigService)
         : base(logger, mediator)
     {
         Mediator.Subscribe<CharacterDataCreatedMessage>(this, (msg) =>
@@ -41,6 +43,7 @@ public sealed class CharacterAnalyzer : DisposableMediatorSubscriberBase
         });
         _fileCacheManager = fileCacheManager;
         _xivDataAnalyzer = modelAnalyzer;
+        _playerPerformanceConfigService = playerPerformanceConfigService;
     }
 
     public int CurrentFile { get; internal set; }
@@ -308,6 +311,12 @@ public sealed class CharacterAnalyzer : DisposableMediatorSubscriberBase
     private void EvaluateThresholdNotifications(CharacterAnalysisSummary summary)
     {
         if (summary.IsEmpty || summary.HasUncomputedEntries)
+        {
+            ResetThresholdFlagsIfNeeded(summary);
+            return;
+        }
+
+        if (!_playerPerformanceConfigService.Current.ShowSelfAnalysisWarnings)
         {
             ResetThresholdFlagsIfNeeded(summary);
             return;

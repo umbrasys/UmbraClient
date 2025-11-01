@@ -21,6 +21,7 @@ using MareSynchronos.Services.ServerConfiguration;
 using MareSynchronos.WebAPI;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -36,6 +37,8 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     public static readonly ImGuiWindowFlags PopupWindowFlags = ImGuiWindowFlags.NoResize |
                                                ImGuiWindowFlags.NoScrollbar |
                                            ImGuiWindowFlags.NoScrollWithMouse;
+
+    public const float ContentFontScale = 0.92f;
 
     public static Vector4 AccentColor { get; set; } = ImGuiColors.DalamudViolet;
     public static Vector4 AccentHoverColor { get; set; } = new Vector4(0x3A / 255f, 0x15 / 255f, 0x50 / 255f, 1f);
@@ -60,6 +63,8 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     private readonly Dictionary<string, object> _selectedComboItems = new(StringComparer.Ordinal);
     private readonly ServerConfigurationManager _serverConfigurationManager;
     private bool _cacheDirectoryHasOtherFilesThanCache = false;
+    private static readonly Stack<float> _fontScaleStack = new();
+    private static float _currentWindowFontScale = 1f;
 
     private bool _cacheDirectoryIsValidPath = true;
 
@@ -216,6 +221,37 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     }
 
     public static bool CtrlPressed() => (GetKeyState(0xA2) & 0x8000) != 0 || (GetKeyState(0xA3) & 0x8000) != 0;
+
+    public static IDisposable PushFontScale(float scale)
+    {
+        var previous = _currentWindowFontScale;
+        _fontScaleStack.Push(previous);
+        if (Math.Abs(previous - scale) > float.Epsilon)
+        {
+            SetFontScale(scale);
+        }
+
+        return new FontScaleScope();
+    }
+
+    private sealed class FontScaleScope : IDisposable
+    {
+        public void Dispose()
+        {
+            if (_fontScaleStack.Count == 0) return;
+            var previous = _fontScaleStack.Pop();
+            if (Math.Abs(previous - _currentWindowFontScale) > float.Epsilon)
+            {
+                SetFontScale(previous);
+            }
+        }
+    }
+
+    public static void SetFontScale(float scale)
+    {
+        ImGui.SetWindowFontScale(scale);
+        _currentWindowFontScale = scale;
+    }
 
     public static void DrawGrouped(Action imguiDrawAction, float rounding = 5f, float? expectedWidth = null, bool drawBorder = true)
     {
@@ -894,9 +930,9 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
         if (intro)
         {
-            ImGui.SetWindowFontScale(0.8f);
+            SetFontScale(0.8f);
             BigText("Mandatory Plugins");
-            ImGui.SetWindowFontScale(1.0f);
+            SetFontScale(1.0f);
         }
         else
         {
@@ -917,9 +953,9 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
         if (intro)
         {
-            ImGui.SetWindowFontScale(0.8f);
+            SetFontScale(0.8f);
             BigText("Optional Addons");
-            ImGui.SetWindowFontScale(1.0f);
+            SetFontScale(1.0f);
             UiSharedService.TextWrapped("These addons are not required for basic operation, but without them you may not see others as intended.");
         }
         else
