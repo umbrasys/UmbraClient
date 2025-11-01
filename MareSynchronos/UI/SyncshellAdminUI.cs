@@ -41,6 +41,16 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
     private bool _autoDetectVisible;
     private bool _autoDetectPasswordDisabled;
     private string? _autoDetectMessage;
+    
+    private bool _autoDetectDesiredVisibility;
+    private int _adDurationHours = 2;
+    private bool _adRecurring = false;
+    private readonly bool[] _adWeekdays = new bool[7];
+    private int _adStartHour = 21;
+    private int _adStartMinute = 0;
+    private int _adEndHour = 23;
+    private int _adEndMinute = 0;
+    private const string AutoDetectTimeZone = "Europe/Paris";
 
     public SyncshellAdminUI(ILogger<SyncshellAdminUI> logger, MareMediator mediator, ApiController apiController,
         UiSharedService uiSharedService, PairManager pairManager, SyncshellDiscoveryService syncshellDiscoveryService,
@@ -58,6 +68,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
         _multiInvites = 30;
         _pwChangeSuccess = true;
         _autoDetectVisible = groupFullInfo.AutoDetectVisible;
+        _autoDetectDesiredVisibility = _autoDetectVisible;
         _autoDetectPasswordDisabled = groupFullInfo.PasswordTemporarilyDisabled;
         Mediator.Subscribe<SyncshellAutoDetectStateChanged>(this, OnSyncshellAutoDetectStateChanged);
         IsOpen = true;
@@ -89,6 +100,9 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
         ImGui.Separator();
         var perm = GroupFullInfo.GroupPermissions;
 
+        using var tabColor = ImRaii.PushColor(ImGuiCol.Tab, UiSharedService.AccentColor);
+        using var tabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, UiSharedService.AccentHoverColor);
+        using var tabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, UiSharedService.AccentActiveColor);
         using var tabbar = ImRaii.TabBar("syncshell_tab_" + GroupFullInfo.GID);
 
         if (tabbar)
@@ -498,15 +512,74 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
             UiSharedService.ColorTextWrapped(_autoDetectMessage!, ImGuiColors.DalamudYellow);
         }
 
-        bool desiredVisibility = _autoDetectVisible;
         using (ImRaii.Disabled(_autoDetectToggleInFlight || _autoDetectStateLoading))
         {
-            if (ImGui.Checkbox("Afficher cette Syncshell dans l'AutoDetect", ref desiredVisibility))
+            if (ImGui.Checkbox("Afficher cette Syncshell dans l'AutoDetect", ref _autoDetectDesiredVisibility))
             {
-                _ = ToggleAutoDetectAsync(desiredVisibility);
+                // Only change local desired state; sending is done via the validate button
             }
         }
         _uiSharedService.DrawHelpText("Quand cette option est activée, le mot de passe devient inactif tant que la visibilité est maintenue.");
+
+        if (_autoDetectDesiredVisibility)
+        {
+            ImGuiHelpers.ScaledDummy(4);
+            ImGui.TextUnformatted("Options d'affichage AutoDetect");
+            ImGui.Separator();
+
+            // Recurring toggle first
+            ImGui.Checkbox("Affichage récurrent", ref _adRecurring);
+            _uiSharedService.DrawHelpText("Si activé, vous pouvez choisir les jours et une plage horaire récurrents. Si désactivé, seule la durée sera prise en compte.");
+
+            // Duration in hours (only when NOT recurring)
+            if (!_adRecurring)
+            {
+                ImGuiHelpers.ScaledDummy(4);
+                int duration = _adDurationHours;
+                ImGui.PushItemWidth(120 * ImGuiHelpers.GlobalScale);
+                if (ImGui.InputInt("Durée (heures)", ref duration))
+                {
+                    _adDurationHours = Math.Clamp(duration, 1, 240);
+                }
+                ImGui.PopItemWidth();
+                _uiSharedService.DrawHelpText("Combien de temps la Syncshell doit rester visible, en heures.");
+            }
+
+            ImGuiHelpers.ScaledDummy(4);
+            if (_adRecurring)
+            {
+                ImGuiHelpers.ScaledDummy(4);
+                ImGui.TextUnformatted("Jours de la semaine actifs :");
+                string[] daysFr = new[] { "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim" };
+                for (int i = 0; i < 7; i++)
+                {
+                    ImGui.SameLine(i == 0 ? 0 : 0);
+                    bool v = _adWeekdays[i];
+                    if (ImGui.Checkbox($"##adwd{i}", ref v)) _adWeekdays[i] = v;
+                    ImGui.SameLine();
+                    ImGui.TextUnformatted(daysFr[i]);
+                    if (i < 6) ImGui.SameLine();
+                }
+                ImGui.NewLine();
+                _uiSharedService.DrawHelpText("Sélectionnez les jours où l'affichage est autorisé (ex: jeudi et dimanche).");
+
+                ImGuiHelpers.ScaledDummy(4);
+                ImGui.TextUnformatted("Plage horaire (heure locale Europe/Paris) :");
+                ImGui.PushItemWidth(60 * ImGuiHelpers.GlobalScale);
+                ImGui.InputInt("Début heure", ref _adStartHour); ImGui.SameLine();
+                ImGui.InputInt("min", ref _adStartMinute);
+                _adStartHour = Math.Clamp(_adStartHour, 0, 23);
+                _adStartMinute = Math.Clamp(_adStartMinute, 0, 59);
+                ImGui.SameLine();
+                ImGui.TextUnformatted("→"); ImGui.SameLine();
+                ImGui.InputInt("Fin heure", ref _adEndHour); ImGui.SameLine();
+                ImGui.InputInt("min ", ref _adEndMinute);
+                _adEndHour = Math.Clamp(_adEndHour, 0, 23);
+                _adEndMinute = Math.Clamp(_adEndMinute, 0, 59);
+                ImGui.PopItemWidth();
+                _uiSharedService.DrawHelpText("Exemple : de 21h00 à 23h00. Le fuseau utilisé est Europe/Paris (avec changements été/hiver).");
+            }
+        }
 
         if (_autoDetectPasswordDisabled && _autoDetectVisible)
         {
@@ -514,10 +587,18 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
         }
 
         ImGuiHelpers.ScaledDummy(6);
-        if (ImGui.Button("Recharger l'état"))
+        using (ImRaii.Disabled(_autoDetectToggleInFlight || _autoDetectStateLoading))
         {
-            _autoDetectStateLoading = true;
-            _ = EnsureAutoDetectStateAsync(true);
+            if (ImGui.Button("Valider et envoyer"))
+            {
+                _ = SubmitAutoDetectAsync();
+            }
+            ImGui.SameLine();
+            if (ImGui.Button("Recharger l'état"))
+            {
+                _autoDetectStateLoading = true;
+                _ = EnsureAutoDetectStateAsync(true);
+            }
         }
     }
 
@@ -573,6 +654,67 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
         catch (Exception ex)
         {
             _autoDetectMessage = $"Erreur lors de la mise à jour AutoDetect : {ex.Message}";
+        }
+        finally
+        {
+            _autoDetectToggleInFlight = false;
+        }
+    }
+
+    private async Task SubmitAutoDetectAsync()
+    {
+        if (_autoDetectToggleInFlight)
+        {
+            return;
+        }
+
+        _autoDetectToggleInFlight = true;
+        _autoDetectMessage = null;
+
+        try
+        {
+            // Duration always used when visible
+            int? duration = _autoDetectDesiredVisibility ? _adDurationHours : null;
+
+            // Scheduling fields only if recurring is enabled
+            int[]? weekdaysArr = null;
+            TimeSpan? start = null;
+            TimeSpan? end = null;
+            string? tz = null;
+            if (_autoDetectDesiredVisibility && _adRecurring)
+            {
+                List<int> weekdays = new();
+                for (int i = 0; i < 7; i++) if (_adWeekdays[i]) weekdays.Add(i);
+                weekdaysArr = weekdays.Count > 0 ? weekdays.ToArray() : Array.Empty<int>();
+                start = new TimeSpan(_adStartHour, _adStartMinute, 0);
+                end = new TimeSpan(_adEndHour, _adEndMinute, 0);
+                tz = AutoDetectTimeZone;
+            }
+
+            var ok = await _syncshellDiscoveryService.SetVisibilityAsync(
+                GroupFullInfo.GID,
+                _autoDetectDesiredVisibility,
+                duration,
+                weekdaysArr,
+                start,
+                end,
+                tz,
+                CancellationToken.None).ConfigureAwait(false);
+
+            if (!ok)
+            {
+                _autoDetectMessage = "Impossible d'envoyer les paramètres AutoDetect.";
+                return;
+            }
+
+            await EnsureAutoDetectStateAsync(true).ConfigureAwait(false);
+            _autoDetectMessage = _autoDetectDesiredVisibility
+                ? "Paramètres AutoDetect envoyés. La Syncshell sera visible selon le planning défini."
+                : "La Syncshell n'est plus visible dans AutoDetect.";
+        }
+        catch (Exception ex)
+        {
+            _autoDetectMessage = $"Erreur lors de l'envoi des paramètres AutoDetect : {ex.Message}";
         }
         finally
         {

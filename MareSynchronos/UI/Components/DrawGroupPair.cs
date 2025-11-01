@@ -79,6 +79,8 @@ public class DrawGroupPair : DrawPairBase
             width += _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Plus).X + spacing;
         }
 
+        width += spacing * 1.2f;
+
         return width;
     }
 
@@ -215,6 +217,7 @@ public class DrawGroupPair : DrawPairBase
         var pauseIcon = _fullInfoDto.GroupUserPermissions.IsPaused() ? FontAwesomeIcon.Play : FontAwesomeIcon.Pause;
         var pauseButtonWidth = _uiSharedService.GetIconButtonSize(pauseIcon).X;
         var barButtonWidth = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Bars).X;
+        var rightEdgeGap = spacing * 1.2f;
 
         float totalWidth = 0f;
         void Accumulate(bool condition, float width)
@@ -242,7 +245,7 @@ public class DrawGroupPair : DrawPairBase
         float cardPaddingX = UiSharedService.GetCardContentPaddingX();
         float rightMargin = cardPaddingX + 6f * ImGuiHelpers.GlobalScale;
         float baseX = MathF.Max(ImGui.GetCursorPosX(),
-            ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - rightMargin - totalWidth);
+            ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - rightMargin - rightEdgeGap - totalWidth);
         float currentX = baseX;
 
         ImGui.SameLine();
@@ -266,6 +269,16 @@ public class DrawGroupPair : DrawPairBase
 
         if (showInfo && infoIconWidth > 0f)
         {
+            bool centerWarning = permIcon == FontAwesomeIcon.ExclamationTriangle && showPause && showBars && !showShared && !showPlus;
+            if (centerWarning)
+            {
+                float barsClusterWidth = showBars ? (barButtonWidth + spacing * 0.5f) : 0f;
+                float leftAreaWidth = MathF.Max(totalWidth - pauseButtonWidth - barsClusterWidth, 0f);
+                float warningX = baseX + MathF.Max((leftAreaWidth - infoIconWidth) / 2f, 0f);
+                currentX = warningX;
+                ImGui.SetCursorPosX(currentX);
+            }
+
             ImGui.SetCursorPosY(textPosY);
             if (individualAnimDisabled || individualSoundsDisabled || individualVFXDisabled)
             {
@@ -359,7 +372,7 @@ public class DrawGroupPair : DrawPairBase
         {
             ImGui.SetCursorPosY(originalY);
 
-            if (_uiSharedService.IconButton(FontAwesomeIcon.Plus))
+            if (_uiSharedService.IconPlusButtonCentered())
             {
                 var targetUid = _pair.UserData.UID;
                 if (!string.IsNullOrEmpty(targetUid))
@@ -376,7 +389,7 @@ public class DrawGroupPair : DrawPairBase
         {
             float gapToBars = showBars ? spacing * 0.5f : spacing;
             ImGui.SetCursorPosY(originalY);
-            if (_uiSharedService.IconButton(pauseIcon))
+            if (pauseIcon == FontAwesomeIcon.Pause ? _uiSharedService.IconPauseButtonCentered() : _uiSharedService.IconButtonCentered(pauseIcon))
             {
                 var newPermissions = _fullInfoDto.GroupUserPermissions ^ GroupUserPermissions.Paused;
                 _fullInfoDto.GroupUserPermissions = newPermissions;
@@ -391,7 +404,7 @@ public class DrawGroupPair : DrawPairBase
         if (showBars)
         {
             ImGui.SetCursorPosY(originalY);
-            if (_uiSharedService.IconButton(FontAwesomeIcon.Bars))
+            if (_uiSharedService.IconButtonCentered(FontAwesomeIcon.Bars))
             {
                 ImGui.OpenPopup("Syncshell Flyout Menu");
             }

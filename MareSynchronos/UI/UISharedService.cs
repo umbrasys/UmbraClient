@@ -541,6 +541,100 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
         return result;
     }
+    
+    public bool IconButtonCentered(FontAwesomeIcon icon, float? height = null, float xOffset = 0f, float yOffset = 0f, bool square = false)
+    {
+        string text = icon.ToIconString();
+
+        ImGui.PushID($"centered-{text}");
+        Vector2 glyphSize;
+        using (IconFont.Push())
+            glyphSize = ImGui.CalcTextSize(text);
+        ImDrawListPtr drawList = ImGui.GetWindowDrawList();
+        Vector2 cursorScreenPos = ImGui.GetCursorScreenPos();
+        float frameHeight = height ?? ImGui.GetFrameHeight();
+        float buttonWidth = square ? frameHeight : glyphSize.X + ImGui.GetStyle().FramePadding.X * 2f;
+        using var hoverColor = ImRaii.PushColor(ImGuiCol.ButtonHovered, AccentHoverColor);
+        using var activeColor = ImRaii.PushColor(ImGuiCol.ButtonActive, AccentActiveColor);
+        bool clicked = ImGui.Button(string.Empty, new Vector2(buttonWidth, frameHeight));
+        Vector2 pos = new Vector2(
+            cursorScreenPos.X + (buttonWidth - glyphSize.X) / 2f + xOffset,
+            cursorScreenPos.Y + frameHeight / 2f - glyphSize.Y / 2f + yOffset);
+        using (IconFont.Push())
+            drawList.AddText(pos, ImGui.GetColorU32(ImGuiCol.Text), text);
+        ImGui.PopID();
+
+        return clicked;
+    }
+    public bool IconPauseButtonCentered(float? height = null)
+    {
+        ImGui.PushID("centered-pause-custom");
+        Vector2 glyphSize;
+        using (IconFont.Push())
+            glyphSize = ImGui.CalcTextSize(FontAwesomeIcon.Pause.ToIconString());
+        float frameHeight = height ?? ImGui.GetFrameHeight();
+        float buttonWidth = glyphSize.X + ImGui.GetStyle().FramePadding.X * 2f;
+
+        using var hoverColor = ImRaii.PushColor(ImGuiCol.ButtonHovered, AccentHoverColor);
+        using var activeColor = ImRaii.PushColor(ImGuiCol.ButtonActive, AccentActiveColor);
+
+        var drawList = ImGui.GetWindowDrawList();
+        var buttonTopLeft = ImGui.GetCursorScreenPos();
+        bool clicked = ImGui.Button(string.Empty, new Vector2(buttonWidth, frameHeight));
+
+        var textColor = ImGui.GetColorU32(ImGuiCol.Text);
+
+        float h = frameHeight * 0.55f;                   // bar height
+        float w = MathF.Max(1f, frameHeight * 0.16f);    // bar width
+        float gap = MathF.Max(1f, w * 0.9f);             // gap between bars
+        float total = 2f * w + gap;
+
+        float startX = buttonTopLeft.X + (buttonWidth - total) / 2f;
+        float startY = buttonTopLeft.Y + (frameHeight - h) / 2f;
+        float rounding = w * 0.35f;
+
+        drawList.AddRectFilled(new Vector2(startX, startY), new Vector2(startX + w, startY + h), textColor, rounding);
+        float rightX = startX + w + gap;
+        drawList.AddRectFilled(new Vector2(rightX, startY), new Vector2(rightX + w, startY + h), textColor, rounding);
+
+        ImGui.PopID();
+        return clicked;
+    }
+
+    public bool IconPlusButtonCentered(float? height = null)
+    {
+        ImGui.PushID("centered-plus-custom");
+        Vector2 glyphSize;
+        using (IconFont.Push())
+            glyphSize = ImGui.CalcTextSize(FontAwesomeIcon.Plus.ToIconString());
+        float frameHeight = height ?? ImGui.GetFrameHeight();
+        float buttonWidth = glyphSize.X + ImGui.GetStyle().FramePadding.X * 2f;
+
+        using var hoverColor = ImRaii.PushColor(ImGuiCol.ButtonHovered, AccentHoverColor);
+        using var activeColor = ImRaii.PushColor(ImGuiCol.ButtonActive, AccentActiveColor);
+
+        var drawList = ImGui.GetWindowDrawList();
+        var buttonTopLeft = ImGui.GetCursorScreenPos();
+        bool clicked = ImGui.Button(string.Empty, new Vector2(buttonWidth, frameHeight));
+
+        var color = ImGui.GetColorU32(ImGuiCol.Text);
+
+        float armThickness = MathF.Max(1f, frameHeight * 0.14f);
+        float crossSize = frameHeight * 0.55f; // total length of vertical/horizontal arms
+        float startX = buttonTopLeft.X + (buttonWidth - crossSize) / 2f;
+        float startY = buttonTopLeft.Y + (frameHeight - crossSize) / 2f;
+        float endX = startX + crossSize;
+        float endY = startY + crossSize;
+        float r = armThickness * 0.35f;
+
+        float hY1 = startY + (crossSize - armThickness) / 2f;
+        drawList.AddRectFilled(new Vector2(startX, hY1), new Vector2(endX, hY1 + armThickness), color, r);
+        float vX1 = startX + (crossSize - armThickness) / 2f;
+        drawList.AddRectFilled(new Vector2(vX1, startY), new Vector2(vX1 + armThickness, endY), color, r);
+
+        ImGui.PopID();
+        return clicked;
+    }
 
     private bool IconTextButtonInternal(FontAwesomeIcon icon, string text, Vector4? defaultColor = null, float? width = null, bool useAccentHover = true)
     {

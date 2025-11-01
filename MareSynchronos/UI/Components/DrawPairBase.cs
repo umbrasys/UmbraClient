@@ -42,8 +42,8 @@ public abstract class DrawPairBase
         var menuButtonSize = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Bars);
 
         float pauseClusterWidth = Math.Max(pauseButtonSize.X, playButtonSize.X);
-        float pauseClusterHeight = Math.Max(pauseButtonSize.Y, playButtonSize.Y);
-        float reservedSpacing = style.ItemSpacing.X * 2.4f;
+        float pauseClusterHeight = Math.Max(Math.Max(pauseButtonSize.Y, playButtonSize.Y), ImGui.GetFrameHeight());
+        float reservedSpacing = style.ItemSpacing.X * 1.6f;
         float rightButtonWidth =
             menuButtonSize.X +
             pauseClusterWidth +
@@ -84,11 +84,15 @@ public abstract class DrawPairBase
 
         ImGui.SetCursorPos(new Vector2(rowStartCursor.X + padding.X, iconTop));
         DrawLeftSide(iconTop, iconTop);
-        ImGui.SameLine();
-        ImGui.SetCursorPosY(textTop);
-        var posX = ImGui.GetCursorPosX();
+        
+        float leftReserved = GetLeftSideReservedWidth();
+        float nameStartX = rowStartCursor.X + padding.X + leftReserved;
+
         var rightSide = DrawRightSide(buttonTop, buttonTop);
-        DrawName(textTop + padding.Y * 0.15f, posX, rightSide);
+
+        ImGui.SameLine(nameStartX);
+        ImGui.SetCursorPosY(textTop);
+        DrawName(textTop + padding.Y * 0.15f, nameStartX, rightSide);
 
         ImGui.SetCursorPos(new Vector2(rowStartCursor.X, rowStartCursor.Y + totalHeight));
         ImGui.SetCursorPosX(rowStartCursor.X);
@@ -99,6 +103,8 @@ public abstract class DrawPairBase
     protected abstract float DrawRightSide(float textPosY, float originalY);
 
     protected virtual float GetRightSideExtraWidth() => 0f;
+
+    protected virtual float GetLeftSideReservedWidth() => UiSharedService.GetIconSize(FontAwesomeIcon.Moon).X * 2f + ImGui.GetStyle().ItemSpacing.X * 1.5f;
 
     private void DrawName(float originalY, float leftSide, float rightSide)
     {

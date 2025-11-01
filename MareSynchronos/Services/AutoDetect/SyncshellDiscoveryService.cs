@@ -74,12 +74,24 @@ public sealed class SyncshellDiscoveryService : IHostedService, IMediatorSubscri
 
     public async Task<bool> SetVisibilityAsync(string gid, bool visible, CancellationToken ct)
     {
+        return await SetVisibilityAsync(gid, visible, null, null, null, null, null, ct).ConfigureAwait(false);
+    }
+
+    public async Task<bool> SetVisibilityAsync(string gid, bool visible, int? displayDurationHours,
+        int[]? activeWeekdays, TimeSpan? timeStartLocal, TimeSpan? timeEndLocal, string? timeZone,
+        CancellationToken ct)
+    {
         try
         {
             var request = new SyncshellDiscoveryVisibilityRequestDto
             {
                 GID = gid,
                 AutoDetectVisible = visible,
+                DisplayDurationHours = displayDurationHours,
+                ActiveWeekdays = activeWeekdays,
+                TimeStartLocal = timeStartLocal.HasValue ? new DateTime(timeStartLocal.Value.Ticks).ToString("HH:mm") : null,
+                TimeEndLocal = timeEndLocal.HasValue ? new DateTime(timeEndLocal.Value.Ticks).ToString("HH:mm") : null,
+                TimeZone = timeZone,
             };
             var success = await _apiController.SyncshellDiscoverySetVisibility(request).ConfigureAwait(false);
             if (!success) return false;

@@ -60,7 +60,27 @@ public class DrawUserPair : DrawPairBase
             width += _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Running).X + spacingX * 0.5f;
         }
 
+        width += spacingX * 1.2f;
         return width;
+    }
+    
+    protected override float GetLeftSideReservedWidth()
+    {
+        var style = ImGui.GetStyle();
+        float spacing = style.ItemSpacing.X;
+        float iconW = UiSharedService.GetIconSize(FontAwesomeIcon.Moon).X;
+
+        int icons = 1;
+        if (!(_pair.UserPair!.OwnPermissions.IsPaired() && _pair.UserPair!.OtherPermissions.IsPaired()))
+            icons++; 
+        else if (_pair.UserPair!.OwnPermissions.IsPaused() || _pair.UserPair!.OtherPermissions.IsPaused())
+            icons++;
+        if (_pair.IsOnline && _pair.IsVisible)
+            icons++;
+
+        float iconsTotal = icons * iconW + Math.Max(0, icons - 1) * spacing;
+        float cushion = spacing * 0.6f;
+        return iconsTotal + cushion;
     }
 
     protected override void DrawLeftSide(float textPosY, float originalY)
@@ -133,7 +153,8 @@ public class DrawUserPair : DrawPairBase
         var entryUID = _pair.UserData.AliasOrUID;
         var spacingX = ImGui.GetStyle().ItemSpacing.X;
         var edgePadding = UiSharedService.GetCardContentPaddingX() + 6f * ImGuiHelpers.GlobalScale;
-        var windowEndX = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - edgePadding;
+        var rightEdgeGap = spacingX * 1.2f;
+        var windowEndX = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - edgePadding - rightEdgeGap;
         var rightSidePos = windowEndX - barButtonSize.X;
 
         // Flyout Menu
@@ -150,13 +171,12 @@ public class DrawUserPair : DrawPairBase
             ImGui.EndPopup();
         }
 
-        // Pause (mutual pairs only)
         if (_pair.UserPair!.OwnPermissions.IsPaired() && _pair.UserPair!.OtherPermissions.IsPaired())
         {
             rightSidePos -= pauseIconSize.X + spacingX;
             ImGui.SameLine(rightSidePos);
             ImGui.SetCursorPosY(originalY);
-            if (_uiSharedService.IconButton(pauseIcon))
+            if (pauseIcon == FontAwesomeIcon.Pause ? _uiSharedService.IconPauseButtonCentered() : _uiSharedService.IconButtonCentered(pauseIcon))
             {
                 var perm = _pair.UserPair!.OwnPermissions;
                 perm.SetPaused(!perm.IsPaused());

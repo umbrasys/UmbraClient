@@ -50,6 +50,8 @@
   <PropertyGroup>
     <SourceRevisionId>build$([System.DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ss:fffZ"))</SourceRevisionId>
     <ImplicitUsings>enable</ImplicitUsings>
+    <DisablePackageVulnerabilityAnalysis>true</DisablePackageVulnerabilityAnalysis>
+    <NoWarn>$(NoWarn);NU1900</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
