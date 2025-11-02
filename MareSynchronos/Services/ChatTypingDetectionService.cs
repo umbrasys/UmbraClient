@@ -10,6 +10,8 @@ using FFXIVClientStructs.FFXIV.Client.UI.Shell;
 using Microsoft.Extensions.Logging;
 using MareSynchronos.PlayerData.Pairs;
 using MareSynchronos.WebAPI;
+using MareSynchronos.MareConfiguration;
+using MareSynchronos.API.Data.Enum;
 
 namespace MareSynchronos.Services;
 
@@ -24,16 +26,18 @@ public sealed class ChatTypingDetectionService : IDisposable
     private readonly ApiController _apiController;
     private readonly PairManager _pairManager;
     private readonly IPartyList _partyList;
+    private readonly MareConfigService _configService;
 
     private string _lastChatText = string.Empty;
     private bool _isTyping;
     private bool _notifyingRemote;
     private bool _serverSupportWarnLogged;
     private bool _remoteNotificationsEnabled;
+    private bool _subscribed;
 
     public ChatTypingDetectionService(ILogger<ChatTypingDetectionService> logger, IFramework framework,
         IClientState clientState, IGameGui gameGui, ChatService chatService, PairManager pairManager, IPartyList partyList,
-        TypingIndicatorStateService typingStateService, ApiController apiController)
+        TypingIndicatorStateService typingStateService, ApiController apiController, MareConfigService configService)
     {
         _logger = logger;
         _framework = framework;
@@ -44,15 +48,48 @@ public sealed class ChatTypingDetectionService : IDisposable
         _partyList = partyList;
         _typingStateService = typingStateService;
         _apiController = apiController;
+        _configService = configService;
 
-        _framework.Update += OnFrameworkUpdate;
+        Subscribe();
         _logger.LogInformation("ChatTypingDetectionService initialized");
     }
 
     public void Dispose()
     {
-        _framework.Update -= OnFrameworkUpdate;
+        Unsubscribe();
         ResetTypingState();
+    }
+
+    public void SoftRestart()
+    {
+        try
+        {
+            _logger.LogInformation("TypingDetection: soft restarting");
+            Unsubscribe();
+            ResetTypingState();
+            _chatService.ClearTypingState();
+            _typingStateService.ClearAll();
+            Subscribe();
+            _logger.LogInformation("TypingDetection: soft restart completed");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "TypingDetection: soft restart failed");
+        }
+    }
+
+    private void Subscribe()
+    {
+        if (_subscribed) return;
+        _framework.Update += OnFrameworkUpdate;
+        _subscribed = true;
+    }
+
+    private void Unsubscribe()
+    {
+        if (!_subscribed) return;
+        _framework.Update -= OnFrameworkUpdate;
+        _subscribed = false;
     }
 
     private void OnFrameworkUpdate(IFramework framework)
@@ -62,6 +99,13 @@ public sealed class ChatTypingDetectionService : IDisposable
             if (!_clientState.IsLoggedIn)
             {
                 ResetTypingState();
+                return;
+            }
+
+            if (!_configService.Current.TypingIndicatorEnabled)
+            {
+                ResetTypingState();
+                _chatService.ClearTypingState();
                 return;
             }
 
@@ -89,7 +133,8 @@ public sealed class ChatTypingDetectionService : IDisposable
             {
                 if (notifyRemote)
                 {
-                    _chatService.NotifyTypingKeystroke();
+                    var scope = GetCurrentTypingScope();
+                    _chatService.NotifyTypingKeystroke(scope);
                     _notifyingRemote = true;
                 }
 
@@ -120,6 +165,35 @@ public sealed class ChatTypingDetectionService : IDisposable
         _typingStateService.SetSelfTypingLocal(false);
     }
 
+    private unsafe TypingScope GetCurrentTypingScope()
+    {
+        try
+        {
+            var shellModule = RaptureShellModule.Instance();
+            if (shellModule == null)
+                return TypingScope.Unknown;
+
+            var chatType = (XivChatType)shellModule->ChatType;
+            switch (chatType)
+            {
+                case XivChatType.Say:
+                case XivChatType.Shout:
+                case XivChatType.Yell:
+                    return TypingScope.Proximity;
+                case XivChatType.Party:
+                    return TypingScope.Party;
+                case XivChatType.CrossParty:
+                    return TypingScope.CrossParty;
+                default:
+                    return TypingScope.Unknown;
+            }
+        }
+        catch
+        {
+            return TypingScope.Unknown;
+        }
+    }
+
     private static bool IsIgnoredCommand(string chatText)
     {
         if (string.IsNullOrWhiteSpace(chatText))
@@ -146,6 +220,11 @@ public sealed class ChatTypingDetectionService : IDisposable
     {
         try
         {
+            if (!_configService.Current.TypingIndicatorEnabled)
+            {
+                return false;
+            }
+
             var supportsTypingState = _apiController.SystemInfoDto.SupportsTypingState;
             var connected = _apiController.IsConnected;
             if (!connected || !supportsTypingState)

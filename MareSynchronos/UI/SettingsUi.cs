@@ -52,6 +52,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private readonly AccountRegistrationService _registerService;
     private readonly ServerConfigurationManager _serverConfigurationManager;
     private readonly UiSharedService _uiShared;
+    private readonly TypingIndicatorStateService _typingStateService;
+    private readonly ChatTypingDetectionService _chatTypingDetectionService;
     private static readonly string DtrDefaultPreviewText = DtrEntry.DefaultGlyph + " 123";
     private bool _deleteAccountPopupModalShown = false;
     private string _lastTab = string.Empty;
@@ -80,7 +82,9 @@ public class SettingsUi : WindowMediatorSubscriberBase
         FileCompactor fileCompactor, ApiController apiController,
         IpcManager ipcManager, IpcProvider ipcProvider, CacheMonitor cacheMonitor,
         DalamudUtilService dalamudUtilService, AccountRegistrationService registerService,
-        AutoDetectSuppressionService autoDetectSuppressionService) : base(logger, mediator, "Umbra Settings", performanceCollector)
+        AutoDetectSuppressionService autoDetectSuppressionService,
+        TypingIndicatorStateService typingIndicatorStateService,
+        ChatTypingDetectionService chatTypingDetectionService) : base(logger, mediator, "Umbra Settings", performanceCollector)
     {
         _configService = configService;
         _pairManager = pairManager;
@@ -102,6 +106,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
         _autoDetectSuppressionService = autoDetectSuppressionService;
         _fileCompactor = fileCompactor;
         _uiShared = uiShared;
+        _typingStateService = typingIndicatorStateService;
+        _chatTypingDetectionService = chatTypingDetectionService;
         AllowClickthrough = false;
         AllowPinning = false;
         _validationProgress = new Progress<(int, int, FileCacheEntity)>(v => _currentProgress = v);
@@ -1123,8 +1129,10 @@ public class SettingsUi : WindowMediatorSubscriberBase
         var useNameColors = _configService.Current.UseNameColors;
         var nameColors = _configService.Current.NameColors;
         var autoPausedNameColors = _configService.Current.BlockedNameColors;
+        var typingEnabled = _configService.Current.TypingIndicatorEnabled;
         var typingIndicatorNameplates = _configService.Current.TypingIndicatorShowOnNameplates;
         var typingIndicatorPartyList = _configService.Current.TypingIndicatorShowOnPartyList;
+        var typingShowSelf = _configService.Current.TypingIndicatorShowSelf;
         if (ImGui.Checkbox("Coloriser les plaques de nom des paires", ref useNameColors))
         {
             _configService.Current.UseNameColors = useNameColors;
@@ -1152,42 +1160,67 @@ public class SettingsUi : WindowMediatorSubscriberBase
             }
         }
 
-        if (ImGui.Checkbox("Afficher la bulle de frappe sur les plaques", ref typingIndicatorNameplates))
+        if (ImGui.Checkbox("Activer le système d'indicateur de frappe", ref typingEnabled))
         {
-            _configService.Current.TypingIndicatorShowOnNameplates = typingIndicatorNameplates;
+            _configService.Current.TypingIndicatorEnabled = typingEnabled;
             _configService.Save();
+            _chatTypingDetectionService.SoftRestart();
         }
-        _uiShared.DrawHelpText("Ajoute une bulle '...' sur la plaque des paires en train d'écrire.");
+        _uiShared.DrawHelpText("Active ou désactive complètement l'envoi/la réception et l'affichage des bulles de frappe.");
 
-        using (ImRaii.Disabled(!typingIndicatorNameplates))
+        using (ImRaii.Disabled(!typingEnabled))
         {
-            using var indentTyping = ImRaii.PushIndent();
-            var bubbleSize = _configService.Current.TypingIndicatorBubbleSize;
-            TypingIndicatorBubbleSize? selectedBubbleSize = _uiShared.DrawCombo("Taille de la bulle de frappe##typingBubbleSize",
-                Enum.GetValues<TypingIndicatorBubbleSize>(),
-                size => size switch
-                {
-                    TypingIndicatorBubbleSize.Small => "Petite",
-                    TypingIndicatorBubbleSize.Medium => "Moyenne",
-                    TypingIndicatorBubbleSize.Large => "Grande",
-                    _ => size.ToString()
-                },
-                null,
-                bubbleSize);
-
-            if (selectedBubbleSize.HasValue && selectedBubbleSize.Value != bubbleSize)
+            if (ImGui.Checkbox("Afficher la bulle de frappe sur les plaques", ref typingIndicatorNameplates))
             {
-                _configService.Current.TypingIndicatorBubbleSize = selectedBubbleSize.Value;
+                _configService.Current.TypingIndicatorShowOnNameplates = typingIndicatorNameplates;
                 _configService.Save();
             }
-        }
+            _uiShared.DrawHelpText("Ajoute une bulle '...' sur la plaque des paires en train d'écrire.");
 
-        if (ImGui.Checkbox("Tracer la frappe dans la liste de groupe", ref typingIndicatorPartyList))
-        {
-            _configService.Current.TypingIndicatorShowOnPartyList = typingIndicatorPartyList;
-            _configService.Save();
+            using (ImRaii.Disabled(!typingIndicatorNameplates))
+            {
+                using var indentTyping = ImRaii.PushIndent();
+                var bubbleSize = _configService.Current.TypingIndicatorBubbleSize;
+                TypingIndicatorBubbleSize? selectedBubbleSize = _uiShared.DrawCombo("Taille de la bulle de frappe##typingBubbleSize",
+                    Enum.GetValues<TypingIndicatorBubbleSize>(),
+                    size => size switch
+                    {
+                        TypingIndicatorBubbleSize.Small => "Petite",
+                        TypingIndicatorBubbleSize.Medium => "Moyenne",
+                        TypingIndicatorBubbleSize.Large => "Grande",
+                        _ => size.ToString()
+                    },
+                    null,
+                    bubbleSize);
+
+                if (selectedBubbleSize.HasValue && selectedBubbleSize.Value != bubbleSize)
+                {
+                    _configService.Current.TypingIndicatorBubbleSize = selectedBubbleSize.Value;
+                    _configService.Save();
+                }
+            }
+
+            if (ImGui.Checkbox("Tracer la frappe dans la liste de groupe", ref typingIndicatorPartyList))
+            {
+                _configService.Current.TypingIndicatorShowOnPartyList = typingIndicatorPartyList;
+                _configService.Save();
+            }
+            _uiShared.DrawHelpText("Consigne dans les journaux quand une paire du groupe est en train d'écrire (bulle visuelle ultérieure).");
+
+            if (ImGui.Checkbox("Afficher ma propre bulle", ref typingShowSelf))
+            {
+                _configService.Current.TypingIndicatorShowSelf = typingShowSelf;
+                _configService.Save();
+            }
+            _uiShared.DrawHelpText("Affiche votre propre bulle lorsque vous tapez (utile pour test/retour visuel).");
+
+            if (ImGui.Button("Redémarrer le système de frappe"))
+            {
+                _chatTypingDetectionService.SoftRestart();
+                _guiHookService.RequestRedraw();
+            }
+            _uiShared.DrawHelpText("Vide l'état local et réinitialise les timers sans redémarrer le plugin.");
         }
-        _uiShared.DrawHelpText("Consigne dans les journaux quand une paire du groupe est en train d'écrire (bulle visuelle ultérieure).");
 
         if (ImGui.Checkbox("Show separate Visible group", ref showVisibleSeparate))
         {

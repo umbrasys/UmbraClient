@@ -8,6 +8,7 @@ using Dalamud.Plugin.Services;
 using MareSynchronos.API.Data;
 using MareSynchronos.Interop;
 using MareSynchronos.MareConfiguration;
+using MareSynchronos.API.Data.Enum;
 using MareSynchronos.MareConfiguration.Models;
 using MareSynchronos.PlayerData.Pairs;
 using MareSynchronos.Services.Mediator;
@@ -38,6 +39,7 @@ public class ChatService : DisposableMediatorSubscriberBase
     private CancellationTokenSource? _typingCts;
     private bool _isTypingAnnounced;
     private DateTime _lastTypingSent = DateTime.MinValue;
+    private TypingScope _lastScope = TypingScope.Unknown;
     private static readonly TimeSpan TypingIdle = TimeSpan.FromSeconds(2);
     private static readonly TimeSpan TypingResendInterval = TimeSpan.FromMilliseconds(750);
 
@@ -79,7 +81,7 @@ public class ChatService : DisposableMediatorSubscriberBase
         if (_gameChatHooks.IsValueCreated)
             _gameChatHooks.Value!.Dispose();
     }
-    public void NotifyTypingKeystroke()
+    public void NotifyTypingKeystroke(TypingScope scope)
     {
         lock (_typingLock)
         {
@@ -88,11 +90,12 @@ public class ChatService : DisposableMediatorSubscriberBase
             {
                 _ = Task.Run(async () =>
                 {
-                    try { await _apiController.UserSetTypingState(true).ConfigureAwait(false); }
+                    try { await _apiController.UserSetTypingState(true, scope).ConfigureAwait(false); }
                     catch (Exception ex) { _logger.LogDebug(ex, "NotifyTypingKeystroke: failed to send typing=true"); }
                 });
                 _isTypingAnnounced = true;
                 _lastTypingSent = now;
+                _lastScope = scope;
             }
 
             _typingCts?.Cancel();
@@ -105,7 +108,7 @@ public class ChatService : DisposableMediatorSubscriberBase
                 try
                 {
                     await Task.Delay(TypingIdle, token).ConfigureAwait(false);
-                    await _apiController.UserSetTypingState(false).ConfigureAwait(false);
+                    await _apiController.UserSetTypingState(false, _lastScope).ConfigureAwait(false);
                 }
                 catch (TaskCanceledException)
                 {
@@ -140,7 +143,7 @@ public class ChatService : DisposableMediatorSubscriberBase
             {
                 _ = Task.Run(async () =>
                 {
-                    try { await _apiController.UserSetTypingState(false).ConfigureAwait(false); }
+                    try { await _apiController.UserSetTypingState(false, _lastScope).ConfigureAwait(false); }
                     catch (Exception ex) { _logger.LogDebug(ex, "ClearTypingState: failed to send typing=false"); }
                 });
             _isTypingAnnounced = false;

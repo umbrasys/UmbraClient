@@ -7,6 +7,7 @@ using Dalamud.Interface.Utility;
 using Dalamud.Plugin.Services;
 using MareSynchronos.API.Data;
 using MareSynchronos.API.Data.Extensions;
+using MareSynchronos.API.Data.Enum;
 using MareSynchronos.MareConfiguration;
 using MareSynchronos.MareConfiguration.Models;
 using MareSynchronos.PlayerData.Pairs;
@@ -75,6 +76,10 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         if (!_clientState.IsLoggedIn)
             return;
 
+        var typingEnabled = _configService.Current.TypingIndicatorEnabled;
+        if (!typingEnabled)
+            return;
+
         var showParty = _configService.Current.TypingIndicatorShowOnPartyList;
         var showNameplates = _configService.Current.TypingIndicatorShowOnNameplates;
 
@@ -97,14 +102,16 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         }
     }
 
-    private unsafe void DrawPartyIndicators(ImDrawListPtr drawList, IReadOnlyDictionary<string, (UserData User, DateTime FirstSeen, DateTime LastUpdate)> activeTypers,
+    private unsafe void DrawPartyIndicators(ImDrawListPtr drawList, IReadOnlyDictionary<string, (UserData User, DateTime FirstSeen, DateTime LastUpdate, MareSynchronos.API.Data.Enum.TypingScope Scope)> activeTypers,
         bool selfActive, DateTime now, DateTime selfStart, DateTime selfLast)
     {
         var partyAddon = (AtkUnitBase*)_gameGui.GetAddonByName("_PartyList", 1).Address;
         if (partyAddon == null || !partyAddon->IsVisible)
             return;
 
+        var showSelf = _configService.Current.TypingIndicatorShowSelf;
         if (selfActive
+            && showSelf
             && (now - selfStart) >= TypingDisplayDelay
             && (now - selfLast) <= TypingDisplayFade)
         {
@@ -180,14 +187,16 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
             ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0.9f)));
     }
 
-    private unsafe void DrawNameplateIndicators(ImDrawListPtr drawList, IReadOnlyDictionary<string, (UserData User, DateTime FirstSeen, DateTime LastUpdate)> activeTypers,
+    private unsafe void DrawNameplateIndicators(ImDrawListPtr drawList, IReadOnlyDictionary<string, (UserData User, DateTime FirstSeen, DateTime LastUpdate, MareSynchronos.API.Data.Enum.TypingScope Scope)> activeTypers,
         bool selfActive, DateTime now, DateTime selfStart, DateTime selfLast)
     {
         var iconWrap = _textureProvider.GetFromGameIcon(NameplateIconId).GetWrapOrEmpty();
         if (iconWrap == null || iconWrap.Handle == IntPtr.Zero)
             return;
 
+        var showSelf = _configService.Current.TypingIndicatorShowSelf;
         if (selfActive
+            && showSelf
             && _clientState.LocalPlayer != null
             && (now - selfStart) >= TypingDisplayDelay
             && (now - selfLast) <= TypingDisplayFade)
@@ -212,11 +221,22 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
             var pairName = pair?.PlayerName ?? entry.User.AliasOrUID ?? string.Empty;
             var pairIdent = pair?.Ident ?? string.Empty;
             var isPartyMember = IsPartyMember(objectId, pairName);
+
+            // Enforce party-only visibility when the scope is Party/CrossParty
+            if (entry.Scope is TypingScope.Party or TypingScope.CrossParty)
+            {
+                if (!isPartyMember)
+                {
+                    _typedLogger.LogTrace("TypingIndicator: suppressed non-party bubble for {uid} due to scope={scope}", uid, entry.Scope);
+                    continue;
+                }
+            }
+
             var isRelevantMember = IsPlayerRelevant(pair, isPartyMember);
 
             if (objectId != uint.MaxValue && objectId != 0 && TryDrawNameplateBubble(drawList, iconWrap, objectId))
             {
-                _typedLogger.LogTrace("TypingIndicator: drew nameplate bubble for {uid} (objectId={objectId})", uid, objectId);
+                _typedLogger.LogTrace("TypingIndicator: drew nameplate bubble for {uid} (objectId={objectId}, scope={scope})", uid, objectId, entry.Scope);
                 continue;
             }
 
@@ -226,13 +246,20 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
             if (!isRelevantMember && !isNearby)
                 continue;
 
+            // For Party/CrossParty scope, do not draw fallback world icon for non-party even if nearby
+            if (entry.Scope is TypingScope.Party or TypingScope.CrossParty)
+            {
+                if (!isPartyMember)
+                    continue;
+            }
+
             if (pair == null)
             {
                 _typedLogger.LogTrace("TypingIndicator: no pair found for {uid}, attempting fallback", uid);
             }
 
-            _typedLogger.LogTrace("TypingIndicator: fallback draw for {uid} (objectId={objectId}, name={name}, ident={ident})",
-                uid, objectId, pairName, pairIdent);
+            _typedLogger.LogTrace("TypingIndicator: fallback draw for {uid} (objectId={objectId}, name={name}, ident={ident}, scope={scope})",
+                uid, objectId, pairName, pairIdent, entry.Scope);
 
             if (hasWorldPosition)
             {

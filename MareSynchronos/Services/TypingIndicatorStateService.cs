@@ -5,24 +5,27 @@ using MareSynchronos.Services.Mediator;
 using MareSynchronos.WebAPI;
 using Microsoft.Extensions.Logging;
 using MareSynchronos.API.Data;
+using MareSynchronos.MareConfiguration;
 
 namespace MareSynchronos.Services;
 
 public sealed class TypingIndicatorStateService : IMediatorSubscriber, IDisposable
 {
-    private sealed record TypingEntry(UserData User, DateTime FirstSeen, DateTime LastUpdate);
+    private sealed record TypingEntry(UserData User, DateTime FirstSeen, DateTime LastUpdate, MareSynchronos.API.Data.Enum.TypingScope Scope);
 
     private readonly ConcurrentDictionary<string, TypingEntry> _typingUsers = new(StringComparer.Ordinal);
     private readonly ApiController _apiController;
     private readonly ILogger<TypingIndicatorStateService> _logger;
+    private readonly MareConfigService _configService;
     private DateTime _selfTypingLast = DateTime.MinValue;
     private DateTime _selfTypingStart = DateTime.MinValue;
     private bool _selfTypingActive;
 
-    public TypingIndicatorStateService(ILogger<TypingIndicatorStateService> logger, MareMediator mediator, ApiController apiController)
+    public TypingIndicatorStateService(ILogger<TypingIndicatorStateService> logger, MareMediator mediator, ApiController apiController, MareConfigService configService)
     {
         _logger = logger;
         _apiController = apiController;
+        _configService = configService;
         Mediator = mediator;
 
         mediator.Subscribe<UserTypingStateMessage>(this, OnTypingState);
@@ -51,8 +54,19 @@ public sealed class TypingIndicatorStateService : IMediatorSubscriber, IDisposab
         _selfTypingActive = isTyping;
     }
 
+    public void ClearAll()
+    {
+        _typingUsers.Clear();
+        _selfTypingActive = false;
+        _selfTypingStart = DateTime.MinValue;
+        _selfTypingLast = DateTime.MinValue;
+        _logger.LogDebug("TypingIndicatorStateService: cleared all typing state");
+    }
+
     private void OnTypingState(UserTypingStateMessage msg)
     {
+        if (!_configService.Current.TypingIndicatorEnabled)
+            return;
         var uid = msg.Typing.User.UID;
         var now = DateTime.UtcNow;
 
@@ -74,8 +88,8 @@ public sealed class TypingIndicatorStateService : IMediatorSubscriber, IDisposab
         else if (msg.Typing.IsTyping)
         {
             _typingUsers.AddOrUpdate(uid,
-                _ => new TypingEntry(msg.Typing.User, now, now),
-                (_, existing) => new TypingEntry(msg.Typing.User, existing.FirstSeen, now));
+                _ => new TypingEntry(msg.Typing.User, now, now, msg.Typing.Scope),
+                (_, existing) => new TypingEntry(msg.Typing.User, existing.FirstSeen, now, msg.Typing.Scope));
         }
         else
         {
@@ -101,7 +115,7 @@ public sealed class TypingIndicatorStateService : IMediatorSubscriber, IDisposab
         return true;
     }
 
-    public IReadOnlyDictionary<string, (UserData User, DateTime FirstSeen, DateTime LastUpdate)> GetActiveTypers(TimeSpan maxAge)
+    public IReadOnlyDictionary<string, (UserData User, DateTime FirstSeen, DateTime LastUpdate, MareSynchronos.API.Data.Enum.TypingScope Scope)> GetActiveTypers(TimeSpan maxAge)
     {
         var now = DateTime.UtcNow;
         foreach (var kvp in _typingUsers.ToArray())
@@ -112,6 +126,6 @@ public sealed class TypingIndicatorStateService : IMediatorSubscriber, IDisposab
             }
         }
 
-        return _typingUsers.ToDictionary(k => k.Key, v => (v.Value.User, v.Value.FirstSeen, v.Value.LastUpdate), StringComparer.Ordinal);
+        return _typingUsers.ToDictionary(k => k.Key, v => (v.Value.User, v.Value.FirstSeen, v.Value.LastUpdate, v.Value.Scope), StringComparer.Ordinal);
     }
 }

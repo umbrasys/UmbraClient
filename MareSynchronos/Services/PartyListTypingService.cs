@@ -41,8 +41,8 @@ public class PartyListTypingService : DisposableMediatorSubscriberBase
 
     public void Draw()
     {
+        if (!_configService.Current.TypingIndicatorEnabled) return;
         if (!_configService.Current.TypingIndicatorShowOnPartyList) return;
-        // Build map of visible users by AliasOrUID -> UID (case-insensitive)
         var visibleByAlias = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         try
         {

@@ -103,6 +103,21 @@ public partial class ApiController
         await _mareHub!.SendAsync(nameof(UserSetTypingState), isTyping).ConfigureAwait(false);
     }
 
+    public async Task UserSetTypingState(bool isTyping, MareSynchronos.API.Data.Enum.TypingScope scope)
+    {
+        CheckConnection();
+        try
+        {
+            await _mareHub!.SendAsync(nameof(UserSetTypingState), isTyping, scope).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            // fallback for older servers without scope support
+            Logger.LogDebug(ex, "UserSetTypingState(scope) not supported on server, falling back to legacy call");
+            await _mareHub!.SendAsync(nameof(UserSetTypingState), isTyping).ConfigureAwait(false);
+        }
+    }
+
     private async Task PushCharacterDataInternal(CharacterData character, List<UserData> visibleCharacters)
     {
         Logger.LogInformation("Pushing character data for {hash} to {charas}", character.DataHash.Value, string.Join(", ", visibleCharacters.Select(c => c.AliasOrUID)));
