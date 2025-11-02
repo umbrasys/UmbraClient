@@ -11,11 +11,13 @@ using MareSynchronos.PlayerData.Pairs;
 using MareSynchronos.Services;
 using MareSynchronos.Services.AutoDetect;
 using MareSynchronos.Services.Mediator;
+using MareSynchronos.Services.Notifications;
 using MareSynchronos.WebAPI;
 using Microsoft.Extensions.Logging;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
+using MareSynchronos.MareConfiguration.Models;
 
 namespace MareSynchronos.UI.Components.Popup;
 
@@ -28,6 +30,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
     private readonly PairManager _pairManager;
     private readonly UiSharedService _uiSharedService;
     private readonly SyncshellDiscoveryService _syncshellDiscoveryService;
+    private readonly NotificationTracker _notificationTracker;
     private List<BannedGroupUserDto> _bannedUsers = [];
     private int _multiInvites;
     private string _newPassword;
@@ -54,7 +57,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
 
     public SyncshellAdminUI(ILogger<SyncshellAdminUI> logger, MareMediator mediator, ApiController apiController,
         UiSharedService uiSharedService, PairManager pairManager, SyncshellDiscoveryService syncshellDiscoveryService,
-        GroupFullInfoDto groupFullInfo, PerformanceCollectorService performanceCollectorService)
+        GroupFullInfoDto groupFullInfo, PerformanceCollectorService performanceCollectorService, NotificationTracker notificationTracker)
         : base(logger, mediator, "Syncshell Admin Panel (" + groupFullInfo.GroupAliasOrGID + ")", performanceCollectorService)
     {
         GroupFullInfo = groupFullInfo;
@@ -62,6 +65,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
         _uiSharedService = uiSharedService;
         _pairManager = pairManager;
         _syncshellDiscoveryService = syncshellDiscoveryService;
+        _notificationTracker = notificationTracker;
         _isOwner = string.Equals(GroupFullInfo.OwnerUID, _apiController.UID, StringComparison.Ordinal);
         _isModerator = GroupFullInfo.GroupUserInfo.IsModerator();
         _newPassword = string.Empty;
@@ -650,6 +654,11 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
             _autoDetectMessage = desiredVisibility
                 ? "La Syncshell est désormais visible dans AutoDetect."
                 : "La Syncshell n'est plus visible dans AutoDetect.";
+
+            if (desiredVisibility)
+            {
+                PublishSyncshellPublicNotification();
+            }
         }
         catch (Exception ex)
         {
@@ -711,6 +720,11 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
             _autoDetectMessage = _autoDetectDesiredVisibility
                 ? "Paramètres AutoDetect envoyés. La Syncshell sera visible selon le planning défini."
                 : "La Syncshell n'est plus visible dans AutoDetect.";
+
+            if (_autoDetectDesiredVisibility)
+            {
+                PublishSyncshellPublicNotification();
+            }
         }
         catch (Exception ex)
         {
@@ -743,5 +757,20 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
     public override void OnClose()
     {
         Mediator.Publish(new RemoveWindowMessage(this));
+    }
+
+    private void PublishSyncshellPublicNotification()
+    {
+        try
+        {
+            var title = $"Syncshell publique: {GroupFullInfo.GroupAliasOrGID}";
+            var message = "La Syncshell est désormais visible via AutoDetect.";
+            Mediator.Publish(new DualNotificationMessage(title, message, NotificationType.Info, TimeSpan.FromSeconds(4)));
+            _notificationTracker.Upsert(NotificationEntry.SyncshellPublic(GroupFullInfo.GID, GroupFullInfo.GroupAliasOrGID));
+        }
+        catch
+        {
+            // swallow any notification errors to not break UI flow
+        }
     }
 }

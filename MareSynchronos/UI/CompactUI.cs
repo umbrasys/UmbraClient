@@ -860,28 +860,34 @@ if (showNearby && pendingInvites > 0)
                 ImGuiHelpers.ScaledDummy(4f);
                 var indent = 18f * ImGuiHelpers.GlobalScale;
                 ImGui.Indent(indent);
-                foreach (var e in nearbyEntries)
+
+                // Use a table to guarantee right-aligned action within the card content area
+                var actionButtonSize = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.UserPlus);
+                if (ImGui.BeginTable("nearby-table", 2, ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX | ImGuiTableFlags.BordersInnerV))
                 {
-                    if (!e.AcceptPairRequests || string.IsNullOrEmpty(e.Token))
-                    {
-                        continue;
-                    }
+                    ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthStretch, 1f);
+                    ImGui.TableSetupColumn("Action", ImGuiTableColumnFlags.WidthFixed, actionButtonSize.X);
 
-                    var name = e.DisplayName ?? e.Name;
-                    ImGui.AlignTextToFramePadding();
-                    ImGui.TextUnformatted(name);
-                    var right = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth();
-                    ImGui.SameLine();
+                    foreach (var e in nearbyEntries)
+                    {
+                        if (!e.AcceptPairRequests || string.IsNullOrEmpty(e.Token))
+                        {
+                            continue;
+                        }
 
-                    var statusButtonSize = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.UserPlus);
-                    ImGui.SetCursorPosX(right - statusButtonSize.X);
-                    if (!e.AcceptPairRequests)
-                    {
-                        _uiSharedService.IconText(FontAwesomeIcon.Ban, ImGuiColors.DalamudGrey3);
-                        UiSharedService.AttachToolTip("Les demandes sont désactivées pour ce joueur");
-                    }
-                    else if (!string.IsNullOrEmpty(e.Token))
-                    {
+                        ImGui.TableNextRow();
+
+                        ImGui.TableSetColumnIndex(0);
+                        var name = e.DisplayName ?? e.Name;
+                        ImGui.AlignTextToFramePadding();
+                        ImGui.TextUnformatted(name);
+
+                        // Right column: action button, aligned to the right within the column
+                        ImGui.TableSetColumnIndex(1);
+                        var curX = ImGui.GetCursorPosX();
+                        var availX = ImGui.GetContentRegionAvail().X; // width of the action column
+                        ImGui.SetCursorPosX(curX + MathF.Max(0, availX - actionButtonSize.X));
+
                         using (ImRaii.PushId(e.Token ?? e.Uid ?? e.Name ?? string.Empty))
                         {
                             if (_uiSharedService.IconButton(FontAwesomeIcon.UserPlus))
@@ -891,12 +897,9 @@ if (showNearby && pendingInvites > 0)
                         }
                         UiSharedService.AttachToolTip("Envoyer une invitation d'apparaige");
                     }
-                    else
-                    {
-                        _uiSharedService.IconText(FontAwesomeIcon.QuestionCircle, ImGuiColors.DalamudGrey3);
-                        UiSharedService.AttachToolTip("Impossible d'inviter ce joueur");
-                    }
+                    ImGui.EndTable();
                 }
+
                 ImGui.Unindent(indent);
             }, stretchWidth: true);
         }
@@ -1173,6 +1176,9 @@ if (showNearby && pendingInvites > 0)
                 case NotificationCategory.AutoDetect:
                     DrawAutoDetectNotification(notification);
                     break;
+                case NotificationCategory.Syncshell:
+                    DrawSyncshellNotification(notification);
+                    break;
                 default:
                     UiSharedService.DrawCard($"notification-{notification.Category}-{notification.Id}", () =>
                     {
@@ -1232,6 +1238,30 @@ if (showNearby && pendingInvites > 0)
                     {
                         _notificationTracker.Remove(NotificationCategory.AutoDetect, notification.Id);
                     }
+                }
+            }
+        }, stretchWidth: true);
+    }
+
+    private void DrawSyncshellNotification(NotificationEntry notification)
+    {
+        UiSharedService.DrawCard($"notification-syncshell-{notification.Id}", () =>
+        {
+            ImGui.TextUnformatted(notification.Title);
+            if (!string.IsNullOrEmpty(notification.Description))
+            {
+                ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudGrey3);
+                ImGui.TextWrapped(notification.Description);
+                ImGui.PopStyleColor();
+            }
+
+            ImGuiHelpers.ScaledDummy(3f);
+
+            using (ImRaii.PushId($"syncshell-{notification.Id}"))
+            {
+                if (ImGui.Button("Effacer"))
+                {
+                    _notificationTracker.Remove(NotificationCategory.Syncshell, notification.Id);
                 }
             }
         }, stretchWidth: true);

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Plugin.Services;
@@ -17,22 +18,29 @@ public class NotificationService : DisposableMediatorSubscriberBase, IHostedServ
     private readonly INotificationManager _notificationManager;
     private readonly IChatGui _chatGui;
     private readonly MareConfigService _configurationService;
+    private readonly Services.Notifications.NotificationTracker _notificationTracker;
+    private readonly PlayerData.Pairs.PairManager _pairManager;
 
     public NotificationService(ILogger<NotificationService> logger, MareMediator mediator,
         DalamudUtilService dalamudUtilService,
         INotificationManager notificationManager,
-        IChatGui chatGui, MareConfigService configurationService) : base(logger, mediator)
+        IChatGui chatGui, MareConfigService configurationService,
+        Services.Notifications.NotificationTracker notificationTracker,
+        PlayerData.Pairs.PairManager pairManager) : base(logger, mediator)
     {
         _dalamudUtilService = dalamudUtilService;
         _notificationManager = notificationManager;
         _chatGui = chatGui;
         _configurationService = configurationService;
+        _notificationTracker = notificationTracker;
+        _pairManager = pairManager;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
         Mediator.Subscribe<NotificationMessage>(this, ShowNotification);
         Mediator.Subscribe<DualNotificationMessage>(this, ShowDualNotification);
+        Mediator.Subscribe<Services.Mediator.SyncshellAutoDetectStateChanged>(this, OnSyncshellAutoDetectStateChanged);
         return Task.CompletedTask;
     }
 
@@ -111,6 +119,31 @@ public class NotificationService : DisposableMediatorSubscriberBase, IHostedServ
         var baseMsg = new NotificationMessage(message.Title, message.Message, message.Type, message.ToastDuration);
         ShowToast(baseMsg);
         ShowChat(baseMsg);
+    }
+
+    private void OnSyncshellAutoDetectStateChanged(SyncshellAutoDetectStateChanged msg)
+    {
+        try
+        {
+            if (msg.Visible) return; // only handle transition to not visible
+
+            var gid = msg.Gid;
+            // Try to resolve alias from PairManager snapshot; fallback to gid
+            var alias = _pairManager.Groups.Values.FirstOrDefault(g => string.Equals(g.GID, gid, StringComparison.OrdinalIgnoreCase))?.GroupAliasOrGID ?? gid;
+
+            var title = $"Syncshell non publique: {alias}";
+            var message = "La Syncshell n'est plus visible via AutoDetect.";
+
+            // Show toast + chat
+            ShowDualNotification(new DualNotificationMessage(title, message, NotificationType.Info, TimeSpan.FromSeconds(4)));
+
+            // Persist into notification center
+            _notificationTracker.Upsert(Services.Notifications.NotificationEntry.SyncshellNotPublic(gid, alias));
+        }
+        catch
+        {
+            // ignore failures
+        }
     }
 
     private static bool ShouldForceChat(NotificationMessage msg, out bool appendInstruction)

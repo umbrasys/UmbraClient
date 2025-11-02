@@ -174,9 +174,10 @@ public class HubFactory : MediatorSubscriberBase
             })
             .AddMessagePackProtocol(opt =>
             {
-                var resolver = CompositeResolver.Create(StandardResolverAllowPrivate.Instance,
-                    BuiltinResolver.Instance,
+                var resolver = CompositeResolver.Create(
                     AttributeFormatterResolver.Instance,
+                    StandardResolverAllowPrivate.Instance,
+                    BuiltinResolver.Instance,
                     // replace enum resolver
                     DynamicEnumAsStringResolver.Instance,
                     DynamicGenericResolver.Instance,

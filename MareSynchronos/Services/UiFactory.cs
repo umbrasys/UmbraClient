@@ -3,6 +3,7 @@ using MareSynchronos.PlayerData.Pairs;
 using MareSynchronos.Services.AutoDetect;
 using MareSynchronos.Services.Mediator;
 using MareSynchronos.Services.ServerConfiguration;
+using MareSynchronos.Services.Notifications;
 using MareSynchronos.UI;
 using MareSynchronos.UI.Components.Popup;
 using MareSynchronos.WebAPI;
@@ -21,10 +22,11 @@ public class UiFactory
     private readonly MareProfileManager _mareProfileManager;
     private readonly PerformanceCollectorService _performanceCollectorService;
     private readonly SyncshellDiscoveryService _syncshellDiscoveryService;
+    private readonly NotificationTracker _notificationTracker;
 
     public UiFactory(ILoggerFactory loggerFactory, MareMediator mareMediator, ApiController apiController,
         UiSharedService uiSharedService, PairManager pairManager, SyncshellDiscoveryService syncshellDiscoveryService, ServerConfigurationManager serverConfigManager,
-        MareProfileManager mareProfileManager, PerformanceCollectorService performanceCollectorService)
+        MareProfileManager mareProfileManager, PerformanceCollectorService performanceCollectorService, NotificationTracker notificationTracker)
     {
         _loggerFactory = loggerFactory;
         _mareMediator = mareMediator;
@@ -35,12 +37,13 @@ public class UiFactory
         _serverConfigManager = serverConfigManager;
         _mareProfileManager = mareProfileManager;
         _performanceCollectorService = performanceCollectorService;
+        _notificationTracker = notificationTracker;
     }
 
     public SyncshellAdminUI CreateSyncshellAdminUi(GroupFullInfoDto dto)
     {
         return new SyncshellAdminUI(_loggerFactory.CreateLogger<SyncshellAdminUI>(), _mareMediator,
-            _apiController, _uiSharedService, _pairManager, _syncshellDiscoveryService, dto, _performanceCollectorService);
+            _apiController, _uiSharedService, _pairManager, _syncshellDiscoveryService, dto, _performanceCollectorService, _notificationTracker);
     }
 
     public StandaloneProfileUi CreateStandaloneProfileUi(Pair pair)
