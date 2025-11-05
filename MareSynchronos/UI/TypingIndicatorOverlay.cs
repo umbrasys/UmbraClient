@@ -345,26 +345,6 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
 
         if (!iconVisible)
         {
-            sizeScaleFactor = 2.5f;
-            var anchor = rootPosition + iconLocalPosition + new Vector2(iconDimensions.X * 0.5f, 0f);
-
-            var distanceOffset = new Vector2(0f, -16f + distance) * scaleVector;
-            if (iconNode->Height == 24)
-            {
-                distanceOffset.Y += 16f * scaleY;
-            }
-            distanceOffset.Y += 64f * scaleY;
-
-            var referenceSize = GetConfiguredBubbleSize(scaleX * sizeScaleFactor, scaleY * sizeScaleFactor, false, TypingIndicatorBubbleSize.Small);
-            var manualOffset = new Vector2(referenceSize.X * 2.00f, referenceSize.Y * 2.00f);
-
-            var iconSizeHidden = GetConfiguredBubbleSize(scaleX * sizeScaleFactor, scaleY * sizeScaleFactor, false);
-            var center = anchor + distanceOffset + manualOffset;
-            var topLeft = center - (iconSizeHidden / 2f);
-
-            drawList.AddImage(textureWrap.Handle, topLeft, topLeft + iconSizeHidden, Vector2.Zero, Vector2.One,
-                ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0.95f)));
-
             return true;
         }
 

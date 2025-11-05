@@ -3,8 +3,6 @@ using MareSynchronos.Services;
 using MareSynchronos.Services.Mediator;
 using MareSynchronos.Services.ServerConfiguration;
 using MareSynchronos.WebAPI.SignalR.Utils;
-using MessagePack;
-using MessagePack.Resolvers;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
@@ -172,26 +170,7 @@ public class HubFactory : MediatorSubscriberBase
                 options.SkipNegotiation = hubConfig.SkipNegotiation && (transports == HttpTransportType.WebSockets);
                 options.Transports = transports;
             })
-            .AddMessagePackProtocol(opt =>
-            {
-                var resolver = CompositeResolver.Create(
-                    AttributeFormatterResolver.Instance,
-                    StandardResolverAllowPrivate.Instance,
-                    BuiltinResolver.Instance,
-                    // replace enum resolver
-                    DynamicEnumAsStringResolver.Instance,
-                    DynamicGenericResolver.Instance,
-                    DynamicUnionResolver.Instance,
-                    DynamicObjectResolver.Instance,
-                    PrimitiveObjectResolver.Instance,
-                    // final fallback(last priority)
-                    StandardResolver.Instance);
-
-                opt.SerializerOptions =
-                    MessagePackSerializerOptions.Standard
-                        .WithCompression(MessagePackCompression.Lz4Block)
-                        .WithResolver(resolver);
-            })
+            .AddJsonProtocol()
             .WithAutomaticReconnect(new ForeverRetryPolicy(Mediator))
             .ConfigureLogging(a =>
             {

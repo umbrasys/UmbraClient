@@ -1168,7 +1168,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         }
         _uiShared.DrawHelpText("Active ou désactive complètement l'envoi/la réception et l'affichage des bulles de frappe.");
 
-        using (ImRaii.Disabled(!typingEnabled))
+        if (typingEnabled)
         {
             if (ImGui.Checkbox("Afficher la bulle de frappe sur les plaques", ref typingIndicatorNameplates))
             {
@@ -1177,7 +1177,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             }
             _uiShared.DrawHelpText("Ajoute une bulle '...' sur la plaque des paires en train d'écrire.");
 
-            using (ImRaii.Disabled(!typingIndicatorNameplates))
+            if (typingIndicatorNameplates)
             {
                 using var indentTyping = ImRaii.PushIndent();
                 var bubbleSize = _configService.Current.TypingIndicatorBubbleSize;
@@ -1198,28 +1198,21 @@ public class SettingsUi : WindowMediatorSubscriberBase
                     _configService.Current.TypingIndicatorBubbleSize = selectedBubbleSize.Value;
                     _configService.Save();
                 }
-            }
 
-            if (ImGui.Checkbox("Tracer la frappe dans la liste de groupe", ref typingIndicatorPartyList))
-            {
-                _configService.Current.TypingIndicatorShowOnPartyList = typingIndicatorPartyList;
-                _configService.Save();
-            }
-            _uiShared.DrawHelpText("Consigne dans les journaux quand une paire du groupe est en train d'écrire (bulle visuelle ultérieure).");
+                if (ImGui.Checkbox("Tracer la frappe dans la liste de groupe", ref typingIndicatorPartyList))
+                {
+                    _configService.Current.TypingIndicatorShowOnPartyList = typingIndicatorPartyList;
+                    _configService.Save();
+                }
+                _uiShared.DrawHelpText("Consigne dans les journaux quand une paire du groupe est en train d'écrire (bulle visuelle ultérieure).");
 
-            if (ImGui.Checkbox("Afficher ma propre bulle", ref typingShowSelf))
-            {
-                _configService.Current.TypingIndicatorShowSelf = typingShowSelf;
-                _configService.Save();
+                if (ImGui.Checkbox("Afficher ma propre bulle", ref typingShowSelf))
+                {
+                    _configService.Current.TypingIndicatorShowSelf = typingShowSelf;
+                    _configService.Save();
+                }
+                _uiShared.DrawHelpText("Affiche votre propre bulle lorsque vous tapez (utile pour test/retour visuel).");
             }
-            _uiShared.DrawHelpText("Affiche votre propre bulle lorsque vous tapez (utile pour test/retour visuel).");
-
-            if (ImGui.Button("Redémarrer le système de frappe"))
-            {
-                _chatTypingDetectionService.SoftRestart();
-                _guiHookService.RequestRedraw();
-            }
-            _uiShared.DrawHelpText("Vide l'état local et réinitialise les timers sans redémarrer le plugin.");
         }
 
         if (ImGui.Checkbox("Show separate Visible group", ref showVisibleSeparate))

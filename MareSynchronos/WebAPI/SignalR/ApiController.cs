@@ -180,7 +180,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
                 InitializeApiHooks();
 
                 await _mareHub.StartAsync(token).ConfigureAwait(false);
-
+                
                 _connectionDto = await GetConnectionDto().ConfigureAwait(false);
 
                 ServerState = ServerState.Connected;

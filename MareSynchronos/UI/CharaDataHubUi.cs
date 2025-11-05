@@ -1114,7 +1114,10 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
             ImGui.TableSetupColumn("Expire");
             ImGui.TableSetupColumn("Téléchargements");
             ImGui.TableSetupColumn("Accès");
-            ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed, 220f);
+            var style = ImGui.GetStyle();
+            float BtnWidth(string label) => ImGui.CalcTextSize(label).X + style.FramePadding.X * 2f;
+            float ownActionsWidth = BtnWidth("Appliquer en GPose") + style.ItemSpacing.X + BtnWidth("Enregistrer") + style.ItemSpacing.X + BtnWidth("Supprimer") + 2f; // small margin
+            ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed, ownActionsWidth);
             ImGui.TableHeadersRow();
 
             foreach (var entry in _mcdfShareManager.OwnShares)
@@ -1134,6 +1137,32 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
 
                 ImGui.TableNextColumn();
                 ImGui.TextUnformatted($"UID : {entry.AllowedIndividuals.Count}, Syncshells : {entry.AllowedSyncshells.Count}");
+                if (ImGui.IsItemHovered())
+                {
+                    ImGui.BeginTooltip();
+                    if (entry.AllowedIndividuals.Count > 0)
+                    {
+                        ImGui.TextUnformatted("UID autorisés:");
+                        foreach (var uid in entry.AllowedIndividuals)
+                            ImGui.BulletText(FormatUidWithName(uid));
+                    }
+                    else
+                    {
+                        ImGui.TextDisabled("Aucun UID autorisé");
+                    }
+                    ImGui.Separator();
+                    if (entry.AllowedSyncshells.Count > 0)
+                    {
+                        ImGui.TextUnformatted("Syncshells autorisées:");
+                        foreach (var gid in entry.AllowedSyncshells)
+                            ImGui.BulletText(FormatSyncshellLabel(gid));
+                    }
+                    else
+                    {
+                        ImGui.TextDisabled("Aucune syncshell autorisée");
+                    }
+                    ImGui.EndTooltip();
+                }
 
                 ImGui.TableNextColumn();
                 using (ImRaii.PushId("ownShare" + entry.Id))
@@ -1177,7 +1206,10 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
             ImGui.TableSetupColumn("Propriétaire");
             ImGui.TableSetupColumn("Expire");
             ImGui.TableSetupColumn("Téléchargements");
-            ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed, 180f);
+            var style2 = ImGui.GetStyle();
+            float BtnWidth2(string label) => ImGui.CalcTextSize(label).X + style2.FramePadding.X * 2f;
+            float sharedActionsWidth = BtnWidth2("Appliquer") + style2.ItemSpacing.X + BtnWidth2("Enregistrer") + 2f;
+            ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed, sharedActionsWidth);
             ImGui.TableHeadersRow();
 
             foreach (var entry in _mcdfShareManager.SharedShares)
@@ -1188,6 +1220,17 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
 
                 ImGui.TableNextColumn();
                 ImGui.TextUnformatted(string.IsNullOrEmpty(entry.OwnerAlias) ? entry.OwnerUid : entry.OwnerAlias);
+                if (ImGui.IsItemHovered())
+                {
+                    ImGui.BeginTooltip();
+                    ImGui.TextUnformatted($"UID propriétaire: {entry.OwnerUid}");
+                    if (!string.IsNullOrEmpty(entry.OwnerAlias))
+                    {
+                        ImGui.Separator();
+                        ImGui.TextUnformatted($"Alias: {entry.OwnerAlias}");
+                    }
+                    ImGui.EndTooltip();
+                }
 
                 ImGui.TableNextColumn();
                 ImGui.TextUnformatted(entry.ExpiresAtUtc.HasValue ? entry.ExpiresAtUtc.Value.ToLocalTime().ToString("g") : "Jamais");
@@ -1332,6 +1375,14 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
         }
 
         return trimmed.ToUpperInvariant();
+    }
+
+    private string FormatUidWithName(string uid)
+    {
+        if (string.IsNullOrEmpty(uid)) return string.Empty;
+        var note = _serverConfigurationManager.GetNoteForUid(uid);
+        if (!string.IsNullOrEmpty(note)) return $"{uid} ({note})";
+        return uid;
     }
 
     private string FormatPairLabel(string candidate)
