@@ -2,6 +2,7 @@
 using MareSynchronos.MareConfiguration.Models;
 using MareSynchronos.UI;
 using Microsoft.Extensions.Logging;
+using System.Text.Json.Serialization;
 
 namespace MareSynchronos.MareConfiguration.Configurations;
 
@@ -91,5 +92,9 @@ public class MareConfig : IMareConfiguration
     public bool TypingIndicatorShowSelf { get; set; } = true;
     public TypingIndicatorBubbleSize TypingIndicatorBubbleSize { get; set; } = TypingIndicatorBubbleSize.Large;
 
-    public bool MareAPI { get; set; } = true;
+    public bool UmbraAPI { get; set; } = true;
+
+    [Obsolete]
+    [JsonPropertyName("MareAPI")]
+    public bool MareAPI { get => UmbraAPI; set => UmbraAPI = value; }
 }

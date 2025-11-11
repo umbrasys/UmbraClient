@@ -94,12 +94,12 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
                 _handledGameAddressesMare?.UnregisterFunc();
                 _impersonating = false;
                 _unregisterTime = DateTime.UtcNow;
-                _logger.LogDebug("Unregistered MareSynchronos API");
+                _logger.LogDebug("Unregistered Umbra Sync API");
             }
         }
         else
         {
-            if (_mareConfig.Current.MareAPI)
+            if (_mareConfig.Current.UmbraAPI)
             {
                 var cancelToken = EnsureFreshCts(ref _registerDelayCts).Token;
                 Task.Run(async () =>
@@ -113,7 +113,7 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
 
                     if (_marePluginEnabled)
                     {
-                        _logger.LogDebug("Not registering MareSynchronos API: Mare plugin is loaded");
+                        _logger.LogDebug("Not registering Umbra Sync API: Mare plugin is loaded");
                         return;
                     }
 

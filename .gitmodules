@@ -1,6 +1,6 @@
-[submodule "MareAPI"]
-	path = MareAPI
-	url = ssh://git@git.umbra-sync.net:1222/Keda/UmbraAPI.git
+[submodule "UmbraAPI"]
+	path = UmbraAPI
+	url = https://github.com/umbrasys/UmbraAPI.git
 	branch = main
 [submodule "Penumbra.Api"]
 	path = Penumbra.Api

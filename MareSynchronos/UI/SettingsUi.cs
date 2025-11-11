@@ -674,10 +674,10 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
         _uiShared.BigText("Advanced");
 
-        bool mareApi = _configService.Current.MareAPI;
-        if (ImGui.Checkbox("Enable Umbra Sync API", ref mareApi))
+        bool umbraApi = _configService.Current.UmbraAPI;
+        if (ImGui.Checkbox("Enable Umbra Sync API", ref umbraApi))
         {
-            _configService.Current.MareAPI = mareApi;
+            _configService.Current.UmbraAPI = umbraApi;
             _configService.Save();
             _ipcProvider.HandleMareImpersonation();
         }
@@ -695,7 +695,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             }
             else
             {
-                if (!mareApi)
+                if (!umbraApi)
                     UiSharedService.ColorTextWrapped("Umbra API inactive: Option is disabled", ImGuiColors.DalamudYellow);
                 else if (_ipcProvider.MarePluginEnabled)
                     UiSharedService.ColorTextWrapped("Umbra API inactive: Umbra plugin is loaded", ImGuiColors.DalamudYellow);
