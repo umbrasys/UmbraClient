@@ -17,7 +17,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 
-namespace UmbraSync.Services;
+namespace UmbraSync.Services.CharaData;
 
 public sealed partial class CharaDataManager : DisposableMediatorSubscriberBase
 {
@@ -502,11 +502,11 @@ public sealed partial class CharaDataManager : DisposableMediatorSubscriberBase
                     extractedFiles, charaFile.CharaFileData.ManipulationData, charaFile.CharaFileData.GlamourerData,
                     charaFile.CharaFileData.CustomizePlusData, CancellationToken.None).ConfigureAwait(false);
             }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "Failed to extract MCDF");
-            throw new InvalidOperationException("Failed to extract MCDF data", ex);
-        }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Failed to extract MCDF");
+                throw new InvalidOperationException("Failed to extract MCDF data", ex);
+            }
             finally
             {
                 // delete extracted files

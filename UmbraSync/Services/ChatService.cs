@@ -146,10 +146,10 @@ public class ChatService : DisposableMediatorSubscriberBase
                     try { await _apiController.UserSetTypingState(false, _lastScope).ConfigureAwait(false); }
                     catch (Exception ex) { _logger.LogDebug(ex, "ClearTypingState: failed to send typing=false"); }
                 });
-            _isTypingAnnounced = false;
-            _lastTypingSent = DateTime.MinValue;
+                _isTypingAnnounced = false;
+                _lastTypingSent = DateTime.MinValue;
+            }
         }
-    }
     }
 
     private void HandleUserChat(UserChatMsgMessage message)

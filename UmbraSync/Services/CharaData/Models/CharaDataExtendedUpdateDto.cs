@@ -3,6 +3,8 @@ using UmbraSync.API.Dto.CharaData;
 
 namespace UmbraSync.Services.CharaData.Models;
 
+#pragma warning disable CS0109 // allow intentional property hiding to customize serialization
+
 public sealed record CharaDataExtendedUpdateDto : CharaDataUpdateDto
 {
     private readonly CharaDataFullDto _charaDataFullDto;
@@ -200,6 +202,8 @@ public sealed record CharaDataExtendedUpdateDto : CharaDataUpdateDto
             }
         }
     }
+
+#pragma warning restore CS0109
 
     public IEnumerable<UserData> UserList => _userList;
     private readonly List<UserData> _userList;

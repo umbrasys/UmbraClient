@@ -11,7 +11,7 @@ using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
 using UmbraSync.Services.AutoDetect;
 using UmbraSync.Services.Mediator;
-using UmbraSync.Services.Notifications;
+using UmbraSync.Services.Notification;
 using UmbraSync.WebAPI;
 using Microsoft.Extensions.Logging;
 using System.Globalization;
@@ -19,7 +19,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using UmbraSync.MareConfiguration.Models;
 
-namespace UmbraSync.UI.Components.Popup;
+namespace UmbraSync.UI;
 
 public class SyncshellAdminUI : WindowMediatorSubscriberBase
 {

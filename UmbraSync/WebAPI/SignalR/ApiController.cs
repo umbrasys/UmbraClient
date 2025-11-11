@@ -16,12 +16,12 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
 
-namespace UmbraSync.WebAPI;
+namespace UmbraSync.WebAPI.SignalR;
 
 #pragma warning disable MA0040
 public sealed partial class ApiController : DisposableMediatorSubscriberBase, IMareHubClient
 {
-    public const string UmbraServer = "UmbraSync Main Server (BETA)";
+    public const string UmbraServer = "UmbraSync Main Server";
     public const string UmbraServiceUri = "wss://umbra-sync.net/";
     public const string UmbraServiceApiUri = "wss://umbra-sync.net/";
     public const string UmbraServiceHubUri = "wss://umbra-sync.net/mare";  

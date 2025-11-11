@@ -6,7 +6,7 @@ using UmbraSync.MareConfiguration;
 using UmbraSync.MareConfiguration.Configurations;
 using UmbraSync.MareConfiguration.Models;
 
-namespace UmbraSync.Services.Notifications;
+namespace UmbraSync.Services.Notification;
 
 public enum NotificationCategory
 {

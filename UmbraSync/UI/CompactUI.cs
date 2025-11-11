@@ -14,7 +14,7 @@ using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.Services.AutoDetect;
-using UmbraSync.Services.Notifications;
+using UmbraSync.Services.Notification;
 using UmbraSync.UI.Components;
 using UmbraSync.UI.Handlers;
 using UmbraSync.WebAPI;

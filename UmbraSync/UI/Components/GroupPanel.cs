@@ -22,7 +22,7 @@ using System;
 using System.Globalization;
 using System.Numerics;
 
-namespace UmbraSync.UI;
+namespace UmbraSync.UI.Components;
 
 internal sealed class GroupPanel
 {

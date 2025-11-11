@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.Services.Mediator;
-using UmbraSync.Services.Notifications;
+using UmbraSync.Services.Notification;
 using UmbraSync.WebAPI;
 using Microsoft.Extensions.Logging;
 

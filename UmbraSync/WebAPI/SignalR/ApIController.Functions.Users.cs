@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using System.Text;
 
-namespace UmbraSync.WebAPI;
+namespace UmbraSync.WebAPI.SignalR;
 
 public partial class ApiController
 {

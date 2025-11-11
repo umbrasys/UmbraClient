@@ -6,7 +6,7 @@ using UmbraSync.Services.CharaData.Models;
 using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Logging;
 
-namespace UmbraSync.Services;
+namespace UmbraSync.Services.CharaData;
 
 public sealed class CharaDataCharacterHandler : DisposableMediatorSubscriberBase
 {

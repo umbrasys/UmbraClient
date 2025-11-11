@@ -3,7 +3,7 @@ using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services.AutoDetect;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.ServerConfiguration;
-using UmbraSync.Services.Notifications;
+using UmbraSync.Services.Notification;
 using UmbraSync.UI;
 using UmbraSync.UI.Components.Popup;
 using UmbraSync.WebAPI;

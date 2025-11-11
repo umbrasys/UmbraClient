@@ -15,6 +15,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Linq;
 using ObjectKind = UmbraSync.API.Data.Enum.ObjectKind;
+using PlayerChanges = UmbraSync.PlayerData.Data.PlayerChanges;
 
 namespace UmbraSync.PlayerData.Handlers;
 

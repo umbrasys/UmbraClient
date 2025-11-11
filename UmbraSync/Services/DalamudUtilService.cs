@@ -481,9 +481,9 @@ public class DalamudUtilService : IHostedService, IMediatorSubscriber
     {
         _logger.LogInformation("Starting DalamudUtilService");
 #pragma warning disable S2696 // Instance members should not write to "static" fields
-        Umbra.Plugin.Self.RealOnFrameworkUpdate = this.FrameworkOnUpdate;
+        UmbraSync.Plugin.Self.RealOnFrameworkUpdate = this.FrameworkOnUpdate;
 #pragma warning restore S2696
-        _framework.Update += Umbra.Plugin.Self.OnFrameworkUpdate;
+        _framework.Update += UmbraSync.Plugin.Self.OnFrameworkUpdate;
         if (IsLoggedIn)
         {
             _classJobId = _clientState.LocalPlayer!.ClassJob.RowId;
@@ -498,7 +498,7 @@ public class DalamudUtilService : IHostedService, IMediatorSubscriber
         _logger.LogTrace("Stopping {type}", GetType());
 
         Mediator.UnsubscribeAll(this);
-        _framework.Update -= Umbra.Plugin.Self.OnFrameworkUpdate;
+        _framework.Update -= UmbraSync.Plugin.Self.OnFrameworkUpdate;
         return Task.CompletedTask;
     }
 

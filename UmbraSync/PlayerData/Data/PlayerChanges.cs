@@ -1,4 +1,4 @@
-﻿namespace UmbraSync.PlayerData.Pairs;
+﻿namespace UmbraSync.PlayerData.Data;
 
 public enum PlayerChanges
 {

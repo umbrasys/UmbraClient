@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
 using Dalamud.Game.Text.SeStringHandling;
-using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Plugin.Services;
 using UmbraSync.MareConfiguration;
 using UmbraSync.MareConfiguration.Models;
@@ -9,6 +8,8 @@ using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NotificationType = UmbraSync.MareConfiguration.Models.NotificationType;
+using DalamudNotification = Dalamud.Interface.ImGuiNotification.Notification;
+using DalamudNotificationType = Dalamud.Interface.ImGuiNotification.NotificationType;
 
 namespace UmbraSync.Services;
 
@@ -18,14 +19,14 @@ public class NotificationService : DisposableMediatorSubscriberBase, IHostedServ
     private readonly INotificationManager _notificationManager;
     private readonly IChatGui _chatGui;
     private readonly MareConfigService _configurationService;
-    private readonly Services.Notifications.NotificationTracker _notificationTracker;
+    private readonly Services.Notification.NotificationTracker _notificationTracker;
     private readonly PlayerData.Pairs.PairManager _pairManager;
 
     public NotificationService(ILogger<NotificationService> logger, MareMediator mediator,
         DalamudUtilService dalamudUtilService,
         INotificationManager notificationManager,
         IChatGui chatGui, MareConfigService configurationService,
-        Services.Notifications.NotificationTracker notificationTracker,
+        Services.Notification.NotificationTracker notificationTracker,
         PlayerData.Pairs.PairManager pairManager) : base(logger, mediator)
     {
         _dalamudUtilService = dalamudUtilService;
@@ -138,7 +139,7 @@ public class NotificationService : DisposableMediatorSubscriberBase, IHostedServ
             ShowDualNotification(new DualNotificationMessage(title, message, NotificationType.Info, TimeSpan.FromSeconds(4)));
 
             // Persist into notification center
-            _notificationTracker.Upsert(Services.Notifications.NotificationEntry.SyncshellNotPublic(gid, alias));
+            _notificationTracker.Upsert(Services.Notification.NotificationEntry.SyncshellNotPublic(gid, alias));
         }
         catch
         {
@@ -218,15 +219,15 @@ public class NotificationService : DisposableMediatorSubscriberBase, IHostedServ
 
     private void ShowToast(NotificationMessage msg)
     {
-        Dalamud.Interface.ImGuiNotification.NotificationType dalamudType = msg.Type switch
+        DalamudNotificationType dalamudType = msg.Type switch
         {
-            NotificationType.Error => Dalamud.Interface.ImGuiNotification.NotificationType.Error,
-            NotificationType.Warning => Dalamud.Interface.ImGuiNotification.NotificationType.Warning,
-            NotificationType.Info => Dalamud.Interface.ImGuiNotification.NotificationType.Info,
-            _ => Dalamud.Interface.ImGuiNotification.NotificationType.Info
+            NotificationType.Error => DalamudNotificationType.Error,
+            NotificationType.Warning => DalamudNotificationType.Warning,
+            NotificationType.Info => DalamudNotificationType.Info,
+            _ => DalamudNotificationType.Info
         };
 
-        _notificationManager.AddNotification(new Notification()
+        _notificationManager.AddNotification(new DalamudNotification()
         {
             Content = msg.Message ?? string.Empty,
             Title = msg.Title,

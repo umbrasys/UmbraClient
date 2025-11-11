@@ -13,7 +13,7 @@ using UmbraSync.WebAPI.Files;
 using Microsoft.Extensions.Logging;
 using System.Threading;
 
-namespace UmbraSync.Services;
+namespace UmbraSync.Services.CharaData;
 
 public sealed class CharaDataFileHandler : IDisposable
 {

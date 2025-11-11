@@ -15,7 +15,7 @@ using UmbraSync.Services;
 using UmbraSync.Services.Events;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.ServerConfiguration;
-using UmbraSync.Services.Notifications;
+using UmbraSync.Services.Notification;
 using UmbraSync.UI;
 using UmbraSync.UI.Components;
 using UmbraSync.UI.Components.Popup;
@@ -30,7 +30,7 @@ using UmbraSync.Services.CharaData;
 
 using UmbraSync;
 
-namespace Umbra;
+namespace UmbraSync;
 
 public sealed class Plugin : IDalamudPlugin
 {

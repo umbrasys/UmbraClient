@@ -1470,7 +1470,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             }
         }
 
-#region Whitelist
+        #region Whitelist
         ImGui.Separator();
         _uiShared.BigText("Whitelisted UIDs");
         bool ignoreDirectPairs = _playerPerformanceConfigService.Current.IgnoreDirectPairs;
@@ -1542,9 +1542,9 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 recalculatePerformance = true;
             }
         }
-#endregion Whitelist
+        #endregion Whitelist
 
-#region Blacklist
+        #region Blacklist
         ImGui.Separator();
         _uiShared.BigText("Blacklisted UIDs");
         UiSharedService.TextWrapped("The entries in the list below will never have their characters displayed.");
@@ -1606,7 +1606,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 recalculatePerformance = true;
             }
         }
-#endregion Blacklist
+        #endregion Blacklist
 
         if (recalculatePerformance)
             Mediator.Publish(new RecalculatePerformanceMessage(recalculatePerformanceUID));

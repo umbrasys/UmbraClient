@@ -8,7 +8,7 @@ using UmbraSync.Services.ServerConfiguration;
 using Microsoft.Extensions.Logging;
 using System.Numerics;
 
-namespace UmbraSync.Services;
+namespace UmbraSync.Services.CharaData;
 
 public sealed class CharaDataNearbyManager : DisposableMediatorSubscriberBase
 {
