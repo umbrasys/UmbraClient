@@ -76,6 +76,37 @@ public sealed class PerformanceCollectorService : IHostedService
         }
     }
 
+    public async Task LogPerformanceAsync(object sender, MareInterpolatedStringHandler counterName, Func<Task> func, int maxEntries = 10000)
+    {
+        if (!_mareConfigService.Current.LogPerformance)
+        {
+            await func().ConfigureAwait(false);
+            return;
+        }
+
+        var cn = sender.GetType().Name + _counterSplit + counterName.BuildMessage();
+
+        if (!PerformanceCounters.TryGetValue(cn, out var list))
+        {
+            list = PerformanceCounters[cn] = new(maxEntries);
+        }
+
+        var dt = DateTime.UtcNow.Ticks;
+        try
+        {
+            await func().ConfigureAwait(false);
+        }
+        finally
+        {
+            var elapsed = DateTime.UtcNow.Ticks - dt;
+#if DEBUG
+            if (TimeSpan.FromTicks(elapsed) > TimeSpan.FromMilliseconds(10))
+                _logger.LogWarning(">10ms spike on {counterName}: {time}", cn, TimeSpan.FromTicks(elapsed));
+#endif
+            list.Add((TimeOnly.FromDateTime(DateTime.Now), elapsed));
+        }
+    }
+
     public Task StartAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Starting PerformanceCollectorService");

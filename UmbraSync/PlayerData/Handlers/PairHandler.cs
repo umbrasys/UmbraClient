@@ -452,7 +452,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             }
             else
             {
-                _ = processApplication(changes.Value.OrderBy(p => (int)p));
+                await processApplication(changes.Value.OrderBy(p => (int)p)).ConfigureAwait(false);
             }
         }
         finally
@@ -515,7 +515,8 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
                     return;
                 }
 
-                _pairDownloadTask = Task.Run(async () => await _downloadManager.DownloadFiles(_charaHandler!, toDownloadReplacements, downloadToken).ConfigureAwait(false), downloadToken);
+                var downloadBatch = toDownloadReplacements.ToList();
+                _pairDownloadTask = Task.Run(async () => await _downloadManager.DownloadFiles(_charaHandler!, downloadBatch, downloadToken).ConfigureAwait(false), downloadToken);
 
                 await _pairDownloadTask.ConfigureAwait(false);
 

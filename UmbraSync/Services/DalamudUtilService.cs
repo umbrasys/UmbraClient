@@ -439,7 +439,7 @@ public class DalamudUtilService : IHostedService, IMediatorSubscriber
     public async Task RunOnFrameworkThread(System.Action act, [CallerMemberName] string callerMember = "", [CallerFilePath] string callerFilePath = "", [CallerLineNumber] int callerLineNumber = 0)
     {
         var fileName = Path.GetFileNameWithoutExtension(callerFilePath);
-        await _performanceCollector.LogPerformance(this, $"RunOnFramework:Act/{fileName}>{callerMember}:{callerLineNumber}", async () =>
+        await _performanceCollector.LogPerformanceAsync(this, $"RunOnFramework:Act/{fileName}>{callerMember}:{callerLineNumber}", async () =>
         {
             if (!_framework.IsInFrameworkUpdateThread)
             {
