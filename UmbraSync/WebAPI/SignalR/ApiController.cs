@@ -4,19 +4,19 @@ using UmbraSync.API.Data.Extensions;
 using UmbraSync.API.Dto;
 using UmbraSync.API.Dto.User;
 using UmbraSync.API.SignalR;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.MareConfiguration.Models;
-using MareSynchronos.PlayerData.Pairs;
-using MareSynchronos.Services;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.Services.ServerConfiguration;
-using MareSynchronos.WebAPI.SignalR;
-using MareSynchronos.WebAPI.SignalR.Utils;
+using UmbraSync.MareConfiguration;
+using UmbraSync.MareConfiguration.Models;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.Services;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Services.ServerConfiguration;
+using UmbraSync.WebAPI.SignalR;
+using UmbraSync.WebAPI.SignalR.Utils;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
 
-namespace MareSynchronos.WebAPI;
+namespace UmbraSync.WebAPI;
 
 #pragma warning disable MA0040
 public sealed partial class ApiController : DisposableMediatorSubscriberBase, IMareHubClient

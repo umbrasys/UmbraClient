@@ -4,16 +4,16 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Microsoft.Extensions.Logging;
-using MareSynchronos.WebAPI.AutoDetect;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.Services;
-using MareSynchronos.Services.Mediator;
-using NotificationType = MareSynchronos.MareConfiguration.Models.NotificationType;
-using MareSynchronos.WebAPI;
+using UmbraSync.WebAPI.AutoDetect;
+using UmbraSync.MareConfiguration;
+using UmbraSync.Services;
+using UmbraSync.Services.Mediator;
+using NotificationType = UmbraSync.MareConfiguration.Models.NotificationType;
+using UmbraSync.WebAPI;
 using UmbraSync.API.Dto.User;
 using UmbraSync.API.Data;
 
-namespace MareSynchronos.Services.AutoDetect;
+namespace UmbraSync.Services.AutoDetect;
 
 public class AutoDetectRequestService
 {

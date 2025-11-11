@@ -4,15 +4,15 @@ using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Plugin.Services;
 using UmbraSync.API.Dto.User;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.PlayerData.Pairs;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.UI;
-using MareSynchronos.WebAPI;
+using UmbraSync.MareConfiguration;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.Services.Mediator;
+using UmbraSync.UI;
+using UmbraSync.WebAPI;
 using Microsoft.Extensions.Logging;
 using Dalamud.Game.Text;
 
-namespace MareSynchronos.Services;
+namespace UmbraSync.Services;
 
 public class GuiHookService : DisposableMediatorSubscriberBase
 {

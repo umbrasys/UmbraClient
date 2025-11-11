@@ -1,4 +1,4 @@
-﻿namespace MareSynchronos.MareConfiguration.Configurations;
+﻿namespace UmbraSync.MareConfiguration.Configurations;
 
 public interface IMareConfiguration
 {

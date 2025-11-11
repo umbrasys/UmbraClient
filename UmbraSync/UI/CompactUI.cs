@@ -6,21 +6,21 @@ using Dalamud.Interface.Utility.Raii;
 using Dalamud.Utility;
 using UmbraSync.API.Data.Extensions;
 using UmbraSync.API.Dto.User;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.MareConfiguration.Models;
-using MareSynchronos.PlayerData.Handlers;
-using MareSynchronos.PlayerData.Pairs;
-using MareSynchronos.Services;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.Services.ServerConfiguration;
-using MareSynchronos.Services.AutoDetect;
-using MareSynchronos.Services.Notifications;
-using MareSynchronos.UI.Components;
-using MareSynchronos.UI.Handlers;
-using MareSynchronos.WebAPI;
-using MareSynchronos.WebAPI.Files;
-using MareSynchronos.WebAPI.Files.Models;
-using MareSynchronos.WebAPI.SignalR.Utils;
+using UmbraSync.MareConfiguration;
+using UmbraSync.MareConfiguration.Models;
+using UmbraSync.PlayerData.Handlers;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.Services;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Services.ServerConfiguration;
+using UmbraSync.Services.AutoDetect;
+using UmbraSync.Services.Notifications;
+using UmbraSync.UI.Components;
+using UmbraSync.UI.Handlers;
+using UmbraSync.WebAPI;
+using UmbraSync.WebAPI.Files;
+using UmbraSync.WebAPI.Files.Models;
+using UmbraSync.WebAPI.SignalR.Utils;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
@@ -32,7 +32,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using System.Linq;
 
-namespace MareSynchronos.UI;
+namespace UmbraSync.UI;
 
 public class CompactUi : WindowMediatorSubscriberBase
 {

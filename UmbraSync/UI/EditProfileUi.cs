@@ -6,15 +6,15 @@ using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Interface.Utility;
 using UmbraSync.API.Data;
 using UmbraSync.API.Dto.User;
-using MareSynchronos.Services;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.Services.ServerConfiguration;
-using MareSynchronos.Utils;
-using MareSynchronos.WebAPI;
+using UmbraSync.Services;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Services.ServerConfiguration;
+using UmbraSync.Utils;
+using UmbraSync.WebAPI;
 using Microsoft.Extensions.Logging;
 using System.Numerics;
 
-namespace MareSynchronos.UI;
+namespace UmbraSync.UI;
 
 public class EditProfileUi : WindowMediatorSubscriberBase
 {

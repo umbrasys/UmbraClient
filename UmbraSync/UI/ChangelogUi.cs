@@ -6,12 +6,12 @@ using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.Services;
-using MareSynchronos.Services.Mediator;
+using UmbraSync.MareConfiguration;
+using UmbraSync.Services;
+using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Logging;
 
-namespace MareSynchronos.UI;
+namespace UmbraSync.UI;
 
 public sealed class ChangelogUi : WindowMediatorSubscriberBase
 {

@@ -1,10 +1,10 @@
 ﻿using System;
 using UmbraSync.API.Data;
 using UmbraSync.API.Dto.Group;
-using MareSynchronos.WebAPI.SignalR.Utils;
+using UmbraSync.WebAPI.SignalR.Utils;
 using Microsoft.AspNetCore.SignalR.Client;
 
-namespace MareSynchronos.WebAPI;
+namespace UmbraSync.WebAPI;
 
 public partial class ApiController
 {

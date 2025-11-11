@@ -2,12 +2,12 @@
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
 using UmbraSync.API.Dto.CharaData;
-using MareSynchronos.Services;
+using UmbraSync.Services;
 using Microsoft.Extensions.Logging;
 using System.Numerics;
 using System.Text.Json.Nodes;
 
-namespace MareSynchronos.Interop.Ipc;
+namespace UmbraSync.Interop.Ipc;
 
 public sealed class IpcCallerBrio : IIpcCaller
 {

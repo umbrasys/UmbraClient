@@ -3,15 +3,15 @@ using System.Runtime.InteropServices;
 using Lumina.Data.Files;
 using UmbraSync.API.Data;
 using UmbraSync.API.Data.Enum;
-using MareSynchronos.FileCache;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.MareConfiguration.Models;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.UI;
-using MareSynchronos.Utils;
+using UmbraSync.FileCache;
+using UmbraSync.MareConfiguration;
+using UmbraSync.MareConfiguration.Models;
+using UmbraSync.Services.Mediator;
+using UmbraSync.UI;
+using UmbraSync.Utils;
 using Microsoft.Extensions.Logging;
 
-namespace MareSynchronos.Services;
+namespace UmbraSync.Services;
 
 public sealed class CharacterAnalyzer : DisposableMediatorSubscriberBase
 {

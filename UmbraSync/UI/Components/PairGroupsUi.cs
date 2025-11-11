@@ -3,14 +3,14 @@ using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using UmbraSync.API.Data.Extensions;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.UI.Handlers;
-using MareSynchronos.WebAPI;
+using UmbraSync.MareConfiguration;
+using UmbraSync.UI.Handlers;
+using UmbraSync.WebAPI;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace MareSynchronos.UI.Components;
+namespace UmbraSync.UI.Components;
 
 public class PairGroupsUi
 {

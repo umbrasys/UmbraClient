@@ -1,15 +1,15 @@
 ﻿using System;
-using MareSynchronos.Interop.Ipc;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.Services;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.Utils;
+using UmbraSync.Interop.Ipc;
+using UmbraSync.MareConfiguration;
+using UmbraSync.Services;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Utils;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 
-namespace MareSynchronos.FileCache;
+namespace UmbraSync.FileCache;
 
 public sealed class CacheMonitor : DisposableMediatorSubscriberBase
 {

@@ -1,16 +1,16 @@
 ﻿using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using UmbraSync.API.Data.Enum;
-using MareSynchronos.FileCache;
-using MareSynchronos.Interop.Ipc;
-using MareSynchronos.MareConfiguration.Models;
-using MareSynchronos.PlayerData.Data;
-using MareSynchronos.PlayerData.Handlers;
-using MareSynchronos.Services;
-using MareSynchronos.Services.Mediator;
+using UmbraSync.FileCache;
+using UmbraSync.Interop.Ipc;
+using UmbraSync.MareConfiguration.Models;
+using UmbraSync.PlayerData.Data;
+using UmbraSync.PlayerData.Handlers;
+using UmbraSync.Services;
+using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Logging;
-using CharacterData = MareSynchronos.PlayerData.Data.CharacterData;
+using CharacterData = UmbraSync.PlayerData.Data.CharacterData;
 
-namespace MareSynchronos.PlayerData.Factories;
+namespace UmbraSync.PlayerData.Factories;
 
 public class PlayerDataFactory
 {
@@ -82,7 +82,7 @@ public class PlayerDataFactory
 
         try
         {
-            await _performanceCollector.LogPerformance(this, $"CreateCharacterData>{playerRelatedObject.ObjectKind}", async () =>
+            await _performanceCollector.LogPerformanceAsync(this, $"CreateCharacterData>{playerRelatedObject.ObjectKind}", async () =>
             {
                 await CreateCharacterData(previousData, playerRelatedObject, token).ConfigureAwait(false);
             }).ConfigureAwait(true);

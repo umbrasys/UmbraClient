@@ -1,6 +1,6 @@
 ﻿using UmbraSync.API.Data;
 
-namespace MareSynchronos.PlayerData.Data;
+namespace UmbraSync.PlayerData.Data;
 
 public class FileReplacementDataComparer : IEqualityComparer<FileReplacementData>
 {

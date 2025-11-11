@@ -1,15 +1,15 @@
 using UmbraSync.API.Data;
-using MareSynchronos.FileCache;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.PlayerData.Handlers;
-using MareSynchronos.Services.Events;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.Services.ServerConfiguration;
-using MareSynchronos.UI;
-using MareSynchronos.WebAPI.Files.Models;
+using UmbraSync.FileCache;
+using UmbraSync.MareConfiguration;
+using UmbraSync.PlayerData.Handlers;
+using UmbraSync.Services.Events;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Services.ServerConfiguration;
+using UmbraSync.UI;
+using UmbraSync.WebAPI.Files.Models;
 using Microsoft.Extensions.Logging;
 
-namespace MareSynchronos.Services;
+namespace UmbraSync.Services;
 
 public class PlayerPerformanceService : DisposableMediatorSubscriberBase
 {

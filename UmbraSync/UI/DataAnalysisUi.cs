@@ -3,15 +3,15 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
 using UmbraSync.API.Data.Enum;
-using MareSynchronos.Interop.Ipc;
-using MareSynchronos.Services;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.Utils;
+using UmbraSync.Interop.Ipc;
+using UmbraSync.Services;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Utils;
 using Microsoft.Extensions.Logging;
 using System.Numerics;
 using System;
 
-namespace MareSynchronos.UI;
+namespace UmbraSync.UI;
 
 public class DataAnalysisUi : WindowMediatorSubscriberBase
 {

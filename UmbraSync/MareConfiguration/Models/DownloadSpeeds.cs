@@ -1,4 +1,4 @@
-﻿namespace MareSynchronos.MareConfiguration.Models;
+﻿namespace UmbraSync.MareConfiguration.Models;
 
 public enum DownloadSpeeds
 {

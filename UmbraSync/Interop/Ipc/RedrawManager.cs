@@ -1,12 +1,12 @@
 ﻿using Dalamud.Game.ClientState.Objects.Types;
 using System;
-using MareSynchronos.PlayerData.Handlers;
-using MareSynchronos.Services;
-using MareSynchronos.Services.Mediator;
+using UmbraSync.PlayerData.Handlers;
+using UmbraSync.Services;
+using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 
-namespace MareSynchronos.Interop.Ipc;
+namespace UmbraSync.Interop.Ipc;
 
 public class RedrawManager : IDisposable
 {

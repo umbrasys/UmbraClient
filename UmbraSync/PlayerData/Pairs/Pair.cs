@@ -6,17 +6,17 @@ using UmbraSync.API.Data.Enum;
 using UmbraSync.API.Data.Extensions;
 using UmbraSync.API.Dto.Group;
 using UmbraSync.API.Dto.User;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.PlayerData.Factories;
-using MareSynchronos.PlayerData.Handlers;
-using MareSynchronos.Services;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.Services.ServerConfiguration;
-using MareSynchronos.Utils;
+using UmbraSync.MareConfiguration;
+using UmbraSync.PlayerData.Factories;
+using UmbraSync.PlayerData.Handlers;
+using UmbraSync.Services;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Services.ServerConfiguration;
+using UmbraSync.Utils;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 
-namespace MareSynchronos.PlayerData.Pairs;
+namespace UmbraSync.PlayerData.Pairs;
 
 public class Pair : DisposableMediatorSubscriberBase
 {

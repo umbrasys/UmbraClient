@@ -1,6 +1,6 @@
 ﻿using System.Net;
 
-namespace MareSynchronos.WebAPI.Files.Models;
+namespace UmbraSync.WebAPI.Files.Models;
 
 public class ProgressableStreamContent : StreamContent
 {

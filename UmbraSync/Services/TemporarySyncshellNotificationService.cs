@@ -1,14 +1,14 @@
 using System.Globalization;
 using System.Threading;
 using UmbraSync.API.Dto.Group;
-using MareSynchronos.MareConfiguration.Models;
-using MareSynchronos.PlayerData.Pairs;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.WebAPI;
+using UmbraSync.MareConfiguration.Models;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.Services.Mediator;
+using UmbraSync.WebAPI;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace MareSynchronos.Services;
+namespace UmbraSync.Services;
 
 public sealed class TemporarySyncshellNotificationService : MediatorSubscriberBase, IHostedService
 {

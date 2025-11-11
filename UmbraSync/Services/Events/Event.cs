@@ -1,6 +1,6 @@
 ﻿using UmbraSync.API.Data;
 
-namespace MareSynchronos.Services.Events;
+namespace UmbraSync.Services.Events;
 
 public record Event
 {

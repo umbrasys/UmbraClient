@@ -1,4 +1,4 @@
-﻿namespace MareSynchronos.Services;
+﻿namespace UmbraSync.Services;
 
 public record MareProfileData(bool IsFlagged, bool IsNSFW, string Base64ProfilePicture, string Description)
 {

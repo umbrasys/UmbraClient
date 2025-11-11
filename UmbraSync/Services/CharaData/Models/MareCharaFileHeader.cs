@@ -1,4 +1,4 @@
-﻿namespace MareSynchronos.Services.CharaData.Models;
+﻿namespace UmbraSync.Services.CharaData.Models;
 
 public record MareCharaFileHeader(byte Version, MareCharaFileData CharaFileData)
 {

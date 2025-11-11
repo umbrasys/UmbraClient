@@ -1,10 +1,10 @@
-﻿using MareSynchronos.FileCache;
-using MareSynchronos.PlayerData.Pairs;
-using MareSynchronos.Services;
-using MareSynchronos.Services.Mediator;
+﻿using UmbraSync.FileCache;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.Services;
+using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Logging;
 
-namespace MareSynchronos.PlayerData.Factories;
+namespace UmbraSync.PlayerData.Factories;
 
 public class PairAnalyzerFactory
 {

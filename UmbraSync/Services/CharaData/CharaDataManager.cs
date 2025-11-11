@@ -2,22 +2,22 @@
 using K4os.Compression.LZ4.Legacy;
 using UmbraSync.API.Data;
 using UmbraSync.API.Dto.CharaData;
-using MareSynchronos.Interop.Ipc;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.PlayerData.Factories;
-using MareSynchronos.PlayerData.Handlers;
-using MareSynchronos.PlayerData.Pairs;
-using MareSynchronos.Services.CharaData.Models;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.Utils;
-using MareSynchronos.WebAPI;
+using UmbraSync.Interop.Ipc;
+using UmbraSync.MareConfiguration;
+using UmbraSync.PlayerData.Factories;
+using UmbraSync.PlayerData.Handlers;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.Services.CharaData.Models;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Utils;
+using UmbraSync.WebAPI;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Text;
 using System.Threading;
 
-namespace MareSynchronos.Services;
+namespace UmbraSync.Services;
 
 public sealed partial class CharaDataManager : DisposableMediatorSubscriberBase
 {

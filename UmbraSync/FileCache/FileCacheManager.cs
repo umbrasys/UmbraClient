@@ -1,16 +1,16 @@
 ﻿using Dalamud.Utility;
 using K4os.Compression.LZ4.Streams;
-using MareSynchronos.Interop.Ipc;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.Utils;
+using UmbraSync.Interop.Ipc;
+using UmbraSync.MareConfiguration;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Utils;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text;
 
-namespace MareSynchronos.FileCache;
+namespace UmbraSync.FileCache;
 
 public sealed class FileCacheManager : IHostedService
 {

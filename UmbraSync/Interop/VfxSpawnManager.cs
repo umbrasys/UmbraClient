@@ -1,13 +1,13 @@
 ﻿using Dalamud.Memory;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility.Signatures;
-using MareSynchronos.Services.Mediator;
+using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Logging;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace MareSynchronos.Interop;
+namespace UmbraSync.Interop;
 
 /// <summary>
 /// Code for spawning mostly taken from https://git.anna.lgbt/anna/OrangeGuidanceTomestone/src/branch/main/client/Vfx.cs

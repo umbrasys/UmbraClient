@@ -1,10 +1,10 @@
-﻿using MareSynchronos.FileCache;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.WebAPI.Files;
+﻿using UmbraSync.FileCache;
+using UmbraSync.MareConfiguration;
+using UmbraSync.Services.Mediator;
+using UmbraSync.WebAPI.Files;
 using Microsoft.Extensions.Logging;
 
-namespace MareSynchronos.PlayerData.Factories;
+namespace UmbraSync.PlayerData.Factories;
 
 public class FileDownloadManagerFactory
 {

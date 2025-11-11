@@ -1,15 +1,15 @@
 ﻿using UmbraSync.API.Dto.Group;
-using MareSynchronos.PlayerData.Pairs;
-using MareSynchronos.Services.AutoDetect;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.Services.ServerConfiguration;
-using MareSynchronos.Services.Notifications;
-using MareSynchronos.UI;
-using MareSynchronos.UI.Components.Popup;
-using MareSynchronos.WebAPI;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.Services.AutoDetect;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Services.ServerConfiguration;
+using UmbraSync.Services.Notifications;
+using UmbraSync.UI;
+using UmbraSync.UI.Components.Popup;
+using UmbraSync.WebAPI;
 using Microsoft.Extensions.Logging;
 
-namespace MareSynchronos.Services;
+namespace UmbraSync.Services;
 
 public class UiFactory
 {

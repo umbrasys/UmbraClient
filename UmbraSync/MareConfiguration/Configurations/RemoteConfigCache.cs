@@ -1,6 +1,6 @@
 using System.Text.Json.Nodes;
 
-namespace MareSynchronos.MareConfiguration.Configurations;
+namespace UmbraSync.MareConfiguration.Configurations;
 
 public class RemoteConfigCache : IMareConfiguration
 {

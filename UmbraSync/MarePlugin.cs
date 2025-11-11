@@ -1,17 +1,17 @@
-﻿using MareSynchronos.FileCache;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.PlayerData.Pairs;
-using MareSynchronos.PlayerData.Services;
-using MareSynchronos.Services;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.Services.ServerConfiguration;
-using MareSynchronos.Interop;
+﻿using UmbraSync.FileCache;
+using UmbraSync.MareConfiguration;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.PlayerData.Services;
+using UmbraSync.Services;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Services.ServerConfiguration;
+using UmbraSync.Interop;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
 
-namespace MareSynchronos;
+namespace UmbraSync;
 
 #pragma warning disable S125 // Sections of code should not be commented out
 /*

@@ -5,15 +5,15 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using UmbraSync.API.Data.Extensions;
 using UmbraSync.API.Dto.User;
-using MareSynchronos.PlayerData.Pairs;
-using MareSynchronos.Services;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.UI.Handlers;
-using MareSynchronos.WebAPI;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.Services;
+using UmbraSync.Services.Mediator;
+using UmbraSync.UI.Handlers;
+using UmbraSync.WebAPI;
 using System.Numerics;
-using MareSynchronos.Services.ServerConfiguration;
+using UmbraSync.Services.ServerConfiguration;
 
-namespace MareSynchronos.UI.Components;
+namespace UmbraSync.UI.Components;
 
 public class DrawUserPair : DrawPairBase
 {

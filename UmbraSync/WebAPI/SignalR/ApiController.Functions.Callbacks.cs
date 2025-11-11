@@ -5,13 +5,13 @@ using UmbraSync.API.Dto.Chat;
 using UmbraSync.API.Dto.CharaData;
 using UmbraSync.API.Dto.Group;
 using UmbraSync.API.Dto.User;
-using MareSynchronos.MareConfiguration.Models;
-using MareSynchronos.Services.Mediator;
+using UmbraSync.MareConfiguration.Models;
+using UmbraSync.Services.Mediator;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using static FFXIVClientStructs.FFXIV.Client.Game.UI.MapMarkerData.Delegates;
 
-namespace MareSynchronos.WebAPI;
+namespace UmbraSync.WebAPI;
 
 public partial class ApiController
 {

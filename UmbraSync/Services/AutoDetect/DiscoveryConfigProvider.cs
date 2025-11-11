@@ -1,14 +1,14 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.Services.ServerConfiguration;
-using MareSynchronos.WebAPI.SignalR;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Services.ServerConfiguration;
+using UmbraSync.WebAPI.SignalR;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
 
-namespace MareSynchronos.Services.AutoDetect;
+namespace UmbraSync.Services.AutoDetect;
 
 public class DiscoveryConfigProvider
 {
@@ -78,7 +78,7 @@ public class DiscoveryConfigProvider
             try
             {
                 var ver = Assembly.GetExecutingAssembly().GetName().Version!;
-                http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("MareSynchronos", $"{ver.Major}.{ver.Minor}.{ver.Build}"));
+                http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("UmbraSync", $"{ver.Major}.{ver.Minor}.{ver.Build}"));
             }
             catch { }
 

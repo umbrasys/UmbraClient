@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 
-namespace MareSynchronos.Services.Mediator;
+namespace UmbraSync.Services.Mediator;
 
 public abstract class MediatorSubscriberBase : IMediatorSubscriber
 {

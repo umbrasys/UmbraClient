@@ -1,12 +1,12 @@
 ﻿using Dalamud.Utility;
 using UmbraSync.API.Data;
 using UmbraSync.API.Dto.CharaData;
-using MareSynchronos.Utils;
+using UmbraSync.Utils;
 using System.Globalization;
 using System.Numerics;
 using System.Text;
 
-namespace MareSynchronos.Services.CharaData.Models;
+namespace UmbraSync.Services.CharaData.Models;
 
 public sealed record GposeLobbyUserData(UserData UserData)
 {

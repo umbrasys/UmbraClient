@@ -1,10 +1,10 @@
 ﻿using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
-using MareSynchronos.PlayerData.Pairs;
-using MareSynchronos.UI.Handlers;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.UI.Handlers;
 using System.Numerics;
 
-namespace MareSynchronos.UI.Components;
+namespace UmbraSync.UI.Components;
 
 public class SelectPairForGroupUi
 {

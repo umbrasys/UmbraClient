@@ -1,16 +1,16 @@
 ﻿using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Colors;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.PlayerData.Handlers;
-using MareSynchronos.Services;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.WebAPI.Files;
-using MareSynchronos.WebAPI.Files.Models;
+using UmbraSync.MareConfiguration;
+using UmbraSync.PlayerData.Handlers;
+using UmbraSync.Services;
+using UmbraSync.Services.Mediator;
+using UmbraSync.WebAPI.Files;
+using UmbraSync.WebAPI.Files.Models;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Numerics;
 
-namespace MareSynchronos.UI;
+namespace UmbraSync.UI;
 
 public class DownloadUi : WindowMediatorSubscriberBase
 {

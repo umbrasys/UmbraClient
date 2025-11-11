@@ -1,9 +1,9 @@
-﻿using MareSynchronos.WebAPI;
+﻿using UmbraSync.WebAPI;
 using System.Text.Json;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace MareSynchronos.MareConfiguration;
+namespace UmbraSync.MareConfiguration;
 
 public class ConfigurationMigrator(ILogger<ConfigurationMigrator> logger, MareConfigService mareConfig) : IHostedService
 {

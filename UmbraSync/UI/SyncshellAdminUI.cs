@@ -7,19 +7,19 @@ using System;
 using UmbraSync.API.Data.Enum;
 using UmbraSync.API.Data.Extensions;
 using UmbraSync.API.Dto.Group;
-using MareSynchronos.PlayerData.Pairs;
-using MareSynchronos.Services;
-using MareSynchronos.Services.AutoDetect;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.Services.Notifications;
-using MareSynchronos.WebAPI;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.Services;
+using UmbraSync.Services.AutoDetect;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Services.Notifications;
+using UmbraSync.WebAPI;
 using Microsoft.Extensions.Logging;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
-using MareSynchronos.MareConfiguration.Models;
+using UmbraSync.MareConfiguration.Models;
 
-namespace MareSynchronos.UI.Components.Popup;
+namespace UmbraSync.UI.Components.Popup;
 
 public class SyncshellAdminUI : WindowMediatorSubscriberBase
 {

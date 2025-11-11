@@ -2,7 +2,7 @@
 using UmbraSync.API.Dto.Group;
 using Microsoft.AspNetCore.SignalR.Client;
 
-namespace MareSynchronos.WebAPI;
+namespace UmbraSync.WebAPI;
 
 public partial class ApiController
 {

@@ -1,13 +1,13 @@
 ﻿using UmbraSync.API.Data.Enum;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.PlayerData.Data;
-using MareSynchronos.PlayerData.Handlers;
-using MareSynchronos.Services;
-using MareSynchronos.Services.Mediator;
+using UmbraSync.MareConfiguration;
+using UmbraSync.PlayerData.Data;
+using UmbraSync.PlayerData.Handlers;
+using UmbraSync.Services;
+using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 
-namespace MareSynchronos.FileCache;
+namespace UmbraSync.FileCache;
 
 public sealed class TransientResourceManager : DisposableMediatorSubscriberBase
 {

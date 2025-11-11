@@ -1,4 +1,4 @@
-﻿namespace MareSynchronos.WebAPI.SignalR;
+﻿namespace UmbraSync.WebAPI.SignalR;
 
 public class MareAuthFailureException : Exception
 {

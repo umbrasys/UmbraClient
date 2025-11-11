@@ -3,7 +3,7 @@ using UmbraSync.API.Dto.CharaData;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 
-namespace MareSynchronos.WebAPI;
+namespace UmbraSync.WebAPI;
 public partial class ApiController
 {
     public async Task<CharaDataFullDto?> CharaDataCreate()

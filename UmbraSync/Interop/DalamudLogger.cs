@@ -1,9 +1,9 @@
 ﻿using Dalamud.Plugin.Services;
-using MareSynchronos.MareConfiguration;
+using UmbraSync.MareConfiguration;
 using Microsoft.Extensions.Logging;
 using System.Text;
 
-namespace MareSynchronos.Interop;
+namespace UmbraSync.Interop;
 
 internal sealed class DalamudLogger : ILogger
 {

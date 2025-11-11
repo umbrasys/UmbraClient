@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using static Lumina.Data.Parsing.MdlStructs;
 
-namespace MareSynchronos.Interop.GameModel;
+namespace UmbraSync.Interop.GameModel;
 
 #pragma warning disable S1104 // Fields should not have public accessibility
 

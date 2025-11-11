@@ -2,12 +2,12 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Dalamud.Plugin;
-using MareSynchronos.MareConfiguration.Models;
-using MareSynchronos.Services.Mediator;
+using UmbraSync.MareConfiguration.Models;
+using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace MareSynchronos.Services;
+namespace UmbraSync.Services;
 
 public sealed class ChatTwoCompatibilityService : MediatorSubscriberBase, IHostedService
 {

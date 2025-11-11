@@ -1,14 +1,14 @@
 ﻿using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using UmbraSync.API.Data;
-using MareSynchronos.Interop;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.Services.CharaData.Models;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.Services.ServerConfiguration;
+using UmbraSync.Interop;
+using UmbraSync.MareConfiguration;
+using UmbraSync.Services.CharaData.Models;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Services.ServerConfiguration;
 using Microsoft.Extensions.Logging;
 using System.Numerics;
 
-namespace MareSynchronos.Services;
+namespace UmbraSync.Services;
 
 public sealed class CharaDataNearbyManager : DisposableMediatorSubscriberBase
 {

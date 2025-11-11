@@ -3,32 +3,32 @@ using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-using MareSynchronos.FileCache;
-using MareSynchronos.Interop;
-using MareSynchronos.Interop.Ipc;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.MareConfiguration.Configurations;
-using MareSynchronos.PlayerData.Factories;
-using MareSynchronos.PlayerData.Pairs;
-using MareSynchronos.PlayerData.Services;
-using MareSynchronos.Services;
-using MareSynchronos.Services.Events;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.Services.ServerConfiguration;
-using MareSynchronos.Services.Notifications;
-using MareSynchronos.UI;
-using MareSynchronos.UI.Components;
-using MareSynchronos.UI.Components.Popup;
-using MareSynchronos.UI.Handlers;
-using MareSynchronos.WebAPI;
-using MareSynchronos.WebAPI.Files;
-using MareSynchronos.WebAPI.SignalR;
+using UmbraSync.FileCache;
+using UmbraSync.Interop;
+using UmbraSync.Interop.Ipc;
+using UmbraSync.MareConfiguration;
+using UmbraSync.MareConfiguration.Configurations;
+using UmbraSync.PlayerData.Factories;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.PlayerData.Services;
+using UmbraSync.Services;
+using UmbraSync.Services.Events;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Services.ServerConfiguration;
+using UmbraSync.Services.Notifications;
+using UmbraSync.UI;
+using UmbraSync.UI.Components;
+using UmbraSync.UI.Components.Popup;
+using UmbraSync.UI.Handlers;
+using UmbraSync.WebAPI;
+using UmbraSync.WebAPI.Files;
+using UmbraSync.WebAPI.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using MareSynchronos.Services.CharaData;
+using UmbraSync.Services.CharaData;
 
-using MareSynchronos;
+using UmbraSync;
 
 namespace Umbra;
 
@@ -62,7 +62,7 @@ public sealed class Plugin : IDalamudPlugin
         })
         .ConfigureServices(collection =>
         {
-            collection.AddSingleton(new WindowSystem("MareSynchronos"));
+            collection.AddSingleton(new WindowSystem("UmbraSync"));
             collection.AddSingleton<FileDialogManager>();
 
             // add dalamud services
@@ -97,13 +97,13 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton<HubFactory>();
             collection.AddSingleton<FileUploadManager>();
             collection.AddSingleton<FileTransferOrchestrator>();
-            collection.AddSingleton<MareSynchronos.Services.AutoDetect.DiscoveryConfigProvider>();
-            collection.AddSingleton<MareSynchronos.WebAPI.AutoDetect.DiscoveryApiClient>();
-            collection.AddSingleton<MareSynchronos.Services.AutoDetect.AutoDetectRequestService>();
-            collection.AddSingleton<MareSynchronos.Services.AutoDetect.NearbyDiscoveryService>();
-            collection.AddSingleton<MareSynchronos.Services.AutoDetect.NearbyPendingService>();
-            collection.AddSingleton<MareSynchronos.Services.AutoDetect.AutoDetectSuppressionService>();
-            collection.AddSingleton<MareSynchronos.Services.AutoDetect.SyncshellDiscoveryService>();
+            collection.AddSingleton<UmbraSync.Services.AutoDetect.DiscoveryConfigProvider>();
+            collection.AddSingleton<UmbraSync.WebAPI.AutoDetect.DiscoveryApiClient>();
+            collection.AddSingleton<UmbraSync.Services.AutoDetect.AutoDetectRequestService>();
+            collection.AddSingleton<UmbraSync.Services.AutoDetect.NearbyDiscoveryService>();
+            collection.AddSingleton<UmbraSync.Services.AutoDetect.NearbyPendingService>();
+            collection.AddSingleton<UmbraSync.Services.AutoDetect.AutoDetectSuppressionService>();
+            collection.AddSingleton<UmbraSync.Services.AutoDetect.SyncshellDiscoveryService>();
             collection.AddSingleton<MarePlugin>();
             collection.AddSingleton<MareProfileManager>();
             collection.AddSingleton<GameObjectHandlerFactory>();
@@ -233,10 +233,10 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddHostedService(p => p.GetRequiredService<EventAggregator>());
             collection.AddHostedService(p => p.GetRequiredService<MarePlugin>());
             collection.AddHostedService(p => p.GetRequiredService<IpcProvider>());
-            collection.AddHostedService(p => p.GetRequiredService<MareSynchronos.Services.AutoDetect.NearbyDiscoveryService>());
-            collection.AddHostedService(p => p.GetRequiredService<MareSynchronos.Services.AutoDetect.SyncshellDiscoveryService>());
+            collection.AddHostedService(p => p.GetRequiredService<UmbraSync.Services.AutoDetect.NearbyDiscoveryService>());
+            collection.AddHostedService(p => p.GetRequiredService<UmbraSync.Services.AutoDetect.SyncshellDiscoveryService>());
             collection.AddHostedService(p => p.GetRequiredService<ChatTwoCompatibilityService>());
-            collection.AddHostedService(p => p.GetRequiredService<MareSynchronos.Services.AutoDetect.AutoDetectSuppressionService>());
+            collection.AddHostedService(p => p.GetRequiredService<UmbraSync.Services.AutoDetect.AutoDetectSuppressionService>());
         })
         .Build();
 

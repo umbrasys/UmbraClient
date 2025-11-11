@@ -1,7 +1,7 @@
 ﻿using UmbraSync.API.Data;
 using UmbraSync.API.Dto.CharaData;
 
-namespace MareSynchronos.Services.CharaData.Models;
+namespace UmbraSync.Services.CharaData.Models;
 
 public sealed record CharaDataExtendedUpdateDto : CharaDataUpdateDto
 {

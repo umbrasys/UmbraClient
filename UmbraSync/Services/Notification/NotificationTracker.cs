@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.MareConfiguration.Configurations;
-using MareSynchronos.MareConfiguration.Models;
+using UmbraSync.Services.Mediator;
+using UmbraSync.MareConfiguration;
+using UmbraSync.MareConfiguration.Configurations;
+using UmbraSync.MareConfiguration.Models;
 
-namespace MareSynchronos.Services.Notifications;
+namespace UmbraSync.Services.Notifications;
 
 public enum NotificationCategory
 {

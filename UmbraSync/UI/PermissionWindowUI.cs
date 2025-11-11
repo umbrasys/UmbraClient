@@ -3,14 +3,14 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using UmbraSync.API.Data.Enum;
 using UmbraSync.API.Data.Extensions;
-using MareSynchronos.PlayerData.Pairs;
-using MareSynchronos.Services;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.Utils;
-using MareSynchronos.WebAPI;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.Services;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Utils;
+using UmbraSync.WebAPI;
 using Microsoft.Extensions.Logging;
 
-namespace MareSynchronos.UI;
+namespace UmbraSync.UI;
 
 public class PermissionWindowUI : WindowMediatorSubscriberBase
 {

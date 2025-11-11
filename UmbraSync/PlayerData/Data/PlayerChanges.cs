@@ -1,4 +1,4 @@
-﻿namespace MareSynchronos.PlayerData.Pairs;
+﻿namespace UmbraSync.PlayerData.Pairs;
 
 public enum PlayerChanges
 {

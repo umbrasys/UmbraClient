@@ -1,17 +1,17 @@
 using System;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.Services.ServerConfiguration;
-using MareSynchronos.WebAPI.AutoDetect;
+using UmbraSync.Services.Mediator;
+using UmbraSync.MareConfiguration;
+using UmbraSync.Services.ServerConfiguration;
+using UmbraSync.WebAPI.AutoDetect;
 using Dalamud.Plugin.Services;
 using System.Numerics;
 using System.Linq;
 using System.Collections.Generic;
-using MareSynchronos.Utils;
+using UmbraSync.Utils;
 
-namespace MareSynchronos.Services.AutoDetect;
+namespace UmbraSync.Services.AutoDetect;
 
 public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
 {

@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace MareSynchronos.UI.Components.Popup;
+namespace UmbraSync.UI.Components.Popup;
 
 public interface IPopupHandler
 {

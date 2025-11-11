@@ -11,10 +11,10 @@ using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Lumina.Excel.Sheets;
 using UmbraSync.API.Dto.CharaData;
-using MareSynchronos.Interop;
-using MareSynchronos.PlayerData.Handlers;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.Utils;
+using UmbraSync.Interop;
+using UmbraSync.PlayerData.Handlers;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Utils;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Numerics;
@@ -25,7 +25,7 @@ using System.Collections.Generic;
 using GameObject = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
 using DalamudGameObject = Dalamud.Game.ClientState.Objects.Types.IGameObject;
 
-namespace MareSynchronos.Services;
+namespace UmbraSync.Services;
 
 public class DalamudUtilService : IHostedService, IMediatorSubscriber
 {
@@ -458,7 +458,7 @@ public class DalamudUtilService : IHostedService, IMediatorSubscriber
     public async Task<T> RunOnFrameworkThread<T>(Func<T> func, [CallerMemberName] string callerMember = "", [CallerFilePath] string callerFilePath = "", [CallerLineNumber] int callerLineNumber = 0)
     {
         var fileName = Path.GetFileNameWithoutExtension(callerFilePath);
-        return await _performanceCollector.LogPerformance(this, $"RunOnFramework:Func<{typeof(T)}>/{fileName}>{callerMember}:{callerLineNumber}", async () =>
+        return await _performanceCollector.LogPerformanceAsync(this, $"RunOnFramework:Func<{typeof(T)}>/{fileName}>{callerMember}:{callerLineNumber}", async () =>
         {
             if (!_framework.IsInFrameworkUpdateThread)
             {

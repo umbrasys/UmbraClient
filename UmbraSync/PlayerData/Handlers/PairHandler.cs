@@ -1,21 +1,22 @@
 ﻿using UmbraSync.API.Data;
-using MareSynchronos.FileCache;
-using MareSynchronos.Interop.Ipc;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.PlayerData.Factories;
-using MareSynchronos.PlayerData.Pairs;
-using MareSynchronos.Services;
-using MareSynchronos.Services.Events;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.Utils;
-using MareSynchronos.WebAPI.Files;
+using UmbraSync.FileCache;
+using UmbraSync.Interop.Ipc;
+using UmbraSync.MareConfiguration;
+using UmbraSync.PlayerData.Factories;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.Services;
+using UmbraSync.Services.Events;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Utils;
+using UmbraSync.WebAPI.Files;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Linq;
 using ObjectKind = UmbraSync.API.Data.Enum.ObjectKind;
 
-namespace MareSynchronos.PlayerData.Handlers;
+namespace UmbraSync.PlayerData.Handlers;
 
 public sealed class PairHandler : DisposableMediatorSubscriberBase
 {
@@ -380,59 +381,6 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             _ => throw new NotSupportedException("ObjectKind not supported: " + changes.Key)
         };
 
-        async Task processApplication(IEnumerable<PlayerChanges> changeList)
-        {
-            foreach (var change in changeList)
-            {
-                Logger.LogDebug("[{applicationId}{ft}] Processing {change} for {handler}", applicationId, _dalamudUtil.IsOnFrameworkThread ? "*" : "", change, handler);
-                switch (change)
-                {
-                    case PlayerChanges.Customize:
-                        if (charaData.CustomizePlusData.TryGetValue(changes.Key, out var customizePlusData))
-                        {
-                            _customizeIds[changes.Key] = await _ipcManager.CustomizePlus.SetBodyScaleAsync(handler.Address, customizePlusData).ConfigureAwait(false);
-                        }
-                        else if (_customizeIds.TryGetValue(changes.Key, out var customizeId))
-                        {
-                            await _ipcManager.CustomizePlus.RevertByIdAsync(customizeId).ConfigureAwait(false);
-                            _customizeIds.Remove(changes.Key);
-                        }
-                        break;
-
-                    case PlayerChanges.Heels:
-                        await _ipcManager.Heels.SetOffsetForPlayerAsync(handler.Address, charaData.HeelsData).ConfigureAwait(false);
-                        break;
-
-                    case PlayerChanges.Honorific:
-                        await _ipcManager.Honorific.SetTitleAsync(handler.Address, charaData.HonorificData).ConfigureAwait(false);
-                        break;
-
-                    case PlayerChanges.Glamourer:
-                        if (charaData.GlamourerData.TryGetValue(changes.Key, out var glamourerData))
-                        {
-                            await _ipcManager.Glamourer.ApplyAllAsync(Logger, handler, glamourerData, applicationId, token, allowImmediate: true).ConfigureAwait(false);
-                        }
-                        break;
-
-                    case PlayerChanges.PetNames:
-                        await _ipcManager.PetNames.SetPlayerData(handler.Address, charaData.PetNamesData).ConfigureAwait(false);
-                        break;
-
-                    case PlayerChanges.Moodles:
-                        await _ipcManager.Moodles.SetStatusAsync(handler.Address, charaData.MoodlesData).ConfigureAwait(false);
-                        break;
-
-                    case PlayerChanges.ForcedRedraw:
-                        await _ipcManager.Penumbra.RedrawAsync(Logger, handler, applicationId, token).ConfigureAwait(false);
-                        break;
-
-                    default:
-                        break;
-                }
-                token.ThrowIfCancellationRequested();
-            }
-        }
-
         try
         {
             if (handler.Address == nint.Zero)
@@ -445,19 +393,76 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             token.ThrowIfCancellationRequested();
             if (_configService.Current.SerialApplication)
             {
-                var serialChangeList = changes.Value.Where(p => p <= PlayerChanges.ForcedRedraw).OrderBy(p => (int)p);
-                var asyncChangeList = changes.Value.Where(p => p > PlayerChanges.ForcedRedraw).OrderBy(p => (int)p);
-                await _dalamudUtil.RunOnFrameworkThread(async () => await processApplication(serialChangeList).ConfigureAwait(false)).ConfigureAwait(false);
-                await Task.Run(async () => await processApplication(asyncChangeList).ConfigureAwait(false), CancellationToken.None).ConfigureAwait(false);
+                var orderedChanges = changes.Value.OrderBy(p => (int)p).ToList();
+                var serialChangeList = orderedChanges.Where(p => p <= PlayerChanges.ForcedRedraw).ToList();
+                var asyncChangeList = orderedChanges.Where(p => p > PlayerChanges.ForcedRedraw).ToList();
+                await _dalamudUtil.RunOnFrameworkThread(async () => await ProcessCustomizationChangesAsync(handler, applicationId, changes.Key, serialChangeList, charaData, token).ConfigureAwait(false)).ConfigureAwait(false);
+                await Task.Run(async () => await ProcessCustomizationChangesAsync(handler, applicationId, changes.Key, asyncChangeList, charaData, token).ConfigureAwait(false), CancellationToken.None).ConfigureAwait(false);
             }
             else
             {
-                await processApplication(changes.Value.OrderBy(p => (int)p)).ConfigureAwait(false);
+                var orderedChanges = changes.Value.OrderBy(p => (int)p).ToList();
+                await ProcessCustomizationChangesAsync(handler, applicationId, changes.Key, orderedChanges, charaData, token).ConfigureAwait(false);
             }
         }
         finally
         {
             if (handler != _charaHandler) handler.Dispose();
+        }
+    }
+
+    private async Task ProcessCustomizationChangesAsync(GameObjectHandler handler, Guid applicationId, ObjectKind objectKind,
+        IEnumerable<PlayerChanges> changeList, CharacterData charaData, CancellationToken token)
+    {
+        foreach (var change in changeList)
+        {
+            Logger.LogDebug("[{applicationId}{ft}] Processing {change} for {handler}", applicationId, _dalamudUtil.IsOnFrameworkThread ? "*" : string.Empty, change, handler);
+            switch (change)
+            {
+                case PlayerChanges.Customize:
+                    if (charaData.CustomizePlusData.TryGetValue(objectKind, out var customizePlusData))
+                    {
+                        _customizeIds[objectKind] = await _ipcManager.CustomizePlus.SetBodyScaleAsync(handler.Address, customizePlusData).ConfigureAwait(false);
+                    }
+                    else if (_customizeIds.TryGetValue(objectKind, out var customizeId))
+                    {
+                        await _ipcManager.CustomizePlus.RevertByIdAsync(customizeId).ConfigureAwait(false);
+                        _customizeIds.Remove(objectKind);
+                    }
+                    break;
+
+                case PlayerChanges.Heels:
+                    await _ipcManager.Heels.SetOffsetForPlayerAsync(handler.Address, charaData.HeelsData).ConfigureAwait(false);
+                    break;
+
+                case PlayerChanges.Honorific:
+                    await _ipcManager.Honorific.SetTitleAsync(handler.Address, charaData.HonorificData).ConfigureAwait(false);
+                    break;
+
+                case PlayerChanges.Glamourer:
+                    if (charaData.GlamourerData.TryGetValue(objectKind, out var glamourerData))
+                    {
+                        await _ipcManager.Glamourer.ApplyAllAsync(Logger, handler, glamourerData, applicationId, token, allowImmediate: true).ConfigureAwait(false);
+                    }
+                    break;
+
+                case PlayerChanges.PetNames:
+                    await _ipcManager.PetNames.SetPlayerData(handler.Address, charaData.PetNamesData).ConfigureAwait(false);
+                    break;
+
+                case PlayerChanges.Moodles:
+                    await _ipcManager.Moodles.SetStatusAsync(handler.Address, charaData.MoodlesData).ConfigureAwait(false);
+                    break;
+
+                case PlayerChanges.ForcedRedraw:
+                    await _ipcManager.Penumbra.RedrawAsync(Logger, handler, applicationId, token).ConfigureAwait(false);
+                    break;
+
+                default:
+                    break;
+            }
+
+            token.ThrowIfCancellationRequested();
         }
     }
 

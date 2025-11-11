@@ -1,7 +1,7 @@
 ﻿using Dalamud.Interface.Windowing;
 using Microsoft.Extensions.Logging;
 
-namespace MareSynchronos.Services.Mediator;
+namespace UmbraSync.Services.Mediator;
 
 public abstract class WindowMediatorSubscriberBase : Window, IMediatorSubscriber, IDisposable
 {

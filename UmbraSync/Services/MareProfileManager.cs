@@ -1,13 +1,13 @@
 ﻿using UmbraSync.API.Data;
 using UmbraSync.API.Data.Comparer;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.WebAPI;
+using UmbraSync.MareConfiguration;
+using UmbraSync.Services.Mediator;
+using UmbraSync.WebAPI;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using API = UmbraSync.API;
 
-namespace MareSynchronos.Services;
+namespace UmbraSync.Services;
 
 public class MareProfileManager : MediatorSubscriberBase
 {

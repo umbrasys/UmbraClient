@@ -1,13 +1,13 @@
 ﻿using UmbraSync.API.Data;
-using MareSynchronos.PlayerData.Handlers;
-using MareSynchronos.Services;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.Utils;
-using MareSynchronos.WebAPI;
-using MareSynchronos.WebAPI.Files;
+using UmbraSync.PlayerData.Handlers;
+using UmbraSync.Services;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Utils;
+using UmbraSync.WebAPI;
+using UmbraSync.WebAPI.Files;
 using Microsoft.Extensions.Logging;
 
-namespace MareSynchronos.PlayerData.Pairs;
+namespace UmbraSync.PlayerData.Pairs;
 
 public class OnlinePlayerManager : DisposableMediatorSubscriberBase
 {

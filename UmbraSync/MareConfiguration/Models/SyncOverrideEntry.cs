@@ -1,6 +1,6 @@
 using System;
 
-namespace MareSynchronos.MareConfiguration.Models;
+namespace UmbraSync.MareConfiguration.Models;
 
 [Serializable]
 public class SyncOverrideEntry

@@ -1,4 +1,4 @@
-﻿namespace MareSynchronos.Services.Events;
+﻿namespace UmbraSync.Services.Events;
 
 public enum EventSeverity
 {

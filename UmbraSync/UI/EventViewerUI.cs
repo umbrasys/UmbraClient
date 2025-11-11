@@ -3,16 +3,16 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Utility;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.Services;
-using MareSynchronos.Services.Events;
-using MareSynchronos.Services.Mediator;
+using UmbraSync.MareConfiguration;
+using UmbraSync.Services;
+using UmbraSync.Services.Events;
+using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Globalization;
 using System.Numerics;
 
-namespace MareSynchronos.UI;
+namespace UmbraSync.UI;
 
 internal class EventViewerUI : WindowMediatorSubscriberBase
 {

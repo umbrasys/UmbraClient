@@ -10,10 +10,10 @@ using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using FFXIVClientStructs.FFXIV.Client.UI.Shell;
 using FFXIVClientStructs.FFXIV.Component.Shell;
-using MareSynchronos.Services;
+using UmbraSync.Services;
 using Microsoft.Extensions.Logging;
 
-namespace MareSynchronos.Interop;
+namespace UmbraSync.Interop;
 
 public record ChatChannelOverride
 {

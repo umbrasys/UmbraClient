@@ -1,10 +1,10 @@
 ﻿using System.Collections.Generic;
-using MareSynchronos.MareConfiguration.Models;
-using MareSynchronos.UI;
+using UmbraSync.MareConfiguration.Models;
+using UmbraSync.UI;
 using Microsoft.Extensions.Logging;
 using System.Text.Json.Serialization;
 
-namespace MareSynchronos.MareConfiguration.Configurations;
+namespace UmbraSync.MareConfiguration.Configurations;
 
 [Serializable]
 public class MareConfig : IMareConfiguration

@@ -7,16 +7,16 @@ using UmbraSync.API.Data.Enum;
 using UmbraSync.API.Data.Extensions;
 using UmbraSync.API.Dto.Group;
 using UmbraSync.API.Dto.User;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.MareConfiguration.Configurations;
-using MareSynchronos.MareConfiguration.Models;
-using MareSynchronos.PlayerData.Pairs;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.WebAPI;
+using UmbraSync.MareConfiguration;
+using UmbraSync.MareConfiguration.Configurations;
+using UmbraSync.MareConfiguration.Models;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.Services.Mediator;
+using UmbraSync.WebAPI;
 using Microsoft.Extensions.Logging;
-using NotificationType = MareSynchronos.MareConfiguration.Models.NotificationType;
+using NotificationType = UmbraSync.MareConfiguration.Models.NotificationType;
 
-namespace MareSynchronos.Services;
+namespace UmbraSync.Services;
 
 public sealed class SyncDefaultsService : DisposableMediatorSubscriberBase
 {

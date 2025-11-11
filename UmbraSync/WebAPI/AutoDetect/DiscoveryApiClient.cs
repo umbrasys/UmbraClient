@@ -3,10 +3,10 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
-using MareSynchronos.WebAPI.SignalR;
-using MareSynchronos.Services.AutoDetect;
+using UmbraSync.WebAPI.SignalR;
+using UmbraSync.Services.AutoDetect;
 
-namespace MareSynchronos.WebAPI.AutoDetect;
+namespace UmbraSync.WebAPI.AutoDetect;
 
 public class DiscoveryApiClient
 {

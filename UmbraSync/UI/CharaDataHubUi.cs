@@ -7,21 +7,21 @@ using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using UmbraSync.API.Dto.CharaData;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.MareConfiguration.Models;
-using MareSynchronos.PlayerData.Pairs;
-using MareSynchronos.Services;
-using MareSynchronos.Services.CharaData;
-using MareSynchronos.Services.CharaData.Models;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.Services.ServerConfiguration;
-using MareSynchronos.Utils;
+using UmbraSync.MareConfiguration;
+using UmbraSync.MareConfiguration.Models;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.Services;
+using UmbraSync.Services.CharaData;
+using UmbraSync.Services.CharaData.Models;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Services.ServerConfiguration;
+using UmbraSync.Utils;
 using Microsoft.Extensions.Logging;
 using System.IO;
 using System.Linq;
 using System.Threading;
 
-namespace MareSynchronos.UI;
+namespace UmbraSync.UI;
 
 public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
 {

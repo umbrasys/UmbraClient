@@ -2,12 +2,12 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
-using MareSynchronos.PlayerData.Pairs;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.WebAPI;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.Services.Mediator;
+using UmbraSync.WebAPI;
 using System.Numerics;
 
-namespace MareSynchronos.UI.Components.Popup;
+namespace UmbraSync.UI.Components.Popup;
 
 internal class ReportPopupHandler : IPopupHandler
 {

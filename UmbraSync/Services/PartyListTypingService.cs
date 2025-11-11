@@ -1,6 +1,6 @@
-using MareSynchronos.MareConfiguration;
+using UmbraSync.MareConfiguration;
 using System.Collections.Generic;
-using MareSynchronos.PlayerData.Pairs;
+using UmbraSync.PlayerData.Pairs;
 using System;
 using System.Linq;
 using Dalamud.Game.Text;
@@ -8,10 +8,10 @@ using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Plugin.Services;
 using UmbraSync.API.Dto.User;
-using MareSynchronos.Services.Mediator;
+using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Logging;
 
-namespace MareSynchronos.Services;
+namespace UmbraSync.Services;
 
 public class PartyListTypingService : DisposableMediatorSubscriberBase
 {

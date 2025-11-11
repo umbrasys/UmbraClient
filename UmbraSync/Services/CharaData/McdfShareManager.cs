@@ -6,12 +6,12 @@ using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using UmbraSync.API.Dto.McdfShare;
-using MareSynchronos.MareConfiguration.Models;
-using MareSynchronos.Services.ServerConfiguration;
-using MareSynchronos.WebAPI;
+using UmbraSync.MareConfiguration.Models;
+using UmbraSync.Services.ServerConfiguration;
+using UmbraSync.WebAPI;
 using Microsoft.Extensions.Logging;
 
-namespace MareSynchronos.Services.CharaData;
+namespace UmbraSync.Services.CharaData;
 
 public sealed class McdfShareManager
 {

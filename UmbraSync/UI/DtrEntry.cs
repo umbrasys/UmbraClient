@@ -3,17 +3,17 @@ using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Plugin.Services;
 using Dalamud.Interface;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.MareConfiguration.Configurations;
-using MareSynchronos.PlayerData.Pairs;
-using MareSynchronos.Services.AutoDetect;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.WebAPI;
+using UmbraSync.MareConfiguration;
+using UmbraSync.MareConfiguration.Configurations;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.Services.AutoDetect;
+using UmbraSync.Services.Mediator;
+using UmbraSync.WebAPI;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Runtime.InteropServices;
 
-namespace MareSynchronos.UI;
+namespace UmbraSync.UI;
 
 public sealed class DtrEntry : IDisposable, IHostedService
 {

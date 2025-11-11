@@ -1,6 +1,6 @@
-using MareSynchronos.MareConfiguration.Configurations;
+using UmbraSync.MareConfiguration.Configurations;
 
-namespace MareSynchronos.MareConfiguration;
+namespace UmbraSync.MareConfiguration;
 
 public class NotificationsConfigService : ConfigurationServiceBase<NotificationsConfig>
 {

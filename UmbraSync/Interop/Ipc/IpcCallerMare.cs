@@ -1,10 +1,10 @@
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
-using MareSynchronos.Services;
-using MareSynchronos.Services.Mediator;
+using UmbraSync.Services;
+using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Logging;
 
-namespace MareSynchronos.Interop.Ipc;
+namespace UmbraSync.Interop.Ipc;
 
 public sealed class IpcCallerMare : DisposableMediatorSubscriberBase
 {
@@ -15,11 +15,11 @@ public sealed class IpcCallerMare : DisposableMediatorSubscriberBase
 
     public IpcCallerMare(ILogger<IpcCallerMare> logger, IDalamudPluginInterface pi,  MareMediator mediator) : base(logger, mediator)
     {
-        _mareHandledGameAddresses = pi.GetIpcSubscriber<List<nint>>("MareSynchronos.GetHandledAddresses");
+        _mareHandledGameAddresses = pi.GetIpcSubscriber<List<nint>>("UmbraSync.GetHandledAddresses");
 
-        _pluginLoaded = PluginWatcherService.GetInitialPluginState(pi, "MareSynchronos")?.IsLoaded ?? false;
+        _pluginLoaded = PluginWatcherService.GetInitialPluginState(pi, "UmbraSync")?.IsLoaded ?? false;
 
-        Mediator.SubscribeKeyed<PluginChangeMessage>(this, "MareSynchronos", (msg) =>
+        Mediator.SubscribeKeyed<PluginChangeMessage>(this, "UmbraSync", (msg) =>
         {
             _pluginLoaded = msg.IsLoaded;
         });

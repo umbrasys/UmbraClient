@@ -9,20 +9,20 @@ using UmbraSync.API.Data.Comparer;
 using UmbraSync.API.Data.Enum;
 using UmbraSync.API.Data.Extensions;
 using UmbraSync.API.Dto.Group;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.PlayerData.Pairs;
-using MareSynchronos.Services;
-using MareSynchronos.Services.AutoDetect;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.Services.ServerConfiguration;
-using MareSynchronos.UI.Components;
-using MareSynchronos.UI.Handlers;
-using MareSynchronos.WebAPI;
+using UmbraSync.MareConfiguration;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.Services;
+using UmbraSync.Services.AutoDetect;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Services.ServerConfiguration;
+using UmbraSync.UI.Components;
+using UmbraSync.UI.Handlers;
+using UmbraSync.WebAPI;
 using System;
 using System.Globalization;
 using System.Numerics;
 
-namespace MareSynchronos.UI;
+namespace UmbraSync.UI;
 
 internal sealed class GroupPanel
 {

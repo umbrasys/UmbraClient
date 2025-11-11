@@ -2,7 +2,7 @@
 
 using System.Text.RegularExpressions;
 
-namespace MareSynchronos.PlayerData.Data;
+namespace UmbraSync.PlayerData.Data;
 
 public partial class FileReplacement
 {

@@ -7,27 +7,27 @@ using Dalamud.Interface.Utility.Raii;
 using Dalamud.Utility;
 using UmbraSync.API.Data;
 using UmbraSync.API.Data.Comparer;
-using MareSynchronos.FileCache;
-using MareSynchronos.Interop.Ipc;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.MareConfiguration.Models;
-using MareSynchronos.PlayerData.Handlers;
-using MareSynchronos.PlayerData.Pairs;
-using MareSynchronos.Services;
-using MareSynchronos.Services.AutoDetect;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.Services.ServerConfiguration;
-using MareSynchronos.WebAPI;
-using MareSynchronos.WebAPI.Files;
-using MareSynchronos.WebAPI.Files.Models;
-using MareSynchronos.WebAPI.SignalR.Utils;
+using UmbraSync.FileCache;
+using UmbraSync.Interop.Ipc;
+using UmbraSync.MareConfiguration;
+using UmbraSync.MareConfiguration.Models;
+using UmbraSync.PlayerData.Handlers;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.Services;
+using UmbraSync.Services.AutoDetect;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Services.ServerConfiguration;
+using UmbraSync.WebAPI;
+using UmbraSync.WebAPI.Files;
+using UmbraSync.WebAPI.Files.Models;
+using UmbraSync.WebAPI.SignalR.Utils;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Numerics;
 using System.Text.Json;
 
-namespace MareSynchronos.UI;
+namespace UmbraSync.UI;
 
 public class SettingsUi : WindowMediatorSubscriberBase
 {

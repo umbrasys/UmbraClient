@@ -1,10 +1,10 @@
 ﻿using Dalamud.Plugin.Services;
-using MareSynchronos.MareConfiguration;
+using UmbraSync.MareConfiguration;
 using Microsoft.Extensions.Logging;
 
 using System.Collections.Concurrent;
 
-namespace MareSynchronos.Interop;
+namespace UmbraSync.Interop;
 
 [ProviderAlias("Dalamud")]
 public sealed class DalamudLoggingProvider : ILoggerProvider

@@ -1,12 +1,12 @@
 ﻿using UmbraSync.API.Data;
 using UmbraSync.API.Data.Comparer;
-using MareSynchronos.Interop.Ipc;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.MareConfiguration.Models;
-using MareSynchronos.Services.Mediator;
+using UmbraSync.Interop.Ipc;
+using UmbraSync.MareConfiguration;
+using UmbraSync.MareConfiguration.Models;
+using UmbraSync.Services.Mediator;
 using System.Collections.Concurrent;
 
-namespace MareSynchronos.PlayerData.Pairs;
+namespace UmbraSync.PlayerData.Pairs;
 
 public class PluginWarningNotificationService
 {

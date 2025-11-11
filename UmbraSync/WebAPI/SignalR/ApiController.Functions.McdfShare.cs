@@ -4,7 +4,7 @@ using UmbraSync.API.Dto.McdfShare;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 
-namespace MareSynchronos.WebAPI;
+namespace UmbraSync.WebAPI;
 
 public sealed partial class ApiController
 {

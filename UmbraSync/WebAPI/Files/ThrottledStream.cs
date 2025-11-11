@@ -1,4 +1,4 @@
-﻿namespace MareSynchronos.WebAPI.Files
+﻿namespace UmbraSync.WebAPI.Files
 {
     /// <summary>
     ///     Class for streaming data with throttling support.

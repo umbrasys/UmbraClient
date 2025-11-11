@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using MareSynchronos.MareConfiguration.Models;
+using UmbraSync.MareConfiguration.Models;
 
-namespace MareSynchronos.MareConfiguration.Configurations;
+namespace UmbraSync.MareConfiguration.Configurations;
 
 [Serializable]
 public class NotificationsConfig : IMareConfiguration

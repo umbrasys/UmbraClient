@@ -1,9 +1,9 @@
-using MareSynchronos.Interop.Ipc;
-using MareSynchronos.Services.Mediator;
+using UmbraSync.Interop.Ipc;
+using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 
-namespace MareSynchronos.Services;
+namespace UmbraSync.Services;
 
 // Detect when players of interest are visible
 public class VisibilityService : DisposableMediatorSubscriberBase

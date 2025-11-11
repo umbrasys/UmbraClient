@@ -1,9 +1,9 @@
-﻿using MareSynchronos.MareConfiguration;
-using MareSynchronos.Services;
+﻿using UmbraSync.MareConfiguration;
+using UmbraSync.Services;
 using Microsoft.Extensions.Logging;
 using System.Runtime.InteropServices;
 
-namespace MareSynchronos.FileCache;
+namespace UmbraSync.FileCache;
 
 public sealed class FileCompactor
 {

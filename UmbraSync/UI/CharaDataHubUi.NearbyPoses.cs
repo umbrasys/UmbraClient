@@ -5,7 +5,7 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using System.Numerics;
 
-namespace MareSynchronos.UI;
+namespace UmbraSync.UI;
 
 public sealed partial class CharaDataHubUi
 {

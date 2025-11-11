@@ -1,4 +1,4 @@
-namespace MareSynchronos.Utils;
+namespace UmbraSync.Utils;
 
 // Limits the number of bytes read/written to an underlying stream
 public class LimitedStream : Stream

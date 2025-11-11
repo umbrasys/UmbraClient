@@ -3,11 +3,11 @@ using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
-using MareSynchronos.PlayerData.Pairs;
-using MareSynchronos.UI.Handlers;
-using MareSynchronos.WebAPI;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.UI.Handlers;
+using UmbraSync.WebAPI;
 
-namespace MareSynchronos.UI.Components;
+namespace UmbraSync.UI.Components;
 
 public abstract class DrawPairBase
 {

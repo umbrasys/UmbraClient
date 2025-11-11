@@ -1,10 +1,10 @@
 ﻿using Dalamud.Plugin.Services;
-using MareSynchronos.MareConfiguration;
+using UmbraSync.MareConfiguration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 
-namespace MareSynchronos.Interop;
+namespace UmbraSync.Interop;
 
 public static class DalamudLoggingProviderExtensions
 {

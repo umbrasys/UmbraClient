@@ -6,18 +6,18 @@ using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Plugin.Services;
 using UmbraSync.API.Data;
-using MareSynchronos.Interop;
-using MareSynchronos.MareConfiguration;
+using UmbraSync.Interop;
+using UmbraSync.MareConfiguration;
 using UmbraSync.API.Data.Enum;
-using MareSynchronos.MareConfiguration.Models;
-using MareSynchronos.PlayerData.Pairs;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.Services.ServerConfiguration;
-using MareSynchronos.Utils;
-using MareSynchronos.WebAPI;
+using UmbraSync.MareConfiguration.Models;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Services.ServerConfiguration;
+using UmbraSync.Utils;
+using UmbraSync.WebAPI;
 using Microsoft.Extensions.Logging;
 
-namespace MareSynchronos.Services;
+namespace UmbraSync.Services;
 
 public class ChatService : DisposableMediatorSubscriberBase
 {

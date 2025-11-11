@@ -1,4 +1,4 @@
-﻿namespace MareSynchronos.WebAPI.SignalR;
+﻿namespace UmbraSync.WebAPI.SignalR;
 
 public record JwtIdentifier(string ApiUrl, string CharaHash, string SecretKey)
 {

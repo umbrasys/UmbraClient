@@ -8,12 +8,12 @@ using Dalamud.Plugin.Services;
 using UmbraSync.API.Data;
 using UmbraSync.API.Data.Extensions;
 using UmbraSync.API.Data.Enum;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.MareConfiguration.Models;
-using MareSynchronos.PlayerData.Pairs;
-using MareSynchronos.Services;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.WebAPI;
+using UmbraSync.MareConfiguration;
+using UmbraSync.MareConfiguration.Models;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.Services;
+using UmbraSync.Services.Mediator;
+using UmbraSync.WebAPI;
 using Microsoft.Extensions.Logging;
 using Dalamud.Interface.Textures.TextureWraps;
 using FFXIVClientStructs.Interop;
@@ -21,7 +21,7 @@ using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 
-namespace MareSynchronos.UI;
+namespace UmbraSync.UI;
 
 public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
 {

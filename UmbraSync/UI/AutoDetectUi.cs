@@ -8,18 +8,18 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using UmbraSync.API.Dto.Group;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.PlayerData.Pairs;
-using MareSynchronos.Services.Mediator;
+using UmbraSync.MareConfiguration;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Logging;
 using System.Numerics;
 using System.Globalization;
 using System.Text;
-using MareSynchronos.Services;
-using MareSynchronos.Services.AutoDetect;
-using NotificationType = MareSynchronos.MareConfiguration.Models.NotificationType;
+using UmbraSync.Services;
+using UmbraSync.Services.AutoDetect;
+using NotificationType = UmbraSync.MareConfiguration.Models.NotificationType;
 
-namespace MareSynchronos.UI;
+namespace UmbraSync.UI;
 
 public class AutoDetectUi : WindowMediatorSubscriberBase
 {

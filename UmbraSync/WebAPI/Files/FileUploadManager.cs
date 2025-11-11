@@ -1,18 +1,18 @@
 ﻿using UmbraSync.API.Data;
 using UmbraSync.API.Dto.Files;
 using UmbraSync.API.Routes;
-using MareSynchronos.FileCache;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.Services.ServerConfiguration;
-using MareSynchronos.UI;
-using MareSynchronos.WebAPI.Files.Models;
+using UmbraSync.FileCache;
+using UmbraSync.MareConfiguration;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Services.ServerConfiguration;
+using UmbraSync.UI;
+using UmbraSync.WebAPI.Files.Models;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 
 
-namespace MareSynchronos.WebAPI.Files;
+namespace UmbraSync.WebAPI.Files;
 
 public sealed class FileUploadManager : DisposableMediatorSubscriberBase
 {

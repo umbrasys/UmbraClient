@@ -5,7 +5,7 @@ using System.Globalization;
 using System.Numerics;
 using System.Text;
 
-namespace MareSynchronos.Services.CharaData.Models;
+namespace UmbraSync.Services.CharaData.Models;
 
 public sealed record PoseEntryExtended : PoseEntry
 {

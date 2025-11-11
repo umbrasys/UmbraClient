@@ -1,7 +1,7 @@
-﻿using MareSynchronos.MareConfiguration.Configurations;
+﻿using UmbraSync.MareConfiguration.Configurations;
 using System.Text.Json;
 
-namespace MareSynchronos.MareConfiguration;
+namespace UmbraSync.MareConfiguration;
 
 public abstract class ConfigurationServiceBase<T> : IConfigService<T> where T : IMareConfiguration
 {

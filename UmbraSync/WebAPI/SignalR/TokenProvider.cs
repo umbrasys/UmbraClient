@@ -1,9 +1,9 @@
 ﻿using UmbraSync.API.Routes;
-using MareSynchronos.MareConfiguration.Models;
-using MareSynchronos.Services;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.Services.ServerConfiguration;
-using MareSynchronos.Utils;
+using UmbraSync.MareConfiguration.Models;
+using UmbraSync.Services;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Services.ServerConfiguration;
+using UmbraSync.Utils;
 using UmbraSync.API.Dto;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
@@ -12,7 +12,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Reflection;
 
-namespace MareSynchronos.WebAPI.SignalR;
+namespace UmbraSync.WebAPI.SignalR;
 
 public sealed class TokenProvider : IDisposable, IMediatorSubscriber
 {
@@ -50,7 +50,7 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
             _tokenCache.Clear();
             _wellKnownCache.Clear();
         });
-        _httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("MareSynchronos", ver!.Major + "." + ver!.Minor + "." + ver!.Build));
+        _httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("UmbraSync", ver!.Major + "." + ver!.Minor + "." + ver!.Build));
     }
 
     public MareMediator Mediator { get; }

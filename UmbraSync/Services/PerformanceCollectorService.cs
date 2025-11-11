@@ -1,12 +1,13 @@
-﻿using MareSynchronos.MareConfiguration;
-using MareSynchronos.Utils;
+﻿using UmbraSync.MareConfiguration;
+using UmbraSync.Utils;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text;
+using System.Threading.Tasks;
 
-namespace MareSynchronos.Services;
+namespace UmbraSync.Services;
 
 public sealed class PerformanceCollectorService : IHostedService
 {
@@ -76,7 +77,17 @@ public sealed class PerformanceCollectorService : IHostedService
         }
     }
 
-    public async Task LogPerformanceAsync(object sender, MareInterpolatedStringHandler counterName, Func<Task> func, int maxEntries = 10000)
+    public Task LogPerformanceAsync(object sender, MareInterpolatedStringHandler counterName, Func<Task> func, int maxEntries = 10000)
+    {
+        return LogPerformanceAsyncInternal(sender, counterName.BuildMessage(), func, maxEntries);
+    }
+
+    public Task<T> LogPerformanceAsync<T>(object sender, MareInterpolatedStringHandler counterName, Func<Task<T>> func, int maxEntries = 10000)
+    {
+        return LogPerformanceAsyncInternal(sender, counterName.BuildMessage(), func, maxEntries);
+    }
+
+    private async Task LogPerformanceAsyncInternal(object sender, string counterName, Func<Task> func, int maxEntries)
     {
         if (!_mareConfigService.Current.LogPerformance)
         {
@@ -84,7 +95,7 @@ public sealed class PerformanceCollectorService : IHostedService
             return;
         }
 
-        var cn = sender.GetType().Name + _counterSplit + counterName.BuildMessage();
+        var cn = sender.GetType().Name + _counterSplit + counterName;
 
         if (!PerformanceCounters.TryGetValue(cn, out var list))
         {
@@ -95,6 +106,36 @@ public sealed class PerformanceCollectorService : IHostedService
         try
         {
             await func().ConfigureAwait(false);
+        }
+        finally
+        {
+            var elapsed = DateTime.UtcNow.Ticks - dt;
+#if DEBUG
+            if (TimeSpan.FromTicks(elapsed) > TimeSpan.FromMilliseconds(10))
+                _logger.LogWarning(">10ms spike on {counterName}: {time}", cn, TimeSpan.FromTicks(elapsed));
+#endif
+            list.Add((TimeOnly.FromDateTime(DateTime.Now), elapsed));
+        }
+    }
+
+    private async Task<T> LogPerformanceAsyncInternal<T>(object sender, string counterName, Func<Task<T>> func, int maxEntries)
+    {
+        if (!_mareConfigService.Current.LogPerformance)
+        {
+            return await func().ConfigureAwait(false);
+        }
+
+        var cn = sender.GetType().Name + _counterSplit + counterName;
+
+        if (!PerformanceCounters.TryGetValue(cn, out var list))
+        {
+            list = PerformanceCounters[cn] = new(maxEntries);
+        }
+
+        var dt = DateTime.UtcNow.Ticks;
+        try
+        {
+            return await func().ConfigureAwait(false);
         }
         finally
         {

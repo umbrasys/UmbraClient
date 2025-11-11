@@ -3,17 +3,17 @@ using K4os.Compression.LZ4.Legacy;
 using UmbraSync.API.Data;
 using UmbraSync.API.Data.Enum;
 using UmbraSync.API.Dto.CharaData;
-using MareSynchronos.FileCache;
-using MareSynchronos.PlayerData.Factories;
-using MareSynchronos.PlayerData.Handlers;
-using MareSynchronos.Services.CharaData;
-using MareSynchronos.Services.CharaData.Models;
-using MareSynchronos.Utils;
-using MareSynchronos.WebAPI.Files;
+using UmbraSync.FileCache;
+using UmbraSync.PlayerData.Factories;
+using UmbraSync.PlayerData.Handlers;
+using UmbraSync.Services.CharaData;
+using UmbraSync.Services.CharaData.Models;
+using UmbraSync.Utils;
+using UmbraSync.WebAPI.Files;
 using Microsoft.Extensions.Logging;
 using System.Threading;
 
-namespace MareSynchronos.Services;
+namespace UmbraSync.Services;
 
 public sealed class CharaDataFileHandler : IDisposable
 {

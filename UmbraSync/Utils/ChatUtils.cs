@@ -2,7 +2,7 @@ using Dalamud.Game.Text.SeStringHandling.Payloads;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace MareSynchronos.Utils;
+namespace UmbraSync.Utils;
 
 public static class ChatUtils
 {
@@ -26,7 +26,7 @@ public static class ChatUtils
     // We have a unique identifier in the form of a GID, which can be consistently mapped to the same GUID
     public static RawPayload CreateExtraChatTagPayload(string gid)
     {
-        var gidBytes = UTF8Encoding.UTF8.GetBytes(gid);
+        var gidBytes = Encoding.UTF8.GetBytes(gid);
         var hashedBytes = MD5.HashData(gidBytes);
         var guid = new Guid(hashedBytes);
         return CreateExtraChatTagPayload(guid);

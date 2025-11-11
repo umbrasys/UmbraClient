@@ -1,15 +1,15 @@
 using UmbraSync.API.Dto.Account;
 using UmbraSync.API.Routes;
-using MareSynchronos.Services;
-using MareSynchronos.Services.ServerConfiguration;
-using MareSynchronos.Utils;
-using MareSynchronos.WebAPI.SignalR;
+using UmbraSync.Services;
+using UmbraSync.Services.ServerConfiguration;
+using UmbraSync.Utils;
+using UmbraSync.WebAPI.SignalR;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Reflection;
 using System.Security.Cryptography;
 
-namespace MareSynchronos.WebAPI;
+namespace UmbraSync.WebAPI;
 
 public sealed class AccountRegistrationService : IDisposable
 {
@@ -32,7 +32,7 @@ public sealed class AccountRegistrationService : IDisposable
             }
         );
         var ver = Assembly.GetExecutingAssembly().GetName().Version;
-        _httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("MareSynchronos", ver!.Major + "." + ver!.Minor + "." + ver!.Build));
+        _httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("UmbraSync", ver!.Major + "." + ver!.Minor + "." + ver!.Build));
     }
 
     public void Dispose()

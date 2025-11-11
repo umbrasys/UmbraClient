@@ -1,13 +1,13 @@
 using System;
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
-using MareSynchronos.MareConfiguration.Models;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.Services.Notifications;
-using MareSynchronos.WebAPI;
+using UmbraSync.MareConfiguration.Models;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Services.Notifications;
+using UmbraSync.WebAPI;
 using Microsoft.Extensions.Logging;
 
-namespace MareSynchronos.Services.AutoDetect;
+namespace UmbraSync.Services.AutoDetect;
 
 public sealed class NearbyPendingService : IMediatorSubscriber
 {
@@ -39,7 +39,7 @@ public sealed class NearbyPendingService : IMediatorSubscriber
     private void OnNotification(NotificationMessage msg)
     {
         // Watch info messages for Nearby request pattern
-        if (msg.Type != MareSynchronos.MareConfiguration.Models.NotificationType.Info) return;
+        if (msg.Type != UmbraSync.MareConfiguration.Models.NotificationType.Info) return;
         var ma = AcceptRegex.Match(msg.Message);
         if (ma.Success)
         {

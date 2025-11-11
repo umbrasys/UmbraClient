@@ -1,10 +1,10 @@
 ﻿using UmbraSync.API.Data;
 using UmbraSync.API.Data.Enum;
-using MareSynchronos.FileCache;
+using UmbraSync.FileCache;
 using System.Text;
 using System.Text.Json;
 
-namespace MareSynchronos.Services.CharaData.Models;
+namespace UmbraSync.Services.CharaData.Models;
 
 public record MareCharaFileData
 {

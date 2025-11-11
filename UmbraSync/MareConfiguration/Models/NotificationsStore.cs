@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace MareSynchronos.MareConfiguration.Models;
+namespace UmbraSync.MareConfiguration.Models;
 
 [Serializable]
 public class StoredNotification

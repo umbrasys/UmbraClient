@@ -1,4 +1,4 @@
-﻿namespace MareSynchronos.Services.CharaData.Models;
+﻿namespace UmbraSync.Services.CharaData.Models;
 
 public sealed record HandledCharaDataEntry(string Name, bool IsSelf, Guid? CustomizePlus, CharaDataMetaInfoExtendedDto MetaInfo)
 {

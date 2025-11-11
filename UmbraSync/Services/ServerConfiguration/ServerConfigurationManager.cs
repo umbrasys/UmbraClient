@@ -1,12 +1,12 @@
-﻿using MareSynchronos.MareConfiguration;
-using MareSynchronos.MareConfiguration.Models;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.Utils;
-using MareSynchronos.WebAPI;
+﻿using UmbraSync.MareConfiguration;
+using UmbraSync.MareConfiguration.Models;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Utils;
+using UmbraSync.WebAPI;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
-namespace MareSynchronos.Services.ServerConfiguration;
+namespace UmbraSync.Services.ServerConfiguration;
 
 public class ServerConfigurationManager
 {

@@ -4,14 +4,14 @@ using FFXIVClientStructs.Havok.Animation;
 using FFXIVClientStructs.Havok.Common.Base.Types;
 using FFXIVClientStructs.Havok.Common.Serialize.Util;
 using Lumina.Data;
-using MareSynchronos.FileCache;
-using MareSynchronos.Interop.GameModel;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.PlayerData.Handlers;
+using UmbraSync.FileCache;
+using UmbraSync.Interop.GameModel;
+using UmbraSync.MareConfiguration;
+using UmbraSync.PlayerData.Handlers;
 using Microsoft.Extensions.Logging;
 using System.Runtime.InteropServices;
 
-namespace MareSynchronos.Services;
+namespace UmbraSync.Services;
 
 public sealed class XivDataAnalyzer
 {

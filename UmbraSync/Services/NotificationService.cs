@@ -3,14 +3,14 @@ using System.Linq;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Plugin.Services;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.MareConfiguration.Models;
-using MareSynchronos.Services.Mediator;
+using UmbraSync.MareConfiguration;
+using UmbraSync.MareConfiguration.Models;
+using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using NotificationType = MareSynchronos.MareConfiguration.Models.NotificationType;
+using NotificationType = UmbraSync.MareConfiguration.Models.NotificationType;
 
-namespace MareSynchronos.Services;
+namespace UmbraSync.Services;
 
 public class NotificationService : DisposableMediatorSubscriberBase, IHostedService
 {

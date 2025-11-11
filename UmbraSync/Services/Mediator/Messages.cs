@@ -4,14 +4,14 @@ using UmbraSync.API.Dto;
 using UmbraSync.API.Dto.CharaData;
 using UmbraSync.API.Dto.Group;
 using UmbraSync.API.Dto.User;
-using MareSynchronos.MareConfiguration.Models;
-using MareSynchronos.PlayerData.Handlers;
-using MareSynchronos.PlayerData.Pairs;
-using MareSynchronos.Services.Events;
-using MareSynchronos.WebAPI.Files.Models;
+using UmbraSync.MareConfiguration.Models;
+using UmbraSync.PlayerData.Handlers;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.Services.Events;
+using UmbraSync.WebAPI.Files.Models;
 using System.Numerics;
 
-namespace MareSynchronos.Services.Mediator;
+namespace UmbraSync.Services.Mediator;
 
 #pragma warning disable MA0048
 #pragma warning disable S2094

@@ -1,6 +1,6 @@
-﻿using MareSynchronos.Services.ServerConfiguration;
+﻿using UmbraSync.Services.ServerConfiguration;
 
-namespace MareSynchronos.UI.Handlers;
+namespace UmbraSync.UI.Handlers;
 
 public class TagHandler
 {

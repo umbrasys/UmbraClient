@@ -1,17 +1,17 @@
 ﻿using Dalamud.Game.Command;
 using Dalamud.Plugin.Services;
-using MareSynchronos.FileCache;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.MareConfiguration.Models;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.Services.ServerConfiguration;
-using MareSynchronos.UI;
-using MareSynchronos.WebAPI;
+using UmbraSync.FileCache;
+using UmbraSync.MareConfiguration;
+using UmbraSync.MareConfiguration.Models;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Services.ServerConfiguration;
+using UmbraSync.UI;
+using UmbraSync.WebAPI;
 using System.Globalization;
 using System.Text;
 using System.Numerics;
 
-namespace MareSynchronos.Services;
+namespace UmbraSync.Services;
 
 public sealed class CommandManagerService : IDisposable
 {

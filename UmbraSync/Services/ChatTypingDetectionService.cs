@@ -8,12 +8,12 @@ using Dalamud.Game.Text;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using FFXIVClientStructs.FFXIV.Client.UI.Shell;
 using Microsoft.Extensions.Logging;
-using MareSynchronos.PlayerData.Pairs;
-using MareSynchronos.WebAPI;
-using MareSynchronos.MareConfiguration;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.WebAPI;
+using UmbraSync.MareConfiguration;
 using UmbraSync.API.Data.Enum;
 
-namespace MareSynchronos.Services;
+namespace UmbraSync.Services;
 
 public sealed class ChatTypingDetectionService : IDisposable
 {

@@ -1,8 +1,8 @@
 ﻿using UmbraSync.API.Data;
-using MareSynchronos.FileCache;
-using MareSynchronos.Services.CharaData.Models;
+using UmbraSync.FileCache;
+using UmbraSync.Services.CharaData.Models;
 
-namespace MareSynchronos.Services.CharaData;
+namespace UmbraSync.Services.CharaData;
 
 public sealed class MareCharaFileDataFactory
 {

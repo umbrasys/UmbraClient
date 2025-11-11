@@ -2,15 +2,15 @@
 using System;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.PlayerData.Handlers;
-using MareSynchronos.Services;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.Utils;
+using UmbraSync.MareConfiguration;
+using UmbraSync.PlayerData.Handlers;
+using UmbraSync.Services;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Utils;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace MareSynchronos.Interop.Ipc;
+namespace UmbraSync.Interop.Ipc;
 
 public class IpcProvider : IHostedService, IMediatorSubscriber
 {
@@ -57,8 +57,8 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
             _activeGameObjectHandlers.Remove(msg.GameObjectHandler);
         });
 
-        _marePluginEnabled = PluginWatcherService.GetInitialPluginState(pi, "MareSynchronos")?.IsLoaded ?? false;
-        Mediator.SubscribeKeyed<PluginChangeMessage>(this, "MareSynchronos", p => {
+        _marePluginEnabled = PluginWatcherService.GetInitialPluginState(pi, "UmbraSync")?.IsLoaded ?? false;
+        Mediator.SubscribeKeyed<PluginChangeMessage>(this, "UmbraSync", p => {
             _marePluginEnabled = p.IsLoaded;
             HandleMareImpersonation(automatic: true);
         });
@@ -74,9 +74,9 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
         _handledGameAddresses = _pi.GetIpcProvider<List<nint>>("UmbraSync.GetHandledAddresses");
         _handledGameAddresses.RegisterFunc(GetHandledAddresses);
 
-        _loadFileProviderMare = _pi.GetIpcProvider<string, IGameObject, bool>("MareSynchronos.LoadMcdf");
-        _loadFileAsyncProviderMare = _pi.GetIpcProvider<string, IGameObject, Task<bool>>("MareSynchronos.LoadMcdfAsync");
-        _handledGameAddressesMare = _pi.GetIpcProvider<List<nint>>("MareSynchronos.GetHandledAddresses");
+        _loadFileProviderMare = _pi.GetIpcProvider<string, IGameObject, bool>("UmbraSync.LoadMcdf");
+        _loadFileAsyncProviderMare = _pi.GetIpcProvider<string, IGameObject, Task<bool>>("UmbraSync.LoadMcdfAsync");
+        _handledGameAddressesMare = _pi.GetIpcProvider<List<nint>>("UmbraSync.GetHandledAddresses");
         HandleMareImpersonation(automatic: true);
 
         _logger.LogInformation("Started IpcProviderService");
@@ -121,7 +121,7 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
                     _loadFileAsyncProviderMare?.RegisterFunc(LoadMcdfAsync);
                     _handledGameAddressesMare?.RegisterFunc(GetHandledAddresses);
                     _impersonating = true;
-                    _logger.LogDebug("Registered MareSynchronos API");
+                    _logger.LogDebug("Registered UmbraSync API");
                 }, cancelToken);
             }
             else
@@ -134,7 +134,7 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
                     _handledGameAddressesMare?.UnregisterFunc();
                     _impersonating = false;
                     _unregisterTime = DateTime.UtcNow;
-                    _logger.LogDebug("Unregistered MareSynchronos API");
+                    _logger.LogDebug("Unregistered UmbraSync API");
                 }
             }
         }

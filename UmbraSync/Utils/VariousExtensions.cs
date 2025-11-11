@@ -1,12 +1,12 @@
 ﻿using Dalamud.Game.ClientState.Objects.Types;
 using UmbraSync.API.Data;
 using UmbraSync.API.Data.Enum;
-using MareSynchronos.PlayerData.Handlers;
-using MareSynchronos.PlayerData.Pairs;
+using UmbraSync.PlayerData.Handlers;
+using UmbraSync.PlayerData.Pairs;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
-namespace MareSynchronos.Utils;
+namespace UmbraSync.Utils;
 
 public static class VariousExtensions
 {

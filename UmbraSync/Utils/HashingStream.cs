@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 
-namespace MareSynchronos.Utils;
+namespace UmbraSync.Utils;
 
 // Calculates the hash of content read or written to a stream
 public class HashingStream : Stream

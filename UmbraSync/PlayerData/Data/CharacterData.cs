@@ -2,7 +2,7 @@
 
 using UmbraSync.API.Data.Enum;
 
-namespace MareSynchronos.PlayerData.Data;
+namespace UmbraSync.PlayerData.Data;
 
 public class CharacterData
 {

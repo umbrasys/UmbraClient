@@ -1,4 +1,4 @@
-﻿namespace MareSynchronos.WebAPI.SignalR.Utils;
+﻿namespace UmbraSync.WebAPI.SignalR.Utils;
 
 public enum ServerState
 {

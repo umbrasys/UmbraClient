@@ -5,12 +5,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using UmbraSync.API.Data;
 using UmbraSync.API.Dto.Group;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.WebAPI;
+using UmbraSync.Services.Mediator;
+using UmbraSync.WebAPI;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace MareSynchronos.Services.AutoDetect;
+namespace UmbraSync.Services.AutoDetect;
 
 public sealed class SyncshellDiscoveryService : IHostedService, IMediatorSubscriber
 {

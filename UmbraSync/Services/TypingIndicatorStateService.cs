@@ -1,13 +1,13 @@
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.WebAPI;
+using UmbraSync.Services.Mediator;
+using UmbraSync.WebAPI;
 using Microsoft.Extensions.Logging;
 using UmbraSync.API.Data;
-using MareSynchronos.MareConfiguration;
+using UmbraSync.MareConfiguration;
 
-namespace MareSynchronos.Services;
+namespace UmbraSync.Services;
 
 public sealed class TypingIndicatorStateService : IMediatorSubscriber, IDisposable
 {

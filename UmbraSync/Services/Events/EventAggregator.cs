@@ -1,10 +1,10 @@
-﻿﻿using MareSynchronos.MareConfiguration;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.Utils;
+﻿﻿using UmbraSync.MareConfiguration;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Utils;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace MareSynchronos.Services.Events;
+namespace UmbraSync.Services.Events;
 
 public class EventAggregator : MediatorSubscriberBase, IHostedService
 {

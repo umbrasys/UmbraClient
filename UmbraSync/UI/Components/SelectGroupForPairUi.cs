@@ -3,11 +3,11 @@ using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Utility;
-using MareSynchronos.PlayerData.Pairs;
-using MareSynchronos.UI.Handlers;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.UI.Handlers;
 using System.Numerics;
 
-namespace MareSynchronos.UI.Components;
+namespace UmbraSync.UI.Components;
 
 public class SelectGroupForPairUi
 {

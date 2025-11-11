@@ -1,7 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace MareSynchronos.Utils;
+namespace UmbraSync.Utils;
 
 [InterpolatedStringHandler]
 public readonly ref struct MareInterpolatedStringHandler

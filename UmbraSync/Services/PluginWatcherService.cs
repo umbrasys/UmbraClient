@@ -1,10 +1,10 @@
 using Dalamud.Plugin;
-using MareSynchronos.Services.Mediator;
+using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using CapturedPluginState = (string InternalName, System.Version Version, bool IsLoaded);
 
-namespace MareSynchronos.Services;
+namespace UmbraSync.Services;
 
 /* Parts of this code from ECommons DalamudReflector
 
