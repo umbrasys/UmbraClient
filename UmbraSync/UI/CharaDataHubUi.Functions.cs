@@ -86,7 +86,7 @@ public sealed partial class CharaDataHubUi
 		}
 	}
 
-	private void GposePoseAction(Action poseActionDraw, string poseDescription, bool hasValidGposeTarget)
+	private float GposePoseAction(Func<float, float> poseActionDraw, string poseDescription, bool hasValidGposeTarget, float start)
 	{
 		StringBuilder sb = new StringBuilder();
 
@@ -118,15 +118,18 @@ public sealed partial class CharaDataHubUi
 			isDisabled = true;
 		}
 
+		float result = start;
 		using (ImRaii.Group())
 		{
 			using var dis = ImRaii.Disabled(isDisabled);
-			poseActionDraw.Invoke();
+			result = poseActionDraw.Invoke(start);
 		}
 		if (sb.Length > 0)
 		{
 			UiSharedService.AttachToolTip(sb.ToString());
 		}
+
+		return result;
 	}
 
 	private void SetWindowSizeConstraints(bool? inGposeTab = null)
@@ -183,14 +186,14 @@ public sealed partial class CharaDataHubUi
 					(!_sharedWithYouDownloadableFilter || k.CanBeDownloaded)
 					&& (string.IsNullOrEmpty(_sharedWithYouDescriptionFilter) || k.Description.Contains(_sharedWithYouDescriptionFilter, StringComparison.OrdinalIgnoreCase)))
 				.GroupBy(k => k.Uploader)
-				.ToDictionary(k =>
-				{
-					var note = _serverConfigurationManager.GetNoteForUid(k.Key.UID);
-					if (note == null) return k.Key.AliasOrUID;
-					return $"{note} ({k.Key.AliasOrUID})";
-				}, k => k.ToList(), StringComparer.OrdinalIgnoreCase)
-				.Where(k => (string.IsNullOrEmpty(_sharedWithYouOwnerFilter) || k.Key.Contains(_sharedWithYouOwnerFilter, StringComparison.OrdinalIgnoreCase)))
-				.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase).ToDictionary();
+					.ToDictionary(k =>
+					{
+						var note = _serverConfigurationManager.GetNoteForUid(k.Key.UID);
+						return string.IsNullOrEmpty(note) ? k.Key.AliasOrUID : $"{note} ({k.Key.AliasOrUID})";
+					}, k => k.ToList(), StringComparer.OrdinalIgnoreCase)
+					.Where(k => string.IsNullOrEmpty(_sharedWithYouOwnerFilter) || k.Key.Contains(_sharedWithYouOwnerFilter, StringComparison.OrdinalIgnoreCase))
+					.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase)
+					.ToDictionary(k => k.Key, k => k.Value, StringComparer.OrdinalIgnoreCase);
 		}
 	}
 }

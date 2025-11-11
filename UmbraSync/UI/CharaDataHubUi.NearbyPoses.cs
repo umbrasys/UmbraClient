@@ -146,13 +146,16 @@ public sealed partial class CharaDataHubUi
                 ImGui.SetCursorPos(posAfterGroup);
                 if (_uiSharedService.IsInGpose)
                 {
-                    GposePoseAction(() =>
+                    _ = GposePoseAction(currentStart =>
                     {
+                        ImGui.SetCursorPosX(currentStart);
                         if (_uiSharedService.IconTextButton(FontAwesomeIcon.ArrowRight, "Apply Pose"))
                         {
                             _charaDataManager.ApplyFullPoseDataToGposeTarget(pose.Key);
                         }
-                    }, $"Apply pose and position to {CharaName(_gposeTarget)}", _hasValidGposeTarget);
+
+                        return ImGui.GetCursorPosX();
+                    }, $"Apply pose and position to {CharaName(_gposeTarget)}", _hasValidGposeTarget, ImGui.GetCursorPosX());
                     ImGui.SameLine();
                     GposeMetaInfoAction((_) =>
                     {

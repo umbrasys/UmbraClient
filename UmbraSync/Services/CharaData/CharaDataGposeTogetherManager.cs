@@ -24,7 +24,7 @@ public class CharaDataGposeTogetherManager : DisposableMediatorSubscriberBase
     private readonly DalamudUtilService _dalamudUtil;
     private readonly Dictionary<string, GposeLobbyUserData> _usersInLobby = [];
     private readonly VfxSpawnManager _vfxSpawnManager;
-    private (CharacterData ApiData, CharaDataDownloadDto Dto)? _lastCreatedCharaData;
+    private (CharacterData? ApiData, CharaDataDownloadDto Dto)? _lastCreatedCharaData;
     private PoseData? _lastDeltaPoseData;
     private PoseData? _lastFullPoseData;
     private WorldData? _lastWorldData;
@@ -109,7 +109,8 @@ public class CharaDataGposeTogetherManager : DisposableMediatorSubscriberBase
     {
         var playerData = await _charaDataFileHandler.CreatePlayerData().ConfigureAwait(false);
         if (playerData == null) return;
-        if (!string.Equals(playerData.DataHash.Value, _lastCreatedCharaData?.ApiData.DataHash.Value, StringComparison.Ordinal))
+        var lastCreated = _lastCreatedCharaData;
+        if (lastCreated?.ApiData == null || !string.Equals(playerData.DataHash.Value, lastCreated.Value.ApiData.DataHash.Value, StringComparison.Ordinal))
         {
             List<GamePathEntry> filegamePaths = [.. playerData.FileReplacements[API.Data.Enum.ObjectKind.Player]
             .Where(u => string.IsNullOrEmpty(u.FileSwapPath)).SelectMany(u => u.GamePaths, (file, path) => new GamePathEntry(file.Hash, path))];
@@ -119,14 +120,17 @@ public class CharaDataGposeTogetherManager : DisposableMediatorSubscriberBase
             .Where(u => string.IsNullOrEmpty(u.FileSwapPath)).SelectMany(u => u.GamePaths, (file, path) => new GamePathEntry(file.Hash, path))])
                 .ConfigureAwait(false);
 
+            playerData.CustomizePlusData.TryGetValue(API.Data.Enum.ObjectKind.Player, out var customize);
+            playerData.GlamourerData.TryGetValue(API.Data.Enum.ObjectKind.Player, out var glamourer);
+
             CharaDataDownloadDto charaDataDownloadDto = new($"GPOSELOBBY:{CurrentGPoseLobbyId}", new(_apiController.UID))
             {
                 UpdatedDate = DateTime.UtcNow,
                 ManipulationData = playerData.ManipulationData,
-                CustomizeData = playerData.CustomizePlusData[API.Data.Enum.ObjectKind.Player],
+                CustomizeData = customize ?? string.Empty,
                 FileGamePaths = filegamePaths,
                 FileSwaps = fileSwapPaths,
-                GlamourerData = playerData.GlamourerData[API.Data.Enum.ObjectKind.Player],
+                GlamourerData = glamourer ?? string.Empty,
             };
 
             _lastCreatedCharaData = (playerData, charaDataDownloadDto);

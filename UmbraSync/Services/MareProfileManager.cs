@@ -30,7 +30,7 @@ public class MareProfileManager : MediatorSubscriberBase
         Mediator.Subscribe<ClearProfileDataMessage>(this, (msg) =>
         {
             if (msg.UserData != null)
-                _mareProfiles.Remove(msg.UserData, out _);
+                _mareProfiles.TryRemove(msg.UserData, out _);
             else
                 _mareProfiles.Clear();
         });

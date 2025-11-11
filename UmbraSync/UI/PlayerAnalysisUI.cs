@@ -71,10 +71,11 @@ public class PlayerAnalysisUI : WindowMediatorSubscriberBase
 
         UiSharedService.TextWrapped($"This window shows you all files and their sizes that are currently in use by {Pair.UserData.AliasOrUID} and associated entities");
 
-        if (_cachedAnalysis == null || _cachedAnalysis.Count == 0) return;
+        var cachedAnalysis = _cachedAnalysis;
+        if (cachedAnalysis == null || cachedAnalysis.Count == 0) return;
 
         bool isAnalyzing = analyzer.IsAnalysisRunning;
-        bool needAnalysis = _cachedAnalysis!.Any(c => c.Value.Any(f => !f.Value.IsComputed));
+        bool needAnalysis = cachedAnalysis.Any(c => c.Value.Any(f => !f.Value.IsComputed));
         if (isAnalyzing)
         {
             UiSharedService.ColorTextWrapped($"Analyzing {analyzer.CurrentFile}/{analyzer.TotalFiles}",
@@ -101,7 +102,7 @@ public class PlayerAnalysisUI : WindowMediatorSubscriberBase
 
         ImGui.TextUnformatted("Total files:");
         ImGui.SameLine();
-        ImGui.TextUnformatted(_cachedAnalysis!.Values.Sum(c => c.Values.Count).ToString());
+        ImGui.TextUnformatted(cachedAnalysis.Values.Sum(c => c.Values.Count).ToString());
         ImGui.SameLine();
         using (var font = ImRaii.PushFont(UiBuilder.IconFont))
         {
@@ -110,7 +111,7 @@ public class PlayerAnalysisUI : WindowMediatorSubscriberBase
         if (ImGui.IsItemHovered())
         {
             string text = "";
-            var groupedfiles = _cachedAnalysis.Values.SelectMany(f => f.Values).GroupBy(f => f.FileType, StringComparer.Ordinal);
+            var groupedfiles = cachedAnalysis.Values.SelectMany(f => f.Values).GroupBy(f => f.FileType, StringComparer.Ordinal);
             text = string.Join(Environment.NewLine, groupedfiles.OrderBy(f => f.Key, StringComparer.Ordinal)
                 .Select(f => f.Key + ": " + f.Count() + " files, size: " + UiSharedService.ByteToString(f.Sum(v => v.OriginalSize))
                 + ", compressed: " + UiSharedService.ByteToString(f.Sum(v => v.CompressedSize))));
@@ -118,12 +119,12 @@ public class PlayerAnalysisUI : WindowMediatorSubscriberBase
         }
         ImGui.TextUnformatted("Total size (actual):");
         ImGui.SameLine();
-        ImGui.TextUnformatted(UiSharedService.ByteToString(_cachedAnalysis!.Sum(c => c.Value.Sum(c => c.Value.OriginalSize))));
+        ImGui.TextUnformatted(UiSharedService.ByteToString(cachedAnalysis.Sum(c => c.Value.Sum(c => c.Value.OriginalSize))));
         ImGui.TextUnformatted("Total size (compressed for up/download only):");
         ImGui.SameLine();
         using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudYellow, needAnalysis))
         {
-            ImGui.TextUnformatted(UiSharedService.ByteToString(_cachedAnalysis!.Sum(c => c.Value.Sum(c => c.Value.CompressedSize))));
+            ImGui.TextUnformatted(UiSharedService.ByteToString(cachedAnalysis.Sum(c => c.Value.Sum(c => c.Value.CompressedSize))));
             if (needAnalysis && !isAnalyzing)
             {
                 ImGui.SameLine();
@@ -132,7 +133,7 @@ public class PlayerAnalysisUI : WindowMediatorSubscriberBase
                 UiSharedService.AttachToolTip("Click \"Start analysis\" to calculate download size");
             }
         }
-        ImGui.TextUnformatted($"Total modded model triangles: {UiSharedService.TrisToString(_cachedAnalysis.Sum(c => c.Value.Sum(f => f.Value.Triangles)))}");
+        ImGui.TextUnformatted($"Total modded model triangles: {UiSharedService.TrisToString(cachedAnalysis.Sum(c => c.Value.Sum(f => f.Value.Triangles)))}");
         ImGui.Separator();
 
         var playerName = analyzer.LastPlayerName;
@@ -144,7 +145,7 @@ public class PlayerAnalysisUI : WindowMediatorSubscriberBase
         }
 
         using var tabbar = ImRaii.TabBar("objectSelection");
-        foreach (var kvp in _cachedAnalysis)
+        foreach (var kvp in cachedAnalysis)
         {
             using var id = ImRaii.PushId(kvp.Key.ToString());
             string tabText = kvp.Key == ObjectKind.Player ? playerName : $"{playerName}'s {kvp.Key}";
@@ -253,7 +254,7 @@ public class PlayerAnalysisUI : WindowMediatorSubscriberBase
         ImGui.SameLine();
         UiSharedService.ColorText(_selectedHash, ImGuiColors.DalamudYellow);
 
-        if (_cachedAnalysis[_selectedObjectTab].TryGetValue(_selectedHash, out CharacterAnalyzer.FileDataEntry? item))
+        if (cachedAnalysis[_selectedObjectTab].TryGetValue(_selectedHash, out CharacterAnalyzer.FileDataEntry? item))
         {
             var gamepaths = item.GamePaths;
             ImGui.TextUnformatted("Used by game path:");

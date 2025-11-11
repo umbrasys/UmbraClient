@@ -832,11 +832,11 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
                         .ToDictionary(k =>
                         {
                             var note = _serverConfigurationManager.GetNoteForUid(k.Key.UID);
-                            if (note == null) return k.Key.AliasOrUID;
-                            return $"{note} ({k.Key.AliasOrUID})";
+                            return string.IsNullOrEmpty(note) ? k.Key.AliasOrUID : $"{note} ({k.Key.AliasOrUID})";
                         }, k => k.Value, StringComparer.OrdinalIgnoreCase)
-                        .Where(k => string.IsNullOrEmpty(_sharedWithYouOwnerFilter) || k.Key.Contains(_sharedWithYouOwnerFilter))
-                        .OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase).ToDictionary();
+                        .Where(k => string.IsNullOrEmpty(_sharedWithYouOwnerFilter) || k.Key.Contains(_sharedWithYouOwnerFilter, StringComparison.OrdinalIgnoreCase))
+                        .OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase)
+                        .ToDictionary(k => k.Key, k => k.Value, StringComparer.OrdinalIgnoreCase);
                 }
 
                 ImGuiHelpers.ScaledDummy(5);
@@ -1558,9 +1558,9 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
                 tooltip += UiSharedService.TooltipSeparator + $"Left Click: Apply this pose to {CharaName(actor)}";
                 if (item.HasWorldData) tooltip += Environment.NewLine + $"CTRL+Right Click: Apply world position to {CharaName(actor)}."
                         + UiSharedService.TooltipSeparator + "!!! CAUTION: Applying world position will likely yeet this actor into nirvana. Use at your own risk !!!";
-                GposePoseAction(() =>
+                start = GposePoseAction(currentStart =>
                 {
-                    start = DrawIcon(start);
+                    var newStart = DrawIcon(currentStart);
                     if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
                     {
                         _ = _charaDataManager.ApplyPoseData(item, actor);
@@ -1569,7 +1569,9 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
                     {
                         _ = _charaDataManager.ApplyWorldDataToTarget(item, actor);
                     }
-                }, tooltip, hasValidGposeTarget);
+
+                    return newStart;
+                }, tooltip, hasValidGposeTarget, start);
                 ImGui.SameLine();
             }
         }

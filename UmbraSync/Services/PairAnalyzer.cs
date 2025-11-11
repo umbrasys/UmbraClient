@@ -43,8 +43,9 @@ public sealed class PairAnalyzer : DisposableMediatorSubscriberBase
 
 #if DEBUG
         var lastReceivedData = pair.LastReceivedCharacterData;
-        if (lastReceivedData != null)
-            _ = BaseAnalysis(lastReceivedData, _baseAnalysisCts.Token);
+        var baseAnalysisCts = _baseAnalysisCts;
+        if (lastReceivedData != null && baseAnalysisCts != null)
+            _ = BaseAnalysis(lastReceivedData, baseAnalysisCts.Token);
 #endif
     }
 

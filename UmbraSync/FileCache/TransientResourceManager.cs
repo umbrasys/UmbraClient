@@ -53,10 +53,11 @@ public sealed class TransientResourceManager : DisposableMediatorSubscriberBase
     {
         get
         {
-            if (_semiTransientResources == null)
+            var resources = _semiTransientResources;
+            if (resources == null)
             {
-                _semiTransientResources = new();
-                _semiTransientResources.TryAdd(ObjectKind.Player, new HashSet<string>(StringComparer.Ordinal));
+                resources = new();
+                resources.TryAdd(ObjectKind.Player, new HashSet<string>(StringComparer.Ordinal));
                 if (_configurationService.Current.PlayerPersistentTransientCache.TryGetValue(PlayerPersistentDataKey, out var gamePaths))
                 {
                     int restored = 0;
@@ -67,7 +68,7 @@ public sealed class TransientResourceManager : DisposableMediatorSubscriberBase
                         try
                         {
                             Logger.LogDebug("Loaded persistent transient resource {path}", gamePath);
-                            SemiTransientResources[ObjectKind.Player].Add(gamePath);
+                            resources[ObjectKind.Player].Add(gamePath);
                             restored++;
                         }
                         catch (Exception ex)
@@ -77,9 +78,10 @@ public sealed class TransientResourceManager : DisposableMediatorSubscriberBase
                     }
                     Logger.LogDebug("Restored {restored}/{total} semi persistent resources", restored, gamePaths.Count);
                 }
+                _semiTransientResources = resources;
             }
 
-            return _semiTransientResources;
+            return resources;
         }
     }
     private ConcurrentDictionary<IntPtr, HashSet<string>> TransientResources { get; } = new();

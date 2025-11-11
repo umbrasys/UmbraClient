@@ -380,6 +380,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             ObjectKind.Pet => await _gameObjectHandlerFactory.Create(changes.Key, () => _dalamudUtil.GetPet(ptr), isWatched: false).ConfigureAwait(false),
             _ => throw new NotSupportedException("ObjectKind not supported: " + changes.Key)
         };
+        var handlerToDispose = handler == _charaHandler ? null : handler;
 
         try
         {
@@ -407,7 +408,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         }
         finally
         {
-            if (handler != _charaHandler) handler.Dispose();
+            handlerToDispose?.Dispose();
         }
     }
 

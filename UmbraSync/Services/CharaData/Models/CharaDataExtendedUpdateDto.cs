@@ -36,6 +36,7 @@ public sealed record CharaDataExtendedUpdateDto : CharaDataUpdateDto
         Poses = Poses
     };
 
+    // ReSharper disable once RedundantOverriddenMember
     public new string ManipulationData
     {
         get
@@ -52,6 +53,7 @@ public sealed record CharaDataExtendedUpdateDto : CharaDataUpdateDto
         }
     }
 
+    // ReSharper disable once RedundantOverriddenMember
     public new string Description
     {
         get
@@ -68,6 +70,7 @@ public sealed record CharaDataExtendedUpdateDto : CharaDataUpdateDto
         }
     }
 
+    // ReSharper disable once RedundantOverriddenMember
     public new DateTime ExpiryDate
     {
         get
@@ -84,6 +87,7 @@ public sealed record CharaDataExtendedUpdateDto : CharaDataUpdateDto
         }
     }
 
+    // ReSharper disable once RedundantOverriddenMember
     public new AccessTypeDto AccessType
     {
         get
@@ -105,6 +109,7 @@ public sealed record CharaDataExtendedUpdateDto : CharaDataUpdateDto
         }
     }
 
+    // ReSharper disable once RedundantOverriddenMember
     public new ShareTypeDto ShareType
     {
         get
@@ -126,6 +131,7 @@ public sealed record CharaDataExtendedUpdateDto : CharaDataUpdateDto
         }
     }
 
+    // ReSharper disable once RedundantOverriddenMember
     public new List<GamePathEntry>? FileGamePaths
     {
         get
@@ -143,6 +149,7 @@ public sealed record CharaDataExtendedUpdateDto : CharaDataUpdateDto
         }
     }
 
+    // ReSharper disable once RedundantOverriddenMember
     public new List<GamePathEntry>? FileSwaps
     {
         get
@@ -160,6 +167,7 @@ public sealed record CharaDataExtendedUpdateDto : CharaDataUpdateDto
         }
     }
 
+    // ReSharper disable once RedundantOverriddenMember
     public new string? GlamourerData
     {
         get
@@ -176,6 +184,7 @@ public sealed record CharaDataExtendedUpdateDto : CharaDataUpdateDto
         }
     }
 
+    // ReSharper disable once RedundantOverriddenMember
     public new string? CustomizeData
     {
         get
