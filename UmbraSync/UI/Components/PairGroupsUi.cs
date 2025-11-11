@@ -18,15 +18,13 @@ public class PairGroupsUi
     private readonly MareConfigService _mareConfig;
     private readonly SelectPairForGroupUi _selectGroupForPairUi;
     private readonly TagHandler _tagHandler;
-    private readonly UidDisplayHandler _uidDisplayHandler;
     private readonly UiSharedService _uiSharedService;
 
-    public PairGroupsUi(MareConfigService mareConfig, TagHandler tagHandler, UidDisplayHandler uidDisplayHandler, ApiController apiController,
+    public PairGroupsUi(MareConfigService mareConfig, TagHandler tagHandler, ApiController apiController,
         SelectPairForGroupUi selectGroupForPairUi, UiSharedService uiSharedService)
     {
         _mareConfig = mareConfig;
         _tagHandler = tagHandler;
-        _uidDisplayHandler = uidDisplayHandler;
         _apiController = apiController;
         _selectGroupForPairUi = selectGroupForPairUi;
         _uiSharedService = uiSharedService;
@@ -192,7 +190,7 @@ public class PairGroupsUi
     private void DrawPairs(IEnumerable<DrawPairBase> availablePairsInThisCategory)
     {
         // These are all the OtherUIDs that are tagged with this tag
-        _uidDisplayHandler.RenderPairList(availablePairsInThisCategory);
+        UidDisplayHandler.RenderPairList(availablePairsInThisCategory);
     }
 
     private void DrawUserPairs(List<string> tagsWithPairsInThem, List<DrawUserPair> allUsers, IEnumerable<DrawUserPair> visibleUsers, IEnumerable<DrawUserPair> onlineUsers, IEnumerable<DrawUserPair> offlineUsers, Action? drawVisibleExtras)

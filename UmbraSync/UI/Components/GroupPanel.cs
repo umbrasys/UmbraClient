@@ -585,14 +585,14 @@ internal sealed class GroupPanel
             {
                 ImGui.TextUnformatted("Visible");
                 ImGui.Separator();
-                _uidDisplayHandler.RenderPairList(visibleUsers);
+                UidDisplayHandler.RenderPairList(visibleUsers);
             }
 
             if (onlineUsers.Count > 0)
             {
                 ImGui.TextUnformatted("Online");
                 ImGui.Separator();
-                _uidDisplayHandler.RenderPairList(onlineUsers);
+                UidDisplayHandler.RenderPairList(onlineUsers);
             }
 
             if (offlineUsers.Count > 0)
@@ -607,7 +607,7 @@ internal sealed class GroupPanel
                 }
                 else
                 {
-                    _uidDisplayHandler.RenderPairList(offlineUsers);
+                    UidDisplayHandler.RenderPairList(offlineUsers);
                 }
             }
 
