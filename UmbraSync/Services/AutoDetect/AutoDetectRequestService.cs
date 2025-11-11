@@ -111,7 +111,10 @@ public class AutoDetectRequestService
             var me = await _dalamud.RunOnFrameworkThread(() => _dalamud.GetPlayerCharacter()).ConfigureAwait(false);
             displayName = me?.Name.TextValue;
         }
-        catch { }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to determine player display name for nearby request");
+        }
 
         var requestToken = string.IsNullOrEmpty(token) ? null : token;
         var requestUid = requestToken == null ? uid : null;
@@ -190,7 +193,10 @@ public class AutoDetectRequestService
             var me = await _dalamud.RunOnFrameworkThread(() => _dalamud.GetPlayerCharacter()).ConfigureAwait(false);
             displayName = me?.Name.TextValue;
         }
-        catch { }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to determine player display name for accept notify");
+        }
         _logger.LogInformation("Nearby: sending accept notify via {endpoint}", endpoint);
         return await _client.SendAcceptAsync(endpoint!, targetUid, displayName, ct).ConfigureAwait(false);
     }

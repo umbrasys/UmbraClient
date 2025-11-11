@@ -17,7 +17,10 @@ public class LimitedStream : Stream
         {
             _estimatedPosition = _stream.Position;
         }
-        catch { }
+        catch (NotSupportedException)
+        {
+            _estimatedPosition = 0;
+        }
         MaxPosition = _estimatedPosition + byteLimit;
     }
 

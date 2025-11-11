@@ -220,6 +220,7 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
         }
         catch (ObjectDisposedException)
         {
+            // already disposed; safe to ignore
         }
     }
 }

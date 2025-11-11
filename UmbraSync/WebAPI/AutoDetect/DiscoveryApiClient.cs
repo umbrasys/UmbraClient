@@ -96,7 +96,14 @@ public class DiscoveryApiClient
             if (!resp.IsSuccessStatusCode)
             {
                 string txt = string.Empty;
-                try { txt = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false); } catch { }
+                try
+                {
+                    txt = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+                }
+                catch (Exception readEx)
+                {
+                    _logger.LogDebug(readEx, "Failed to read discovery request error response");
+                }
                 _logger.LogWarning("Discovery request failed: {code} {reason} {body}", (int)resp.StatusCode, resp.ReasonPhrase, txt);
                 return false;
             }
@@ -204,7 +211,14 @@ public class DiscoveryApiClient
             if (!resp.IsSuccessStatusCode)
             {
                 string txt = string.Empty;
-                try { txt = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false); } catch { }
+                try
+                {
+                    txt = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+                }
+                catch (Exception readEx)
+                {
+                    _logger.LogDebug(readEx, "Failed to read discovery disable response");
+                }
                 _logger.LogWarning("Discovery disable failed: {code} {reason} {body}", (int)resp.StatusCode, resp.ReasonPhrase, txt);
             }
         }

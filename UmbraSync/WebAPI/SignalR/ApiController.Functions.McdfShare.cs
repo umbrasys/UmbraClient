@@ -46,7 +46,7 @@ public sealed partial class ApiController
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Error during {method}", nameof(McdfShareUpload));
-            throw;
+            throw new InvalidOperationException($"Error during {nameof(McdfShareUpload)}", ex);
         }
     }
 
@@ -60,7 +60,7 @@ public sealed partial class ApiController
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Error during {method}", nameof(McdfShareDownload));
-            throw;
+            throw new InvalidOperationException($"Error during {nameof(McdfShareDownload)}", ex);
         }
     }
 
@@ -74,7 +74,7 @@ public sealed partial class ApiController
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Error during {method}", nameof(McdfShareDelete));
-            throw;
+            throw new InvalidOperationException($"Error during {nameof(McdfShareDelete)}", ex);
         }
     }
 
@@ -88,7 +88,7 @@ public sealed partial class ApiController
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Error during {method}", nameof(McdfShareUpdate));
-            throw;
+            throw new InvalidOperationException($"Error during {nameof(McdfShareUpdate)}", ex);
         }
     }
 }

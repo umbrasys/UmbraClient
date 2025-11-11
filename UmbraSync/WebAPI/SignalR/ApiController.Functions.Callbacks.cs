@@ -36,13 +36,15 @@ public partial class ApiController
         return Task.CompletedTask;
     }
 
-    public Task Client_GroupPairChangePermissions(GroupPairUserPermissionDto dto)
+    public Task Client_GroupPairChangePermissions(GroupPairUserPermissionDto groupPairUserPermissionDto)
     {
-        Logger.LogTrace("Client_GroupPairChangePermissions: {dto}", dto);
+        Logger.LogTrace("Client_GroupPairChangePermissions: {dto}", groupPairUserPermissionDto);
         ExecuteSafely(() =>
         {
-            if (string.Equals(dto.UID, UID, StringComparison.Ordinal)) _pairManager.SetGroupUserPermissions(dto);
-            else _pairManager.SetGroupPairUserPermissions(dto);
+            if (string.Equals(groupPairUserPermissionDto.UID, UID, StringComparison.Ordinal))
+                _pairManager.SetGroupUserPermissions(groupPairUserPermissionDto);
+            else
+                _pairManager.SetGroupPairUserPermissions(groupPairUserPermissionDto);
         });
         return Task.CompletedTask;
     }
@@ -248,16 +250,16 @@ public partial class ApiController
         _mareHub!.On(nameof(Client_GroupChangePermissions), act);
     }
 
-    public void OnGroupChatMsg(Action<GroupChatMsgDto> act)
+    public void OnGroupChatMsg(Action<GroupChatMsgDto> groupChatMsgDto)
     {
         if (_initialized) return;
-        _mareHub!.On(nameof(Client_GroupChatMsg), act);
+        _mareHub!.On(nameof(Client_GroupChatMsg), groupChatMsgDto);
     }
 
-    public void OnGroupPairChangePermissions(Action<GroupPairUserPermissionDto> act)
+    public void OnGroupPairChangePermissions(Action<GroupPairUserPermissionDto> groupPairUserPermissionDto)
     {
         if (_initialized) return;
-        _mareHub!.On(nameof(Client_GroupPairChangePermissions), act);
+        _mareHub!.On(nameof(Client_GroupPairChangePermissions), groupPairUserPermissionDto);
     }
 
     public void OnGroupDelete(Action<GroupDto> act)
@@ -314,10 +316,10 @@ public partial class ApiController
         _mareHub!.On(nameof(Client_UserAddClientPair), act);
     }
 
-    public void OnUserChatMsg(Action<UserChatMsgDto> act)
+    public void OnUserChatMsg(Action<UserChatMsgDto> chatMsgDto)
     {
         if (_initialized) return;
-        _mareHub!.On(nameof(Client_UserChatMsg), act);
+        _mareHub!.On(nameof(Client_UserChatMsg), chatMsgDto);
     }
 
     public void OnUserTypingState(Action<TypingStateDto> act)

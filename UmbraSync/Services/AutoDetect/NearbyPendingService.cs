@@ -68,7 +68,11 @@ public sealed class NearbyPendingService : IMediatorSubscriber
             var br = name.LastIndexOf('[');
             if (br > 0) name = name[..br].Trim();
         }
-        catch { name = uid; }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to parse nearby pending name, using UID");
+            name = uid;
+        }
         _pending[uid] = name;
         _logger.LogInformation("NearbyPending: received request from {uid} ({name})", uid, name);
         _notificationTracker.Upsert(NotificationEntry.AutoDetect(uid, name));

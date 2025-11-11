@@ -126,7 +126,7 @@ public class PairGroupsUi
             ImGuiHelpers.ScaledDummy(4f);
             var indent = 18f * ImGuiHelpers.GlobalScale;
             ImGui.Indent(indent);
-            DrawPairs(tag, usersInThisTag);
+            DrawPairs(usersInThisTag);
             drawExtraContent?.Invoke();
             ImGui.Unindent(indent);
         }, stretchWidth: true);
@@ -175,7 +175,6 @@ public class PairGroupsUi
         {
             bool newState = !_tagHandler.IsTagOpen(tag);
             _tagHandler.SetTagOpen(tag, newState);
-            isOpen = newState;
         }
 
         if (!isSpecialTag && ImGui.IsItemHovered())
@@ -190,7 +189,7 @@ public class PairGroupsUi
         }
     }
 
-    private void DrawPairs(string tag, IEnumerable<DrawPairBase> availablePairsInThisCategory)
+    private void DrawPairs(IEnumerable<DrawPairBase> availablePairsInThisCategory)
     {
         // These are all the OtherUIDs that are tagged with this tag
         _uidDisplayHandler.RenderPairList(availablePairsInThisCategory);
@@ -224,6 +223,8 @@ public class PairGroupsUi
         }
         using (ImRaii.PushId($"group-UnpairedCustomTag")) DrawCategory(TagHandler.CustomUnpairedTag,
             offlineUsers.Where(u => !u.UserPair!.OtherPermissions.IsPaired()).ToList(), allUsers);
+
+        drawVisibleExtras?.Invoke();
     }
 
     private void PauseRemainingPairs(List<DrawUserPair> availablePairs)

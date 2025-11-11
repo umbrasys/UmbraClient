@@ -80,7 +80,10 @@ public class DiscoveryConfigProvider
                 var ver = Assembly.GetExecutingAssembly().GetName().Version!;
                 http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("UmbraSync", $"{ver.Major}.{ver.Minor}.{ver.Build}"));
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Failed to set user agent header for discovery request");
+            }
 
             foreach (var path in candidates)
             {
@@ -147,7 +150,14 @@ public class DiscoveryConfigProvider
 
         public void Hydrate()
         {
-            try { SaltBytes = string.IsNullOrEmpty(SaltB64) ? null : Convert.FromBase64String(SaltB64!); } catch { SaltBytes = null; }
+            try
+            {
+                SaltBytes = string.IsNullOrEmpty(SaltB64) ? null : Convert.FromBase64String(SaltB64!);
+            }
+            catch (FormatException)
+            {
+                SaltBytes = null;
+            }
             if (DateTimeOffset.TryParse(SaltExpiresAtRaw, out var dto)) SaltExpiresAt = dto;
         }
     }

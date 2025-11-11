@@ -398,7 +398,10 @@ public sealed class CacheMonitor : DisposableMediatorSubscriberBase
             {
                 File.Delete(file);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Failed to delete subst file {file}", file);
+            }
         }
 
         HandleChanges(changes);
@@ -427,7 +430,10 @@ public sealed class CacheMonitor : DisposableMediatorSubscriberBase
                 if (File.Exists(cacheFile))
                     File.Delete(cacheFile);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Failed to delete cache file {file}", cacheFile);
+            }
         }
     }
 

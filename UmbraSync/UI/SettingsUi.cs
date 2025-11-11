@@ -48,11 +48,9 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private readonly AutoDetectSuppressionService _autoDetectSuppressionService;
     private readonly PerformanceCollectorService _performanceCollector;
     private readonly PlayerPerformanceConfigService _playerPerformanceConfigService;
-    private readonly PlayerPerformanceService _playerPerformanceService;
     private readonly AccountRegistrationService _registerService;
     private readonly ServerConfigurationManager _serverConfigurationManager;
     private readonly UiSharedService _uiShared;
-    private readonly TypingIndicatorStateService _typingStateService;
     private readonly ChatTypingDetectionService _chatTypingDetectionService;
     private static readonly string DtrDefaultPreviewText = DtrEntry.DefaultGlyph + " 123";
     private bool _deleteAccountPopupModalShown = false;
@@ -74,7 +72,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         UiSharedService uiShared, MareConfigService configService,
         PairManager pairManager, ChatService chatService, GuiHookService guiHookService,
         ServerConfigurationManager serverConfigurationManager,
-        PlayerPerformanceConfigService playerPerformanceConfigService, PlayerPerformanceService playerPerformanceService,
+        PlayerPerformanceConfigService playerPerformanceConfigService,
         MareMediator mediator, PerformanceCollectorService performanceCollector,
         FileUploadManager fileTransferManager,
         FileTransferOrchestrator fileTransferOrchestrator,
@@ -83,7 +81,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
         IpcManager ipcManager, IpcProvider ipcProvider, CacheMonitor cacheMonitor,
         DalamudUtilService dalamudUtilService, AccountRegistrationService registerService,
         AutoDetectSuppressionService autoDetectSuppressionService,
-        TypingIndicatorStateService typingIndicatorStateService,
         ChatTypingDetectionService chatTypingDetectionService) : base(logger, mediator, "Umbra Settings", performanceCollector)
     {
         _configService = configService;
@@ -92,7 +89,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
         _guiHookService = guiHookService;
         _serverConfigurationManager = serverConfigurationManager;
         _playerPerformanceConfigService = playerPerformanceConfigService;
-        _playerPerformanceService = playerPerformanceService;
         _performanceCollector = performanceCollector;
         _fileTransferManager = fileTransferManager;
         _fileTransferOrchestrator = fileTransferOrchestrator;
@@ -106,7 +102,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
         _autoDetectSuppressionService = autoDetectSuppressionService;
         _fileCompactor = fileCompactor;
         _uiShared = uiShared;
-        _typingStateService = typingIndicatorStateService;
         _chatTypingDetectionService = chatTypingDetectionService;
         AllowClickthrough = false;
         AllowPinning = false;
@@ -2040,6 +2035,12 @@ public class SettingsUi : WindowMediatorSubscriberBase
             if (ImGui.BeginTabItem("Transfers"))
             {
                 DrawCurrentTransfers();
+                ImGui.EndTabItem();
+            }
+
+            if (ImGui.BeginTabItem("Chat"))
+            {
+                DrawChatConfig();
                 ImGui.EndTabItem();
             }
 

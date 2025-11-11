@@ -1,4 +1,5 @@
-﻿using UmbraSync.MareConfiguration.Configurations;
+﻿using System.Collections.Generic;
+using UmbraSync.MareConfiguration.Configurations;
 using System.Text.Json;
 
 namespace UmbraSync.MareConfiguration;
@@ -70,7 +71,7 @@ public abstract class ConfigurationServiceBase<T> : IConfigService<T> where T : 
             }
         }
 
-        if (config == null || Equals(config, default(T)))
+        if (config == null || EqualityComparer<T>.Default.Equals(config, default!))
         {
             config = Activator.CreateInstance<T>();
             Save();
@@ -93,7 +94,7 @@ public abstract class ConfigurationServiceBase<T> : IConfigService<T> where T : 
             try
             {
                 var config = JsonSerializer.Deserialize<T>(File.ReadAllText(file));
-                if (Equals(config, default(T)))
+                if (EqualityComparer<T>.Default.Equals(config, default!))
                 {
                     File.Delete(file);
                 }
@@ -128,8 +129,18 @@ public abstract class ConfigurationServiceBase<T> : IConfigService<T> where T : 
 
     private DateTime GetConfigLastWriteTime()
     {
-        try { return new FileInfo(ConfigurationPath).LastWriteTimeUtc; }
-        catch { return DateTime.MinValue; }
+        try
+        {
+            return new FileInfo(ConfigurationPath).LastWriteTimeUtc;
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
+
+        return DateTime.MinValue;
     }
 
 

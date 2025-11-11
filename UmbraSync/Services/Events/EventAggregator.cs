@@ -16,7 +16,7 @@ public class EventAggregator : MediatorSubscriberBase, IHostedService
     public Lazy<List<Event>> EventList { get; private set; }
     public bool NewEventsAvailable => !EventList.IsValueCreated;
     public string EventLogFolder => Path.Combine(_configDirectory, "eventlog");
-    private string CurrentLogName => $"{DateTime.Now:yyyy-MM-dd}-events.log";
+    private static string BuildLogFileName(DateTime time) => $"{time:yyyy-MM-dd}-events.log";
     private DateTime _currentTime;
 
     public EventAggregator(MareConfigService configService, ILogger<EventAggregator> logger, MareMediator mareMediator) : base(logger, mareMediator)
@@ -87,7 +87,7 @@ public class EventAggregator : MediatorSubscriberBase, IHostedService
             }
         }
 
-        var eventLogFile = Path.Combine(EventLogFolder, CurrentLogName);
+        var eventLogFile = Path.Combine(EventLogFolder, BuildLogFileName(DateTime.Now));
         try
         {
             if (!Directory.Exists(EventLogFolder)) Directory.CreateDirectory(EventLogFolder);
@@ -95,7 +95,7 @@ public class EventAggregator : MediatorSubscriberBase, IHostedService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, $"Could not write to event file {eventLogFile}");
+            _logger.LogWarning(ex, "Impossible d'écrire dans le fichier d'événements {fichier}", eventLogFile);
         }
     }
 

@@ -296,7 +296,7 @@ public class Pair : DisposableMediatorSubscriberBase
 
     public void HoldApplication(string source, int maxValue = int.MaxValue)
     {
-        _logger.LogDebug($"Holding {UserData.UID} for reason: {source}");
+        _logger.LogDebug("Mise en attente de {uid} pour la raison {raison}", UserData.UID, source);
         bool wasHeld = IsApplicationBlocked;
         HoldApplicationLocks.AddOrUpdate(source, 1, (k, v) => Math.Min(maxValue, v + 1));
         if (!wasHeld)
@@ -305,7 +305,7 @@ public class Pair : DisposableMediatorSubscriberBase
 
     public void UnholdApplication(string source, bool skipApplication = false)
     {
-        _logger.LogDebug($"Un-holding {UserData.UID} for reason: {source}");
+        _logger.LogDebug("Fin d'attente de {uid} pour la raison {raison}", UserData.UID, source);
         bool wasHeld = IsApplicationBlocked;
         HoldApplicationLocks.AddOrUpdate(source, 0, (k, v) => Math.Max(0, v - 1));
         HoldApplicationLocks.TryRemove(new(source, 0));
@@ -315,7 +315,7 @@ public class Pair : DisposableMediatorSubscriberBase
 
     public void HoldDownloads(string source, int maxValue = int.MaxValue)
     {
-        _logger.LogDebug($"Holding {UserData.UID} for reason: {source}");
+        _logger.LogDebug("Blocage des téléchargements pour {uid} à cause de {raison}", UserData.UID, source);
         bool wasHeld = IsApplicationBlocked;
         HoldDownloadLocks.AddOrUpdate(source, 1, (k, v) => Math.Min(maxValue, v + 1));
         if (!wasHeld)
@@ -324,7 +324,7 @@ public class Pair : DisposableMediatorSubscriberBase
 
     public void UnholdDownloads(string source, bool skipApplication = false)
     {
-        _logger.LogDebug($"Un-holding {UserData.UID} for reason: {source}");
+        _logger.LogDebug("Déblocage des téléchargements pour {uid} (raison {raison})", UserData.UID, source);
         bool wasHeld = IsApplicationBlocked;
         HoldDownloadLocks.AddOrUpdate(source, 0, (k, v) => Math.Max(0, v - 1));
         HoldDownloadLocks.TryRemove(new(source, 0));

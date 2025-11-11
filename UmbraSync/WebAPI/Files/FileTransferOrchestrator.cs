@@ -171,7 +171,7 @@ public class FileTransferOrchestrator : DisposableMediatorSubscriberBase
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Error during SendRequestInternal for {uri}", requestMessage.RequestUri);
-            throw;
+            throw new HttpRequestException($"Error sending request to {requestMessage.RequestUri}", ex);
         }
     }
 }

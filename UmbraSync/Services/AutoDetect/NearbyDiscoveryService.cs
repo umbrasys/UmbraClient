@@ -111,7 +111,10 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                         meWorld = (ushort)mePc.HomeWorld.RowId;
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Failed to determine own player data for nearby publish");
+            }
 
             if (string.IsNullOrEmpty(displayName)) return;
 
@@ -211,7 +214,10 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                                             meWorld = (ushort)mePc.HomeWorld.RowId;
                                     }
                                 }
-                                catch { }
+                                catch (Exception ex)
+                                {
+                                    _logger.LogDebug(ex, "Failed to gather player info for nearby toggle publish");
+                                }
 
                                 if (!string.IsNullOrEmpty(displayName))
                                 {
@@ -241,7 +247,15 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                         if (!string.IsNullOrEmpty(ep) && !_disableSent)
                         {
                             var disableUrl = ep.Replace("/publish", "/disable");
-                            try { await _api.DisableAsync(disableUrl, ct).ConfigureAwait(false); _disableSent = true; } catch { }
+                            try
+                            {
+                                await _api.DisableAsync(disableUrl, ct).ConfigureAwait(false);
+                                _disableSent = true;
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogDebug(ex, "Failed to notify server of nearby disable");
+                            }
                         }
                         if (!_notifiedDisabled)
                         {
@@ -264,7 +278,10 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                                 _disableSent = true;
                             }
                         }
-                        catch { }
+                        catch (Exception ex)
+                        {
+                            _logger.LogDebug(ex, "Failed to notify server of nearby disable");
+                        }
 
                         if (!_notifiedDisabled)
                         {
@@ -331,7 +348,10 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                                     entries.Count, saltShort, string.Join(", ", sample));
                             }
                         }
-                        catch { }
+                        catch (Exception ex)
+                        {
+                            _logger.LogDebug(ex, "Failed to compute snapshot signature");
+                        }
 
                         if (!string.IsNullOrEmpty(_configProvider.PublishEndpoint))
                         {
@@ -350,7 +370,10 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                                     selfHash = (saltHex + displayName + meWorld.ToString()).GetHash256();
                                 }
                             }
-                            catch { /* ignore */ }
+                            catch (Exception ex)
+                            {
+                                _logger.LogDebug(ex, "Failed to compute self hash for nearby publish");
+                            }
 
                             if (!string.IsNullOrEmpty(selfHash))
                             {
@@ -450,7 +473,14 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                         if (ex.Message.Contains("DISCOVERY_SALT_EXPIRED", StringComparison.OrdinalIgnoreCase))
                         {
                             _logger.LogInformation("Nearby: salt expired, refetching well-known");
-                            try { await _configProvider.TryFetchFromServerAsync(ct).ConfigureAwait(false); } catch { }
+                            try
+                            {
+                                await _configProvider.TryFetchFromServerAsync(ct).ConfigureAwait(false);
+                            }
+                            catch (Exception fetchEx)
+                            {
+                                _logger.LogWarning(fetchEx, "Failed to refresh nearby configuration");
+                            }
                         }
                     }
                 }

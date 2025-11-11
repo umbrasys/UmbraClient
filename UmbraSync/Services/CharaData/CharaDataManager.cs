@@ -502,11 +502,11 @@ public sealed partial class CharaDataManager : DisposableMediatorSubscriberBase
                     extractedFiles, charaFile.CharaFileData.ManipulationData, charaFile.CharaFileData.GlamourerData,
                     charaFile.CharaFileData.CustomizePlusData, CancellationToken.None).ConfigureAwait(false);
             }
-            catch (Exception ex)
-            {
-                Logger.LogWarning(ex, "Failed to extract MCDF");
-                throw;
-            }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to extract MCDF");
+            throw new InvalidOperationException("Failed to extract MCDF data", ex);
+        }
             finally
             {
                 // delete extracted files
@@ -604,6 +604,11 @@ public sealed partial class CharaDataManager : DisposableMediatorSubscriberBase
         return extended;
     }
 
+    private void CacheData(CharaDataMetaInfoExtendedDto charaData)
+    {
+        _metaInfoCache[charaData.FullId] = charaData;
+    }
+
     private readonly SemaphoreSlim _distributionSemaphore = new(1, 1);
 
     private void DistributeMetaInfo()
@@ -612,11 +617,6 @@ public sealed partial class CharaDataManager : DisposableMediatorSubscriberBase
         _nearbyManager.UpdateSharedData(_metaInfoCache.ToDictionary());
         _characterHandler.UpdateHandledData(_metaInfoCache.ToDictionary());
         _distributionSemaphore.Release();
-    }
-
-    private void CacheData(CharaDataMetaInfoExtendedDto charaData)
-    {
-        _metaInfoCache[charaData.FullId] = charaData;
     }
 
     public bool TryGetMetaInfo(string key, out CharaDataMetaInfoExtendedDto? metaInfo)

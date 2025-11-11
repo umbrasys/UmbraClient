@@ -631,45 +631,6 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
         }
     }
 
-    private async Task ToggleAutoDetectAsync(bool desiredVisibility)
-    {
-        if (_autoDetectToggleInFlight)
-        {
-            return;
-        }
-
-        _autoDetectToggleInFlight = true;
-        _autoDetectMessage = null;
-
-        try
-        {
-            var success = await _syncshellDiscoveryService.SetVisibilityAsync(GroupFullInfo.GID, desiredVisibility, CancellationToken.None).ConfigureAwait(false);
-            if (!success)
-            {
-                _autoDetectMessage = "Impossible de mettre à jour la visibilité AutoDetect.";
-                return;
-            }
-
-            await EnsureAutoDetectStateAsync(true).ConfigureAwait(false);
-            _autoDetectMessage = desiredVisibility
-                ? "La Syncshell est désormais visible dans AutoDetect."
-                : "La Syncshell n'est plus visible dans AutoDetect.";
-
-            if (desiredVisibility)
-            {
-                PublishSyncshellPublicNotification();
-            }
-        }
-        catch (Exception ex)
-        {
-            _autoDetectMessage = $"Erreur lors de la mise à jour AutoDetect : {ex.Message}";
-        }
-        finally
-        {
-            _autoDetectToggleInFlight = false;
-        }
-    }
-
     private async Task SubmitAutoDetectAsync()
     {
         if (_autoDetectToggleInFlight)

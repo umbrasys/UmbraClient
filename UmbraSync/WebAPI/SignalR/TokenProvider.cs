@@ -109,7 +109,7 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
                 throw new MareAuthFailureException(ex.Message);
             }
 
-            throw;
+            throw new HttpRequestException("Failed to acquire authentication token from server", ex);
         }
     }
 

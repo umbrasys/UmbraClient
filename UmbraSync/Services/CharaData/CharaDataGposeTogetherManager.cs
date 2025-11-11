@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using System.Globalization;
 using System.Numerics;
 using System.Text.Json.Nodes;
+using System.Diagnostics.CodeAnalysis;
 using API = UmbraSync.API;
 
 namespace UmbraSync.Services.CharaData;
@@ -26,9 +27,11 @@ public class CharaDataGposeTogetherManager : DisposableMediatorSubscriberBase
     private readonly VfxSpawnManager _vfxSpawnManager;
     private (CharacterData? ApiData, CharaDataDownloadDto Dto)? _lastCreatedCharaData;
     private PoseData? _lastDeltaPoseData;
+    [SuppressMessage("Major Code Smell", "S1450:Remove the field '_lastFullPoseData'", Justification = "Tracks last pose across multiple updates")]
     private PoseData? _lastFullPoseData;
     private WorldData? _lastWorldData;
     private CancellationTokenSource _lobbyCts = new();
+    [SuppressMessage("Major Code Smell", "S1450:Remove the field '_poseGenerationExecutions'", Justification = "Tracks resend cadence across updates")]
     private int _poseGenerationExecutions = 0;
 
     public CharaDataGposeTogetherManager(ILogger<CharaDataGposeTogetherManager> logger, MareMediator mediator,

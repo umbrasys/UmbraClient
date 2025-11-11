@@ -1,8 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.UI;
 using Microsoft.Extensions.Logging;
 using System.Text.Json.Serialization;
+using System.Diagnostics.CodeAnalysis;
 
 namespace UmbraSync.MareConfiguration.Configurations;
 
@@ -42,13 +44,19 @@ public class MareConfig : IMareConfiguration
     public bool EnableDownloadQueue { get; set; } = false;
     public int DownloadSpeedLimitInBytes { get; set; } = 0;
     public DownloadSpeeds DownloadSpeedType { get; set; } = DownloadSpeeds.MBps;
-    [Obsolete] public bool PreferNotesOverNamesForVisible { get; set; } = false;
+    [SuppressMessage("Major Code Smell", "S1133:Do not forget to remove this deprecated code someday", Justification = "Legacy config needed for migration")]
+    [SuppressMessage("Major Code Smell", "S1123:Add an explanation", Justification = "Legacy config needed for migration")]
+    [Obsolete("Use ShowCharacterNames and related note display options instead", false)]
+    public bool PreferNotesOverNamesForVisible { get; set; } = false;
     public float ProfileDelay { get; set; } = 1.5f;
     public bool ProfilePopoutRight { get; set; } = false;
     public bool ProfilesAllowNsfw { get; set; } = false;
     public bool ProfilesShow { get; set; } = false;
     public bool ShowSyncshellUsersInVisible { get; set; } = true;
-    [Obsolete] public bool ShowCharacterNameInsteadOfNotesForVisible { get; set; } = false;
+    [SuppressMessage("Major Code Smell", "S1133:Do not forget to remove this deprecated code someday", Justification = "Legacy config needed for migration")]
+    [SuppressMessage("Major Code Smell", "S1123:Add an explanation", Justification = "Legacy config needed for migration")]
+    [Obsolete("Use PreferNotesOverNamesForVisible / ShowCharacterNames settings instead", false)]
+    public bool ShowCharacterNameInsteadOfNotesForVisible { get; set; } = false;
     public bool ShowCharacterNames { get; set; } = true;
     public bool ShowOfflineUsersSeparately { get; set; } = true;
     public bool ShowSyncshellOfflineUsersSeparately { get; set; } = true;
@@ -94,6 +102,8 @@ public class MareConfig : IMareConfiguration
 
     public bool UmbraAPI { get; set; } = true;
 
+    [SuppressMessage("Major Code Smell", "S1133:Do not forget to remove this deprecated code someday", Justification = "Legacy config needed for migration")]
+    [SuppressMessage("Major Code Smell", "S1123:Add an explanation", Justification = "Legacy config needed for migration")]
     [Obsolete]
     [JsonPropertyName("MareAPI")]
     public bool MareAPI { get => UmbraAPI; set => UmbraAPI = value; }

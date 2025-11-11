@@ -86,6 +86,7 @@ public class RedrawManager : IDisposable
         }
         catch (ObjectDisposedException)
         {
+            // cancellation source already disposed; safe to ignore
         }
 
         cts.Dispose();

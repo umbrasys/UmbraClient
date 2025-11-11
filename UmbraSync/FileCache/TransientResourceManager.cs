@@ -190,7 +190,10 @@ public sealed class TransientResourceManager : DisposableMediatorSubscriberBase
                 _configurationService.Save();
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to persist transient resources during disposal");
+        }
     }
 
     private void DalamudUtil_ClassJobChanged()

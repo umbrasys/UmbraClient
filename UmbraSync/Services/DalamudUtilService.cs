@@ -22,6 +22,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using GameObject = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
 using DalamudGameObject = Dalamud.Game.ClientState.Objects.Types.IGameObject;
 
@@ -31,17 +32,17 @@ public class DalamudUtilService : IHostedService, IMediatorSubscriber
 {
     public struct PlayerCharacter
     {
-        public uint ObjectId;
-        public string Name;
-        public uint HomeWorldId;
-        public nint Address;
+        public uint ObjectId { get; set; }
+        public string Name { get; set; }
+        public uint HomeWorldId { get; set; }
+        public nint Address { get; set; }
     };
 
-    private struct PlayerInfo
+    private sealed class PlayerInfo
     {
-        public PlayerCharacter Character;
-        public string Hash;
-    };
+        public PlayerCharacter Character { get; set; }
+        public string Hash { get; set; } = string.Empty;
+    }
 
     private readonly List<uint> _classJobIdsIgnoredForPets = [30];
     private readonly IClientState _clientState;
@@ -150,6 +151,7 @@ public class DalamudUtilService : IHostedService, IMediatorSubscriber
     }
 
     public bool IsWine { get; init; }
+    [SuppressMessage("Major Code Smell", "S2325:Use static", Justification = "Exposed via service instance for easier mocking and DI")]
     public unsafe GameObject* GposeTarget
     {
         get => TargetSystem.Instance()->GPoseTarget;
@@ -568,15 +570,26 @@ public class DalamudUtilService : IHostedService, IMediatorSubscriber
 
         if (!_playerInfoCache.TryGetValue(id, out var info))
         {
-            info.Character.ObjectId = id;
-            info.Character.Name = chara.Name.TextValue; // ?
-            info.Character.HomeWorldId = ((BattleChara*)chara.Address)->Character.HomeWorld;
-            info.Character.Address = chara.Address;
-            info.Hash = Crypto.GetHash256(info.Character.Name + info.Character.HomeWorldId.ToString());
+            var homeWorldId = ((BattleChara*)chara.Address)->Character.HomeWorld;
+            info = new PlayerInfo
+            {
+                Character = new PlayerCharacter
+                {
+                    ObjectId = id,
+                    Name = chara.Name.TextValue,
+                    HomeWorldId = homeWorldId,
+                    Address = chara.Address
+                },
+                Hash = Crypto.GetHash256(chara.Name.TextValue + homeWorldId.ToString())
+            };
             _playerInfoCache[id] = info;
         }
-
-        info.Character.Address = chara.Address;
+        else
+        {
+            var character = info.Character;
+            character.Address = chara.Address;
+            info.Character = character;
+        }
 
         return info;
     }

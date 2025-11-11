@@ -312,7 +312,10 @@ public class PlayerPerformanceService : DisposableMediatorSubscriberBase
                             _logger.LogDebug("Deleting original texture: {filePath}", filePath);
                             File.Delete(filePath);
                         }
-                        catch { }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Failed to delete original texture {filePath}", filePath);
+                        }
                     }
                 }
                 catch (Exception e)

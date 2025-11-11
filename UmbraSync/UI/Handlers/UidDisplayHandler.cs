@@ -31,7 +31,7 @@ public class UidDisplayHandler
         _mareConfigService = mareConfigService;
     }
 
-    public void RenderPairList(IEnumerable<DrawPairBase> pairs)
+    public static void RenderPairList(IEnumerable<DrawPairBase> pairs)
     {
         var textHeight = ImGui.GetFontSize();
         var style = ImGui.GetStyle();

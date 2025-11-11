@@ -1,6 +1,9 @@
-﻿namespace UmbraSync.MareConfiguration.Models.Obsolete;
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace UmbraSync.MareConfiguration.Models.Obsolete;
 
 [Serializable]
+[SuppressMessage("Major Code Smell", "S1133:Do not forget to remove this deprecated code someday", Justification = "Retained for configuration migration")]
 [Obsolete("Deprecated, use ServerStorage")]
 public class ServerStorageV0
 {
