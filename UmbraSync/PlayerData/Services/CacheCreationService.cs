@@ -167,8 +167,8 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
     {
         if (_glamourerCts.TryGetValue(kind, out var cts))
         {
-            _glamourerCts[kind]?.Cancel();
-            _glamourerCts[kind]?.Dispose();
+            cts.Cancel();
+            cts.Dispose();
         }
         _glamourerCts[kind] = new();
         var token = _glamourerCts[kind].Token;
@@ -182,8 +182,8 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
 
     private void HonorificChanged()
     {
-        _honorificCts?.Cancel();
-        _honorificCts?.Dispose();
+        _honorificCts.Cancel();
+        _honorificCts.Dispose();
         _honorificCts = new();
         var token = _honorificCts.Token;
 
@@ -196,8 +196,8 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
 
     private void PetNicknamesChanged()
     {
-        _petNicknamesCts?.Cancel();
-        _petNicknamesCts?.Dispose();
+        _petNicknamesCts.Cancel();
+        _petNicknamesCts.Dispose();
         _petNicknamesCts = new();
         var token = _petNicknamesCts.Token;
 
@@ -210,8 +210,8 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
 
     private void MoodlesChanged()
     {
-        _moodlesCts?.Cancel();
-        _moodlesCts?.Dispose();
+        _moodlesCts.Cancel();
+        _moodlesCts.Dispose();
         _moodlesCts = new();
         var token = _moodlesCts.Token;
 

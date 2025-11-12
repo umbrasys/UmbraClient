@@ -449,7 +449,7 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
         _clearCts = null;
         try
         {
-            _zoningCts?.CancelAfter(2500);
+            _zoningCts.CancelAfter(2500);
         }
         catch (ObjectDisposedException)
         {

@@ -168,7 +168,7 @@
         /// <inheritdoc />
         public override string ToString()
         {
-            return _baseStream?.ToString() ?? string.Empty;
+            return _baseStream.ToString() ?? string.Empty;
         }
 
         private sealed class Bandwidth

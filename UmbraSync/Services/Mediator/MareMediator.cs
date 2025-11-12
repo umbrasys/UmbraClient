@@ -159,9 +159,9 @@ public sealed class MareMediator : IHostedService, IDisposable
     {
         lock (_addRemoveLock)
         {
-            foreach (var kvp in _subscriberDict.Select(k => k.Key))
-            {
-                int unSubbed = _subscriberDict[kvp]?.RemoveWhere(p => p.Subscriber == subscriber) ?? 0;
+                foreach (var kvp in _subscriberDict.Select(k => k.Key))
+                {
+                    int unSubbed = _subscriberDict[kvp].RemoveWhere(p => p.Subscriber == subscriber);
                 if (unSubbed > 0)
                 {
                     _logger.LogDebug("{sub} unsubscribed from {msg}", subscriber.GetType().Name, kvp.Item1.Name);

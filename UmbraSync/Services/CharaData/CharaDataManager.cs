@@ -59,8 +59,8 @@ public sealed partial class CharaDataManager : DisposableMediatorSubscriberBase
         _pairManager = pairManager;
         mareMediator.Subscribe<ConnectedMessage>(this, (msg) =>
         {
-            _connectCts?.Cancel();
-            _connectCts?.Dispose();
+            _connectCts.Cancel();
+            _connectCts.Dispose();
             _connectCts = new();
             _ownCharaData.Clear();
             _metaInfoCache.Clear();
@@ -451,7 +451,7 @@ public sealed partial class CharaDataManager : DisposableMediatorSubscriberBase
     public bool IsInTimeout(string key)
     {
         if (!_sharedMetaInfoTimeoutTasks.TryGetValue(key, out var task)) return false;
-        return !task?.IsCompleted ?? false;
+        return !task.IsCompleted;
     }
 
     public void LoadMcdf(string filePath)
@@ -788,18 +788,18 @@ public sealed partial class CharaDataManager : DisposableMediatorSubscriberBase
         base.Dispose(disposing);
         if (disposing)
         {
-            _getAllDataCts?.Cancel();
-            _getAllDataCts?.Dispose();
-            _getSharedDataCts?.Cancel();
-            _getSharedDataCts?.Dispose();
-            _charaDataCreateCts?.Cancel();
-            _charaDataCreateCts?.Dispose();
-            _uploadCts?.Cancel();
-            _uploadCts?.Dispose();
+            _getAllDataCts.Cancel();
+            _getAllDataCts.Dispose();
+            _getSharedDataCts.Cancel();
+            _getSharedDataCts.Dispose();
+            _charaDataCreateCts.Cancel();
+            _charaDataCreateCts.Dispose();
+            _uploadCts.Cancel();
+            _uploadCts.Dispose();
             _applicationCts.Cancel();
             _applicationCts.Dispose();
-            _connectCts?.Cancel();
-            _connectCts?.Dispose();
+            _connectCts.Cancel();
+            _connectCts.Dispose();
         }
     }
 

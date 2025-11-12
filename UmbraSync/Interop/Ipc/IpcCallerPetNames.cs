@@ -53,10 +53,10 @@ public sealed class IpcCallerPetNames : IIpcCaller
     {
         try
         {
-            APIAvailable = _enabled?.InvokeFunc() ?? false;
+            APIAvailable = _enabled.InvokeFunc();
             if (APIAvailable)
             {
-                APIAvailable = _apiVersion?.InvokeFunc() is { Item1: 4, Item2: >= 0 };
+                APIAvailable = _apiVersion.InvokeFunc() is { Item1: 4, Item2: >= 0 };
             }
         }
         catch

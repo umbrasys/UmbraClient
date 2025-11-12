@@ -116,13 +116,13 @@ public class MarePlugin : MediatorSubscriberBase, IHostedService
 
     private void DalamudUtilOnLogIn()
     {
-        Logger?.LogDebug("Client login");
+        Logger.LogDebug("Client login");
         if (_launchTask == null || _launchTask.IsCompleted) _launchTask = Task.Run(WaitForPlayerAndLaunchCharacterManager);
     }
 
     private void DalamudUtilOnLogOut()
     {
-        Logger?.LogDebug("Client logout");
+        Logger.LogDebug("Client logout");
 
         _runtimeServiceScope?.Dispose();
     }
@@ -136,7 +136,7 @@ public class MarePlugin : MediatorSubscriberBase, IHostedService
 
         try
         {
-            Logger?.LogDebug("Launching Managers");
+            Logger.LogDebug("Launching Managers");
 
             _runtimeServiceScope?.Dispose();
             _runtimeServiceScope = _serviceScopeFactory.CreateScope();

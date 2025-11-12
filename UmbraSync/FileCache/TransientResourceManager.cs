@@ -200,7 +200,7 @@ public sealed class TransientResourceManager : DisposableMediatorSubscriberBase
     {
         if (SemiTransientResources.TryGetValue(ObjectKind.Pet, out HashSet<string>? value))
         {
-            value?.Clear();
+            value.Clear();
         }
     }
 
@@ -294,8 +294,8 @@ public sealed class TransientResourceManager : DisposableMediatorSubscriberBase
             Logger.LogDebug("Adding {replacedGamePath} for {gameObject} ({filePath})", replacedGamePath, thing?.ToString() ?? gameObject.ToString("X"), filePath);
             _ = Task.Run(async () =>
             {
-                _sendTransientCts?.Cancel();
-                _sendTransientCts?.Dispose();
+                _sendTransientCts.Cancel();
+                _sendTransientCts.Dispose();
                 _sendTransientCts = new();
                 var token = _sendTransientCts.Token;
                 await Task.Delay(TimeSpan.FromSeconds(2), token).ConfigureAwait(false);

@@ -107,12 +107,12 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
     {
         Logger.LogDebug("CreateConnections called");
 
-        if (_serverManager.CurrentServer?.FullPause ?? true)
+        if (_serverManager.CurrentServer.FullPause)
         {
             Logger.LogInformation("Not recreating Connection, paused");
             _connectionDto = null;
             await StopConnection(ServerState.Disconnected).ConfigureAwait(false);
-            _connectionCancellationTokenSource?.Cancel();
+            _connectionCancellationTokenSource.Cancel();
             return;
         }
 
@@ -124,7 +124,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
             Mediator.Publish(new NotificationMessage("Multiple Identical Characters detected", "Your Service configuration has multiple characters with the same name and world set up. Delete the duplicates in the character management to be able to connect to Mare.",
                 NotificationType.Error));
             await StopConnection(ServerState.MultiChara).ConfigureAwait(false);
-            _connectionCancellationTokenSource?.Cancel();
+            _connectionCancellationTokenSource.Cancel();
             return;
         }
 
@@ -133,7 +133,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
             Logger.LogWarning("No secret key set for current character");
             _connectionDto = null;
             await StopConnection(ServerState.NoSecretKey).ConfigureAwait(false);
-            _connectionCancellationTokenSource?.Cancel();
+            _connectionCancellationTokenSource.Cancel();
             return;
         }
 
@@ -143,8 +143,8 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         Mediator.Publish(new EventMessage(new Services.Events.Event(nameof(ApiController), Services.Events.EventSeverity.Informational,
             $"Starting Connection to {_serverManager.CurrentServer.ServerName}")));
 
-        _connectionCancellationTokenSource?.Cancel();
-        _connectionCancellationTokenSource?.Dispose();
+        _connectionCancellationTokenSource.Cancel();
+        _connectionCancellationTokenSource.Dispose();
         _connectionCancellationTokenSource = new CancellationTokenSource();
         var token = _connectionCancellationTokenSource.Token;
         while (ServerState is not ServerState.Connected && !token.IsCancellationRequested)
@@ -306,7 +306,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
 
         _healthCheckTokenSource?.Cancel();
         _ = Task.Run(async () => await StopConnection(ServerState.Disconnected).ConfigureAwait(false));
-        _connectionCancellationTokenSource?.Cancel();
+        _connectionCancellationTokenSource.Cancel();
     }
 
     private async Task ClientHealthCheck(CancellationToken ct)

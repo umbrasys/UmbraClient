@@ -265,10 +265,10 @@ public sealed class FileCacheManager : IHostedService
     {
         if (_fileCaches.TryGetValue(hash, out var caches))
         {
-            var removedCount = caches?.RemoveAll(c => string.Equals(c.PrefixedFilePath, prefixedFilePath, StringComparison.Ordinal));
+            var removedCount = caches.RemoveAll(c => string.Equals(c.PrefixedFilePath, prefixedFilePath, StringComparison.Ordinal));
             _logger.LogTrace("Removed from DB: {count} file(s) with hash {hash} and file cache {path}", removedCount, hash, prefixedFilePath);
 
-            if (caches?.Count == 0)
+            if (caches.Count == 0)
             {
                 _fileCaches.Remove(hash, out var _);
             }

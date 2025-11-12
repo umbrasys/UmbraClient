@@ -516,7 +516,7 @@ public sealed class CacheMonitor : DisposableMediatorSubscriberBase
     {
         TotalFiles = 0;
         _currentFileProgress = 0;
-        _scanCancellationTokenSource = _scanCancellationTokenSource?.CancelRecreate() ?? new CancellationTokenSource();
+        _scanCancellationTokenSource = _scanCancellationTokenSource.CancelRecreate();
         var token = _scanCancellationTokenSource.Token;
         _ = Task.Run(async () =>
         {

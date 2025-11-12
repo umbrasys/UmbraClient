@@ -702,7 +702,7 @@ if (showNearby && pendingInvites > 0)
 
         if (mode == PairContentMode.All)
         {
-            var pendingCount = _nearbyPending?.Pending.Count ?? 0;
+            var pendingCount = _nearbyPending.Pending.Count;
             if (pendingCount > 0)
             {
                 UiSharedService.ColorTextWrapped("Invitation AutoDetect en attente. Ouvrez l\'interface AutoDetect pour gérer vos demandes.", ImGuiColors.DalamudYellow);
@@ -922,7 +922,7 @@ if (showNearby && pendingInvites > 0)
         ImGuiHelpers.ScaledDummy(3f);
         DrawSidebarButton(FontAwesomeIcon.UserFriends, "Syncshells", CompactUiSection.Syncshells, isConnected);
         ImGuiHelpers.ScaledDummy(3f);
-        int pendingInvites = _nearbyPending?.Pending.Count ?? 0;
+        int pendingInvites = _nearbyPending.Pending.Count;
         bool highlightAutoDetect = pendingInvites > 0;
         string autoDetectTooltip = highlightAutoDetect
             ? $"AutoDetect — {pendingInvites} invitation(s) en attente"
