@@ -236,7 +236,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
         ImGui.Separator();
         _uiShared.BigText("AutoDetect");
-        bool isAutoDetectSuppressed = _autoDetectSuppressionService?.IsSuppressed ?? false;
+        bool isAutoDetectSuppressed = _autoDetectSuppressionService.IsSuppressed;
         bool enableDiscovery = _configService.Current.EnableAutoDetectDiscovery;
         using (ImRaii.Disabled(isAutoDetectSuppressed))
         {

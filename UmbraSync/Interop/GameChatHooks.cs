@@ -220,7 +220,7 @@ public unsafe sealed class GameChatHooks : IDisposable
                     {
                         var ssChatBytes = ProcessChatMessage(message);
                         ssChatBytes = ssChatBytes.Skip(cmdString.Length).ToArray();
-                        _ssCommandHandler?.Invoke(i, ssChatBytes);
+                        _ssCommandHandler.Invoke(i, ssChatBytes);
                         return;
                     }
                 }

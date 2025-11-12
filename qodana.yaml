@@ -1,0 +1,29 @@
+version: "1.0"
+
+bootstrap: |
+  # Créer le répertoire libs s'il n'existe pas
+  mkdir -p libs
+  
+  # Télécharger les DLL Dalamud nécessaires
+  wget -q https://github.com/goatcorp/Dalamud/releases/latest/download/latest.zip
+  unzip -q latest.zip -d dalamud_temp
+  
+  # Copier les DLL dans le dossier libs
+  cp dalamud_temp/Dalamud.dll libs/
+  cp dalamud_temp/Lumina.dll libs/
+  
+  # Nettoyer
+  rm -rf dalamud_temp latest.zip
+  
+  # Restaurer les dépendances NuGet
+  dotnet restore
+  
+  # Build (optionnel, mais aide Qodana à mieux comprendre le projet)
+  dotnet build --no-restore -c Debug || true
+
+exclude:
+  - name: Exclude build artifacts
+    paths:
+      - bin
+      - obj
+      - libs

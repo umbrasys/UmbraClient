@@ -3,10 +3,10 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 .idea
-qodana.yaml
-# Qodana generated artifacts
+# Qodana - résultats et cache
 .qodana/
 qodana.sarif.json
+qodana-report/
 results/
 # User-specific files
 *.rsuser
