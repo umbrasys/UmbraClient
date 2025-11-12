@@ -5,6 +5,9 @@
         <RootNamespace>UmbraSync</RootNamespace>
         <Version>0.1.9.9</Version>
         <DALAMUD_DIR>/Volumes/Ext/dev/ressources/XIV on Mac/dalamud/Hooks/dev</DALAMUD_DIR>
+        <!-- Chemin pour le container Qodana -->
+        <DalamudLibsPath Condition=" '$(DALAMUD_DIR)' != '' ">$(DALAMUD_DIR)</DalamudLibsPath>
+        <DalamudLibsPath Condition=" '$(DALAMUD_DIR)' == '' ">/data/project/libs</DalamudLibsPath>
     </PropertyGroup>
 
     <ItemGroup>
@@ -64,28 +67,24 @@
     </ItemGroup>
 
     <ItemGroup>
-        <!-- Références aux DLL Dalamud (nécessaires car pas sur NuGet.org) -->
+        <!-- Références aux DLL Dalamud avec chemin unifié -->
         <Reference Include="Dalamud">
-            <HintPath Condition=" '$(DALAMUD_DIR)' != '' ">$(DALAMUD_DIR)/Dalamud.dll</HintPath>
-            <HintPath Condition=" '$(DALAMUD_DIR)' == '' ">libs/Dalamud.dll</HintPath>
+            <HintPath>$(DalamudLibsPath)/Dalamud.dll</HintPath>
             <Private>false</Private>
         </Reference>
 
         <Reference Include="FFXIVClientStructs">
-            <HintPath Condition=" '$(DALAMUD_DIR)' != '' ">$(DALAMUD_DIR)/FFXIVClientStructs.dll</HintPath>
-            <HintPath Condition=" '$(DALAMUD_DIR)' == '' ">libs/FFXIVClientStructs.dll</HintPath>
+            <HintPath>$(DalamudLibsPath)/FFXIVClientStructs.dll</HintPath>
             <Private>false</Private>
         </Reference>
 
         <Reference Include="ImGuiScene">
-            <HintPath Condition=" '$(DALAMUD_DIR)' != '' ">$(DALAMUD_DIR)/ImGuiScene.dll</HintPath>
-            <HintPath Condition=" '$(DALAMUD_DIR)' == '' ">libs/ImGuiScene.dll</HintPath>
+            <HintPath>$(DalamudLibsPath)/ImGuiScene.dll</HintPath>
             <Private>false</Private>
         </Reference>
 
         <Reference Include="Newtonsoft.Json">
-            <HintPath Condition=" '$(DALAMUD_DIR)' != '' ">$(DALAMUD_DIR)/Newtonsoft.Json.dll</HintPath>
-            <HintPath Condition=" '$(DALAMUD_DIR)' == '' ">libs/Newtonsoft.Json.dll</HintPath>
+            <HintPath>$(DalamudLibsPath)/Newtonsoft.Json.dll</HintPath>
             <Private>false</Private>
         </Reference>
     </ItemGroup>
