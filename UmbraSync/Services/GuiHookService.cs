@@ -78,7 +78,9 @@ public class GuiHookService : DisposableMediatorSubscriberBase
         if (!applyColors)
             return;
 
-        var visibleUsers = _pairManager.GetOnlineUserPairs().Where(u => u.IsVisible && u.PlayerCharacterId != uint.MaxValue);
+        var visibleUsers = _pairManager.GetOnlineUserPairs()
+            .Where(u => u.IsVisible && u.PlayerCharacterId != uint.MaxValue)
+            .ToList();
         var visibleUsersIds = visibleUsers.Select(u => (ulong)u.PlayerCharacterId).ToHashSet();
 
         var visibleUsersDict = visibleUsers.ToDictionary(u => (ulong)u.PlayerCharacterId);

@@ -273,7 +273,9 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
 
     private async Task DownloadFilesInternal(GameObjectHandler gameObjectHandler, List<FileReplacementData> fileReplacement, CancellationToken ct)
     {
-        var downloadGroups = CurrentDownloads.GroupBy(f => f.DownloadUri.Host + ":" + f.DownloadUri.Port, StringComparer.Ordinal);
+        var downloadGroups = CurrentDownloads
+            .GroupBy(f => f.DownloadUri.Host + ":" + f.DownloadUri.Port, StringComparer.Ordinal)
+            .ToList();
 
         foreach (var downloadGroup in downloadGroups)
         {
@@ -291,20 +293,22 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
 
         await Parallel.ForEachAsync(downloadGroups, new ParallelOptions()
         {
-            MaxDegreeOfParallelism = downloadGroups.Count(),
+            MaxDegreeOfParallelism = downloadGroups.Count,
             CancellationToken = ct,
         },
         async (fileGroup, token) =>
         {
+            var firstFile = fileGroup.First();
             // let server predownload files
-            var requestIdResponse = await _orchestrator.SendRequestAsync(HttpMethod.Post, MareFiles.RequestEnqueueFullPath(fileGroup.First().DownloadUri),
+            var requestIdResponse = await _orchestrator.SendRequestAsync(HttpMethod.Post, MareFiles.RequestEnqueueFullPath(firstFile.DownloadUri),
                 fileGroup.Select(c => c.Hash), token).ConfigureAwait(false);
-            Logger.LogDebug("Sent request for {n} files on server {uri} with result {result}", fileGroup.Count(), fileGroup.First().DownloadUri,
+            var fileCount = fileGroup.Count();
+            Logger.LogDebug("Sent request for {n} files on server {uri} with result {result}", fileCount, firstFile.DownloadUri,
                 await requestIdResponse.Content.ReadAsStringAsync(token).ConfigureAwait(false));
 
             Guid requestId = Guid.Parse((await requestIdResponse.Content.ReadAsStringAsync().ConfigureAwait(false)).Trim('"'));
 
-            Logger.LogDebug("GUID {requestId} for {n} files on server {uri}", requestId, fileGroup.Count(), fileGroup.First().DownloadUri);
+            Logger.LogDebug("GUID {requestId} for {n} files on server {uri}", requestId, fileCount, firstFile.DownloadUri);
 
             var blockFile = _fileDbManager.GetCacheFilePath(requestId.ToString("N"), "blk");
             FileInfo fi = new(blockFile);

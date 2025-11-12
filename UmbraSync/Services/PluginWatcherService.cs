@@ -41,19 +41,20 @@ public class PluginWatcherService : MediatorSubscriberBase, IHostedService
 #pragma warning disable
     private static bool ExposedPluginsEqual(IEnumerable<IExposedPlugin> plugins, IEnumerable<CapturedPluginState> other)
     {
-        if (plugins.Count() != other.Count()) return false;
-        var enumeratorOriginal = plugins.GetEnumerator();
-        var enumeratorOther = other.GetEnumerator();
-        while (true)
+        var pluginStates = plugins as IExposedPlugin[] ?? plugins.ToArray();
+        var otherStates = other as CapturedPluginState[] ?? other.ToArray();
+        if (pluginStates.Length != otherStates.Length) return false;
+
+        for (var i = 0; i < pluginStates.Length; i++)
         {
-            var move1 = enumeratorOriginal.MoveNext();
-            var move2 = enumeratorOther.MoveNext();
-            if (move1 != move2) return false;
-            if (move1 == false) return true;
-            if (enumeratorOriginal.Current.IsLoaded != enumeratorOther.Current.IsLoaded) return false;
-            if (enumeratorOriginal.Current.Version != enumeratorOther.Current.Version) return false;
-            if (enumeratorOriginal.Current.InternalName != enumeratorOther.Current.InternalName) return false;
+            var plugin = pluginStates[i];
+            var otherState = otherStates[i];
+            if (plugin.IsLoaded != otherState.IsLoaded) return false;
+            if (plugin.Version != otherState.Version) return false;
+            if (plugin.InternalName != otherState.InternalName) return false;
         }
+
+        return true;
     }
 #pragma warning restore
 

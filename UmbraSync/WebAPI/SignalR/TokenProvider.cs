@@ -50,7 +50,8 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
             _tokenCache.Clear();
             _wellKnownCache.Clear();
         });
-        _httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("UmbraSync", ver!.Major + "." + ver!.Minor + "." + ver!.Build));
+        var versionString = ver is null ? "unknown" : $"{ver.Major}.{ver.Minor}.{ver.Build}";
+        _httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("UmbraSync", versionString));
     }
 
     public MareMediator Mediator { get; }

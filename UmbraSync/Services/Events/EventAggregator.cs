@@ -75,10 +75,13 @@ public class EventAggregator : MediatorSubscriberBase, IHostedService
             try
             {
                 _currentTime = DateTime.Now;
-                var filesInDirectory = Directory.EnumerateFiles(EventLogFolder, "*.log");
-                if (filesInDirectory.Skip(10).Any())
+                var filesInDirectory = Directory.EnumerateFiles(EventLogFolder, "*.log")
+                    .Select(f => new FileInfo(f))
+                    .OrderBy(f => f.LastWriteTimeUtc)
+                    .ToList();
+                if (filesInDirectory.Count > 10)
                 {
-                    File.Delete(filesInDirectory.OrderBy(f => new FileInfo(f).LastWriteTimeUtc).First());
+                    filesInDirectory.First().Delete();
                 }
             }
             catch (Exception ex)

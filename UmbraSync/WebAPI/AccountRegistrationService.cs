@@ -32,7 +32,8 @@ public sealed class AccountRegistrationService : IDisposable
             }
         );
         var ver = Assembly.GetExecutingAssembly().GetName().Version;
-        _httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("UmbraSync", ver!.Major + "." + ver!.Minor + "." + ver!.Build));
+        var versionString = ver is null ? "unknown" : $"{ver.Major}.{ver.Minor}.{ver.Build}";
+        _httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("UmbraSync", versionString));
     }
 
     public void Dispose()

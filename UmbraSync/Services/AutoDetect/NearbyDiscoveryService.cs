@@ -223,7 +223,7 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                                 {
                                 var selfHash = (saltHex + displayName + meWorld.ToString()).GetHash256();
                                 _lastPublishedSignature = null; // ensure future loop doesn't skip
-                                var okNow = await _api.PublishAsync(ep!, new[] { selfHash }, displayName, ct, _config.Current.AllowAutoDetectPairRequests).ConfigureAwait(false);
+                                var okNow = await _api.PublishAsync(ep, new[] { selfHash }, displayName, ct, _config.Current.AllowAutoDetectPairRequests).ConfigureAwait(false);
                                 _logger.LogInformation("Nearby immediate publish on toggle ON: {result}", okNow ? "success" : "failed");
                                 }
                             }
@@ -353,7 +353,8 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                             _logger.LogDebug(ex, "Failed to compute snapshot signature");
                         }
 
-                        if (!string.IsNullOrEmpty(_configProvider.PublishEndpoint))
+                        var publishEndpoint = _configProvider.PublishEndpoint;
+                        if (!string.IsNullOrEmpty(publishEndpoint))
                         {
                             string? displayName = null;
                             string? selfHash = null;
@@ -377,13 +378,13 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
 
                             if (!string.IsNullOrEmpty(selfHash))
                             {
-                                var sig = selfHash!;
+                                var sig = selfHash;
                                 if (!string.Equals(sig, _lastPublishedSignature, StringComparison.Ordinal))
                                 {
                                     _lastPublishedSignature = sig;
-                                    var shortSelf = selfHash!.Length > 8 ? selfHash[..8] : selfHash;
+                                    var shortSelf = selfHash.Length > 8 ? selfHash[..8] : selfHash;
                                     _logger.LogDebug("Nearby publish: self presence updated (hash={hash})", shortSelf);
-                                    var ok = await _api.PublishAsync(_configProvider.PublishEndpoint!, new[] { selfHash! }, displayName, ct, _config.Current.AllowAutoDetectPairRequests).ConfigureAwait(false);
+                                    var ok = await _api.PublishAsync(publishEndpoint, new[] { selfHash }, displayName, ct, _config.Current.AllowAutoDetectPairRequests).ConfigureAwait(false);
                                     _logger.LogInformation("Nearby publish result: {result}", ok ? "success" : "failed");
                                     if (ok) _lastHeartbeat = DateTime.UtcNow;
                                     if (ok)
@@ -402,7 +403,7 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                                     // No changes; perform heartbeat publish if interval elapsed
                                     if (DateTime.UtcNow - _lastHeartbeat >= HeartbeatInterval)
                                     {
-                                        var okHb = await _api.PublishAsync(_configProvider.PublishEndpoint!, new[] { selfHash! }, displayName, ct, _config.Current.AllowAutoDetectPairRequests).ConfigureAwait(false);
+                                        var okHb = await _api.PublishAsync(publishEndpoint, new[] { selfHash }, displayName, ct, _config.Current.AllowAutoDetectPairRequests).ConfigureAwait(false);
                                         _logger.LogDebug("Nearby heartbeat publish: {result}", okHb ? "success" : "failed");
                                         if (okHb) _lastHeartbeat = DateTime.UtcNow;
                                     }

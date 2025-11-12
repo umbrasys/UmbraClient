@@ -890,7 +890,8 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     public T? DrawCombo<T>(string comboName, IEnumerable<T> comboItems, Func<T, string> toName,
         Action<T?>? onSelected = null, T? initialSelectedItem = default)
     {
-        if (!comboItems.Any()) return default;
+        var comboItemList = comboItems as IList<T> ?? comboItems.ToList();
+        if (comboItemList.Count == 0) return default;
 
         if (!_selectedComboItems.TryGetValue(comboName, out var selectedItem) && selectedItem == null)
         {
@@ -903,14 +904,14 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             }
             else
             {
-                selectedItem = comboItems.First();
+                selectedItem = comboItemList[0];
                 _selectedComboItems[comboName] = selectedItem!;
             }
         }
 
         if (ImGui.BeginCombo(comboName, toName((T)selectedItem!)))
         {
-            foreach (var item in comboItems)
+            foreach (var item in comboItemList)
             {
                 bool isSelected = EqualityComparer<T>.Default.Equals(item, (T?)selectedItem);
                 if (ImGui.Selectable(toName(item), isSelected))
@@ -929,7 +930,8 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     public T? DrawColorCombo<T>(string comboName, IEnumerable<T> comboItems, Func<T, (uint Color, string Name)> toEntry,
         Action<T?>? onSelected = null, T? initialSelectedItem = default)
     {
-        if (!comboItems.Any()) return default;
+        var comboItemList = comboItems as IList<T> ?? comboItems.ToList();
+        if (comboItemList.Count == 0) return default;
 
         if (!_selectedComboItems.TryGetValue(comboName, out var selectedItem) && selectedItem == null)
         {
@@ -942,7 +944,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             }
             else
             {
-                selectedItem = comboItems.First();
+                selectedItem = comboItemList[0];
                 _selectedComboItems[comboName] = selectedItem!;
             }
         }
@@ -951,7 +953,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         ImGui.PushStyleColor(ImGuiCol.Text, ColorHelpers.RgbaUintToVector4(ColorHelpers.SwapEndianness(entry.Color)));
         if (ImGui.BeginCombo(comboName, entry.Name))
         {
-            foreach (var item in comboItems)
+            foreach (var item in comboItemList)
             {
                 entry = toEntry(item);
                 ImGui.PushStyleColor(ImGuiCol.Text, ColorHelpers.RgbaUintToVector4(ColorHelpers.SwapEndianness(entry.Color)));

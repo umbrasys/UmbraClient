@@ -385,7 +385,7 @@ public class AutoDetectRequestService
 
     private static string EnsureTargetKey(string? targetKey)
     {
-        return !string.IsNullOrEmpty(targetKey) ? targetKey! : "target:" + Guid.NewGuid().ToString("N");
+        return !string.IsNullOrEmpty(targetKey) ? targetKey : "target:" + Guid.NewGuid().ToString("N");
     }
 
     public sealed record PendingRequestInfo(string Key, string? Uid, string? Token, string TargetDisplayName, DateTime SentAt);

@@ -441,9 +441,14 @@ public sealed class CacheMonitor : DisposableMediatorSubscriberBase
     {
         lock (_fileDbManager)
         {
-            var deletedEntries = changes.Where(c => c.Value.ChangeType == WatcherChangeTypes.Deleted).Select(c => c.Key);
-            var renamedEntries = changes.Where(c => c.Value.ChangeType == WatcherChangeTypes.Renamed);
-            var remainingEntries = changes.Where(c => c.Value.ChangeType != WatcherChangeTypes.Deleted).Select(c => c.Key);
+            var deletedEntries = changes.Where(c => c.Value.ChangeType == WatcherChangeTypes.Deleted)
+                .Select(c => c.Key)
+                .ToArray();
+            var renamedEntries = changes.Where(c => c.Value.ChangeType == WatcherChangeTypes.Renamed)
+                .ToArray();
+            var remainingEntries = changes.Where(c => c.Value.ChangeType != WatcherChangeTypes.Deleted)
+                .Select(c => c.Key)
+                .ToArray();
 
             foreach (var entry in deletedEntries)
             {
@@ -460,13 +465,17 @@ public sealed class CacheMonitor : DisposableMediatorSubscriberBase
                 Logger.LogDebug("FSW Change: Creation or Change - {val}", entry);
             }
 
-            var allChanges = deletedEntries
-                .Concat(renamedEntries.Select(c => c.Value.OldPath!))
-                .Concat(renamedEntries.Select(c => c.Key))
-                .Concat(remainingEntries)
-                .ToArray();
+            var allChanges = new List<string>(deletedEntries.Length + remainingEntries.Length + (renamedEntries.Length * 2));
+            allChanges.AddRange(deletedEntries);
+            foreach (var entry in renamedEntries)
+            {
+                if (!string.IsNullOrEmpty(entry.Value.OldPath))
+                    allChanges.Add(entry.Value.OldPath!);
+                allChanges.Add(entry.Key);
+            }
+            allChanges.AddRange(remainingEntries);
 
-            _ = _fileDbManager.GetFileCachesByPaths(allChanges);
+            _ = _fileDbManager.GetFileCachesByPaths(allChanges.ToArray());
 
             _fileDbManager.WriteOutFullCsv();
         }

@@ -136,7 +136,7 @@ public class ServerConfigurationManager
         {
             _configService.Current.CurrentServer = 0;
             EnsureMainExists();
-            return CurrentServer!;
+            return CurrentServer;
         }
     }
 
@@ -160,7 +160,7 @@ public class ServerConfigurationManager
     public void SelectServer(int idx)
     {
         _configService.Current.CurrentServer = idx;
-        CurrentServer!.FullPause = false;
+        CurrentServer.FullPause = false;
         Save();
     }
 

@@ -585,9 +585,9 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
                             if (metaInfo != null)
                             {
                                 UiSharedService.AttachToolTip("Metainfo present" + UiSharedService.TooltipSeparator
-                                    + $"Last Updated: {metaInfo!.UpdatedDate}" + Environment.NewLine
-                                    + $"Description: {metaInfo!.Description}" + Environment.NewLine
-                                    + $"Poses: {metaInfo!.PoseData.Count}");
+                                    + $"Last Updated: {metaInfo.UpdatedDate}" + Environment.NewLine
+                                    + $"Description: {metaInfo.Description}" + Environment.NewLine
+                                    + $"Poses: {metaInfo.PoseData.Count}");
                             }
                             else
                             {
@@ -617,17 +617,17 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
                         ImGui.SameLine();
                         GposeMetaInfoAction((meta) =>
                         {
-                            if (_uiSharedService.IconButton(FontAwesomeIcon.ArrowRight))
+                            if (_uiSharedService.IconButton(FontAwesomeIcon.ArrowRight) && meta != null)
                             {
-                                _ = _charaDataManager.ApplyCharaDataToGposeTarget(metaInfo!);
+                                _ = _charaDataManager.ApplyCharaDataToGposeTarget(meta);
                             }
                         }, "Apply Character Data to GPose Target", metaInfo, _hasValidGposeTarget, false);
                         ImGui.SameLine();
                         GposeMetaInfoAction((meta) =>
                         {
-                            if (_uiSharedService.IconButton(FontAwesomeIcon.Plus))
+                            if (_uiSharedService.IconButton(FontAwesomeIcon.Plus) && meta != null)
                             {
-                                _ = _charaDataManager.SpawnAndApplyData(meta!);
+                                _ = _charaDataManager.SpawnAndApplyData(meta);
                             }
                         }, "Spawn Actor with Brio and apply Character Data", metaInfo, _hasValidGposeTarget, true);
 
@@ -698,17 +698,17 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
                 }
                 GposeMetaInfoAction((meta) =>
                 {
-                    if (_uiSharedService.IconTextButton(FontAwesomeIcon.ArrowRight, $"Download and Apply"))
+                    if (_uiSharedService.IconTextButton(FontAwesomeIcon.ArrowRight, $"Download and Apply") && meta != null)
                     {
-                        _ = _charaDataManager.ApplyCharaDataToGposeTarget(meta!);
+                        _ = _charaDataManager.ApplyCharaDataToGposeTarget(meta);
                     }
                 }, "Apply this Character Data to the current GPose actor", _charaDataManager.LastDownloadedMetaInfo, _hasValidGposeTarget, false);
                 ImGui.SameLine();
                 GposeMetaInfoAction((meta) =>
                 {
-                    if (_uiSharedService.IconTextButton(FontAwesomeIcon.Plus, $"Download and Spawn"))
+                    if (_uiSharedService.IconTextButton(FontAwesomeIcon.Plus, $"Download and Spawn") && meta != null)
                     {
-                        _ = _charaDataManager.SpawnAndApplyData(meta!);
+                        _ = _charaDataManager.SpawnAndApplyData(meta);
                     }
                 }, "Spawn a new Brio actor and apply this Character Data", _charaDataManager.LastDownloadedMetaInfo, _hasValidGposeTarget, true);
                 ImGui.SameLine();
@@ -780,8 +780,8 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
                 foreach (var data in _charaDataManager.OwnCharaData.Values)
                 {
                     var hasMetaInfo = _charaDataManager.TryGetMetaInfo(data.FullId, out var metaInfo);
-                    if (!hasMetaInfo) continue;
-                    DrawMetaInfoData(_gposeTarget, _hasValidGposeTarget, metaInfo!, true);
+                    if (!hasMetaInfo || metaInfo == null) continue;
+                    DrawMetaInfoData(_gposeTarget, _hasValidGposeTarget, metaInfo, true);
                 }
 
                 ImGuiHelpers.ScaledDummy(5);
@@ -1468,17 +1468,17 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
             ImGui.SameLine();
             GposeMetaInfoAction((meta) =>
             {
-                if (_uiSharedService.IconButton(FontAwesomeIcon.ArrowRight))
+                if (_uiSharedService.IconButton(FontAwesomeIcon.ArrowRight) && meta != null)
                 {
-                    _ = _charaDataManager.ApplyCharaDataToGposeTarget(meta!);
+                    _ = _charaDataManager.ApplyCharaDataToGposeTarget(meta);
                 }
             }, $"Apply Character data to {CharaName(selectedGposeActor)}", data, hasValidGposeTarget, false);
             ImGui.SameLine();
             GposeMetaInfoAction((meta) =>
             {
-                if (_uiSharedService.IconButton(FontAwesomeIcon.Plus))
+                if (_uiSharedService.IconButton(FontAwesomeIcon.Plus) && meta != null)
                 {
-                    _ = _charaDataManager.SpawnAndApplyData(meta!);
+                    _ = _charaDataManager.SpawnAndApplyData(meta);
                 }
             }, "Spawn and Apply Character data", data, hasValidGposeTarget, true);
 
