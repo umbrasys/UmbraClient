@@ -4,6 +4,15 @@ dotnet:
   solution: UmbraSync.sln
 
 exclude:
+  - name: Exclude IPC files with dependency issues
+    paths:
+      - UmbraSync/Interop/Ipc/IpcCallerBrio.cs
+      - UmbraSync/Interop/Ipc/IpcCallerCustomize.cs
+      - UmbraSync/Interop/Ipc/IpcCallerGlamourer.cs
+      - UmbraSync/Interop/Ipc/IpcCallerHeels.cs
+      - UmbraSync/Interop/Ipc/IpcCallerHonorific.cs
+      - UmbraSync/FileCache/FileCacheManager.cs
+
   - name: Exclude build artifacts
     paths:
       - bin
