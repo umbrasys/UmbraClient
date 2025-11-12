@@ -1,23 +1,7 @@
 version: "1.0"
+
 dotnet:
   solution: UmbraSync.sln
-
-bootstrap: |
-  apt-get update -qq && apt-get install -y -qq unzip wget
-  
-  mkdir -p libs
-  
-  # Télécharger les DLL Dalamud nécessaires
-  wget -q https://github.com/goatcorp/Dalamud/releases/latest/download/latest.zip -O latest.zip
-  unzip -q latest.zip -d dalamud_temp
-  
-  # Copier les DLL dans le dossier libs
-  cp dalamud_temp/Dalamud.dll libs/ || echo "Attention: Dalamud.dll non trouvable"
-  cp dalamud_temp/Lumina.dll libs/ || echo "Attention: Lumina.dll non trouvable"
-    rm -rf dalamud_temp latest.zip
-    dotnet restore
-  
-  dotnet build --no-restore -c Debug || true
 
 exclude:
   - name: Exclude build artifacts

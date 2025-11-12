@@ -1,8 +1,3 @@
-#-------------------------------------------------------------------------------#
-#        Discover additional configuration options in our documentation         #
-#               https://www.jetbrains.com/help/qodana/github.html               #
-#-------------------------------------------------------------------------------#
-
 name: Qodana
 on:
   workflow_dispatch:
@@ -22,12 +17,24 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
-          submodules: recursive
+          submodules: recursive  
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+
+      - name: Download Dalamud
+        run: |
+          mkdir -p libs
+          curl -L https://goatcorp.github.io/dalamud-distrib/stg/latest.zip -o latest.zip
+          unzip -o latest.zip -d dalamud_temp
+          cp dalamud_temp/Dalamud.dll libs/
+          cp dalamud_temp/Lumina.dll libs/
+          rm -rf dalamud_temp latest.zip
+
+      - name: Restore dependencies
+        run: dotnet restore
 
       - name: Qodana Scan
         uses: JetBrains/qodana-action@v2025.2
