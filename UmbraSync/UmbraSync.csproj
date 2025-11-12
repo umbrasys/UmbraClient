@@ -70,6 +70,24 @@
             <HintPath Condition=" '$(DALAMUD_DIR)' == '' ">libs/Dalamud.dll</HintPath>
             <Private>false</Private>
         </Reference>
+
+        <Reference Include="FFXIVClientStructs">
+            <HintPath Condition=" '$(DALAMUD_DIR)' != '' ">$(DALAMUD_DIR)/FFXIVClientStructs.dll</HintPath>
+            <HintPath Condition=" '$(DALAMUD_DIR)' == '' ">libs/FFXIVClientStructs.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+
+        <Reference Include="ImGuiScene">
+            <HintPath Condition=" '$(DALAMUD_DIR)' != '' ">$(DALAMUD_DIR)/ImGuiScene.dll</HintPath>
+            <HintPath Condition=" '$(DALAMUD_DIR)' == '' ">libs/ImGuiScene.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+
+        <Reference Include="Newtonsoft.Json">
+            <HintPath Condition=" '$(DALAMUD_DIR)' != '' ">$(DALAMUD_DIR)/Newtonsoft.Json.dll</HintPath>
+            <HintPath Condition=" '$(DALAMUD_DIR)' == '' ">libs/Newtonsoft.Json.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
     </ItemGroup>
 
     <ItemGroup>
