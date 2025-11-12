@@ -29,7 +29,6 @@ jobs:
           mkdir -p libs
           curl -L https://goatcorp.github.io/dalamud-distrib/stg/latest.zip -o latest.zip
           unzip -o latest.zip -d dalamud_temp
-          # Copier TOUTES les DLL (pas seulement Dalamud.dll et Lumina.dll)
           cp dalamud_temp/*.dll libs/
           rm -rf dalamud_temp latest.zip
 
@@ -40,7 +39,7 @@ jobs:
         uses: JetBrains/qodana-action@v2025.2
         env:
           QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
-          ARTIFACTS_BASE_URL: https://repo.umbra-sync.net/qodana/dev
+          QODANA_ENDPOINT: https://qodana.cloud
         with:
           pr-mode: ${{ github.event_name == 'pull_request' }}
           use-caches: true
