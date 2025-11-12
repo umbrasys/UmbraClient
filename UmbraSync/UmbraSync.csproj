@@ -14,7 +14,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <!-- Packages Lumina ajoutés pour résoudre les types manquants -->
+        <!-- Packages Lumina pour avoir les types complets -->
         <PackageReference Include="Lumina" Version="6.3.0" />
         <PackageReference Include="Lumina.Excel" Version="7.3.1" />
 
@@ -64,10 +64,11 @@
     </ItemGroup>
 
     <ItemGroup>
+        <!-- Références aux DLL Dalamud (nécessaires car pas sur NuGet.org) -->
         <Reference Include="Dalamud">
             <HintPath Condition=" '$(DALAMUD_DIR)' != '' ">$(DALAMUD_DIR)/Dalamud.dll</HintPath>
             <HintPath Condition=" '$(DALAMUD_DIR)' == '' ">libs/Dalamud.dll</HintPath>
-            <Private>true</Private>
+            <Private>false</Private>
         </Reference>
     </ItemGroup>
 

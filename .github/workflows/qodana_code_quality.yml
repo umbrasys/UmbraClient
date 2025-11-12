@@ -17,7 +17,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
-          submodules: recursive  
+          submodules: recursive
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -29,8 +29,8 @@ jobs:
           mkdir -p libs
           curl -L https://goatcorp.github.io/dalamud-distrib/stg/latest.zip -o latest.zip
           unzip -o latest.zip -d dalamud_temp
-          cp dalamud_temp/Dalamud.dll libs/
-          cp dalamud_temp/Lumina.dll libs/
+          # Copier TOUTES les DLL (pas seulement Dalamud.dll et Lumina.dll)
+          cp dalamud_temp/*.dll libs/
           rm -rf dalamud_temp latest.zip
 
       - name: Restore dependencies
