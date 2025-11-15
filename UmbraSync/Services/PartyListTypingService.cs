@@ -61,11 +61,16 @@ public class PartyListTypingService : DisposableMediatorSubscriberBase
         var activeTypers = _typingStateService.GetActiveTypers(TypingDisplayTime);
         var now = DateTime.UtcNow;
 
-        foreach (var member in _partyList)
+        for (var i = 0; i < _partyList.Count; ++i)
         {
-            if (string.IsNullOrEmpty(member.Name?.TextValue)) continue;
+            var member = _partyList[i];
+            if (member == null)
+                continue;
 
             var displayName = member.Name.TextValue;
+            if (string.IsNullOrEmpty(displayName))
+                continue;
+
             if (visibleByAlias.TryGetValue(displayName, out var uid)
                 && activeTypers.TryGetValue(uid, out var entry)
                 && (now - entry.LastUpdate) <= TypingDisplayFade)

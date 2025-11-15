@@ -112,7 +112,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
             Logger.LogInformation("Not recreating Connection, paused");
             _connectionDto = null;
             await StopConnection(ServerState.Disconnected).ConfigureAwait(false);
-            _connectionCancellationTokenSource.Cancel();
+            await _connectionCancellationTokenSource.CancelAsync().ConfigureAwait(false);
             return;
         }
 
@@ -124,7 +124,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
             Mediator.Publish(new NotificationMessage("Multiple Identical Characters detected", "Your Service configuration has multiple characters with the same name and world set up. Delete the duplicates in the character management to be able to connect to Mare.",
                 NotificationType.Error));
             await StopConnection(ServerState.MultiChara).ConfigureAwait(false);
-            _connectionCancellationTokenSource.Cancel();
+            await _connectionCancellationTokenSource.CancelAsync().ConfigureAwait(false);
             return;
         }
 
@@ -133,7 +133,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
             Logger.LogWarning("No secret key set for current character");
             _connectionDto = null;
             await StopConnection(ServerState.NoSecretKey).ConfigureAwait(false);
-            _connectionCancellationTokenSource.Cancel();
+            await _connectionCancellationTokenSource.CancelAsync().ConfigureAwait(false);
             return;
         }
 
@@ -143,7 +143,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         Mediator.Publish(new EventMessage(new Services.Events.Event(nameof(ApiController), Services.Events.EventSeverity.Informational,
             $"Starting Connection to {_serverManager.CurrentServer.ServerName}")));
 
-        _connectionCancellationTokenSource.Cancel();
+        _ = _connectionCancellationTokenSource.CancelAsync();
         _connectionCancellationTokenSource.Dispose();
         _connectionCancellationTokenSource = new CancellationTokenSource();
         var token = _connectionCancellationTokenSource.Token;
@@ -291,9 +291,9 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         await UserSetPairPermissions(new UserPermissionsDto(userData, perm)).ConfigureAwait(false);
     }
 
-    public Task<ConnectionDto> GetConnectionDto() => GetConnectionDto(true);
+    public Task<ConnectionDto> GetConnectionDto() => GetConnectionDtoInternal(true);
 
-    public async Task<ConnectionDto> GetConnectionDto(bool publishConnected = true)
+    private async Task<ConnectionDto> GetConnectionDtoInternal(bool publishConnected)
     {
         var dto = await _mareHub!.InvokeAsync<ConnectionDto>(nameof(GetConnectionDto)).ConfigureAwait(false);
         if (publishConnected) Mediator.Publish(new ConnectedMessage(dto));
@@ -429,7 +429,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         try
         {
             InitializeApiHooks();
-            _connectionDto = await GetConnectionDto(publishConnected: false).ConfigureAwait(false);
+            _connectionDto = await GetConnectionDtoInternal(publishConnected: false).ConfigureAwait(false);
             if (_connectionDto.ServerVersion != IMareHub.ApiVersion)
             {
                 await StopConnection(ServerState.VersionMisMatch).ConfigureAwait(false);
@@ -471,7 +471,17 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
                 $"Stopping existing connection to {_serverManager.CurrentServer.ServerName}")));
 
             _initialized = false;
-            _healthCheckTokenSource?.Cancel();
+            if (_healthCheckTokenSource is not null)
+            {
+                try
+                {
+                    await _healthCheckTokenSource.CancelAsync().ConfigureAwait(false);
+                }
+                catch (ObjectDisposedException)
+                {
+                    // ignoré
+                }
+            }
             Mediator.Publish(new DisconnectedMessage());
             _mareHub = null;
             _connectionDto = null;

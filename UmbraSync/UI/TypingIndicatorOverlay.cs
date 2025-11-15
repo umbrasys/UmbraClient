@@ -134,7 +134,10 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
                 if (targetIndex >= 0 && !string.IsNullOrEmpty(playerName))
                 {
                     var member = _partyList[targetIndex];
-                    var memberName = member?.Name?.TextValue;
+                    if (member == null)
+                        continue;
+
+                    var memberName = member.Name.TextValue;
                     if (!string.IsNullOrEmpty(memberName) && !memberName.Equals(playerName, StringComparison.OrdinalIgnoreCase))
                     {
                         var nameIndex = GetPartyIndexForName(playerName);
@@ -223,13 +226,10 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
             var isPartyMember = IsPartyMember(objectId, pairName);
 
             // Enforce party-only visibility when the scope is Party/CrossParty
-            if (entry.Scope is TypingScope.Party or TypingScope.CrossParty)
+            if (entry.Scope is TypingScope.Party or TypingScope.CrossParty && !isPartyMember)
             {
-                if (!isPartyMember)
-                {
-                    _typedLogger.LogTrace("TypingIndicator: suppressed non-party bubble for {uid} due to scope={scope}", uid, entry.Scope);
-                    continue;
-                }
+                _typedLogger.LogTrace("TypingIndicator: suppressed non-party bubble for {uid} due to scope={scope}", uid, entry.Scope);
+                continue;
             }
 
             var isRelevantMember = IsPlayerRelevant(pair, isPartyMember);
@@ -247,11 +247,8 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
                 continue;
 
             // For Party/CrossParty scope, do not draw fallback world icon for non-party even if nearby
-            if (entry.Scope is TypingScope.Party or TypingScope.CrossParty)
-            {
-                if (!isPartyMember)
-                    continue;
-            }
+            if (entry.Scope is TypingScope.Party or TypingScope.CrossParty && !isPartyMember)
+                continue;
 
             if (pair == null)
             {
@@ -292,7 +289,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
 
     private unsafe bool TryDrawNameplateBubble(ImDrawListPtr drawList, IDalamudTextureWrap textureWrap, uint objectId)
     {
-        if (textureWrap == null || textureWrap.Handle == IntPtr.Zero)
+        if (textureWrap.Handle == IntPtr.Zero)
             return false;
 
         var framework = Framework.Instance();
@@ -418,9 +415,13 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         if (objectId == 0 || objectId == uint.MaxValue)
             return false;
 
-        foreach (var obj in _objectTable)
+        for (var i = 0; i < _objectTable.Length; ++i)
         {
-            if (obj?.EntityId == objectId)
+            var obj = _objectTable[i];
+            if (obj == null)
+                continue;
+
+            if (obj.EntityId == objectId)
             {
                 position = obj.Position;
                 return true;
@@ -483,14 +484,15 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
     private bool TryGetWorldPositionByName(string name, out Vector3 position)
     {
         position = Vector3.Zero;
-        foreach (var obj in _objectTable)
+        for (var i = 0; i < _objectTable.Length; ++i)
         {
-            if (obj is not { } gameObject)
+            var obj = _objectTable[i];
+            if (obj == null)
                 continue;
 
-            if (gameObject.Name.TextValue.Equals(name, StringComparison.OrdinalIgnoreCase))
+            if (obj.Name.TextValue.Equals(name, StringComparison.OrdinalIgnoreCase))
             {
-                position = gameObject.Position;
+                position = obj.Position;
                 return true;
             }
         }
@@ -538,7 +540,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         return false;
     }
 
-    private bool IsPlayerRelevant(Pair? pair, bool isPartyMember)
+    private static bool IsPlayerRelevant(Pair? pair, bool isPartyMember)
     {
         if (isPartyMember)
             return true;

@@ -23,7 +23,7 @@ public class AutoDetectRequestService
     private readonly MareConfigService _configService;
     private readonly DalamudUtilService _dalamud;
     private readonly MareMediator _mediator;
-    private readonly object _syncRoot = new();
+    private readonly Lock _syncRoot = new();
     private readonly Dictionary<string, DateTime> _activeCooldowns = new(StringComparer.Ordinal);
     private readonly Dictionary<string, RefusalTracker> _refusalTrackers = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, PendingRequestInfo> _pendingRequests = new(StringComparer.Ordinal);
@@ -61,7 +61,7 @@ public class AutoDetectRequestService
         if (!string.IsNullOrEmpty(targetKey))
         {
             var now = DateTime.UtcNow;
-            lock (_syncRoot)
+            using (_syncRoot.EnterScope())
             {
                 if (_refusalTrackers.TryGetValue(targetKey, out var tracker))
                 {
@@ -125,7 +125,7 @@ public class AutoDetectRequestService
         {
             if (!string.IsNullOrEmpty(targetKey))
             {
-                lock (_syncRoot)
+                using (_syncRoot.EnterScope())
                 {
                     _activeCooldowns[targetKey] = DateTime.UtcNow;
                     if (_refusalTrackers.TryGetValue(targetKey, out var tracker))
@@ -151,7 +151,7 @@ public class AutoDetectRequestService
             if (!string.IsNullOrEmpty(targetKey))
             {
                 var now = DateTime.UtcNow;
-                lock (_syncRoot)
+                using (_syncRoot.EnterScope())
                 {
                     _activeCooldowns.Remove(targetKey);
                     if (!_refusalTrackers.TryGetValue(targetKey, out var tracker))
@@ -220,7 +220,7 @@ public class AutoDetectRequestService
         if (!string.IsNullOrEmpty(targetKey))
         {
             var now = DateTime.UtcNow;
-            lock (_syncRoot)
+            using (_syncRoot.EnterScope())
             {
                 if (_refusalTrackers.TryGetValue(targetKey, out var tracker))
                 {
@@ -264,7 +264,7 @@ public class AutoDetectRequestService
 
             if (!string.IsNullOrEmpty(targetKey))
             {
-                lock (_syncRoot)
+                using (_syncRoot.EnterScope())
                 {
                     _activeCooldowns[targetKey] = DateTime.UtcNow;
                     if (_refusalTrackers.TryGetValue(targetKey, out var tracker))
@@ -292,7 +292,7 @@ public class AutoDetectRequestService
             if (!string.IsNullOrEmpty(targetKey))
             {
                 var now = DateTime.UtcNow;
-                lock (_syncRoot)
+                using (_syncRoot.EnterScope())
                 {
                     _activeCooldowns.Remove(targetKey);
                     if (!_refusalTrackers.TryGetValue(targetKey, out var tracker))

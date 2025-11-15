@@ -557,7 +557,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                 string[] daysFr = new[] { "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim" };
                 for (int i = 0; i < 7; i++)
                 {
-                    ImGui.SameLine(i == 0 ? 0 : 0);
+                    ImGui.SameLine(0);
                     bool v = _adWeekdays[i];
                     if (ImGui.Checkbox($"##adwd{i}", ref v)) _adWeekdays[i] = v;
                     ImGui.SameLine();

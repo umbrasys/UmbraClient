@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using UmbraSync.Services.Mediator;
 using UmbraSync.MareConfiguration;
 using UmbraSync.MareConfiguration.Configurations;
@@ -33,7 +34,7 @@ public sealed class NotificationTracker
     private readonly MareMediator _mediator;
     private readonly NotificationsConfigService _configService;
     private readonly Dictionary<(NotificationCategory Category, string Id), NotificationEntry> _entries = new();
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
 
     public NotificationTracker(MareMediator mediator, NotificationsConfigService configService)
     {
@@ -45,7 +46,7 @@ public sealed class NotificationTracker
 
     public void Upsert(NotificationEntry entry)
     {
-        lock (_lock)
+        using (_lock.EnterScope())
         {
             _entries[(entry.Category, entry.Id)] = entry;
             TrimIfNecessary_NoLock();
@@ -56,7 +57,7 @@ public sealed class NotificationTracker
 
     public void Remove(NotificationCategory category, string id)
     {
-        lock (_lock)
+        using (_lock.EnterScope())
         {
             _entries.Remove((category, id));
             Persist_NoLock();
@@ -66,7 +67,7 @@ public sealed class NotificationTracker
 
     public IReadOnlyList<NotificationEntry> GetEntries()
     {
-        lock (_lock)
+        using (_lock.EnterScope())
         {
             return _entries.Values
                 .OrderBy(e => e.CreatedAt)
@@ -78,7 +79,7 @@ public sealed class NotificationTracker
     {
         get
         {
-            lock (_lock)
+            using (_lock.EnterScope())
             {
                 return _entries.Count;
             }

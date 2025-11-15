@@ -195,143 +195,7 @@ public class DataAnalysisUi : WindowMediatorSubscriberBase
         ImGui.TextUnformatted($"Total modded model triangles: {UiSharedService.TrisToString(cachedAnalysis.Sum(c => c.Value.Sum(f => f.Value.Triangles)))}");
         ImGui.Separator();
 
-        {
-            using var objectTabColor = ImRaii.PushColor(ImGuiCol.Tab, UiSharedService.AccentColor);
-            using var objectTabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, UiSharedService.AccentHoverColor);
-            using var objectTabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, UiSharedService.AccentActiveColor);
-            using var tabbar = ImRaii.TabBar("objectSelection");
-            foreach (var kvp in cachedAnalysis)
-            {
-                using var id = ImRaii.PushId(kvp.Key.ToString());
-                string tabText = kvp.Key.ToString();
-                using var tab = ImRaii.TabItem(tabText + "###" + kvp.Key.ToString());
-                if (tab.Success)
-                {
-                    var groupedfiles = kvp.Value.Select(v => v.Value).GroupBy(f => f.FileType, StringComparer.Ordinal)
-                        .OrderBy(k => k.Key, StringComparer.Ordinal).ToList();
-
-                    ImGui.TextUnformatted("Files for " + kvp.Key);
-                    ImGui.SameLine();
-                    ImGui.TextUnformatted(kvp.Value.Count.ToString());
-                    ImGui.SameLine();
-
-                    using (var font = ImRaii.PushFont(UiBuilder.IconFont))
-                    {
-                        ImGui.TextUnformatted(FontAwesomeIcon.InfoCircle.ToIconString());
-                    }
-                    if (ImGui.IsItemHovered())
-                    {
-                        string text = "";
-                        text = string.Join(Environment.NewLine, groupedfiles
-                            .Select(f => f.Key + ": " + f.Count() + " files, size: " + UiSharedService.ByteToString(f.Sum(v => v.OriginalSize))
-                            + ", compressed: " + UiSharedService.ByteToString(f.Sum(v => v.CompressedSize))));
-                        ImGui.SetTooltip(text);
-                    }
-                    ImGui.TextUnformatted($"{kvp.Key} size (actual):");
-                    ImGui.SameLine();
-                    ImGui.TextUnformatted(UiSharedService.ByteToString(kvp.Value.Sum(c => c.Value.OriginalSize)));
-                    ImGui.TextUnformatted($"{kvp.Key} size (download size):");
-                    ImGui.SameLine();
-                    using (ImRaii.PushColor(ImGuiCol.Text, UiSharedService.AccentColor, needAnalysis))
-                    {
-                        ImGui.TextUnformatted(UiSharedService.ByteToString(kvp.Value.Sum(c => c.Value.CompressedSize)));
-                        if (needAnalysis && !isAnalyzing)
-                        {
-                            ImGui.SameLine();
-                            using (ImRaii.PushFont(UiBuilder.IconFont))
-                                ImGui.TextUnformatted(FontAwesomeIcon.ExclamationCircle.ToIconString());
-                            UiSharedService.AttachToolTip("Click \"Start analysis\" to calculate download size");
-                        }
-                    }
-                    ImGui.TextUnformatted($"{kvp.Key} VRAM usage:");
-                    ImGui.SameLine();
-                    var vramUsage = groupedfiles.SingleOrDefault(v => string.Equals(v.Key, "tex", StringComparison.Ordinal));
-                    if (vramUsage != null)
-                    {
-                        ImGui.TextUnformatted(UiSharedService.ByteToString(vramUsage.Sum(f => f.OriginalSize)));
-                    }
-                    ImGui.TextUnformatted($"{kvp.Key} modded model triangles: {UiSharedService.TrisToString(kvp.Value.Sum(f => f.Value.Triangles))}");
-
-                    ImGui.Separator();
-                    if (_selectedObjectTab != kvp.Key)
-                    {
-                        _selectedHash = string.Empty;
-                        _selectedObjectTab = kvp.Key;
-                        _selectedFileTypeTab = string.Empty;
-                        _enableBc7ConversionMode = false;
-                        _texturesToConvert.Clear();
-                    }
-
-                    using var fileTabColor = ImRaii.PushColor(ImGuiCol.Tab, UiSharedService.AccentColor);
-                    using var fileTabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, UiSharedService.AccentHoverColor);
-                    using var fileTabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, UiSharedService.AccentActiveColor);
-                    using var fileTabBar = ImRaii.TabBar("fileTabs");
-
-                    foreach (IGrouping<string, CharacterAnalyzer.FileDataEntry>? fileGroup in groupedfiles)
-                    {
-                        string fileGroupText = fileGroup.Key + " [" + fileGroup.Count() + "]";
-                        var requiresCompute = fileGroup.Any(k => !k.IsComputed);
-                        ImRaii.IEndObject fileTab;
-                        using (var textcol = ImRaii.PushColor(ImGuiCol.Text, UiSharedService.Color(Vector4.One),
-                            requiresCompute && !string.Equals(_selectedFileTypeTab, fileGroup.Key, StringComparison.Ordinal)))
-                        {
-                            fileTab = ImRaii.TabItem(fileGroupText + "###" + fileGroup.Key);
-                        }
-
-                        if (!fileTab) { fileTab.Dispose(); continue; }
-
-                        if (!string.Equals(fileGroup.Key, _selectedFileTypeTab, StringComparison.Ordinal))
-                        {
-                            _selectedFileTypeTab = fileGroup.Key;
-                            _selectedHash = string.Empty;
-                            _enableBc7ConversionMode = false;
-                            _texturesToConvert.Clear();
-                        }
-
-                        ImGui.TextUnformatted($"{fileGroup.Key} files");
-                        ImGui.SameLine();
-                        ImGui.TextUnformatted(fileGroup.Count().ToString());
-
-                        ImGui.TextUnformatted($"{fileGroup.Key} files size (actual):");
-                        ImGui.SameLine();
-                        ImGui.TextUnformatted(UiSharedService.ByteToString(fileGroup.Sum(c => c.OriginalSize)));
-
-                        ImGui.TextUnformatted($"{fileGroup.Key} files size (download size):");
-                        ImGui.SameLine();
-                        ImGui.TextUnformatted(UiSharedService.ByteToString(fileGroup.Sum(c => c.CompressedSize)));
-
-                        if (string.Equals(_selectedFileTypeTab, "tex", StringComparison.Ordinal))
-                        {
-                            ImGui.Checkbox("Enable BC7 Conversion Mode", ref _enableBc7ConversionMode);
-                            if (_enableBc7ConversionMode)
-                            {
-                                UiSharedService.ColorText("WARNING BC7 CONVERSION:", UiSharedService.AccentColor);
-                                ImGui.SameLine();
-                                UiSharedService.ColorText("Converting textures to BC7 is irreversible!", UiSharedService.AccentColor);
-                                UiSharedService.ColorTextWrapped("- Converting textures to BC7 will reduce their size (compressed and uncompressed) drastically. It is recommended to be used for large (4k+) textures." +
-                                Environment.NewLine + "- Some textures, especially ones utilizing colorsets, might not be suited for BC7 conversion and might produce visual artifacts." +
-                                Environment.NewLine + "- Before converting textures, make sure to have the original files of the mod you are converting so you can reimport it in case of issues." +
-                                Environment.NewLine + "- Conversion will convert all found texture duplicates (entries with more than 1 file path) automatically." +
-                                Environment.NewLine + "- Converting textures to BC7 is a very expensive operation and, depending on the amount of textures to convert, will take a while to complete."
-                                    , UiSharedService.AccentColor);
-                                if (_texturesToConvert.Count > 0 && _uiSharedService.IconTextButton(FontAwesomeIcon.PlayCircle, "Start conversion of " + _texturesToConvert.Count + " texture(s)"))
-                                {
-                                    var conversionCts = EnsureFreshCts(ref _conversionCancellationTokenSource);
-                                    _conversionTask = _ipcManager.Penumbra.ConvertTextureFiles(_logger, _texturesToConvert, _conversionProgress, conversionCts.Token);
-                                }
-                            }
-                        }
-
-                        ImGui.Separator();
-                        DrawTable(fileGroup);
-
-                        fileTab.Dispose();
-                    }
-
-                }
-            }
-
-        }
+        DrawObjectSelectionTabs(cachedAnalysis, needAnalysis, isAnalyzing);
 
         ImGui.Separator();
 
@@ -392,6 +256,148 @@ public class DataAnalysisUi : WindowMediatorSubscriberBase
     {
         _conversionCurrentFileName = e.Item1;
         _conversionCurrentFileProgress = e.Item2;
+    }
+
+    private void DrawObjectSelectionTabs(Dictionary<ObjectKind, Dictionary<string, CharacterAnalyzer.FileDataEntry>> cachedAnalysis, bool needAnalysis, bool isAnalyzing)
+    {
+        using var objectTabColor = ImRaii.PushColor(ImGuiCol.Tab, UiSharedService.AccentColor);
+        using var objectTabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, UiSharedService.AccentHoverColor);
+        using var objectTabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, UiSharedService.AccentActiveColor);
+        using var tabbar = ImRaii.TabBar("objectSelection");
+        foreach (var kvp in cachedAnalysis)
+        {
+            using var id = ImRaii.PushId(kvp.Key.ToString());
+            string tabText = kvp.Key.ToString();
+            using var tab = ImRaii.TabItem(tabText + "###" + kvp.Key.ToString());
+            if (!tab.Success) continue;
+
+            var groupedfiles = kvp.Value.Select(v => v.Value).GroupBy(f => f.FileType, StringComparer.Ordinal)
+                .OrderBy(k => k.Key, StringComparer.Ordinal).ToList();
+
+            ImGui.TextUnformatted("Files for " + kvp.Key);
+            ImGui.SameLine();
+            ImGui.TextUnformatted(kvp.Value.Count.ToString());
+            ImGui.SameLine();
+
+            using (ImRaii.PushFont(UiBuilder.IconFont))
+            {
+                ImGui.TextUnformatted(FontAwesomeIcon.InfoCircle.ToIconString());
+            }
+
+            if (ImGui.IsItemHovered())
+            {
+                var text = string.Join(Environment.NewLine, groupedfiles
+                    .Select(f => f.Key + ": " + f.Count() + " files, size: " + UiSharedService.ByteToString(f.Sum(v => v.OriginalSize))
+                    + ", compressed: " + UiSharedService.ByteToString(f.Sum(v => v.CompressedSize))));
+                ImGui.SetTooltip(text);
+            }
+
+            ImGui.TextUnformatted($"{kvp.Key} size (actual):");
+            ImGui.SameLine();
+            ImGui.TextUnformatted(UiSharedService.ByteToString(kvp.Value.Sum(c => c.Value.OriginalSize)));
+            ImGui.TextUnformatted($"{kvp.Key} size (download size):");
+            ImGui.SameLine();
+            using (ImRaii.PushColor(ImGuiCol.Text, UiSharedService.AccentColor, needAnalysis))
+            {
+                ImGui.TextUnformatted(UiSharedService.ByteToString(kvp.Value.Sum(c => c.Value.CompressedSize)));
+                if (needAnalysis && !isAnalyzing)
+                {
+                    ImGui.SameLine();
+                    using (ImRaii.PushFont(UiBuilder.IconFont))
+                        ImGui.TextUnformatted(FontAwesomeIcon.ExclamationCircle.ToIconString());
+                    UiSharedService.AttachToolTip("Click \"Start analysis\" to calculate download size");
+                }
+            }
+
+            ImGui.TextUnformatted($"{kvp.Key} VRAM usage:");
+            ImGui.SameLine();
+            var vramUsage = groupedfiles.SingleOrDefault(v => string.Equals(v.Key, "tex", StringComparison.Ordinal));
+            if (vramUsage != null)
+            {
+                ImGui.TextUnformatted(UiSharedService.ByteToString(vramUsage.Sum(f => f.OriginalSize)));
+            }
+            ImGui.TextUnformatted($"{kvp.Key} modded model triangles: {UiSharedService.TrisToString(kvp.Value.Sum(f => f.Value.Triangles))}");
+
+            ImGui.Separator();
+            if (_selectedObjectTab != kvp.Key)
+            {
+                _selectedHash = string.Empty;
+                _selectedObjectTab = kvp.Key;
+                _selectedFileTypeTab = string.Empty;
+                _enableBc7ConversionMode = false;
+                _texturesToConvert.Clear();
+            }
+
+            using var fileTabColor = ImRaii.PushColor(ImGuiCol.Tab, UiSharedService.AccentColor);
+            using var fileTabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, UiSharedService.AccentHoverColor);
+            using var fileTabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, UiSharedService.AccentActiveColor);
+            using var fileTabBar = ImRaii.TabBar("fileTabs");
+
+            foreach (var fileGroup in groupedfiles)
+            {
+                string fileGroupText = fileGroup.Key + " [" + fileGroup.Count() + "]";
+                var requiresCompute = fileGroup.Any(k => !k.IsComputed);
+                ImRaii.IEndObject fileTab;
+                using (ImRaii.PushColor(ImGuiCol.Text, UiSharedService.Color(Vector4.One),
+                    requiresCompute && !string.Equals(_selectedFileTypeTab, fileGroup.Key, StringComparison.Ordinal)))
+                {
+                    fileTab = ImRaii.TabItem(fileGroupText + "###" + fileGroup.Key);
+                }
+
+                if (!fileTab)
+                {
+                    fileTab.Dispose();
+                    continue;
+                }
+
+                if (!string.Equals(fileGroup.Key, _selectedFileTypeTab, StringComparison.Ordinal))
+                {
+                    _selectedFileTypeTab = fileGroup.Key;
+                    _selectedHash = string.Empty;
+                    _enableBc7ConversionMode = false;
+                    _texturesToConvert.Clear();
+                }
+
+                ImGui.TextUnformatted($"{fileGroup.Key} files");
+                ImGui.SameLine();
+                ImGui.TextUnformatted(fileGroup.Count().ToString());
+
+                ImGui.TextUnformatted($"{fileGroup.Key} files size (actual):");
+                ImGui.SameLine();
+                ImGui.TextUnformatted(UiSharedService.ByteToString(fileGroup.Sum(c => c.OriginalSize)));
+
+                ImGui.TextUnformatted($"{fileGroup.Key} files size (download size):");
+                ImGui.SameLine();
+                ImGui.TextUnformatted(UiSharedService.ByteToString(fileGroup.Sum(c => c.CompressedSize)));
+
+                if (string.Equals(_selectedFileTypeTab, "tex", StringComparison.Ordinal))
+                {
+                    ImGui.Checkbox("Enable BC7 Conversion Mode", ref _enableBc7ConversionMode);
+                    if (_enableBc7ConversionMode)
+                    {
+                        UiSharedService.ColorText("WARNING BC7 CONVERSION:", UiSharedService.AccentColor);
+                        ImGui.SameLine();
+                        UiSharedService.ColorText("Converting textures to BC7 is irreversible!", UiSharedService.AccentColor);
+                        UiSharedService.ColorTextWrapped("- Converting textures to BC7 will reduce their size (compressed and uncompressed) drastically. It is recommended to be used for large (4k+) textures." +
+                            Environment.NewLine + "- Some textures, especially ones utilizing colorsets, might not be suited for BC7 conversion and might produce visual artifacts." +
+                            Environment.NewLine + "- Before converting textures, make sure to have the original files of the mod you are converting so you can reimport it in case of issues." +
+                            Environment.NewLine + "- Conversion will convert all found texture duplicates (entries with more than 1 file path) automatically." +
+                            Environment.NewLine + "- Converting textures to BC7 is a very expensive operation and, depending on the amount of textures to convert, will take a while to complete.",
+                            UiSharedService.AccentColor);
+                        if (_texturesToConvert.Count > 0 && _uiSharedService.IconTextButton(FontAwesomeIcon.PlayCircle, "Start conversion of " + _texturesToConvert.Count + " texture(s)"))
+                        {
+                            var conversionCts = EnsureFreshCts(ref _conversionCancellationTokenSource);
+                            _conversionTask = _ipcManager.Penumbra.ConvertTextureFiles(_logger, _texturesToConvert, _conversionProgress, conversionCts.Token);
+                        }
+                    }
+                }
+
+                ImGui.Separator();
+                DrawTable(fileGroup);
+
+                fileTab.Dispose();
+            }
+        }
     }
 
     private void DrawTable(IGrouping<string, CharacterAnalyzer.FileDataEntry> fileGroup)
@@ -520,14 +526,14 @@ public class DataAnalysisUi : WindowMediatorSubscriberBase
         }
     }
 
-    private static CancellationTokenSource EnsureFreshCts(ref CancellationTokenSource? cts)
+    private CancellationTokenSource EnsureFreshCts(ref CancellationTokenSource? cts)
     {
         CancelAndDispose(ref cts);
         cts = new CancellationTokenSource();
         return cts;
     }
 
-    private static void CancelAndDispose(ref CancellationTokenSource? cts)
+    private void CancelAndDispose(ref CancellationTokenSource? cts)
     {
         if (cts == null) return;
         TryCancel(cts);
@@ -535,15 +541,16 @@ public class DataAnalysisUi : WindowMediatorSubscriberBase
         cts = null;
     }
 
-    private static void TryCancel(CancellationTokenSource? cts)
+    private void TryCancel(CancellationTokenSource? cts)
     {
         if (cts == null) return;
         try
         {
             cts.Cancel();
         }
-        catch (ObjectDisposedException)
+        catch (ObjectDisposedException ex)
         {
+            _logger.LogTrace(ex, "DataAnalysisUi CTS already disposed");
         }
     }
 }

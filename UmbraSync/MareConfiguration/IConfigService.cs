@@ -2,7 +2,7 @@
 
 namespace UmbraSync.MareConfiguration;
 
-public interface IConfigService<out T> : IDisposable where T : IMareConfiguration
+public interface IConfigService<out T> : IDisposable where T : class, IMareConfiguration
 {
     T Current { get; }
     string ConfigurationName { get; }

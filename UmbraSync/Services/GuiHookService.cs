@@ -88,25 +88,36 @@ public class GuiHookService : DisposableMediatorSubscriberBase
         var partyMembers = new nint[_partyList.Count];
 
         for (int i = 0; i < _partyList.Count; ++i)
-            partyMembers[i] = _partyList[i]?.GameObject?.Address ?? nint.MaxValue;
+        {
+            var partyMember = _partyList[i];
+            if (partyMember == null)
+            {
+                partyMembers[i] = nint.MaxValue;
+                continue;
+            }
+
+            var gameObject = partyMember.GameObject;
+            partyMembers[i] = gameObject != null ? gameObject.Address : nint.MaxValue;
+        }
 
         foreach (var handler in handlers)
         {
             if (handler != null && visibleUsersIds.Contains(handler.GameObjectId))
             {
-                if (_namePlateRoleColorsEnabled && partyMembers.Contains(handler.GameObject?.Address ?? nint.MaxValue))
-                    continue;
-                var pair = visibleUsersDict[handler.GameObjectId];
-                if (applyColors)
+                if (_namePlateRoleColorsEnabled)
                 {
-                    var colors = !pair.IsApplicationBlocked ? _configService.Current.NameColors : _configService.Current.BlockedNameColors;
-                    handler.NameParts.TextWrap = (
-                        BuildColorStartSeString(colors),
-                        BuildColorEndSeString(colors)
-                    );
-                    _isModified = true;
+                    var handlerGameObject = handler.GameObject;
+                    var handlerObjectAddress = handlerGameObject != null ? handlerGameObject.Address : nint.MaxValue;
+                    if (partyMembers.Contains(handlerObjectAddress))
+                        continue;
                 }
-
+                var pair = visibleUsersDict[handler.GameObjectId];
+                var colors = !pair.IsApplicationBlocked ? _configService.Current.NameColors : _configService.Current.BlockedNameColors;
+                handler.NameParts.TextWrap = (
+                    BuildColorStartSeString(colors),
+                    BuildColorEndSeString(colors)
+                );
+                _isModified = true;
             }
 
         }

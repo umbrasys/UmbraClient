@@ -81,7 +81,7 @@ public sealed class DtrEntry : IDisposable, IHostedService
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
-        _cancellationTokenSource.Cancel();
+        await _cancellationTokenSource.CancelAsync().ConfigureAwait(false);
         try
         {
             await _runTask!.ConfigureAwait(false);

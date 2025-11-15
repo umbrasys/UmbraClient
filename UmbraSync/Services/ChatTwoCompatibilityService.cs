@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Runtime.InteropServices;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
 using Dalamud.Plugin.Services;
@@ -332,7 +333,7 @@ public sealed class ChatTwoCompatibilityService : MediatorSubscriberBase, IHoste
             return false;
 
         var connected = _apiController.IsConnected;
-        var supportsTyping = _apiController.SystemInfoDto?.SupportsTypingState == true;
+        var supportsTyping = _apiController.SystemInfoDto.SupportsTypingState;
         if (!connected || !supportsTyping)
         {
             if (!_chatTwoServerSupportWarnLogged)
@@ -373,9 +374,13 @@ public sealed class ChatTwoCompatibilityService : MediatorSubscriberBase, IHoste
                 return false;
             }
 
-            foreach (var member in _partyList)
+            for (var i = 0; i < _partyList.Count; ++i)
             {
-                var name = member?.Name?.TextValue;
+                var member = _partyList[i];
+                if (member == null)
+                    continue;
+
+                var name = member.Name.TextValue;
                 if (string.IsNullOrEmpty(name))
                     continue;
 
@@ -415,5 +420,6 @@ public sealed class ChatTwoCompatibilityService : MediatorSubscriberBase, IHoste
         }
     }
 
+    [StructLayout(LayoutKind.Auto)]
     private readonly record struct ChatTwoTypingState(bool InputVisible, bool InputFocused, bool HasText, bool IsTyping, int TextLength, ChatType ChannelType);
 }

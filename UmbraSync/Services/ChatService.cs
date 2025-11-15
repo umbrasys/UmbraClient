@@ -126,7 +126,7 @@ public class ChatService : DisposableMediatorSubscriberBase
         var logKind = ResolveShellLogKind(shellConfig.LogKind);
 
         var payload = SeString.Parse(message.ChatMsg.PayloadContent);
-        if (TryHandleManualPairInvite(message, payload))
+        if (TryHandleManualPairInvite(payload))
             return;
 
         var msg = new SeStringBuilder();
@@ -136,7 +136,7 @@ public class ChatService : DisposableMediatorSubscriberBase
             msg.Add(RawPayload.LinkTerminator);
         }
         if (color != 0)
-            msg.AddUiForeground((ushort)color);
+            msg.AddUiForeground(color);
         msg.AddText($"[SS{shellNumber}]<");
         if (message.ChatMsg.Sender.UID.Equals(_apiController.UID, StringComparison.Ordinal))
         {
@@ -158,7 +158,7 @@ public class ChatService : DisposableMediatorSubscriberBase
         });
     }
 
-    private bool TryHandleManualPairInvite(GroupChatMsgMessage message, SeString payload)
+    private bool TryHandleManualPairInvite(SeString payload)
     {
         var textValue = payload.TextValue;
         if (string.IsNullOrEmpty(textValue) || !textValue.StartsWith(ManualPairInvitePrefix, StringComparison.Ordinal))
@@ -209,11 +209,11 @@ public class ChatService : DisposableMediatorSubscriberBase
 
         foreach (var group in _pairManager.Groups)
         {
-            if (group.Key.GID.Equals(gid, StringComparison.Ordinal))
+            if (group.Key.GID.Equals(gid, StringComparison.Ordinal)
+                && _serverConfigurationManager.GetShellConfigForGid(gid).LogKind is var shellChatType
+                && shellChatType != 0)
             {
-                int shellChatType = _serverConfigurationManager.GetShellConfigForGid(gid).LogKind;
-                if (shellChatType != 0)
-                    chatType = shellChatType;
+                chatType = shellChatType;
             }
         }
 
@@ -231,13 +231,13 @@ public class ChatService : DisposableMediatorSubscriberBase
         foreach (var group in _pairManager.Groups)
         {
             var shellConfig = _serverConfigurationManager.GetShellConfigForGid(group.Key.GID);
-            if (shellConfig.Enabled && shellConfig.ShellNumber == shellNumber)
+            if (shellConfig.Enabled &&
+                shellConfig.ShellNumber == shellNumber &&
+                _gameChatHooks.IsValueCreated &&
+                _gameChatHooks.Value.ChatChannelOverride != null &&
+                _gameChatHooks.Value.ChatChannelOverride.ChannelName.StartsWith($"SS [{shellNumber}]", StringComparison.Ordinal))
             {
-                if (_gameChatHooks.IsValueCreated && _gameChatHooks.Value.ChatChannelOverride != null)
-                {
-                    if (_gameChatHooks.Value.ChatChannelOverride.ChannelName.StartsWith($"SS [{shellNumber}]", StringComparison.Ordinal))
-                        SwitchChatShell(shellNumber);
-                }
+                SwitchChatShell(shellNumber);
             }
         }
     }

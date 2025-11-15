@@ -108,19 +108,19 @@ public sealed class AutoDetectSuppressionService : IHostedService, IMediatorSubs
                 _isSuppressed = true;
             }
 
-            bool changed = false;
+            bool stateChanged = false;
             if (_configService.Current.EnableAutoDetectDiscovery)
             {
                 _configService.Current.EnableAutoDetectDiscovery = false;
-                changed = true;
+                stateChanged = true;
             }
             if (_configService.Current.AllowAutoDetectPairRequests)
             {
                 _configService.Current.AllowAutoDetectPairRequests = false;
-                changed = true;
+                stateChanged = true;
             }
 
-            if (changed)
+            if (stateChanged)
             {
                 _logger.LogInformation("AutoDetect temporarily disabled in instanced content (territory {territoryId}).", territoryId);
                 if (!_suppressionWarningShown)
@@ -135,38 +135,36 @@ public sealed class AutoDetectSuppressionService : IHostedService, IMediatorSubs
 
             return;
         }
-        else
+
+        if (!_isSuppressed) return;
+
+        bool restoreChanged = false;
+        bool wasSuppressed = _suppressionWarningShown;
+        if (_hasSavedState)
         {
-            if (!_isSuppressed) return;
-
-            bool changed = false;
-            bool wasSuppressed = _suppressionWarningShown;
-            if (_hasSavedState)
+            if (_configService.Current.EnableAutoDetectDiscovery != _savedDiscoveryEnabled)
             {
-                if (_configService.Current.EnableAutoDetectDiscovery != _savedDiscoveryEnabled)
-                {
-                    _configService.Current.EnableAutoDetectDiscovery = _savedDiscoveryEnabled;
-                    changed = true;
-                }
-                if (_configService.Current.AllowAutoDetectPairRequests != _savedAllowRequests)
-                {
-                    _configService.Current.AllowAutoDetectPairRequests = _savedAllowRequests;
-                    changed = true;
-                }
+                _configService.Current.EnableAutoDetectDiscovery = _savedDiscoveryEnabled;
+                restoreChanged = true;
             }
-
-            _isSuppressed = false;
-            _hasSavedState = false;
-            _suppressionWarningShown = false;
-
-            if (changed || wasSuppressed)
+            if (_configService.Current.AllowAutoDetectPairRequests != _savedAllowRequests)
             {
-                _logger.LogInformation("AutoDetect restored after leaving instanced content (territory {territoryId}).", territoryId);
-                const string restoredText = "Vous avez quitté la zone instanciée : AutoDetect/Nearby fonctionnent de nouveau.";
-                _mediator.Publish(new DualNotificationMessage("AutoDetect réactivé",
-                    restoredText,
-                    NotificationType.Info, TimeSpan.FromSeconds(5)));
+                _configService.Current.AllowAutoDetectPairRequests = _savedAllowRequests;
+                restoreChanged = true;
             }
+        }
+
+        _isSuppressed = false;
+        _hasSavedState = false;
+        _suppressionWarningShown = false;
+
+        if (restoreChanged || wasSuppressed)
+        {
+            _logger.LogInformation("AutoDetect restored after leaving instanced content (territory {territoryId}).", territoryId);
+            const string restoredText = "Vous avez quitté la zone instanciée : AutoDetect/Nearby fonctionnent de nouveau.";
+            _mediator.Publish(new DualNotificationMessage("AutoDetect réactivé",
+                restoredText,
+                NotificationType.Info, TimeSpan.FromSeconds(5)));
         }
     }
 
@@ -188,8 +186,6 @@ public sealed class AutoDetectSuppressionService : IHostedService, IMediatorSubs
         if (territoryId == 0) return false;
 
         var cfcSheet = _dataManager.GetExcelSheet<ContentFinderCondition>();
-        if (cfcSheet == null) return false;
-
         var cfc = cfcSheet.FirstOrDefault(c => c.TerritoryType.RowId == territoryId);
         if (cfc.RowId == 0) return false;
 

@@ -169,7 +169,7 @@ public class MarePlugin : MediatorSubscriberBase, IHostedService
         }
         catch (Exception ex)
         {
-            Logger?.LogCritical(ex, "Error during launch of managers");
+            Logger.LogCritical(ex, "Error during launch of managers");
         }
     }
 }

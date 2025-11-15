@@ -279,6 +279,7 @@ public class Pair : DisposableMediatorSubscriberBase
         }
         catch (ObjectDisposedException)
         {
+            // token source already disposed, nothing to cancel
         }
 
         _applicationCts.Dispose();

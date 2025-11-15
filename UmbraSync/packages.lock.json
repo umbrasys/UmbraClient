@@ -55,24 +55,6 @@
           "System.IO.Pipelines": "6.0.3"
         }
       },
-      "Lumina": {
-        "type": "Direct",
-        "requested": "[6.3.0, )",
-        "resolved": "6.3.0",
-        "contentHash": "FQlZ16KhXtPGCEq1KeRTDZ14uq6qrvW2vYnNNlCpW7Xs1iLhF8AJsbYG8S0y1NnP7BRholPY8KGToVTsvmb8jw==",
-        "dependencies": {
-          "Microsoft.Extensions.ObjectPool": "8.0.7"
-        }
-      },
-      "Lumina.Excel": {
-        "type": "Direct",
-        "requested": "[7.3.1, )",
-        "resolved": "7.3.1",
-        "contentHash": "NKjlWOi/hnBx6ZHV/VmDknIFQLuBmBoqdufDxawzoAsAwye2dibZdMYyz/gIezSRzAMbU0qP9h51uYo65eiWIQ==",
-        "dependencies": {
-          "Lumina": "6.3.0"
-        }
-      },
       "Meziantou.Analyzer": {
         "type": "Direct",
         "requested": "[2.0.212, )",
@@ -458,11 +440,6 @@
           "Microsoft.Extensions.Options": "9.0.8",
           "Microsoft.Extensions.Primitives": "9.0.8"
         }
-      },
-      "Microsoft.Extensions.ObjectPool": {
-        "type": "Transitive",
-        "resolved": "8.0.7",
-        "contentHash": "2yLweyqmpuuFSRo+I3sLHMxmnAgNcI537kBJiyv49U2ZEqo00jZcG8lrnD8uCiOJp9IklYyTZULtbsXoFVzsjQ=="
       },
       "Microsoft.Extensions.Options": {
         "type": "Transitive",

@@ -328,14 +328,27 @@ if (showNearby && pendingInvites > 0)
     {
         using (ImRaii.PushId("self-analysis"))
         {
+            // Déterminer si l'encadré doit être mis en évidence (jaune) lorsqu'on dépasse le seuil d'avertissement
+            var headerSummary = _characterAnalyzer.CurrentSummary;
+            bool highlightWarning = !headerSummary.IsEmpty
+                                     && !headerSummary.HasUncomputedEntries
+                                     && headerSummary.TotalCompressedSize >= SelfAnalysisSizeWarningThreshold;
+
+            Vector4? cardBg = null;
+            Vector4? cardBorder = null;
+            if (highlightWarning)
+            {
+                // Utilise une nuance de jaune douce pour le fond, avec une bordure plus marquée
+                var y = ImGuiColors.DalamudYellow;
+                cardBg = new Vector4(y.X, y.Y, y.Z, 0.12f);
+                cardBorder = new Vector4(y.X, y.Y, y.Z, 0.75f);
+            }
+
             UiSharedService.DrawCard("self-analysis-card", () =>
             {
                 bool arrowState = _selfAnalysisOpen;
                 UiSharedService.DrawArrowToggle(ref arrowState, "##self-analysis-toggle");
-                if (arrowState != _selfAnalysisOpen)
-                {
-                    _selfAnalysisOpen = arrowState;
-                }
+                _selfAnalysisOpen = arrowState;
 
                 ImGui.SameLine(0f, 6f * ImGuiHelpers.GlobalScale);
                 ImGui.AlignTextToFramePadding();
@@ -468,7 +481,7 @@ if (showNearby && pendingInvites > 0)
                 {
                     Mediator.Publish(new UiToggleMessage(typeof(DataAnalysisUi)));
                 }
-            }, stretchWidth: true);
+            }, background: cardBg, border: cardBorder, stretchWidth: true);
         }
     }
 
@@ -768,7 +781,7 @@ if (showNearby && pendingInvites > 0)
 
     private List<Services.Mediator.NearbyEntry> GetNearbyEntriesForDisplay()
     {
-        if (_nearbyEntries == null || _nearbyEntries.Count == 0)
+        if (_nearbyEntries.Count == 0)
         {
             return new List<Services.Mediator.NearbyEntry>();
         }
@@ -793,10 +806,7 @@ if (showNearby && pendingInvites > 0)
             {
                 bool visibleState = _visibleOpen;
                 UiSharedService.DrawArrowToggle(ref visibleState, "##visible-toggle");
-                if (visibleState != _visibleOpen)
-                {
-                    _visibleOpen = visibleState;
-                }
+                _visibleOpen = visibleState;
 
                 ImGui.SameLine(0f, 6f * ImGuiHelpers.GlobalScale);
                 ImGui.AlignTextToFramePadding();
@@ -838,10 +848,7 @@ if (showNearby && pendingInvites > 0)
             {
                 bool nearbyState = _nearbyOpen;
                 UiSharedService.DrawArrowToggle(ref nearbyState, "##nearby-toggle");
-                if (nearbyState != _nearbyOpen)
-                {
-                    _nearbyOpen = nearbyState;
-                }
+                _nearbyOpen = nearbyState;
 
                 ImGui.SameLine(0f, 6f * ImGuiHelpers.GlobalScale);
                 var onUmbra = nearbyEntries.Count;
@@ -1325,10 +1332,10 @@ if (showNearby && pendingInvites > 0)
     {
         try
         {
-            if (!string.IsNullOrEmpty(entry.Uid))
+            if (!string.IsNullOrEmpty(entry.Uid) &&
+                _pairManager.DirectPairs.Any(p => string.Equals(p.UserData.UID, entry.Uid, StringComparison.Ordinal)))
             {
-                if (_pairManager.DirectPairs.Any(p => string.Equals(p.UserData.UID, entry.Uid, StringComparison.Ordinal)))
-                    return true;
+                return true;
             }
 
             var key = (entry.DisplayName ?? entry.Name) ?? string.Empty;
@@ -1488,8 +1495,8 @@ if (showNearby && pendingInvites > 0)
         UiSharedService.SetFontScale(1f);
 
         if (!isConnected)
-            UiSharedService.ColorTextWrapped(GetServerError(), GetUidColor());
         {
+            UiSharedService.ColorTextWrapped(GetServerError(), GetUidColor());
             if (_apiController.ServerState is ServerState.NoSecretKey)
             {
                 DrawAddCharacter();

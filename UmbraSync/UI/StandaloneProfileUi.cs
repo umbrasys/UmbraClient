@@ -71,7 +71,6 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
                 Mediator.Publish(new OpenReportPopupMessage(Pair));
 
             ImGuiHelpers.ScaledDummy(new Vector2(spacing.Y, spacing.Y));
-            var textPos = ImGui.GetCursorPosY() - headerSize;
             ImGui.Separator();
             var pos = ImGui.GetCursorPos() with { Y = ImGui.GetCursorPosY() - headerSize };
             ImGuiHelpers.ScaledDummy(new Vector2(256, 256 + spacing.Y));

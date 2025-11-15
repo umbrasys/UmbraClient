@@ -153,8 +153,9 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
         {
             _closalCts?.Cancel();
         }
-        catch (ObjectDisposedException)
+        catch (ObjectDisposedException ex)
         {
+            _logger.LogTrace(ex, "Attempted to cancel CharaDataHubUi close token after disposal");
         }
         EnsureFreshCts(ref _closalCts);
         SelectedDtoId = string.Empty;
@@ -1643,22 +1644,23 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
         if (_disableUI) ImGui.BeginDisabled();
     }
 
-    private static CancellationTokenSource EnsureFreshCts(ref CancellationTokenSource? cts)
+    private CancellationTokenSource EnsureFreshCts(ref CancellationTokenSource? cts)
     {
         CancelAndDispose(ref cts);
         cts = new CancellationTokenSource();
         return cts;
     }
 
-    private static void CancelAndDispose(ref CancellationTokenSource? cts)
+    private void CancelAndDispose(ref CancellationTokenSource? cts)
     {
         if (cts == null) return;
         try
         {
             cts.Cancel();
         }
-        catch (ObjectDisposedException)
+        catch (ObjectDisposedException ex)
         {
+            _logger.LogTrace(ex, "Attempted to cancel CharaDataHubUi token after disposal");
         }
 
         cts.Dispose();

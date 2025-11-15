@@ -174,10 +174,10 @@ public sealed class MareMediator : IHostedService, IDisposable
     {
         if (!_subscriberDict.TryGetValue((message.GetType(), message.SubscriberKey), out HashSet<SubscriberAction>? subscribers) || !subscribers.Any()) return;
 
-        List<SubscriberAction> subscribersCopy = [];
+        List<SubscriberAction> subscribersCopy;
         lock (_addRemoveLock)
         {
-            subscribersCopy = subscribers.Where(s => s.Subscriber != null).ToList();
+            subscribersCopy = subscribers.ToList();
         }
 
 #pragma warning disable S3011 // Reflection should not be used to increase accessibility of classes, methods, or fields

@@ -20,7 +20,7 @@ public sealed class SyncshellDiscoveryService : IHostedService, IMediatorSubscri
     private readonly MareMediator _mediator;
     private readonly ApiController _apiController;
     private readonly SemaphoreSlim _refreshSemaphore = new(1, 1);
-    private readonly object _entriesLock = new();
+    private readonly Lock _entriesLock = new();
     private List<SyncshellDiscoveryEntryDto> _entries = [];
     private string? _lastError;
     private bool _isRefreshing;
@@ -38,7 +38,7 @@ public sealed class SyncshellDiscoveryService : IHostedService, IMediatorSubscri
     {
         get
         {
-            lock (_entriesLock)
+            using (_entriesLock.EnterScope())
             {
                 return _entries.AsReadOnly();
             }
@@ -74,11 +74,6 @@ public sealed class SyncshellDiscoveryService : IHostedService, IMediatorSubscri
         }
     }
 
-    public async Task<bool> SetVisibilityAsync(string gid, bool visible, CancellationToken ct)
-    {
-        return await SetVisibilityAsync(gid, visible, null, null, null, null, null, ct).ConfigureAwait(false);
-    }
-
     public async Task<bool> SetVisibilityAsync(string gid, bool visible, int? displayDurationHours,
         int[]? activeWeekdays, TimeSpan? timeStartLocal, TimeSpan? timeEndLocal, string? timeZone,
         CancellationToken ct)
@@ -91,8 +86,8 @@ public sealed class SyncshellDiscoveryService : IHostedService, IMediatorSubscri
                 AutoDetectVisible = visible,
                 DisplayDurationHours = displayDurationHours,
                 ActiveWeekdays = activeWeekdays,
-                TimeStartLocal = timeStartLocal.HasValue ? new DateTime(timeStartLocal.Value.Ticks).ToString("HH:mm", CultureInfo.InvariantCulture) : null,
-                TimeEndLocal = timeEndLocal.HasValue ? new DateTime(timeEndLocal.Value.Ticks).ToString("HH:mm", CultureInfo.InvariantCulture) : null,
+                TimeStartLocal = timeStartLocal.HasValue ? new DateTime(timeStartLocal.Value.Ticks, DateTimeKind.Unspecified).ToString("HH:mm", CultureInfo.InvariantCulture) : null,
+                TimeEndLocal = timeEndLocal.HasValue ? new DateTime(timeEndLocal.Value.Ticks, DateTimeKind.Unspecified).ToString("HH:mm", CultureInfo.InvariantCulture) : null,
                 TimeZone = timeZone,
             };
             var success = await _apiController.SyncshellDiscoverySetVisibility(request).ConfigureAwait(false);
@@ -124,7 +119,7 @@ public sealed class SyncshellDiscoveryService : IHostedService, IMediatorSubscri
         {
             _isRefreshing = true;
             var discovered = await _apiController.SyncshellDiscoveryList().ConfigureAwait(false);
-            lock (_entriesLock)
+            using (_entriesLock.EnterScope())
             {
                 _entries = discovered ?? [];
             }

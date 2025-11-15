@@ -165,7 +165,7 @@ public sealed class ChatTypingDetectionService : IDisposable
         _typingStateService.SetSelfTypingLocal(false);
     }
 
-    private unsafe TypingScope GetCurrentTypingScope()
+    private static unsafe TypingScope GetCurrentTypingScope()
     {
         try
         {
@@ -289,9 +289,13 @@ public sealed class ChatTypingDetectionService : IDisposable
             return false;
             }
 
-            foreach (var member in _partyList)
+            for (var i = 0; i < _partyList.Count; ++i)
             {
-                var name = member?.Name?.TextValue;
+                var member = _partyList[i];
+                if (member == null)
+                    continue;
+
+                var name = member.Name.TextValue;
                 if (string.IsNullOrEmpty(name))
                     continue;
 

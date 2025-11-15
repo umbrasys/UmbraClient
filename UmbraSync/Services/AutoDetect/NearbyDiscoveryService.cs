@@ -1,15 +1,22 @@
 using System;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Hosting;
-using UmbraSync.Services.Mediator;
-using UmbraSync.MareConfiguration;
-using UmbraSync.Services.ServerConfiguration;
-using UmbraSync.WebAPI.AutoDetect;
-using Dalamud.Plugin.Services;
-using System.Numerics;
-using System.Linq;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Numerics;
+using System.Threading.Channels;
+using Dalamud.Plugin.Services;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using UmbraSync.MareConfiguration;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Services.Notification;
+using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.Utils;
+using UmbraSync.WebAPI;
+using UmbraSync.WebAPI.AutoDetect;
+using UmbraSync.WebAPI.Files;
+using UmbraSync.WebAPI.Files.Models;
 
 namespace UmbraSync.Services.AutoDetect;
 
@@ -36,7 +43,7 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
     private bool _lastAutoDetectState;
     private DateTime _lastHeartbeat = DateTime.MinValue;
     private static readonly TimeSpan HeartbeatInterval = TimeSpan.FromSeconds(75);
-    private readonly object _entriesLock = new();
+    private readonly System.Threading.Lock _entriesLock = new();
     private List<NearbyEntry> _lastEntries = [];
 
     public NearbyDiscoveryService(ILogger<NearbyDiscoveryService> logger, MareMediator mediator,
@@ -86,12 +93,10 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
         {
             if (!_config.Current.EnableAutoDetectDiscovery || !_dalamud.IsLoggedIn || !_isConnected) return;
 
-            if (!_configProvider.HasConfig || _configProvider.IsExpired())
+            if ((!_configProvider.HasConfig || _configProvider.IsExpired()) &&
+                !_configProvider.TryLoadFromStapled())
             {
-                if (!_configProvider.TryLoadFromStapled())
-                {
-                    await _configProvider.TryFetchFromServerAsync(ct).ConfigureAwait(false);
-                }
+                await _configProvider.TryFetchFromServerAsync(ct).ConfigureAwait(false);
             }
 
             var ep = _configProvider.PublishEndpoint;
@@ -104,11 +109,10 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
             try
             {
                 var me = await _dalamud.RunOnFrameworkThread(() => _dalamud.GetPlayerCharacter()).ConfigureAwait(false);
-                if (me != null)
+                if (me is { } mePc)
                 {
-                    displayName = me.Name.TextValue;
-                    if (me is Dalamud.Game.ClientState.Objects.SubKinds.IPlayerCharacter mePc)
-                        meWorld = (ushort)mePc.HomeWorld.RowId;
+                    displayName = mePc.Name.TextValue;
+                    meWorld = (ushort)mePc.HomeWorld.RowId;
                 }
             }
             catch (Exception ex)
@@ -142,29 +146,26 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
 
     public List<NearbyEntry> SnapshotEntries()
     {
-        lock (_entriesLock)
-        {
-            return _lastEntries.ToList();
-        }
+        using var _ = _entriesLock.EnterScope();
+        return _lastEntries.ToList();
     }
 
     private void UpdateSnapshot(List<NearbyEntry> entries)
     {
-        lock (_entriesLock)
-        {
-            _lastEntries = entries.ToList();
-        }
+        using var _ = _entriesLock.EnterScope();
+        _lastEntries = entries.ToList();
     }
 
-    private static void CancelAndDispose(ref CancellationTokenSource? cts)
+    private void CancelAndDispose(ref CancellationTokenSource? cts)
     {
         if (cts == null) return;
         try
         {
             cts.Cancel();
         }
-        catch (ObjectDisposedException)
+        catch (ObjectDisposedException ex)
         {
+            _logger.LogTrace(ex, "NearbyDiscoveryService CTS already disposed");
         }
 
         cts.Dispose();
@@ -189,44 +190,18 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                         try
                         {
                             // Ensure well-known is present
-                            if (!_configProvider.HasConfig || _configProvider.IsExpired())
+                            if ((!_configProvider.HasConfig || _configProvider.IsExpired()) &&
+                                !_configProvider.TryLoadFromStapled())
                             {
-                                if (!_configProvider.TryLoadFromStapled())
-                                {
-                                    await _configProvider.TryFetchFromServerAsync(ct).ConfigureAwait(false);
-                                }
+                                await _configProvider.TryFetchFromServerAsync(ct).ConfigureAwait(false);
                             }
 
                             var ep = _configProvider.PublishEndpoint;
                             var saltBytes = _configProvider.Salt;
-                            if (!string.IsNullOrEmpty(ep) && saltBytes is { Length: > 0 })
-                            {
-                                var saltHex = Convert.ToHexString(saltBytes);
-                                string? displayName = null;
-                                ushort meWorld = 0;
-                                try
-                                {
-                                    var me = await _dalamud.RunOnFrameworkThread(() => _dalamud.GetPlayerCharacter()).ConfigureAwait(false);
-                                    if (me != null)
-                                    {
-                                        displayName = me.Name.TextValue;
-                                        if (me is Dalamud.Game.ClientState.Objects.SubKinds.IPlayerCharacter mePc)
-                                            meWorld = (ushort)mePc.HomeWorld.RowId;
-                                    }
-                                }
-                                catch (Exception ex)
-                                {
-                                    _logger.LogDebug(ex, "Failed to gather player info for nearby toggle publish");
-                                }
-
-                                if (!string.IsNullOrEmpty(displayName))
-                                {
-                                var selfHash = (saltHex + displayName + meWorld.ToString()).GetHash256();
-                                _lastPublishedSignature = null; // ensure future loop doesn't skip
-                                var okNow = await _api.PublishAsync(ep, new[] { selfHash }, displayName, ct, _config.Current.AllowAutoDetectPairRequests).ConfigureAwait(false);
-                                _logger.LogInformation("Nearby immediate publish on toggle ON: {result}", okNow ? "success" : "failed");
-                                }
-                            }
+                        if (!string.IsNullOrEmpty(ep) && saltBytes is { Length: > 0 })
+                        {
+                            await ImmediatePublishAsync(ep, saltBytes, ct).ConfigureAwait(false);
+                        }
                         }
                         catch (Exception ex)
                         {
@@ -361,12 +336,10 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                             try
                             {
                                 var me = await _dalamud.RunOnFrameworkThread(() => _dalamud.GetPlayerCharacter()).ConfigureAwait(false);
-                                if (me != null)
+                                if (me is { } mePc)
                                 {
-                                    displayName = me.Name.TextValue;
-                                    ushort meWorld = 0;
-                                    if (me is Dalamud.Game.ClientState.Objects.SubKinds.IPlayerCharacter mePc)
-                                        meWorld = (ushort)mePc.HomeWorld.RowId;
+                                    displayName = mePc.Name.TextValue;
+                                    var meWorld = (ushort)mePc.HomeWorld.RowId;
                                     _logger.LogTrace("Nearby self ident: {name} ({world})", displayName, meWorld);
                                     selfHash = (saltHex + displayName + meWorld.ToString()).GetHash256();
                                 }
@@ -386,9 +359,9 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                                     _logger.LogDebug("Nearby publish: self presence updated (hash={hash})", shortSelf);
                                     var ok = await _api.PublishAsync(publishEndpoint, new[] { selfHash }, displayName, ct, _config.Current.AllowAutoDetectPairRequests).ConfigureAwait(false);
                                     _logger.LogInformation("Nearby publish result: {result}", ok ? "success" : "failed");
-                                    if (ok) _lastHeartbeat = DateTime.UtcNow;
                                     if (ok)
                                     {
+                                        _lastHeartbeat = DateTime.UtcNow;
                                         if (!_notifiedEnabled)
                                         {
                                             _mediator.Publish(new NotificationMessage("Nearby Detection", "AutoDetect enabled : you are now visible.", default));
@@ -416,56 +389,9 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                             // else: no self character available; skip publish silently
                         }
 
-                        // Query for matches if endpoint is available
                         if (!string.IsNullOrEmpty(_configProvider.QueryEndpoint))
                         {
-                            // chunked queries
-                            int batch = Math.Max(1, _configProvider.MaxQueryBatch);
-                            List<ServerMatch> allMatches = new();
-                            for (int i = 0; i < hashes.Count; i += batch)
-                            {
-                                var slice = hashes.Skip(i).Take(batch).ToArray();
-                                var res = await _api.QueryAsync(_configProvider.QueryEndpoint!, slice, ct).ConfigureAwait(false);
-                                if (res != null && res.Count > 0) allMatches.AddRange(res);
-                            }
-
-                            if (allMatches.Count > 0)
-                            {
-                                foreach (var m in allMatches)
-                                {
-                                    if (hashToIndex.TryGetValue(m.Hash, out var idx))
-                                    {
-                                        var e = entries[idx];
-                                        entries[idx] = new NearbyEntry(e.Name, e.WorldId, e.Distance, true, m.Token, m.DisplayName, m.Uid);
-                                    }
-                                }
-                            }
-                            if (allMatches.Count > 0)
-                            {
-                                _logger.LogInformation("Nearby: server returned {count} matches", allMatches.Count);
-                            }
-                            else
-                            {
-                                _logger.LogTrace("Nearby: server returned {count} matches", allMatches.Count);
-                            }
-
-                            // Log change in number of Umbra matches
-                            int matchCount = entries.Count(e => e.IsMatch);
-                            if (matchCount != _lastMatchCount)
-                            {
-                                _lastMatchCount = matchCount;
-                                if (matchCount > 0)
-                                {
-                                    var matchSamples = entries.Where(e => e.IsMatch).Take(5)
-                                        .Select(e => string.IsNullOrEmpty(e.DisplayName) ? e.Name : e.DisplayName!);
-                                    _logger.LogInformation("Nearby: {count} Umbra users nearby [{samples}]",
-                                        matchCount, string.Join(", ", matchSamples));
-                                }
-                                else
-                                {
-                                    _logger.LogTrace("Nearby: {count} Umbra users nearby", matchCount);
-                                }
-                            }
+                            await QueryNearbyMatchesAsync(entries, hashes, hashToIndex, ct).ConfigureAwait(false);
                         }
                     }
                     catch (Exception ex)
@@ -500,7 +426,10 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                 if (entries.Count == 0) delayMs = Math.Max(delayMs, 5000);
                 await Task.Delay(delayMs, ct).ConfigureAwait(false);
             }
-            catch (OperationCanceledException) { }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
             catch (Exception ex)
             {
                 _logger.LogDebug(ex, "NearbyDiscoveryService loop error");
@@ -542,5 +471,82 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
             // ignore
         }
         return list;
+    }
+    private async Task ImmediatePublishAsync(string publishEndpoint, byte[] saltBytes, CancellationToken ct)
+    {
+        var saltHex = Convert.ToHexString(saltBytes);
+        string? displayName = null;
+        ushort meWorld = 0;
+        try
+        {
+            var me = await _dalamud.RunOnFrameworkThread(() => _dalamud.GetPlayerCharacter()).ConfigureAwait(false);
+            if (me is { } mePc)
+            {
+                displayName = mePc.Name.TextValue;
+                meWorld = (ushort)mePc.HomeWorld.RowId;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to gather player info for nearby publish");
+        }
+
+        if (string.IsNullOrEmpty(displayName))
+        {
+            return;
+        }
+
+        var selfHash = (saltHex + displayName + meWorld.ToString(CultureInfo.InvariantCulture)).GetHash256();
+        _lastPublishedSignature = null;
+        var okNow = await _api.PublishAsync(publishEndpoint, new[] { selfHash }, displayName, ct, _config.Current.AllowAutoDetectPairRequests).ConfigureAwait(false);
+        _logger.LogInformation("Nearby immediate publish on toggle ON: {result}", okNow ? "success" : "failed");
+    }
+
+    private async Task QueryNearbyMatchesAsync(List<NearbyEntry> entries, IReadOnlyList<string> hashes, Dictionary<string, int> hashToIndex, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(_configProvider.QueryEndpoint))
+            return;
+
+        var batch = Math.Max(1, _configProvider.MaxQueryBatch);
+        var allMatches = new List<ServerMatch>();
+        for (int i = 0; i < hashes.Count; i += batch)
+        {
+            var slice = hashes.Skip(i).Take(batch).ToArray();
+            var res = await _api.QueryAsync(_configProvider.QueryEndpoint!, slice, ct).ConfigureAwait(false);
+            if (res != null && res.Count > 0) allMatches.AddRange(res);
+        }
+
+        if (allMatches.Count > 0)
+        {
+            foreach (var match in allMatches)
+            {
+                if (hashToIndex.TryGetValue(match.Hash, out var idx))
+                {
+                    var existing = entries[idx];
+                    entries[idx] = new NearbyEntry(existing.Name, existing.WorldId, existing.Distance, true, match.Token, match.DisplayName, match.Uid);
+                }
+            }
+            _logger.LogInformation("Nearby: server returned {count} matches", allMatches.Count);
+        }
+        else
+        {
+            _logger.LogTrace("Nearby: server returned {count} matches", allMatches.Count);
+        }
+
+        var matchCount = entries.Count(e => e.IsMatch);
+        if (matchCount != _lastMatchCount)
+        {
+            _lastMatchCount = matchCount;
+            if (matchCount > 0)
+            {
+                var matchSamples = entries.Where(e => e.IsMatch).Take(5)
+                    .Select(e => string.IsNullOrEmpty(e.DisplayName) ? e.Name : e.DisplayName!);
+                _logger.LogInformation("Nearby: {count} Umbra users nearby [{samples}]", matchCount, string.Join(", ", matchSamples));
+            }
+            else
+            {
+                _logger.LogTrace("Nearby: {count} Umbra users nearby", matchCount);
+            }
+        }
     }
 }

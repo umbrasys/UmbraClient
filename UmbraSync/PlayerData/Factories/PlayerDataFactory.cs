@@ -40,7 +40,7 @@ public class PlayerDataFactory
         _logger.LogTrace("Creating {this}", nameof(PlayerDataFactory));
     }
 
-    public async Task BuildCharacterData(CharacterData previousData, GameObjectHandler playerRelatedObject, CancellationToken token)
+    public async Task BuildCharacterData(CharacterData previousData, GameObjectHandler? playerRelatedObject, CancellationToken token)
     {
         if (!_ipcManager.Initialized)
         {
@@ -109,7 +109,7 @@ public class PlayerDataFactory
         return await _dalamudUtil.RunOnFrameworkThread(() => CheckForNullDrawObjectUnsafe(playerPointer)).ConfigureAwait(false);
     }
 
-    private unsafe bool CheckForNullDrawObjectUnsafe(IntPtr playerPointer)
+    private static unsafe bool CheckForNullDrawObjectUnsafe(IntPtr playerPointer)
     {
         return ((Character*)playerPointer)->GameObject.DrawObject == null;
     }

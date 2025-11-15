@@ -251,9 +251,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
 
     public override string ToString()
     {
-        return Pair == null
-            ? base.ToString() ?? string.Empty
-            : Pair.UserData.AliasOrUID + ":" + PlayerName + ":" + (PlayerCharacter != nint.Zero ? "HasChar" : "NoChar");
+        return Pair.UserData.AliasOrUID + ":" + PlayerName + ":" + (PlayerCharacter != nint.Zero ? "HasChar" : "NoChar");
     }
 
     internal void SetUploading(bool isUploading = true)
@@ -307,51 +305,50 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         }
     }
 
-    public void UndoApplication(Guid applicationId = default)
+    public void UndoApplication(Guid? applicationId = null)
     {
         _ = Task.Run(async () => {
             await UndoApplicationAsync(applicationId).ConfigureAwait(false);
         });
     }
 
-    private async Task UndoApplicationAsync(Guid applicationId = default)
+    private async Task UndoApplicationAsync(Guid? applicationId = null)
     {
-        Logger.LogDebug($"Undoing application of {Pair.UserPair}");
+        Logger.LogDebug("Undoing application of {pair}", Pair.UserPair);
         var name = PlayerName;
         try
         {
-            if (applicationId == default)
-                applicationId = Guid.NewGuid();
+            var effectiveApplicationId = applicationId ?? Guid.NewGuid();
             _applicationCancellationTokenSource = _applicationCancellationTokenSource?.CancelRecreate();
             _downloadCancellationTokenSource = _downloadCancellationTokenSource?.CancelRecreate();
 
-            Logger.LogDebug("[{applicationId}] Removing Temp Collection for {name} ({user})", applicationId, name, Pair.UserPair);
+            Logger.LogDebug("[{applicationId}] Removing Temp Collection for {name} ({user})", effectiveApplicationId, name, Pair.UserPair);
             if (_penumbraCollection != Guid.Empty)
             {
-                await _ipcManager.Penumbra.RemoveTemporaryCollectionAsync(Logger, applicationId, _penumbraCollection).ConfigureAwait(false);
+                await _ipcManager.Penumbra.RemoveTemporaryCollectionAsync(Logger, effectiveApplicationId, _penumbraCollection).ConfigureAwait(false);
                 _penumbraCollection = Guid.Empty;
             }
 
             if (_dalamudUtil is { IsZoning: false, IsInCutscene: false } && !string.IsNullOrEmpty(name))
             {
-                Logger.LogTrace("[{applicationId}] Restoring state for {name} ({OnlineUser})", applicationId, name, Pair.UserPair);
+                Logger.LogTrace("[{applicationId}] Restoring state for {name} ({OnlineUser})", effectiveApplicationId, name, Pair.UserPair);
                 if (!IsVisible)
                 {
-                    Logger.LogDebug("[{applicationId}] Restoring Glamourer for {name} ({user})", applicationId, name, Pair.UserPair);
-                    await _ipcManager.Glamourer.RevertByNameAsync(Logger, name, applicationId).ConfigureAwait(false);
+                    Logger.LogDebug("[{applicationId}] Restoring Glamourer for {name} ({user})", effectiveApplicationId, name, Pair.UserPair);
+                    await _ipcManager.Glamourer.RevertByNameAsync(Logger, name, effectiveApplicationId).ConfigureAwait(false);
                 }
                 else
                 {
                     using var cts = new CancellationTokenSource();
                     cts.CancelAfter(TimeSpan.FromSeconds(60));
 
-                    Logger.LogInformation("[{applicationId}] CachedData is null {isNull}, contains things: {contains}", applicationId, _cachedData == null, _cachedData?.FileReplacements.Any() ?? false);
+                    Logger.LogInformation("[{applicationId}] CachedData is null {isNull}, contains things: {contains}", effectiveApplicationId, _cachedData == null, _cachedData?.FileReplacements.Any() ?? false);
 
                     foreach (KeyValuePair<ObjectKind, List<FileReplacementData>> item in _cachedData?.FileReplacements ?? [])
                     {
                         try
                         {
-                            await RevertCustomizationDataAsync(item.Key, name, applicationId, cts.Token).ConfigureAwait(false);
+                            await RevertCustomizationDataAsync(item.Key, name, effectiveApplicationId, cts.Token).ConfigureAwait(false);
                         }
                         catch (InvalidOperationException ex)
                         {
@@ -361,6 +358,15 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
                     }
                 }
             }
+            else
+            {
+                Logger.LogTrace("[{applicationId}] Not restoring state, DalamudUtilService is zoning or cutscene", effectiveApplicationId);
+            }
+
+            PlayerName = null;
+            _cachedData = null;
+            Mediator.Publish(new PairDataAppliedMessage(Pair.UserData.UID, null));
+            Logger.LogDebug("Undo Application [{applicationId}] complete", effectiveApplicationId);
         }
         catch (Exception ex)
         {

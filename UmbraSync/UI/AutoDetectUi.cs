@@ -473,12 +473,16 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
             if (string.IsNullOrEmpty(key)) return false;
             foreach (var p in _pairManager.DirectPairs)
             {
-                if (NormalizeKey(p.UserData.AliasOrUID) == key) return true;
-                if (!string.IsNullOrEmpty(p.UserData.Alias) && NormalizeKey(p.UserData.Alias!) == key) return true;
+                if (string.Equals(NormalizeKey(p.UserData.AliasOrUID), key, StringComparison.Ordinal))
+                    return true;
+                if (!string.IsNullOrEmpty(p.UserData.Alias) &&
+                    string.Equals(NormalizeKey(p.UserData.Alias), key, StringComparison.Ordinal))
+                    return true;
             }
         }
         catch
         {
+            // ignore matching errors and treat as not paired
         }
         return false;
     }
@@ -501,7 +505,7 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
     {
         if (!_acceptInFlight.Add(uid)) return;
 
-        Task.Run(async () =>
+        _ = Task.Run(async () =>
         {
             try
             {

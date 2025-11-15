@@ -427,22 +427,23 @@ public sealed class CharacterAnalyzer : DisposableMediatorSubscriberBase
         });
     }
 
-    private static CancellationTokenSource EnsureFreshCts(ref CancellationTokenSource? cts)
+    private CancellationTokenSource EnsureFreshCts(ref CancellationTokenSource? cts)
     {
         CancelAndDispose(ref cts);
         cts = new CancellationTokenSource();
         return cts;
     }
 
-    private static void CancelAndDispose(ref CancellationTokenSource? cts)
+    private void CancelAndDispose(ref CancellationTokenSource? cts)
     {
         if (cts == null) return;
         try
         {
             cts.Cancel();
         }
-        catch (ObjectDisposedException)
+        catch (ObjectDisposedException ex)
         {
+            Logger.LogTrace(ex, "CharacterAnalyzer CTS already disposed");
         }
 
         cts.Dispose();

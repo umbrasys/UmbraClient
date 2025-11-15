@@ -92,7 +92,7 @@ public sealed class CharaDataFileHandler : IDisposable
                         () => _dalamudUtilService.GetCharacterFromObjectTableByIndex(chara.ObjectIndex)?.Address ?? IntPtr.Zero, isWatched: false).ConfigureAwait(false);
         PlayerData.Data.CharacterData newCdata = new();
         await _playerDataFactory.BuildCharacterData(newCdata, tempHandler, CancellationToken.None).ConfigureAwait(false);
-        if (newCdata.FileReplacements.TryGetValue(ObjectKind.Player, out var playerData) && playerData != null)
+        if (newCdata.FileReplacements.TryGetValue(ObjectKind.Player, out var playerData))
         {
             foreach (var data in playerData.Select(g => g.GamePaths))
             {

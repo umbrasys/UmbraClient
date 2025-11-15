@@ -69,7 +69,7 @@ public class ConfigurationSaveService : IHostedService
         }
     }
 
-    private async Task SaveConfig<T>(IConfigService<T> config) where T : IMareConfiguration
+    private async Task SaveConfig<T>(IConfigService<T> config) where T : class, IMareConfiguration
     {
         _logger.LogTrace("Saving {configName}", config.ConfigurationName);
         var configDir = config.ConfigurationPath.Replace(config.ConfigurationName, string.Empty);

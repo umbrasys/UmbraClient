@@ -268,7 +268,7 @@ public sealed class TransientResourceManager : DisposableMediatorSubscriberBase
         }
 
         // ignore files not belonging to anything player related
-        if (!_cachedFrameAddresses.TryGetValue(gameObject, out var objectKind))
+        if (!_cachedFrameAddresses.TryGetValue(gameObject, out _))
         {
             lock (_cacheAdditionLock)
             {

@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace UmbraSync.MareConfiguration;
 
-public abstract class ConfigurationServiceBase<T> : IConfigService<T> where T : IMareConfiguration
+public abstract class ConfigurationServiceBase<T> : IConfigService<T> where T : class, IMareConfiguration
 {
     private readonly CancellationTokenSource _periodicCheckCts = new();
     private DateTime _configLastWriteTime;
@@ -135,12 +135,12 @@ public abstract class ConfigurationServiceBase<T> : IConfigService<T> where T : 
         }
         catch (IOException)
         {
+            return DateTime.MinValue;
         }
         catch (UnauthorizedAccessException)
         {
+            return DateTime.MinValue;
         }
-
-        return DateTime.MinValue;
     }
 
 

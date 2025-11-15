@@ -75,13 +75,7 @@ public class ServerConfigurationManager
 
     public string? GetSecretKey(out bool hasMulti, int serverIdx = -1)
     {
-        ServerStorage? currentServer;
-        currentServer = serverIdx == -1 ? CurrentServer : GetServerByIndex(serverIdx);
-        if (currentServer == null)
-        {
-            currentServer = new();
-            Save();
-        }
+        ServerStorage currentServer = serverIdx == -1 ? CurrentServer : GetServerByIndex(serverIdx);
         hasMulti = false;
 
         var charaName = _dalamudUtil.GetPlayerNameAsync().GetAwaiter().GetResult();
@@ -149,7 +143,7 @@ public class ServerConfigurationManager
 
     public bool HasValidConfig()
     {
-        return CurrentServer != null && CurrentServer.SecretKeys.Any();
+        return CurrentServer.SecretKeys.Any();
     }
 
     public void Save()

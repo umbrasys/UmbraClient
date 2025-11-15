@@ -81,7 +81,7 @@ public class EventAggregator : MediatorSubscriberBase, IHostedService
                     .ToList();
                 if (filesInDirectory.Count > 10)
                 {
-                    filesInDirectory.First().Delete();
+                    filesInDirectory[0].Delete();
                 }
             }
             catch (Exception ex)

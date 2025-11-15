@@ -8,6 +8,7 @@ using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.UI;
 using UmbraSync.WebAPI.Files.Models;
 using Microsoft.Extensions.Logging;
+using System.Text;
 
 namespace UmbraSync.Services;
 
@@ -256,7 +257,8 @@ public class PlayerPerformanceService : DisposableMediatorSubscriberBase
                 try
                 {
                     var inFile = new FileStream(filePath, FileMode.Open, FileAccess.Read);
-                    using var reader = new BinaryReader(inFile);
+                    await using var _inFileDispose = inFile.ConfigureAwait(false);
+                    using var reader = new BinaryReader(inFile, Encoding.UTF8, leaveOpen: true);
 
                     var header = reader.ReadBytes(80);
                     reader.BaseStream.Position = 14;
@@ -264,7 +266,8 @@ public class PlayerPerformanceService : DisposableMediatorSubscriberBase
                     byte mipCount = (byte)(mipByte & 0x7F);
 
                     var outFile = new FileStream(tmpFilePath, FileMode.Create, FileAccess.Write, FileShare.None);
-                    using var writer = new BinaryWriter(outFile);
+                    await using var _outFileDispose = outFile.ConfigureAwait(false);
+                    using var writer = new BinaryWriter(outFile, Encoding.UTF8, leaveOpen: true);
                     writer.Write(header);
 
                     // Update width/height
@@ -292,9 +295,6 @@ public class PlayerPerformanceService : DisposableMediatorSubscriberBase
                     inFile.Position = 80 + offsetDelta;
 
                     await inFile.CopyToAsync(outFile, 81920, token).ConfigureAwait(false);
-
-                    reader.Dispose();
-                    writer.Dispose();
 
                     File.Move(tmpFilePath, newFilePath);
                     var substEntry = _fileCacheManager.CreateSubstEntry(newFilePath);

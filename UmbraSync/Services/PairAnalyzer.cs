@@ -13,10 +13,15 @@ namespace UmbraSync.Services;
 public sealed class PairAnalyzer : DisposableMediatorSubscriberBase
 {
     private readonly FileCacheManager _fileCacheManager;
+    // Utilisé uniquement pour l'analyse détaillée en DEBUG
+#if DEBUG
     private readonly XivDataAnalyzer _xivDataAnalyzer;
+#endif
     private CancellationTokenSource? _analysisCts;
     private CancellationTokenSource? _baseAnalysisCts = new();
+#if DEBUG
     private string _lastDataHash = string.Empty;
+#endif
 
     public PairAnalyzer(ILogger<PairAnalyzer> logger, Pair pair, MareMediator mediator, FileCacheManager fileCacheManager, XivDataAnalyzer modelAnalyzer)
         : base(logger, mediator)
@@ -39,7 +44,12 @@ public sealed class PairAnalyzer : DisposableMediatorSubscriberBase
         });
 #endif
         _fileCacheManager = fileCacheManager;
+        // En Release ce champ n'est pas utilisé; évite un avertissement en l'affectant à un discard
+#if DEBUG
         _xivDataAnalyzer = modelAnalyzer;
+#else
+        _ = modelAnalyzer;
+#endif
 
 #if DEBUG
         var lastReceivedData = pair.LastReceivedCharacterData;
@@ -117,6 +127,7 @@ public sealed class PairAnalyzer : DisposableMediatorSubscriberBase
         CancelAndDispose(ref _baseAnalysisCts);
     }
 
+#if DEBUG
     private async Task BaseAnalysis(CharacterData charaData, CancellationToken token)
     {
         if (string.Equals(charaData.DataHash.Value, _lastDataHash, StringComparison.Ordinal)) return;
@@ -165,6 +176,7 @@ public sealed class PairAnalyzer : DisposableMediatorSubscriberBase
 
         _lastDataHash = charaData.DataHash.Value;
     }
+#endif
 
     private void PrintAnalysis()
     {
@@ -227,6 +239,7 @@ public sealed class PairAnalyzer : DisposableMediatorSubscriberBase
         }
         catch (ObjectDisposedException)
         {
+            // Ignoré intentionnellement: annulation concurrente pendant la destruction
         }
 
         cts.Dispose();

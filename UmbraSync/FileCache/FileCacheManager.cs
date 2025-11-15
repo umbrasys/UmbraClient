@@ -86,9 +86,18 @@ public sealed class FileCacheManager : IHostedService
         List<FileCacheEntity> output = [];
         if (_fileCaches.TryGetValue(hash, out var fileCacheEntities))
         {
-            foreach (var fileCache in fileCacheEntities.Where(c => ignoreCacheEntries ? (!c.IsCacheEntry && !c.IsSubstEntry) : true).ToList())
+            var entries = fileCacheEntities.AsEnumerable();
+            if (ignoreCacheEntries)
             {
-                if (!validate) output.Add(fileCache);
+                entries = entries.Where(c => !c.IsCacheEntry && !c.IsSubstEntry);
+            }
+
+            foreach (var fileCache in entries.ToList())
+            {
+                if (!validate)
+                {
+                    output.Add(fileCache);
+                }
                 else
                 {
                     var validated = GetValidatedFileCache(fileCache);

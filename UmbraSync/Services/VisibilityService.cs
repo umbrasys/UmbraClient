@@ -17,7 +17,7 @@ public class VisibilityService : DisposableMediatorSubscriberBase
 
     private readonly DalamudUtilService _dalamudUtil;
     private readonly ConcurrentDictionary<string, TrackedPlayerStatus> _trackedPlayerVisibility = new(StringComparer.Ordinal);
-    private readonly List<string> _makeVisibleNextFrame = new();
+    private readonly HashSet<string> _makeVisibleNextFrame = new(StringComparer.Ordinal);
     private readonly IpcCallerMare _mare;
     private readonly HashSet<nint> cachedMareAddresses = new();
     private uint _cachedAddressSum = 0;

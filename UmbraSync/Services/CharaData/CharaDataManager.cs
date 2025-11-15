@@ -214,7 +214,7 @@ public sealed partial class CharaDataManager : DisposableMediatorSubscriberBase
         return UiBlockingComputation = Task.Run(async () =>
         {
             var apply = await CanApplyInGpose().ConfigureAwait(false);
-            if (pose.WorldData == default || !(await CanApplyInGpose().ConfigureAwait(false)).CanApply) return;
+            if (pose.WorldData == default || !apply.CanApply) return;
             var gposeChara = await _dalamudUtilService.GetGposeCharacterFromObjectTableByNameAsync(targetName, true).ConfigureAwait(false);
             if (gposeChara == null) return;
 
@@ -889,7 +889,7 @@ public sealed partial class CharaDataManager : DisposableMediatorSubscriberBase
             if (!_dalamudUtilService.IsInGpose)
                 Mediator.Publish(new HaltCharaDataCreation(Resume: true));
 
-            if (metaInfo != null && _configService.Current.FavoriteCodes.TryGetValue(metaInfo.Uploader.UID + ":" + metaInfo.Id, out var favorite))
+            if (_configService.Current.FavoriteCodes.TryGetValue(metaInfo.Uploader.UID + ":" + metaInfo.Id, out var favorite))
             {
                 favorite.LastDownloaded = DateTime.UtcNow;
                 _configService.Save();

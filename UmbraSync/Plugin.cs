@@ -37,7 +37,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly IHost _host;
 
 #pragma warning disable CA2211, CS8618, MA0069, S1104, S2223
-    public static Plugin Self;
+    public static Plugin? Instance { get; private set; }
 #pragma warning restore CA2211, CS8618, MA0069, S1104, S2223
     public Action<IFramework>? RealOnFrameworkUpdate { get; set; }
     public void OnFrameworkUpdate(IFramework framework)
@@ -51,7 +51,7 @@ public sealed class Plugin : IDalamudPlugin
         ITextureProvider textureProvider, IContextMenu contextMenu, IGameInteropProvider gameInteropProvider,
         INamePlateGui namePlateGui, IGameConfig gameConfig, IPartyList partyList)
     {
-        Plugin.Self = this;
+        Instance = this;
         _host = new HostBuilder()
         .UseContentRoot(pluginInterface.ConfigDirectory.FullName)
         .ConfigureLogging(lb =>

@@ -102,11 +102,11 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
             if (_mareConfig.Current.UmbraAPI)
             {
                 var cancelToken = EnsureFreshCts(ref _registerDelayCts).Token;
-                Task.Run(async () =>
+                _ = Task.Run(async () =>
                 {
                     // Wait before registering to reduce the chance of a race condition
                     if (automatic)
-                        await Task.Delay(5000);
+                        await Task.Delay(5000).ConfigureAwait(false);
 
                     if (cancelToken.IsCancellationRequested)
                         return;

@@ -38,8 +38,11 @@ internal sealed class DalamudLogger : ILogger
         {
             StringBuilder sb = new();
             sb.Append(string.Format(CultureInfo.InvariantCulture, "[{0}]{{{1}}} {2}: {3}", _name, (int)logLevel, state, exception?.Message));
-            if (!string.IsNullOrWhiteSpace(exception?.StackTrace))
-                sb.AppendLine(exception?.StackTrace);
+            var stackTrace = exception?.StackTrace;
+            if (!string.IsNullOrWhiteSpace(stackTrace))
+            {
+                sb.AppendLine(stackTrace);
+            }
             var innerException = exception?.InnerException;
             while (innerException != null)
             {

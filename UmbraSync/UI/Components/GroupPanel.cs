@@ -357,7 +357,6 @@ internal sealed class GroupPanel
 
         if (!string.Equals(_editGroupEntry, groupDto.GID, StringComparison.Ordinal))
         {
-            var shellConfig = _serverConfigurationManager.GetShellConfigForGid(groupDto.GID);
             var totalMembers = pairsInGroup.Count + 1;
             var connectedMembers = pairsInGroup.Count(p => p.IsOnline) + 1;
             var maxCapacity = ApiController.ServerInfo.MaxGroupUserCount;

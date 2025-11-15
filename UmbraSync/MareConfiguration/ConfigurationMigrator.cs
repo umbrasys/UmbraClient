@@ -22,39 +22,31 @@ public class ConfigurationMigrator(ILogger<ConfigurationMigrator> logger, MareCo
 
             bool changed = false;
 
-            if (root.TryGetProperty("EnableAutoSyncDiscovery", out var enableAutoSync))
+            if (root.TryGetProperty("EnableAutoSyncDiscovery", out var enableAutoSync) &&
+                _mareConfig.Current.EnableAutoDetectDiscovery != enableAutoSync.GetBoolean())
             {
-                var val = enableAutoSync.GetBoolean();
-                if (_mareConfig.Current.EnableAutoDetectDiscovery != val)
-                {
-                    _mareConfig.Current.EnableAutoDetectDiscovery = val;
-                    changed = true;
-                }
+                _mareConfig.Current.EnableAutoDetectDiscovery = enableAutoSync.GetBoolean();
+                changed = true;
             }
-            if (root.TryGetProperty("AllowAutoSyncPairRequests", out var allowAutoSync))
+            if (root.TryGetProperty("AllowAutoSyncPairRequests", out var allowAutoSync) &&
+                _mareConfig.Current.AllowAutoDetectPairRequests != allowAutoSync.GetBoolean())
             {
-                var val = allowAutoSync.GetBoolean();
-                if (_mareConfig.Current.AllowAutoDetectPairRequests != val)
-                {
-                    _mareConfig.Current.AllowAutoDetectPairRequests = val;
-                    changed = true;
-                }
+                _mareConfig.Current.AllowAutoDetectPairRequests = allowAutoSync.GetBoolean();
+                changed = true;
             }
-            if (root.TryGetProperty("AutoSyncMaxDistanceMeters", out var maxDistSync) && maxDistSync.TryGetInt32(out var md))
+            if (root.TryGetProperty("AutoSyncMaxDistanceMeters", out var maxDistSync) &&
+                maxDistSync.TryGetInt32(out var md) &&
+                _mareConfig.Current.AutoDetectMaxDistanceMeters != md)
             {
-                if (_mareConfig.Current.AutoDetectMaxDistanceMeters != md)
-                {
-                    _mareConfig.Current.AutoDetectMaxDistanceMeters = md;
-                    changed = true;
-                }
+                _mareConfig.Current.AutoDetectMaxDistanceMeters = md;
+                changed = true;
             }
-            if (root.TryGetProperty("AutoSyncMuteMinutes", out var muteSync) && muteSync.TryGetInt32(out var mm))
+            if (root.TryGetProperty("AutoSyncMuteMinutes", out var muteSync) &&
+                muteSync.TryGetInt32(out var mm) &&
+                _mareConfig.Current.AutoDetectMuteMinutes != mm)
             {
-                if (_mareConfig.Current.AutoDetectMuteMinutes != mm)
-                {
-                    _mareConfig.Current.AutoDetectMuteMinutes = mm;
-                    changed = true;
-                }
+                _mareConfig.Current.AutoDetectMuteMinutes = mm;
+                changed = true;
             }
 
             if (changed)

@@ -251,13 +251,13 @@ public sealed class SyncDefaultsService : DisposableMediatorSubscriberBase
     private SyncOverrideEntry? TryGetPairOverride(string uid)
     {
         var overrides = _configService.Current.PairSyncOverrides;
-        return overrides != null && overrides.TryGetValue(uid, out var entry) ? entry : null;
+        return overrides.TryGetValue(uid, out var entry) ? entry : null;
     }
 
     private SyncOverrideEntry? TryGetGroupOverride(string gid)
     {
         var overrides = _configService.Current.GroupSyncOverrides;
-        return overrides != null && overrides.TryGetValue(gid, out var entry) ? entry : null;
+        return overrides.TryGetValue(gid, out var entry) ? entry : null;
     }
 
     private static bool ApplyDefaults(ref UserPermissions permissions, MareConfig config, SyncOverrideEntry? overrides)

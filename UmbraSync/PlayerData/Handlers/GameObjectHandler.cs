@@ -384,7 +384,7 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
         }
     }
 
-    private unsafe IntPtr GetDrawObjUnsafe(nint curPtr)
+    private static unsafe IntPtr GetDrawObjUnsafe(nint curPtr)
     {
         return (IntPtr)((FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)curPtr)->DrawObject;
     }

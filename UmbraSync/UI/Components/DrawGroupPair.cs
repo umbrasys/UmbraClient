@@ -59,7 +59,7 @@ public class DrawGroupPair : DrawPairBase
         var individualVFXDisabled = (_pair.UserPair?.OwnPermissions.IsDisableVFX() ?? false) || (_pair.UserPair?.OtherPermissions.IsDisableVFX() ?? false);
 
         bool showInfo = individualAnimDisabled || individualSoundsDisabled || individualVFXDisabled || animDisabled || soundsDisabled || vfxDisabled;
-        bool showShared = _charaDataManager.SharedWithYouData.TryGetValue(_pair.UserData, out var sharedData);
+        bool showShared = _charaDataManager.SharedWithYouData.TryGetValue(_pair.UserData, out _);
         bool showPlus = _pair.UserPair == null && _pair.IsOnline;
 
         if (showShared)
@@ -483,21 +483,15 @@ public class DrawGroupPair : DrawPairBase
             if (userIsOwner || (userIsModerator && !(entryIsMod || entryIsOwner)))
                 ImGui.Separator();
 
-            if (_pair.IsVisible)
+            if (_pair.IsVisible && _uiSharedService.IconTextButton(FontAwesomeIcon.Eye, "Target player"))
             {
-                if (_uiSharedService.IconTextButton(FontAwesomeIcon.Eye, "Target player"))
-                {
-                    _mediator.Publish(new TargetPairMessage(_pair));
-                    ImGui.CloseCurrentPopup();
-                }
+                _mediator.Publish(new TargetPairMessage(_pair));
+                ImGui.CloseCurrentPopup();
             }
-            if (!_pair.IsPaused)
+            if (!_pair.IsPaused && _uiSharedService.IconTextButton(FontAwesomeIcon.User, "Open Profile"))
             {
-                if (_uiSharedService.IconTextButton(FontAwesomeIcon.User, "Open Profile"))
-                {
-                    _displayHandler.OpenProfile(_pair);
-                    ImGui.CloseCurrentPopup();
-                }
+                _displayHandler.OpenProfile(_pair);
+                ImGui.CloseCurrentPopup();
             }
             if (_pair.IsVisible)
             {

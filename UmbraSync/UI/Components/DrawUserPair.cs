@@ -56,7 +56,7 @@ public class DrawUserPair : DrawPairBase
             width += _uiSharedService.GetIconButtonSize(FontAwesomeIcon.ExclamationTriangle).X + spacingX * 0.5f;
         }
 
-        if (_charaDataManager.SharedWithYouData.TryGetValue(_pair.UserData, out var sharedData))
+        if (_charaDataManager.SharedWithYouData.TryGetValue(_pair.UserData, out _))
         {
             width += _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Running).X + spacingX * 0.5f;
         }
@@ -267,21 +267,18 @@ public class DrawUserPair : DrawPairBase
 
     private void DrawPairedClientMenu(Pair entry)
     {
-        if (entry.IsVisible)
+        if (entry.IsVisible && _uiSharedService.IconTextButton(FontAwesomeIcon.Eye, "Target player"))
         {
-            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Eye, "Target player"))
-            {
-                _mediator.Publish(new TargetPairMessage(entry));
-                ImGui.CloseCurrentPopup();
-            }
+            _mediator.Publish(new TargetPairMessage(entry));
+            ImGui.CloseCurrentPopup();
+        }
+        if (!entry.IsPaused && _uiSharedService.IconTextButton(FontAwesomeIcon.User, "Open Profile"))
+        {
+            _displayHandler.OpenProfile(entry);
+            ImGui.CloseCurrentPopup();
         }
         if (!entry.IsPaused)
         {
-            if (_uiSharedService.IconTextButton(FontAwesomeIcon.User, "Open Profile"))
-            {
-                _displayHandler.OpenProfile(entry);
-                ImGui.CloseCurrentPopup();
-            }
             UiSharedService.AttachToolTip("Opens the profile for this user in a new window");
         }
         if (entry.IsVisible)

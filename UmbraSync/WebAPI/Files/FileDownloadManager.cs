@@ -14,6 +14,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Globalization;
+using System.Threading;
 
 namespace UmbraSync.WebAPI.Files;
 
@@ -25,7 +26,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
     private readonly MareConfigService _mareConfigService;
     private readonly FileTransferOrchestrator _orchestrator;
     private readonly List<ThrottledStream> _activeDownloadStreams;
-    private readonly object _queueLock = new();
+    private readonly Lock _queueLock = new();
     private SemaphoreSlim? _downloadQueueSemaphore;
     private int _downloadQueueCapacity = -1;
 
@@ -156,7 +157,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
     {
         var desiredCapacity = Math.Clamp(_mareConfigService.Current.ParallelDownloads, 1, 10);
 
-        lock (_queueLock)
+        using (_queueLock.EnterScope())
         {
             if (_downloadQueueSemaphore == null || _downloadQueueCapacity != desiredCapacity)
             {
@@ -362,7 +363,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
                     var chunkPosition = fileBlockStream.Position;
                     fileBlockStream.Position += fileLengthBytes;
 
-                    while (tasks.Count > threadCount && tasks.Where(t => !t.IsCompleted).Count() > 4)
+                    while (tasks.Count > threadCount && tasks.Count(t => !t.IsCompleted) > 4)
                         await Task.Delay(10, CancellationToken.None).ConfigureAwait(false);
 
                     var fileExtension = fileReplacement.First(f => string.Equals(f.Hash, fileHash, StringComparison.OrdinalIgnoreCase)).GamePaths[0].Split(".")[^1];

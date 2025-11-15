@@ -36,15 +36,15 @@ public partial class ApiController
         return Task.CompletedTask;
     }
 
-    public Task Client_GroupPairChangePermissions(GroupPairUserPermissionDto groupPairUserPermissionDto)
+    public Task Client_GroupPairChangePermissions(GroupPairUserPermissionDto permissionDto)
     {
-        Logger.LogTrace("Client_GroupPairChangePermissions: {dto}", groupPairUserPermissionDto);
+        Logger.LogTrace("Client_GroupPairChangePermissions: {dto}", permissionDto);
         ExecuteSafely(() =>
         {
-            if (string.Equals(groupPairUserPermissionDto.UID, UID, StringComparison.Ordinal))
-                _pairManager.SetGroupUserPermissions(groupPairUserPermissionDto);
+            if (string.Equals(permissionDto.UID, UID, StringComparison.Ordinal))
+                _pairManager.SetGroupUserPermissions(permissionDto);
             else
-                _pairManager.SetGroupPairUserPermissions(groupPairUserPermissionDto);
+                _pairManager.SetGroupPairUserPermissions(permissionDto);
         });
         return Task.CompletedTask;
     }
@@ -256,10 +256,10 @@ public partial class ApiController
         _mareHub!.On(nameof(Client_GroupChatMsg), groupChatMsgDto);
     }
 
-    public void OnGroupPairChangePermissions(Action<GroupPairUserPermissionDto> groupPairUserPermissionDto)
+    public void OnGroupPairChangePermissions(Action<GroupPairUserPermissionDto> act)
     {
         if (_initialized) return;
-        _mareHub!.On(nameof(Client_GroupPairChangePermissions), groupPairUserPermissionDto);
+        _mareHub!.On(nameof(Client_GroupPairChangePermissions), act);
     }
 
     public void OnGroupDelete(Action<GroupDto> act)

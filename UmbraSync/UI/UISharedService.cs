@@ -1267,12 +1267,12 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     [GeneratedRegex(@"^(?:[a-zA-Z]:\\[\w\s\-\\]+?|\/(?:[\w\s\-\/])+?)$", RegexOptions.ECMAScript, 5000)]
     private static partial Regex PathRegex();
 
-    private void FontText(string text, IFontHandle font, Vector4? color = null)
+    private static void FontText(string text, IFontHandle font, Vector4? color = null)
     {
         FontText(text, font, color == null ? ImGui.GetColorU32(ImGuiCol.Text) : ImGui.GetColorU32(color.Value));
     }
 
-    private void FontText(string text, IFontHandle font, uint color)
+    private static void FontText(string text, IFontHandle font, uint color)
     {
         using var pushedFont = font.Push();
         using var pushedColor = ImRaii.PushColor(ImGuiCol.Text, color);

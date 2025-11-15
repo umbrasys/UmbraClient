@@ -483,9 +483,9 @@ public class DalamudUtilService : IHostedService, IMediatorSubscriber
     {
         _logger.LogInformation("Starting DalamudUtilService");
 #pragma warning disable S2696 // Instance members should not write to "static" fields
-        UmbraSync.Plugin.Self.RealOnFrameworkUpdate = this.FrameworkOnUpdate;
+        Plugin.Instance!.RealOnFrameworkUpdate = this.FrameworkOnUpdate;
 #pragma warning restore S2696
-        _framework.Update += UmbraSync.Plugin.Self.OnFrameworkUpdate;
+        _framework.Update += Plugin.Instance!.OnFrameworkUpdate;
         if (IsLoggedIn)
         {
             _classJobId = _clientState.LocalPlayer!.ClassJob.RowId;
@@ -500,7 +500,7 @@ public class DalamudUtilService : IHostedService, IMediatorSubscriber
         _logger.LogTrace("Stopping {type}", GetType());
 
         Mediator.UnsubscribeAll(this);
-        _framework.Update -= UmbraSync.Plugin.Self.OnFrameworkUpdate;
+        _framework.Update -= Plugin.Instance!.OnFrameworkUpdate;
         return Task.CompletedTask;
     }
 
@@ -510,26 +510,34 @@ public class DalamudUtilService : IHostedService, IMediatorSubscriber
 
         const int tick = 250;
         int curWaitTime = 0;
+        bool EnsureHandlerValid(string reason)
+        {
+            if (handler.Address != IntPtr.Zero) return true;
+            logger.LogWarning("[{redrawId}] Stopping wait for {handler}: {reason}", redrawId, handler, reason);
+            return false;
+        }
+
+        if (!EnsureHandlerValid("object reference is null")) return;
+
         try
         {
             logger.LogTrace("[{redrawId}] Starting wait for {handler} to draw", redrawId, handler);
             await Task.Delay(tick).ConfigureAwait(true);
             curWaitTime += tick;
 
-            while ((!ct?.IsCancellationRequested ?? true)
-                   && curWaitTime < timeOut
-                   && await handler.IsBeingDrawnRunOnFrameworkAsync().ConfigureAwait(false)) // 0b100000000000 is "still rendering" or something
+            while ((!ct?.IsCancellationRequested ?? true) && curWaitTime < timeOut)
             {
+                if (!EnsureHandlerValid("object address became zero")) return;
+
+                var isDrawing = await handler.IsBeingDrawnRunOnFrameworkAsync().ConfigureAwait(false);
+                if (!isDrawing) break;
+
                 logger.LogTrace("[{redrawId}] Waiting for {handler} to finish drawing", redrawId, handler);
                 curWaitTime += tick;
                 await Task.Delay(tick).ConfigureAwait(true);
             }
 
             logger.LogTrace("[{redrawId}] Finished drawing after {curWaitTime}ms", redrawId, curWaitTime);
-        }
-        catch (NullReferenceException ex)
-        {
-            logger.LogWarning(ex, "Error accessing {handler}, object does not exist anymore?", handler);
         }
         catch (AccessViolationException ex)
         {

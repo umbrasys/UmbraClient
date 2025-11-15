@@ -196,7 +196,7 @@ public class PairGroupsUi
         }
     }
 
-    private void DrawPairs(IEnumerable<DrawPairBase> availablePairsInThisCategory)
+    private static void DrawPairs(IEnumerable<DrawPairBase> availablePairsInThisCategory)
     {
         // These are all the OtherUIDs that are tagged with this tag
         UidDisplayHandler.RenderPairList(availablePairsInThisCategory);

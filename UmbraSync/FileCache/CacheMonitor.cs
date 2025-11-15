@@ -596,8 +596,6 @@ public sealed class CacheMonitor : DisposableMediatorSubscriberBase
 
         if (FileCacheSize < maxCacheInBytes) return;
 
-        var substDir = _fileDbManager.SubstFolder;
-
         var maxCacheBuffer = maxCacheInBytes * 0.05d;
         while (FileCacheSize > maxCacheInBytes - (long)maxCacheBuffer)
         {
@@ -628,6 +626,7 @@ public sealed class CacheMonitor : DisposableMediatorSubscriberBase
         }
         catch (ObjectDisposedException)
         {
+            // already disposed, nothing to do
         }
         _scanCancellationTokenSource.Dispose();
         PenumbraWatcher?.Dispose();
@@ -648,6 +647,7 @@ public sealed class CacheMonitor : DisposableMediatorSubscriberBase
         }
         catch (ObjectDisposedException)
         {
+            // already disposed, ignore
         }
 
         cts.Dispose();
