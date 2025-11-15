@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Globalization;
 using UmbraSync.API.Data;
 using UmbraSync.API.Dto.Group;
 using UmbraSync.Services.Mediator;
@@ -90,8 +91,8 @@ public sealed class SyncshellDiscoveryService : IHostedService, IMediatorSubscri
                 AutoDetectVisible = visible,
                 DisplayDurationHours = displayDurationHours,
                 ActiveWeekdays = activeWeekdays,
-                TimeStartLocal = timeStartLocal.HasValue ? new DateTime(timeStartLocal.Value.Ticks).ToString("HH:mm") : null,
-                TimeEndLocal = timeEndLocal.HasValue ? new DateTime(timeEndLocal.Value.Ticks).ToString("HH:mm") : null,
+                TimeStartLocal = timeStartLocal.HasValue ? new DateTime(timeStartLocal.Value.Ticks).ToString("HH:mm", CultureInfo.InvariantCulture) : null,
+                TimeEndLocal = timeEndLocal.HasValue ? new DateTime(timeEndLocal.Value.Ticks).ToString("HH:mm", CultureInfo.InvariantCulture) : null,
                 TimeZone = timeZone,
             };
             var success = await _apiController.SyncshellDiscoverySetVisibility(request).ConfigureAwait(false);

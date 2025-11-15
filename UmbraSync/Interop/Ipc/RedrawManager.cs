@@ -4,7 +4,6 @@ using UmbraSync.PlayerData.Handlers;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Logging;
-using System.Collections.Concurrent;
 
 namespace UmbraSync.Interop.Ipc;
 
@@ -12,7 +11,6 @@ public class RedrawManager : IDisposable
 {
     private readonly MareMediator _mareMediator;
     private readonly DalamudUtilService _dalamudUtil;
-    private readonly ConcurrentDictionary<nint, bool> _penumbraRedrawRequests = [];
     private CancellationTokenSource? _disposalCts = new();
     private bool _disposed;
 
@@ -28,8 +26,6 @@ public class RedrawManager : IDisposable
     {
         _mareMediator.Publish(new PenumbraStartRedrawMessage(handler.Address));
 
-        _penumbraRedrawRequests[handler.Address] = true;
-
         try
         {
             using CancellationTokenSource cancelToken = new CancellationTokenSource();
@@ -43,7 +39,6 @@ public class RedrawManager : IDisposable
         }
         finally
         {
-            _penumbraRedrawRequests[handler.Address] = false;
             _mareMediator.Publish(new PenumbraEndRedrawMessage(handler.Address));
         }
     }

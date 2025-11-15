@@ -35,7 +35,6 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore
 
-      # Télécharger la baseline depuis le dernier rapport (si elle n'existe pas déjà)
       - name: Download baseline from Qodana Cloud
         continue-on-error: true
         run: |
@@ -60,9 +59,8 @@ jobs:
           use-annotations: true
           upload-result: false
           push-fixes: 'none'
-          args: --baseline-path,baseline.sarif.json
+          args: --baseline,baseline.sarif.json
 
-      # Commit la baseline générée (seulement au premier run)
       - name: Commit baseline if generated
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         continue-on-error: true

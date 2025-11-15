@@ -12,6 +12,7 @@ using UmbraSync.UI.Handlers;
 using UmbraSync.WebAPI;
 using System.Numerics;
 using UmbraSync.Services.ServerConfiguration;
+using System.Globalization;
 
 namespace UmbraSync.UI.Components;
 
@@ -137,7 +138,7 @@ public class DrawUserPair : DrawPairBase
                 if (_pair.LastAppliedDataTris >= 0)
                 {
                     visibleTooltip += Environment.NewLine + "Triangle Count (excl. Vanilla): "
-                        + (_pair.LastAppliedDataTris > 1000 ? (_pair.LastAppliedDataTris / 1000d).ToString("0.0'k'") : _pair.LastAppliedDataTris);
+                        + (_pair.LastAppliedDataTris > 1000 ? (_pair.LastAppliedDataTris / 1000d).ToString("0.0'k'", CultureInfo.CurrentCulture) : _pair.LastAppliedDataTris.ToString(CultureInfo.CurrentCulture));
                 }
             }
 

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
 using System.Text.Json;
+using System.Globalization;
 
 namespace UmbraSync.MareConfiguration;
 
@@ -93,7 +94,7 @@ public class ConfigurationSaveService : IHostedService
                 }
             }
 
-            string backupPath = Path.Combine(configBackupFolder, configNameSplit[0] + "." + DateTime.Now.ToString("yyyyMMddHHmmss") + "." + configNameSplit[1]);
+            string backupPath = Path.Combine(configBackupFolder, configNameSplit[0] + "." + DateTime.Now.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture) + "." + configNameSplit[1]);
             _logger.LogTrace("Backing up current config to {backupPath}", backupPath);
             File.Copy(config.ConfigurationPath, backupPath, overwrite: true);
             FileInfo fi = new(backupPath);

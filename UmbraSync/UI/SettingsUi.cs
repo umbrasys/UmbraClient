@@ -482,7 +482,13 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private void DrawChatConfig()
     {
         _lastTab = "Chat";
+        _uiShared.BigText("Bulle d'écriture");
+        using (ImRaii.PushIndent())
+        {
+            DrawTypingSettings();
+        }
 
+        ImGui.Separator();
         _uiShared.BigText("Chat Settings");
 
         var disableSyncshellChat = _configService.Current.DisableSyncshellChat;
@@ -494,60 +500,60 @@ public class SettingsUi : WindowMediatorSubscriberBase
         }
         _uiShared.DrawHelpText("Global setting to disable chat for all syncshells.");
 
-        using var pushDisableGlobal = ImRaii.Disabled(disableSyncshellChat);
-
         var uiColors = _dalamudUtilService.UiColors.Value;
         int globalChatColor = _configService.Current.ChatColor;
 
-        if (globalChatColor != 0 && !uiColors.ContainsKey(globalChatColor))
+        using (ImRaii.Disabled(disableSyncshellChat))
         {
-            globalChatColor = 0;
-            _configService.Current.ChatColor = 0;
-            _configService.Save();
+            if (globalChatColor != 0 && !uiColors.ContainsKey(globalChatColor))
+            {
+                globalChatColor = 0;
+                _configService.Current.ChatColor = 0;
+                _configService.Save();
+            }
+
+            ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
+            _uiShared.DrawColorCombo("Chat text color", Enumerable.Concat([0], uiColors.Keys),
+            i => i switch
+            {
+                0 => (uiColors[ChatService.DefaultColor].Dark, "Plugin Default"),
+                _ => (uiColors[i].Dark, $"[{i}] Sample Text")
+            },
+            i => {
+                _configService.Current.ChatColor = i;
+                _configService.Save();
+            }, globalChatColor);
+
+            int globalChatType = _configService.Current.ChatLogKind;
+            int globalChatTypeIdx = _syncshellChatTypes.FindIndex(x => globalChatType == (int)x.Item1);
+
+            if (globalChatTypeIdx == -1)
+                globalChatTypeIdx = 0;
+
+            ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
+            _uiShared.DrawCombo("Chat channel", Enumerable.Range(1, _syncshellChatTypes.Count - 1), i => $"{_syncshellChatTypes[i].Item2}",
+            i => {
+                if (_configService.Current.ChatLogKind == (int)_syncshellChatTypes[i].Item1)
+                    return;
+                _configService.Current.ChatLogKind = (int)_syncshellChatTypes[i].Item1;
+                _chatService.PrintChannelExample($"Selected channel: {_syncshellChatTypes[i].Item2}");
+                _configService.Save();
+            }, globalChatTypeIdx);
+            _uiShared.DrawHelpText("FFXIV chat channel to output chat messages on.");
+
+            UiSharedService.SetFontScale(0.6f);
+            UiSharedService.SetFontScale(1.0f);
+
+            var extraChatTags = _configService.Current.ExtraChatTags;
+            if (ImGui.Checkbox("Tag messages as ExtraChat", ref extraChatTags))
+            {
+                _configService.Current.ExtraChatTags = extraChatTags;
+                if (!extraChatTags)
+                    _configService.Current.ExtraChatAPI = false;
+                _configService.Save();
+            }
+            _uiShared.DrawHelpText("If enabled, messages will be filtered under the category \"ExtraChat channels: All\".\n\nThis works even if ExtraChat is also installed and enabled.");
         }
-
-        ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
-        _uiShared.DrawColorCombo("Chat text color", Enumerable.Concat([0], uiColors.Keys),
-        i => i switch
-        {
-            0 => (uiColors[ChatService.DefaultColor].Dark, "Plugin Default"),
-            _ => (uiColors[i].Dark, $"[{i}] Sample Text")
-        },
-        i => {
-            _configService.Current.ChatColor = i;
-            _configService.Save();
-        }, globalChatColor);
-
-        int globalChatType = _configService.Current.ChatLogKind;
-        int globalChatTypeIdx = _syncshellChatTypes.FindIndex(x => globalChatType == (int)x.Item1);
-
-        if (globalChatTypeIdx == -1)
-            globalChatTypeIdx = 0;
-
-        ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
-        _uiShared.DrawCombo("Chat channel", Enumerable.Range(1, _syncshellChatTypes.Count - 1), i => $"{_syncshellChatTypes[i].Item2}",
-        i => {
-            if (_configService.Current.ChatLogKind == (int)_syncshellChatTypes[i].Item1)
-                return;
-            _configService.Current.ChatLogKind = (int)_syncshellChatTypes[i].Item1;
-            _chatService.PrintChannelExample($"Selected channel: {_syncshellChatTypes[i].Item2}");
-            _configService.Save();
-        }, globalChatTypeIdx);
-        _uiShared.DrawHelpText("FFXIV chat channel to output chat messages on.");
-
-        UiSharedService.SetFontScale(0.6f);
-        _uiShared.BigText("\"Chat 2\" Plugin Integration");
-        UiSharedService.SetFontScale(1.0f);
-
-        var extraChatTags = _configService.Current.ExtraChatTags;
-        if (ImGui.Checkbox("Tag messages as ExtraChat", ref extraChatTags))
-        {
-            _configService.Current.ExtraChatTags = extraChatTags;
-            if (!extraChatTags)
-                _configService.Current.ExtraChatAPI = false;
-            _configService.Save();
-        }
-        _uiShared.DrawHelpText("If enabled, messages will be filtered under the category \"ExtraChat channels: All\".\n\nThis works even if ExtraChat is also installed and enabled.");
 
         ImGui.Separator();
 
@@ -1124,10 +1130,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
         var useNameColors = _configService.Current.UseNameColors;
         var nameColors = _configService.Current.NameColors;
         var autoPausedNameColors = _configService.Current.BlockedNameColors;
-        var typingEnabled = _configService.Current.TypingIndicatorEnabled;
-        var typingIndicatorNameplates = _configService.Current.TypingIndicatorShowOnNameplates;
-        var typingIndicatorPartyList = _configService.Current.TypingIndicatorShowOnPartyList;
-        var typingShowSelf = _configService.Current.TypingIndicatorShowSelf;
         if (ImGui.Checkbox("Coloriser les plaques de nom des paires", ref useNameColors))
         {
             _configService.Current.UseNameColors = useNameColors;
@@ -1154,62 +1156,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 _guiHookService.RequestRedraw();
             }
         }
-
-        if (ImGui.Checkbox("Activer le système d'indicateur de frappe", ref typingEnabled))
-        {
-            _configService.Current.TypingIndicatorEnabled = typingEnabled;
-            _configService.Save();
-            _chatTypingDetectionService.SoftRestart();
-        }
-        _uiShared.DrawHelpText("Active ou désactive complètement l'envoi/la réception et l'affichage des bulles de frappe.");
-
-        if (typingEnabled)
-        {
-            if (ImGui.Checkbox("Afficher la bulle de frappe sur les plaques", ref typingIndicatorNameplates))
-            {
-                _configService.Current.TypingIndicatorShowOnNameplates = typingIndicatorNameplates;
-                _configService.Save();
-            }
-            _uiShared.DrawHelpText("Ajoute une bulle '...' sur la plaque des paires en train d'écrire.");
-
-            if (typingIndicatorNameplates)
-            {
-                using var indentTyping = ImRaii.PushIndent();
-                var bubbleSize = _configService.Current.TypingIndicatorBubbleSize;
-                TypingIndicatorBubbleSize? selectedBubbleSize = _uiShared.DrawCombo("Taille de la bulle de frappe##typingBubbleSize",
-                    Enum.GetValues<TypingIndicatorBubbleSize>(),
-                    size => size switch
-                    {
-                        TypingIndicatorBubbleSize.Small => "Petite",
-                        TypingIndicatorBubbleSize.Medium => "Moyenne",
-                        TypingIndicatorBubbleSize.Large => "Grande",
-                        _ => size.ToString()
-                    },
-                    null,
-                    bubbleSize);
-
-                if (selectedBubbleSize.HasValue && selectedBubbleSize.Value != bubbleSize)
-                {
-                    _configService.Current.TypingIndicatorBubbleSize = selectedBubbleSize.Value;
-                    _configService.Save();
-                }
-
-                if (ImGui.Checkbox("Tracer la frappe dans la liste de groupe", ref typingIndicatorPartyList))
-                {
-                    _configService.Current.TypingIndicatorShowOnPartyList = typingIndicatorPartyList;
-                    _configService.Save();
-                }
-                _uiShared.DrawHelpText("Consigne dans les journaux quand une paire du groupe est en train d'écrire (bulle visuelle ultérieure).");
-
-                if (ImGui.Checkbox("Afficher ma propre bulle", ref typingShowSelf))
-                {
-                    _configService.Current.TypingIndicatorShowSelf = typingShowSelf;
-                    _configService.Save();
-                }
-                _uiShared.DrawHelpText("Affiche votre propre bulle lorsque vous tapez (utile pour test/retour visuel).");
-            }
-        }
-
+        
         if (ImGui.Checkbox("Show separate Visible group", ref showVisibleSeparate))
         {
             _configService.Current.ShowVisibleUsersSeparately = showVisibleSeparate;
@@ -2105,4 +2052,69 @@ public class SettingsUi : WindowMediatorSubscriberBase
         _wasOpen = IsOpen;
         IsOpen = false;
     }
+
+    private void DrawTypingSettings()
+    {
+        var typingEnabled = _configService.Current.TypingIndicatorEnabled;
+        var typingIndicatorNameplates = _configService.Current.TypingIndicatorShowOnNameplates;
+        var typingIndicatorPartyList = _configService.Current.TypingIndicatorShowOnPartyList;
+        var typingShowSelf = _configService.Current.TypingIndicatorShowSelf;
+
+        if (ImGui.Checkbox("Activer le système d'indicateur de frappe", ref typingEnabled))
+        {
+            _configService.Current.TypingIndicatorEnabled = typingEnabled;
+            _configService.Save();
+            _chatTypingDetectionService.SoftRestart();
+        }
+        _uiShared.DrawHelpText("Active ou désactive complètement l'envoi/la réception et l'affichage des bulles de frappe.");
+
+        if (typingEnabled)
+        {
+            if (ImGui.Checkbox("Afficher la bulle de frappe sur les plaques", ref typingIndicatorNameplates))
+            {
+                _configService.Current.TypingIndicatorShowOnNameplates = typingIndicatorNameplates;
+                _configService.Save();
+            }
+            _uiShared.DrawHelpText("Ajoute une bulle '...' sur la plaque des paires en train d'écrire.");
+
+            if (typingIndicatorNameplates)
+            {
+                using var indentTyping = ImRaii.PushIndent();
+                var bubbleSize = _configService.Current.TypingIndicatorBubbleSize;
+                ImGui.SetNextItemWidth(140 * ImGuiHelpers.GlobalScale);
+                TypingIndicatorBubbleSize? selectedBubbleSize = _uiShared.DrawCombo("Taille de la bulle de frappe##typingBubbleSize",
+                    Enum.GetValues<TypingIndicatorBubbleSize>(),
+                    size => size switch
+                    {
+                        TypingIndicatorBubbleSize.Small => "Petite",
+                        TypingIndicatorBubbleSize.Medium => "Moyenne",
+                        TypingIndicatorBubbleSize.Large => "Grande",
+                        _ => size.ToString()
+                    },
+                    null,
+                    bubbleSize);
+
+                if (selectedBubbleSize.HasValue && selectedBubbleSize.Value != bubbleSize)
+                {
+                    _configService.Current.TypingIndicatorBubbleSize = selectedBubbleSize.Value;
+                    _configService.Save();
+                }
+
+                if (ImGui.Checkbox("Tracer la frappe dans la liste de groupe", ref typingIndicatorPartyList))
+                {
+                    _configService.Current.TypingIndicatorShowOnPartyList = typingIndicatorPartyList;
+                    _configService.Save();
+                }
+                _uiShared.DrawHelpText("Consigne dans les journaux quand une paire du groupe est en train d'écrire (bulle visuelle ultérieure).");
+
+                if (ImGui.Checkbox("Afficher ma propre bulle", ref typingShowSelf))
+                {
+                    _configService.Current.TypingIndicatorShowSelf = typingShowSelf;
+                    _configService.Save();
+                }
+                _uiShared.DrawHelpText("Affiche votre propre bulle lorsque vous tapez (utile pour test/retour visuel).");
+            }
+        }
+    }
+
 }

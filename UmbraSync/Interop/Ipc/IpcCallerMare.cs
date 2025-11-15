@@ -1,5 +1,6 @@
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
+using System.Collections.Generic;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Logging;
@@ -9,7 +10,7 @@ namespace UmbraSync.Interop.Ipc;
 public sealed class IpcCallerMare : DisposableMediatorSubscriberBase
 {
     private readonly ICallGateSubscriber<List<nint>> _mareHandledGameAddresses;
-    private readonly List<nint> _emptyList = [];
+    private static readonly IReadOnlyList<nint> EmptyAddresses = Array.Empty<nint>();
 
     private bool _pluginLoaded;
 
@@ -30,7 +31,7 @@ public sealed class IpcCallerMare : DisposableMediatorSubscriberBase
     // Must be called on framework thread
     public IReadOnlyList<nint> GetHandledGameAddresses()
     {
-        if (!_pluginLoaded) return _emptyList;
+        if (!_pluginLoaded) return EmptyAddresses;
 
         try
         {
@@ -38,7 +39,7 @@ public sealed class IpcCallerMare : DisposableMediatorSubscriberBase
         }
         catch
         {
-            return _emptyList;
+            return EmptyAddresses;
         }
     }
 }

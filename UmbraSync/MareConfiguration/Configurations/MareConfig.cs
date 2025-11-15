@@ -99,6 +99,10 @@ public class MareConfig : IMareConfiguration
     public bool TypingIndicatorEnabled { get; set; } = true;
     public bool TypingIndicatorShowSelf { get; set; } = true;
     public TypingIndicatorBubbleSize TypingIndicatorBubbleSize { get; set; } = TypingIndicatorBubbleSize.Large;
+    public bool TypingIndicatorOnlyWhenNameplateVisible { get; set; } = true;
+    public TypingIndicatorNameplateStyle TypingIndicatorNameplateStyle { get; set; } = TypingIndicatorNameplateStyle.Side;
+    public float TypingIndicatorNameplateOpacity { get; set; } = 1.0f;
+    public float TypingIndicatorPartyOpacity { get; set; } = 0.9f;
 
     public bool UmbraAPI { get; set; } = true;
 

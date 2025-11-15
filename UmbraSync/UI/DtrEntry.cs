@@ -12,6 +12,7 @@ using UmbraSync.WebAPI;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Runtime.InteropServices;
+using System.Globalization;
 
 namespace UmbraSync.UI;
 
@@ -150,7 +151,7 @@ public sealed class DtrEntry : IDisposable, IHostedService
         if (_apiController.IsConnected)
         {
             var pairCount = _pairManager.GetVisibleUserCount();
-            var baseText = RenderDtrStyle(_configService.Current.DtrStyle, pairCount.ToString());
+            var baseText = RenderDtrStyle(_configService.Current.DtrStyle, pairCount.ToString(CultureInfo.InvariantCulture));
             var pendingNearby = _nearbyPendingService.Pending.Count;
             text = pendingNearby > 0 ? $"{baseText} ({pendingNearby})" : baseText;
             if (pairCount > 0)
@@ -160,13 +161,13 @@ public sealed class DtrEntry : IDisposable, IHostedService
                 {
                     visiblePairs = _pairManager.GetOnlineUserPairs()
                         .Where(x => x.IsVisible)
-                        .Select(x => string.Format("{0} ({1})", _configService.Current.PreferNoteInDtrTooltip ? x.GetNoteOrName() : x.PlayerName, x.UserData.AliasOrUID));
+                        .Select(x => string.Format(CultureInfo.CurrentCulture, "{0} ({1})", _configService.Current.PreferNoteInDtrTooltip ? x.GetNoteOrName() : x.PlayerName, x.UserData.AliasOrUID));
                 }
                 else
                 {
                     visiblePairs = _pairManager.GetOnlineUserPairs()
                         .Where(x => x.IsVisible)
-                        .Select(x => string.Format("{0}", _configService.Current.PreferNoteInDtrTooltip ? x.GetNoteOrName() : x.PlayerName));
+                        .Select(x => string.Format(CultureInfo.CurrentCulture, "{0}", _configService.Current.PreferNoteInDtrTooltip ? x.GetNoteOrName() : x.PlayerName));
                 }
 
                 tooltip = $"Umbra: Connected";

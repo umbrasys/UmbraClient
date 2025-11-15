@@ -188,6 +188,7 @@ public sealed class CharaDataNearbyManager : DisposableMediatorSubscriberBase
 
         var ownLocation = await _dalamudUtilService.RunOnFrameworkThread(() => _dalamudUtilService.GetMapData()).ConfigureAwait(false);
         var player = await _dalamudUtilService.RunOnFrameworkThread(() => _dalamudUtilService.GetPlayerCharacter()).ConfigureAwait(false);
+        if (player == null) return;
         var currentServer = player.CurrentWorld;
         var playerPos = player.Position;
 

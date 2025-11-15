@@ -100,7 +100,7 @@ public sealed class CommandManagerService : IDisposable
                     NotificationType.Error));
             }
 
-            if (_serverConfigurationManager.CurrentServer == null) return;
+            if (!_serverConfigurationManager.HasServers) return;
             var fullPause = splitArgs.Length > 1 ? splitArgs[1] switch
             {
                 "on" => false,
@@ -149,7 +149,7 @@ public sealed class CommandManagerService : IDisposable
         if (_mareConfigService.Current.DisableSyncshellChat)
             return;
 
-        int shellNumber = int.Parse(command[_ssCommandPrefix.Length..]);
+        int shellNumber = int.Parse(command[_ssCommandPrefix.Length..], CultureInfo.InvariantCulture);
 
         if (args.Length == 0)
         {

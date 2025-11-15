@@ -86,6 +86,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     private bool _penumbraExists = false;
     private bool _petNamesExists = false;
     private bool _brioExists = false;
+    private bool _chatTwoExists = false;
 
     private int _serverSelectionIndex = -1;
 
@@ -117,6 +118,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             _petNamesExists = _ipcManager.PetNames.APIAvailable;
             _moodlesExists = _ipcManager.Moodles.APIAvailable;
             _brioExists = _ipcManager.Brio.APIAvailable;
+            _chatTwoExists = Services.PluginWatcherService.GetInitialPluginState(_pluginInterface, "ChatTwo")?.IsLoaded ?? false;
         });
 
         UidFont = _pluginInterface.UiBuilder.FontAtlas.NewDelegateFontHandle(e =>
@@ -1097,6 +1099,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         AttachToolTip($"PetNicknames is " + (_petNamesExists ? "available and up to date." : "unavailable or not up to date."));
         ImGui.Spacing();
 
+
         ImGui.SetCursorPosX(alignPos);
         ImGui.TextUnformatted("Moodles");
         ImGui.SameLine();
@@ -1111,6 +1114,14 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         IconText(_brioExists ? check : cross, GetBoolColor(_brioExists));
         ImGui.SameLine();
         AttachToolTip($"Brio is " + (_moodlesExists ? "available and up to date." : "unavailable or not up to date."));
+        ImGui.Spacing();
+
+        ImGui.SameLine();
+        ImGui.TextUnformatted("Chat2");
+        ImGui.SameLine();
+        IconText(_chatTwoExists ? check : cross, GetBoolColor(_chatTwoExists));
+        ImGui.SameLine();
+        AttachToolTip($"Chat2 est " + (_chatTwoExists ? "disponible et à jour." : "indisponible ou pas à jour."));
         ImGui.Spacing();
 
         if (!_penumbraExists || !_glamourerExists)

@@ -342,7 +342,7 @@ public partial class IntroUi : WindowMediatorSubscriberBase
                 if (ImGui.Button("Save and Connect"))
                 {
                     string keyName;
-                    if (_serverConfigurationManager.CurrentServer == null) _serverConfigurationManager.SelectServer(0);
+                    if (!_serverConfigurationManager.HasServers) _serverConfigurationManager.SelectServer(0);
                     if (_registrationReply != null && _secretKey.Equals(_registrationReply.SecretKey, StringComparison.Ordinal))
                         keyName = _registrationReply.UID + $" (registered {DateTime.Now:yyyy-MM-dd})";
                     else

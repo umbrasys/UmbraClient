@@ -3,6 +3,7 @@ using UmbraSync.API.Dto.CharaData;
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.Services.CharaData.Models;
 using System.Text;
+using System.Globalization;
 
 namespace UmbraSync.UI;
 
@@ -14,14 +15,14 @@ public sealed partial class CharaDataHubUi
 		AccessTypeDto.ClosePairs => "Direct Pairs",
 		AccessTypeDto.Individuals => "Specified",
 		AccessTypeDto.Public => "Everyone",
-        _ => ((int)dto).ToString()
+        _ => ((int)dto).ToString(CultureInfo.InvariantCulture)
 	};
 
 	private static string GetShareTypeString(ShareTypeDto dto) => dto switch
     {
         ShareTypeDto.Private => "Code Only",
         ShareTypeDto.Shared => "Shared",
-        _ => ((int)dto).ToString()
+        _ => ((int)dto).ToString(CultureInfo.InvariantCulture)
     };
 
 	private static string GetWorldDataTooltipText(PoseEntryExtended poseEntry)

@@ -20,6 +20,7 @@ using Microsoft.Extensions.Logging;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Globalization;
 
 namespace UmbraSync.UI;
 
@@ -651,7 +652,9 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
 
                         ImGui.TextUnformatted("Last Use: ");
                         ImGui.SameLine();
-                        ImGui.TextUnformatted(favorite.Value.Favorite.LastDownloaded == DateTime.MaxValue ? "Never" : favorite.Value.Favorite.LastDownloaded.ToString());
+                        ImGui.TextUnformatted(favorite.Value.Favorite.LastDownloaded == DateTime.MaxValue
+                            ? "Never"
+                            : favorite.Value.Favorite.LastDownloaded.ToString(CultureInfo.CurrentCulture));
 
                         var desc = favorite.Value.Favorite.CustomDescription;
                         ImGui.SetNextItemWidth(maxPos - xPos);
@@ -734,7 +737,7 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
                     UiSharedService.TextWrapped(string.IsNullOrEmpty(metaInfo?.Description) ? "-" : metaInfo.Description);
                     ImGui.TextUnformatted("Last Update");
                     ImGui.SameLine(150);
-                    ImGui.TextUnformatted(metaInfo?.UpdatedDate.ToLocalTime().ToString() ?? "-");
+                    ImGui.TextUnformatted(metaInfo?.UpdatedDate.ToLocalTime().ToString("g", CultureInfo.CurrentCulture) ?? "-");
                     ImGui.TextUnformatted("Is Downloadable");
                     ImGui.SameLine(150);
                     _uiSharedService.BooleanToColoredIcon(metaInfo?.CanBeDownloaded ?? false, inline: false);
@@ -1124,16 +1127,16 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
             {
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
-                ImGui.TextUnformatted(string.IsNullOrEmpty(entry.Description) ? entry.Id.ToString() : entry.Description);
+                ImGui.TextUnformatted(string.IsNullOrEmpty(entry.Description) ? entry.Id.ToString("D", CultureInfo.InvariantCulture) : entry.Description);
 
                 ImGui.TableNextColumn();
-                ImGui.TextUnformatted(entry.CreatedUtc.ToLocalTime().ToString("g"));
+                ImGui.TextUnformatted(entry.CreatedUtc.ToLocalTime().ToString("g", CultureInfo.CurrentCulture));
 
                 ImGui.TableNextColumn();
-                ImGui.TextUnformatted(entry.ExpiresAtUtc.HasValue ? entry.ExpiresAtUtc.Value.ToLocalTime().ToString("g") : "Jamais");
+                ImGui.TextUnformatted(entry.ExpiresAtUtc.HasValue ? entry.ExpiresAtUtc.Value.ToLocalTime().ToString("g", CultureInfo.CurrentCulture) : "Jamais");
 
                 ImGui.TableNextColumn();
-                ImGui.TextUnformatted(entry.DownloadCount.ToString());
+                ImGui.TextUnformatted(entry.DownloadCount.ToString(CultureInfo.CurrentCulture));
 
                 ImGui.TableNextColumn();
                 ImGui.TextUnformatted($"UID : {entry.AllowedIndividuals.Count}, Syncshells : {entry.AllowedSyncshells.Count}");
@@ -1174,12 +1177,12 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
                     ImGui.SameLine();
                     if (ImGui.SmallButton("Enregistrer"))
                     {
-                        var baseName = SanitizeFileName(entry.Description, entry.Id.ToString());
+                        var baseName = SanitizeFileName(entry.Description, entry.Id.ToString("D", CultureInfo.InvariantCulture));
                         var defaultName = baseName + ".mcdf";
-                        _fileDialogManager.SaveFileDialog("Enregistrer le partage MCDF", ".mcdf", defaultName, ".mcdf", async (success, path) =>
+                        _fileDialogManager.SaveFileDialog("Enregistrer le partage MCDF", ".mcdf", defaultName, ".mcdf", (success, path) =>
                         {
                             if (!success || string.IsNullOrEmpty(path)) return;
-                            await _mcdfShareManager.ExportShareAsync(entry.Id, path, CancellationToken.None).ConfigureAwait(false);
+                            _ = _mcdfShareManager.ExportShareAsync(entry.Id, path, CancellationToken.None);
                         });
                     }
                     ImGui.SameLine();
@@ -1216,7 +1219,7 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
             {
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
-                ImGui.TextUnformatted(string.IsNullOrEmpty(entry.Description) ? entry.Id.ToString() : entry.Description);
+                ImGui.TextUnformatted(string.IsNullOrEmpty(entry.Description) ? entry.Id.ToString("D", CultureInfo.InvariantCulture) : entry.Description);
 
                 ImGui.TableNextColumn();
                 ImGui.TextUnformatted(string.IsNullOrEmpty(entry.OwnerAlias) ? entry.OwnerUid : entry.OwnerAlias);
@@ -1233,10 +1236,10 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
                 }
 
                 ImGui.TableNextColumn();
-                ImGui.TextUnformatted(entry.ExpiresAtUtc.HasValue ? entry.ExpiresAtUtc.Value.ToLocalTime().ToString("g") : "Jamais");
+                ImGui.TextUnformatted(entry.ExpiresAtUtc.HasValue ? entry.ExpiresAtUtc.Value.ToLocalTime().ToString("g", CultureInfo.CurrentCulture) : "Jamais");
 
                 ImGui.TableNextColumn();
-                ImGui.TextUnformatted(entry.DownloadCount.ToString());
+                ImGui.TextUnformatted(entry.DownloadCount.ToString(CultureInfo.CurrentCulture));
 
                 ImGui.TableNextColumn();
                 using (ImRaii.PushId("sharedShare" + entry.Id))
@@ -1248,12 +1251,12 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
                     ImGui.SameLine();
                     if (ImGui.SmallButton("Enregistrer"))
                     {
-                        var baseName = SanitizeFileName(entry.Description, entry.Id.ToString());
+                        var baseName = SanitizeFileName(entry.Description, entry.Id.ToString("D", CultureInfo.InvariantCulture));
                         var defaultName = baseName + ".mcdf";
-                        _fileDialogManager.SaveFileDialog("Enregistrer le partage MCDF", ".mcdf", defaultName, ".mcdf", async (success, path) =>
+                        _fileDialogManager.SaveFileDialog("Enregistrer le partage MCDF", ".mcdf", defaultName, ".mcdf", (success, path) =>
                         {
                             if (!success || string.IsNullOrEmpty(path)) return;
-                            await _mcdfShareManager.ExportShareAsync(entry.Id, path, CancellationToken.None).ConfigureAwait(false);
+                            _ = _mcdfShareManager.ExportShareAsync(entry.Id, path, CancellationToken.None);
                         });
                     }
                 }

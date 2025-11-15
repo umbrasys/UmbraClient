@@ -4,6 +4,7 @@ using Dalamud.Plugin.Ipc;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
 using System.Text;
 
 namespace UmbraSync.Interop.Ipc;
@@ -69,9 +70,9 @@ public sealed class IpcCallerHonorific : IIpcCaller
         await _dalamudUtil.RunOnFrameworkThread(() =>
         {
             var gameObj = _dalamudUtil.CreateGameObject(character);
-            if (gameObj is IPlayerCharacter c)
-            {
-                _logger.LogTrace("Honorific removing for {addr}", c.Address.ToString("X"));
+                if (gameObj is IPlayerCharacter c)
+                {
+                    _logger.LogTrace("Honorific removing for {addr}", c.Address.ToString("X", CultureInfo.InvariantCulture));
                 _honorificClearCharacterTitle!.InvokeAction(c.ObjectIndex);
             }
         }).ConfigureAwait(false);
@@ -90,7 +91,7 @@ public sealed class IpcCallerHonorific : IIpcCaller
     public async Task SetTitleAsync(IntPtr character, string honorificDataB64)
     {
         if (!APIAvailable) return;
-        _logger.LogTrace("Applying Honorific data to {chara}", character.ToString("X"));
+        _logger.LogTrace("Applying Honorific data to {chara}", character.ToString("X", CultureInfo.InvariantCulture));
         try
         {
             await _dalamudUtil.RunOnFrameworkThread(() =>

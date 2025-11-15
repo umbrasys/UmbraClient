@@ -9,6 +9,7 @@ using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Logging;
 using CharacterData = UmbraSync.PlayerData.Data.CharacterData;
+#pragma warning disable CS8500
 
 namespace UmbraSync.PlayerData.Factories;
 
@@ -363,3 +364,4 @@ public class PlayerDataFactory
         return pathsToResolve;
     }
 }
+#pragma warning restore CS8500

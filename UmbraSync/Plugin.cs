@@ -153,6 +153,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton<TemporarySyncshellNotificationService>();
             collection.AddSingleton<PartyListTypingService>();
             collection.AddSingleton<TypingIndicatorStateService>();
+            collection.AddSingleton<TypingRemoteNotificationService>();
             collection.AddSingleton<ChatTwoCompatibilityService>();
             collection.AddSingleton<NotificationTracker>();
 

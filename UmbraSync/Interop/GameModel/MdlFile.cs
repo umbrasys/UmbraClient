@@ -43,12 +43,8 @@ public class MdlFile
     public ModelFlags1 Flags1;
     public ModelFlags2 Flags2;
 
-    public VertexDeclarationStruct[] VertexDeclarations;
-    public ElementIdStruct[] ElementIds;
     public MeshStruct[] Meshes;
-    public BoundingBoxStruct[] BoneBoundingBoxes;
     public LodStruct[] Lods;
-    public ExtraLodStruct[] ExtraLods;
 
     public MdlFile(string filePath)
     {
@@ -56,12 +52,8 @@ public class MdlFile
         IndexOffset = Array.Empty<uint>();
         VertexBufferSize = Array.Empty<uint>();
         IndexBufferSize = Array.Empty<uint>();
-        VertexDeclarations = Array.Empty<VertexDeclarationStruct>();
-        ElementIds = Array.Empty<ElementIdStruct>();
         Meshes = Array.Empty<MeshStruct>();
-        BoneBoundingBoxes = Array.Empty<BoundingBoxStruct>();
         Lods = Array.Empty<LodStruct>();
-        ExtraLods = Array.Empty<ExtraLodStruct>();
 
         using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
         using var r = new LuminaBinaryReader(stream);
@@ -80,16 +72,14 @@ public class MdlFile
             IndexOffset[i] -= dataOffset;
         }
 
-        VertexDeclarations = new VertexDeclarationStruct[header.VertexDeclarationCount];
         for (var i = 0; i < header.VertexDeclarationCount; ++i)
-            VertexDeclarations[i] = VertexDeclarationStruct.Read(r);
+            _ = VertexDeclarationStruct.Read(r);
 
         _ = LoadStrings(r);
 
         var modelHeader = LoadModelHeader(r);
-        ElementIds = new ElementIdStruct[modelHeader.ElementIdCount];
         for (var i = 0; i < modelHeader.ElementIdCount; i++)
-            ElementIds[i] = ElementIdStruct.Read(r);
+            _ = ElementIdStruct.Read(r);
 
         Lods = new LodStruct[3];
         for (var i = 0; i < 3; i++)
@@ -104,9 +94,10 @@ public class MdlFile
             Lods[i] = lod;
         }
 
-        ExtraLods = modelHeader.Flags2.HasFlag(ModelFlags2.ExtraLodEnabled)
-            ? r.ReadStructuresAsArray<ExtraLodStruct>(3)
-            : [];
+        if (modelHeader.Flags2.HasFlag(ModelFlags2.ExtraLodEnabled))
+        {
+            _ = r.ReadStructuresAsArray<ExtraLodStruct>(3);
+        }
 
         Meshes = new MeshStruct[modelHeader.MeshCount];
         for (var i = 0; i < modelHeader.MeshCount; i++)

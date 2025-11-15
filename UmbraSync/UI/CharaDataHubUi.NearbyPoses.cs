@@ -4,6 +4,7 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using System.Numerics;
+using System.Globalization;
 
 namespace UmbraSync.UI;
 
@@ -189,7 +190,7 @@ public sealed partial class CharaDataHubUi
             // Draw the cone as a filled triangle
             drawList.AddTriangleFilled(circleCenter, coneBase1, coneBase2, UiSharedService.Color(ImGuiColors.ParsedGreen));
             drawList.AddCircle(circleCenter, circleDiameter / 2, UiSharedService.Color(ImGuiColors.DalamudWhite), 360, 2);
-            var distance = pose.Value.Distance.ToString("0.0") + "y";
+            var distance = pose.Value.Distance.ToString("0.0", CultureInfo.CurrentCulture) + "y";
             var textSize = ImGui.CalcTextSize(distance);
             drawList.AddText(new Vector2(circleCenter.X - textSize.X / 2, circleCenter.Y + textSize.Y / 3f), UiSharedService.Color(ImGuiColors.DalamudWhite), distance);
 

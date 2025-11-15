@@ -6,8 +6,9 @@
         <Version>0.1.9.9</Version>
         <DALAMUD_DIR>/Volumes/Ext/dev/ressources/XIV on Mac/dalamud/Hooks/dev</DALAMUD_DIR>
         <!-- Chemin pour le container Qodana -->
-        <DalamudLibsPath Condition=" '$(DALAMUD_DIR)' != '' ">$(DALAMUD_DIR)</DalamudLibsPath>
-        <DalamudLibsPath Condition=" '$(DALAMUD_DIR)' == '' ">/data/project/libs</DalamudLibsPath>
+        <DalamudLibsPath Condition="Exists('$(DALAMUD_DIR)')">$(DALAMUD_DIR)</DalamudLibsPath>
+        <DalamudLibsPath Condition="'$(DalamudLibsPath)' == '' and Exists('$(MSBuildThisFileDirectory)/libs')">$(MSBuildThisFileDirectory)/libs</DalamudLibsPath>
+        <DalamudLibsPath Condition="'$(DalamudLibsPath)' == ''">/data/project/libs</DalamudLibsPath>
     </PropertyGroup>
 
     <ItemGroup>
@@ -25,10 +26,6 @@
         <PackageReference Include="Downloader" Version="3.3.4" />
         <PackageReference Include="K4os.Compression.LZ4.Legacy" Version="1.3.8" />
         <PackageReference Include="K4os.Compression.LZ4.Streams" Version="1.3.8" />
-        <PackageReference Include="Meziantou.Analyzer" Version="2.0.212">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
         <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.8" />
         <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="9.0.8" />
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.8" />
@@ -70,22 +67,34 @@
         <!-- Références aux DLL Dalamud avec chemin unifié -->
         <Reference Include="Dalamud">
             <HintPath>$(DalamudLibsPath)/Dalamud.dll</HintPath>
-            <Private>false</Private>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="Dalamud.Bindings.ImGui">
+            <HintPath>$(DalamudLibsPath)/Dalamud.Bindings.ImGui.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="Dalamud.Bindings.ImGuizmo">
+            <HintPath>$(DalamudLibsPath)/Dalamud.Bindings.ImGuizmo.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="Dalamud.Bindings.ImPlot">
+            <HintPath>$(DalamudLibsPath)/Dalamud.Bindings.ImPlot.dll</HintPath>
+            <Private>False</Private>
         </Reference>
 
         <Reference Include="FFXIVClientStructs">
             <HintPath>$(DalamudLibsPath)/FFXIVClientStructs.dll</HintPath>
-            <Private>false</Private>
+            <Private>False</Private>
         </Reference>
 
         <Reference Include="ImGuiScene">
             <HintPath>$(DalamudLibsPath)/ImGuiScene.dll</HintPath>
-            <Private>false</Private>
+            <Private>False</Private>
         </Reference>
 
         <Reference Include="Newtonsoft.Json">
             <HintPath>$(DalamudLibsPath)/Newtonsoft.Json.dll</HintPath>
-            <Private>false</Private>
+            <Private>False</Private>
         </Reference>
     </ItemGroup>
 

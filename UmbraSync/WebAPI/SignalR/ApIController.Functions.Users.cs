@@ -3,6 +3,7 @@ using UmbraSync.API.Dto.User;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using System.Text;
+using System.Globalization;
 
 namespace UmbraSync.WebAPI.SignalR;
 
@@ -124,11 +125,11 @@ public partial class ApiController
         StringBuilder sb = new();
         foreach (var kvp in character.FileReplacements.ToList())
         {
-            sb.AppendLine($"FileReplacements for {kvp.Key}: {kvp.Value.Count}");
+            sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "FileReplacements for {0}: {1}", kvp.Key, kvp.Value.Count));
         }
         foreach (var item in character.GlamourerData)
         {
-            sb.AppendLine($"GlamourerData for {item.Key}: {!string.IsNullOrEmpty(item.Value)}");
+            sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "GlamourerData for {0}: {1}", item.Key, !string.IsNullOrEmpty(item.Value)));
         }
         Logger.LogDebug("Chara data contained: {nl} {data}", Environment.NewLine, sb.ToString());
 

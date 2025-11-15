@@ -96,7 +96,10 @@ public sealed partial class CharaDataHubUi
             ImGui.TextUnformatted("Users In Lobby");
             var gposeCharas = _dalamudUtilService.GetGposeCharactersFromObjectTable();
             var self = _dalamudUtilService.GetPlayerCharacter();
-            gposeCharas = gposeCharas.Where(c => c != null && !string.Equals(c.Name.TextValue, self.Name.TextValue, StringComparison.Ordinal)).ToList();
+            if (self != null)
+            {
+                gposeCharas = gposeCharas.Where(c => c != null && !string.Equals(c.Name.TextValue, self.Name.TextValue, StringComparison.Ordinal)).ToList();
+            }
 
             using (ImRaii.Child("charaChild", new(0, 0), false, ImGuiWindowFlags.AlwaysAutoResize))
             {

@@ -6,6 +6,7 @@ using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
+using System.Globalization;
 
 namespace UmbraSync.FileCache;
 
@@ -213,7 +214,7 @@ public sealed class TransientResourceManager : DisposableMediatorSubscriberBase
         }
         foreach (var item in TransientResources.Where(item => !_dalamudUtil.IsGameObjectPresent(item.Key)).Select(i => i.Key).ToList())
         {
-            Logger.LogDebug("Object not present anymore: {addr}", item.ToString("X"));
+            Logger.LogDebug("Object not present anymore: {addr}", item.ToString("X", CultureInfo.InvariantCulture));
             TransientResources.TryRemove(item, out _);
         }
     }
@@ -291,7 +292,7 @@ public sealed class TransientResourceManager : DisposableMediatorSubscriberBase
         {
             var thing = _playerRelatedPointers.FirstOrDefault(f => f.Address == gameObject);
             value.Add(replacedGamePath);
-            Logger.LogDebug("Adding {replacedGamePath} for {gameObject} ({filePath})", replacedGamePath, thing?.ToString() ?? gameObject.ToString("X"), filePath);
+            Logger.LogDebug("Adding {replacedGamePath} for {gameObject} ({filePath})", replacedGamePath, thing?.ToString() ?? gameObject.ToString("X", CultureInfo.InvariantCulture), filePath);
             _ = Task.Run(async () =>
             {
                 _sendTransientCts.Cancel();

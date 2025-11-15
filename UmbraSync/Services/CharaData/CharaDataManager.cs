@@ -889,7 +889,7 @@ public sealed partial class CharaDataManager : DisposableMediatorSubscriberBase
             if (!_dalamudUtilService.IsInGpose)
                 Mediator.Publish(new HaltCharaDataCreation(Resume: true));
 
-            if (metaInfo != null && _configService.Current.FavoriteCodes.TryGetValue(metaInfo.Uploader.UID + ":" + metaInfo.Id, out var favorite) && favorite != null)
+            if (metaInfo != null && _configService.Current.FavoriteCodes.TryGetValue(metaInfo.Uploader.UID + ":" + metaInfo.Id, out var favorite))
             {
                 favorite.LastDownloaded = DateTime.UtcNow;
                 _configService.Save();

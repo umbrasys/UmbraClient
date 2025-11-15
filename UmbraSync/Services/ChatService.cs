@@ -1,6 +1,5 @@
 using System;
 using System.Text;
-using System.Threading;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
@@ -32,20 +31,13 @@ public class ChatService : DisposableMediatorSubscriberBase
     private readonly ApiController _apiController;
     private readonly PairManager _pairManager;
     private readonly ServerConfigurationManager _serverConfigurationManager;
+    private readonly TypingRemoteNotificationService _typingNotifier;
 
     private readonly Lazy<GameChatHooks> _gameChatHooks;
 
-    private readonly object _typingLock = new();
-    private CancellationTokenSource? _typingCts;
-    private bool _isTypingAnnounced;
-    private DateTime _lastTypingSent = DateTime.MinValue;
-    private TypingScope _lastScope = TypingScope.Unknown;
-    private static readonly TimeSpan TypingIdle = TimeSpan.FromSeconds(2);
-    private static readonly TimeSpan TypingResendInterval = TimeSpan.FromMilliseconds(750);
-
     public ChatService(ILogger<ChatService> logger, DalamudUtilService dalamudUtil, MareMediator mediator, ApiController apiController,
         PairManager pairManager, ILoggerFactory loggerFactory, IGameInteropProvider gameInteropProvider, IChatGui chatGui,
-        MareConfigService mareConfig, ServerConfigurationManager serverConfigurationManager) : base(logger, mediator)
+        MareConfigService mareConfig, ServerConfigurationManager serverConfigurationManager, TypingRemoteNotificationService typingNotifier) : base(logger, mediator)
     {
         _logger = logger;
         _dalamudUtil = dalamudUtil;
@@ -54,6 +46,7 @@ public class ChatService : DisposableMediatorSubscriberBase
         _apiController = apiController;
         _pairManager = pairManager;
         _serverConfigurationManager = serverConfigurationManager;
+        _typingNotifier = typingNotifier;
 
         Mediator.Subscribe<UserChatMsgMessage>(this, HandleUserChat);
         Mediator.Subscribe<GroupChatMsgMessage>(this, HandleGroupChat);
@@ -64,7 +57,6 @@ public class ChatService : DisposableMediatorSubscriberBase
             try
             {
                 _ = _gameChatHooks.Value;
-                _isTypingAnnounced = false;
             }
             catch (Exception ex)
             {
@@ -76,80 +68,16 @@ public class ChatService : DisposableMediatorSubscriberBase
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
-        _typingCts?.Cancel();
-        _typingCts?.Dispose();
         if (_gameChatHooks.IsValueCreated)
             _gameChatHooks.Value!.Dispose();
     }
     public void NotifyTypingKeystroke(TypingScope scope)
     {
-        lock (_typingLock)
-        {
-            var now = DateTime.UtcNow;
-            if (!_isTypingAnnounced || (now - _lastTypingSent) >= TypingResendInterval)
-            {
-                _ = Task.Run(async () =>
-                {
-                    try { await _apiController.UserSetTypingState(true, scope).ConfigureAwait(false); }
-                    catch (Exception ex) { _logger.LogDebug(ex, "NotifyTypingKeystroke: failed to send typing=true"); }
-                });
-                _isTypingAnnounced = true;
-                _lastTypingSent = now;
-                _lastScope = scope;
-            }
-
-            _typingCts?.Cancel();
-            _typingCts?.Dispose();
-            _typingCts = new CancellationTokenSource();
-            var token = _typingCts.Token;
-
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    await Task.Delay(TypingIdle, token).ConfigureAwait(false);
-                    await _apiController.UserSetTypingState(false, _lastScope).ConfigureAwait(false);
-                }
-                catch (TaskCanceledException)
-                {
-                    // reset timer
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogDebug(ex, "NotifyTypingKeystroke: failed to send typing=false");
-                }
-                finally
-                {
-                    lock (_typingLock)
-                    {
-                        if (!token.IsCancellationRequested)
-                        {
-                            _isTypingAnnounced = false;
-                            _lastTypingSent = DateTime.MinValue;
-                        }
-                    }
-                }
-            });
-        }
+        _typingNotifier.NotifyTypingKeystroke(scope);
     }
     public void ClearTypingState()
     {
-        lock (_typingLock)
-        {
-            _typingCts?.Cancel();
-            _typingCts?.Dispose();
-            _typingCts = null;
-            if (_isTypingAnnounced)
-            {
-                _ = Task.Run(async () =>
-                {
-                    try { await _apiController.UserSetTypingState(false, _lastScope).ConfigureAwait(false); }
-                    catch (Exception ex) { _logger.LogDebug(ex, "ClearTypingState: failed to send typing=false"); }
-                });
-                _isTypingAnnounced = false;
-                _lastTypingSent = DateTime.MinValue;
-            }
-        }
+        _typingNotifier.ClearTypingState();
     }
 
     private void HandleUserChat(UserChatMsgMessage message)

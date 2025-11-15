@@ -13,6 +13,8 @@ using FFXIVClientStructs.FFXIV.Component.Shell;
 using UmbraSync.Services;
 using Microsoft.Extensions.Logging;
 
+#pragma warning disable CS8500 // using pointers to Dalamud native structs containing managed fields
+
 namespace UmbraSync.Interop;
 
 public record ChatChannelOverride
@@ -331,3 +333,4 @@ public unsafe sealed class GameChatHooks : IDisposable
         return originalResult;
     }
 }
+#pragma warning restore CS8500

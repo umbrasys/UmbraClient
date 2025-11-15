@@ -3,6 +3,7 @@ using Dalamud.Plugin.Ipc;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
 
 namespace UmbraSync.Interop.Ipc;
 
@@ -52,9 +53,9 @@ public sealed class IpcCallerHeels : IIpcCaller
         await _dalamudUtil.RunOnFrameworkThread(() =>
         {
             var gameObj = _dalamudUtil.CreateGameObject(character);
-            if (gameObj != null)
-            {
-                _logger.LogTrace("Restoring Heels data to {chara}", character.ToString("X"));
+                if (gameObj != null)
+                {
+                    _logger.LogTrace("Restoring Heels data to {chara}", character.ToString("X", CultureInfo.InvariantCulture));
                 _heelsUnregisterPlayer.InvokeAction(gameObj.ObjectIndex);
             }
         }).ConfigureAwait(false);
@@ -66,9 +67,9 @@ public sealed class IpcCallerHeels : IIpcCaller
         await _dalamudUtil.RunOnFrameworkThread(() =>
         {
             var gameObj = _dalamudUtil.CreateGameObject(character);
-            if (gameObj != null)
-            {
-                _logger.LogTrace("Applying Heels data to {chara}", character.ToString("X"));
+                if (gameObj != null)
+                {
+                    _logger.LogTrace("Applying Heels data to {chara}", character.ToString("X", CultureInfo.InvariantCulture));
                 _heelsRegisterPlayer.InvokeAction(gameObj.ObjectIndex, data);
             }
         }).ConfigureAwait(false);

@@ -78,6 +78,8 @@ public sealed class CharaDataFileHandler : IDisposable
     public async Task<CharacterData?> CreatePlayerData()
     {
         var chara = await _dalamudUtilService.GetPlayerCharacterAsync().ConfigureAwait(false);
+        if (chara == null)
+            return null;
         if (_dalamudUtilService.IsInGpose)
         {
             chara = (IPlayerCharacter?)(await _dalamudUtilService.GetGposeCharacterFromObjectTableByNameAsync(chara.Name.TextValue, _dalamudUtilService.IsInGpose).ConfigureAwait(false));

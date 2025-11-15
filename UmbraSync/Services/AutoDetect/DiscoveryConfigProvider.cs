@@ -7,6 +7,7 @@ using UmbraSync.WebAPI.SignalR;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
+using System.Globalization;
 
 namespace UmbraSync.Services.AutoDetect;
 
@@ -158,7 +159,7 @@ public class DiscoveryConfigProvider
             {
                 SaltBytes = null;
             }
-            if (DateTimeOffset.TryParse(SaltExpiresAtRaw, out var dto)) SaltExpiresAt = dto;
+            if (DateTimeOffset.TryParse(SaltExpiresAtRaw, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var dto)) SaltExpiresAt = dto;
         }
     }
 

@@ -358,7 +358,7 @@ public sealed class FileCacheManager : IHostedService
 
     private void AddHashedFile(FileCacheEntity fileCache)
     {
-        if (!_fileCaches.TryGetValue(fileCache.Hash, out var entries) || entries is null)
+        if (!_fileCaches.TryGetValue(fileCache.Hash, out var entries))
         {
             _fileCaches[fileCache.Hash] = entries = [];
         }

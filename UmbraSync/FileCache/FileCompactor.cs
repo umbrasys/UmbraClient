@@ -186,7 +186,7 @@ public sealed class FileCompactor
     private int GetClusterSize(FileInfo fi)
     {
         if (!fi.Exists) return -1;
-        var root = fi.Directory?.Root.FullName.ToLower() ?? string.Empty;
+        var root = fi.Directory?.Root.FullName.ToLowerInvariant() ?? string.Empty;
         if (string.IsNullOrEmpty(root)) return -1;
         if (_clusterSizes.TryGetValue(root, out int value)) return value;
         _logger.LogDebug("Getting Cluster Size for {path}, root {root}", fi.FullName, root);

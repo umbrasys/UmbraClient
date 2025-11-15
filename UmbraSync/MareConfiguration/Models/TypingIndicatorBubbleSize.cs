@@ -6,3 +6,9 @@ public enum TypingIndicatorBubbleSize
     Medium,
     Large
 }
+
+public enum TypingIndicatorNameplateStyle
+{
+    Side = 0,
+    Top = 1
+}

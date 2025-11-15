@@ -13,6 +13,7 @@ using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
+using System.Globalization;
 
 namespace UmbraSync.WebAPI.Files;
 
@@ -148,7 +149,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
         }
         if (fileLength.Count == 0)
             fileLength.Add('0');
-        return (string.Join("", hashName), long.Parse(string.Join("", fileLength)));
+        return (string.Join("", hashName), long.Parse(string.Join("", fileLength), CultureInfo.InvariantCulture));
     }
 
     private SemaphoreSlim GetQueueSemaphore()

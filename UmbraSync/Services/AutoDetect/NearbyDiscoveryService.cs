@@ -521,7 +521,8 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
             int limit = Math.Min(200, _objectTable.Length);
             for (int i = 0; i < limit; i++)
             {
-                var obj = await _dalamud.RunOnFrameworkThread(() => _objectTable[i]).ConfigureAwait(false);
+                var objectIndex = i;
+                var obj = await _dalamud.RunOnFrameworkThread(() => _objectTable[objectIndex]).ConfigureAwait(false);
                 if (obj == null || obj.ObjectKind != Dalamud.Game.ClientState.Objects.Enums.ObjectKind.Player) continue;
                 if (local != null && obj.Address == local.Address) continue;
 

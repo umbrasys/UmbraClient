@@ -9,6 +9,7 @@ using UmbraSync.Services.Mediator;
 using UmbraSync.Utils;
 using Microsoft.Extensions.Logging;
 using System.Numerics;
+using System.Globalization;
 
 namespace UmbraSync.UI;
 
@@ -102,7 +103,7 @@ public class PlayerAnalysisUI : WindowMediatorSubscriberBase
 
         ImGui.TextUnformatted("Total files:");
         ImGui.SameLine();
-        ImGui.TextUnformatted(cachedAnalysis.Values.Sum(c => c.Values.Count).ToString());
+        ImGui.TextUnformatted(cachedAnalysis.Values.Sum(c => c.Values.Count).ToString(CultureInfo.CurrentCulture));
         ImGui.SameLine();
         using (var font = ImRaii.PushFont(UiBuilder.IconFont))
         {

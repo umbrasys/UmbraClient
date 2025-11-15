@@ -2,6 +2,7 @@
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.UI.Info;
 using Microsoft.Extensions.Logging;
+#pragma warning disable CS8500
 
 namespace UmbraSync.Interop;
 
@@ -40,3 +41,4 @@ public unsafe class BlockedCharacterHandler
         return _blockedCharacterCache[combined] = blockStatus != InfoProxyBlacklist.BlockResultType.NotBlocked;
     }
 }
+#pragma warning restore CS8500

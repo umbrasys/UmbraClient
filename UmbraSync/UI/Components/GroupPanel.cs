@@ -336,7 +336,7 @@ internal sealed class GroupPanel
             ImGui.TextUnformatted(FontAwesomeIcon.Crown.ToIconString());
             ImGui.PopFont();
             UiSharedService.AttachToolTip("You are the owner of Syncshell " + groupName);
-            ImGui.SameLine();
+            ImGui.SameLine(0f, ImGui.GetStyle().ItemSpacing.X * 1.2f);
         }
         else if (groupDto.GroupUserInfo.IsModerator())
         {
@@ -344,7 +344,7 @@ internal sealed class GroupPanel
             ImGui.TextUnformatted(FontAwesomeIcon.UserShield.ToIconString());
             ImGui.PopFont();
             UiSharedService.AttachToolTip("You are a moderator of Syncshell " + groupName);
-            ImGui.SameLine();
+            ImGui.SameLine(0f, ImGui.GetStyle().ItemSpacing.X * 1.2f);
         }
 
         _showGidForEntry.TryGetValue(groupDto.GID, out var showGidInsteadOfName);

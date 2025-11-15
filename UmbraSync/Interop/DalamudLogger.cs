@@ -2,6 +2,7 @@
 using UmbraSync.MareConfiguration;
 using Microsoft.Extensions.Logging;
 using System.Text;
+using System.Globalization;
 
 namespace UmbraSync.Interop;
 
@@ -30,17 +31,19 @@ internal sealed class DalamudLogger : ILogger
         if (!IsEnabled(logLevel)) return;
 
         if ((int)logLevel <= (int)LogLevel.Information)
-            _pluginLog.Information($"[{_name}]{{{(int)logLevel}}} {state}");
+        {
+            _pluginLog.Information(string.Format(CultureInfo.InvariantCulture, "[{0}]{{{1}}} {2}", _name, (int)logLevel, state));
+        }
         else
         {
             StringBuilder sb = new();
-            sb.Append($"[{_name}]{{{(int)logLevel}}} {state}: {exception?.Message}");
+            sb.Append(string.Format(CultureInfo.InvariantCulture, "[{0}]{{{1}}} {2}: {3}", _name, (int)logLevel, state, exception?.Message));
             if (!string.IsNullOrWhiteSpace(exception?.StackTrace))
                 sb.AppendLine(exception?.StackTrace);
             var innerException = exception?.InnerException;
             while (innerException != null)
             {
-                sb.AppendLine($"InnerException {innerException}: {innerException.Message}");
+                sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "InnerException {0}: {1}", innerException, innerException.Message));
                 sb.AppendLine(innerException.StackTrace);
                 innerException = innerException.InnerException;
             }

@@ -6,6 +6,7 @@ using Dalamud.Interface.Utility.Raii;
 using UmbraSync.API.Dto.CharaData;
 using UmbraSync.Services.CharaData.Models;
 using System.Numerics;
+using System.Globalization;
 
 namespace UmbraSync.UI;
 
@@ -263,9 +264,9 @@ public sealed partial class CharaDataHubUi
         }
         UiSharedService.AttachToolTip("Copy Code to Clipboard");
 
-        string creationTime = dataDto.CreatedDate.ToLocalTime().ToString();
-        string updateTime = dataDto.UpdatedDate.ToLocalTime().ToString();
-        string downloadCount = dataDto.DownloadCount.ToString();
+        string creationTime = dataDto.CreatedDate.ToLocalTime().ToString("g", CultureInfo.CurrentCulture);
+        string updateTime = dataDto.UpdatedDate.ToLocalTime().ToString("g", CultureInfo.CurrentCulture);
+        string downloadCount = dataDto.DownloadCount.ToString(CultureInfo.CurrentCulture);
         using (ImRaii.Disabled())
         {
             ImGui.SetNextItemWidth(200);
@@ -316,11 +317,11 @@ public sealed partial class CharaDataHubUi
         {
             ImGui.SameLine();
             ImGui.SetNextItemWidth(100);
-            if (ImGui.BeginCombo("Year", expiryDate.Year.ToString()))
+            if (ImGui.BeginCombo("Year", expiryDate.Year.ToString(CultureInfo.InvariantCulture)))
             {
                 for (int year = DateTime.UtcNow.Year; year < DateTime.UtcNow.Year + 4; year++)
                 {
-                    if (ImGui.Selectable(year.ToString(), year == expiryDate.Year))
+                    if (ImGui.Selectable(year.ToString(CultureInfo.InvariantCulture), year == expiryDate.Year))
                     {
                         updateDto.SetExpiry(year, expiryDate.Month, expiryDate.Day);
                     }
@@ -331,11 +332,11 @@ public sealed partial class CharaDataHubUi
 
             int daysInMonth = DateTime.DaysInMonth(expiryDate.Year, expiryDate.Month);
             ImGui.SetNextItemWidth(100);
-            if (ImGui.BeginCombo("Month", expiryDate.Month.ToString()))
+            if (ImGui.BeginCombo("Month", expiryDate.Month.ToString(CultureInfo.InvariantCulture)))
             {
                 for (int month = 1; month <= 12; month++)
                 {
-                    if (ImGui.Selectable(month.ToString(), month == expiryDate.Month))
+                    if (ImGui.Selectable(month.ToString(CultureInfo.InvariantCulture), month == expiryDate.Month))
                     {
                         updateDto.SetExpiry(expiryDate.Year, month, expiryDate.Day);
                     }
@@ -345,11 +346,11 @@ public sealed partial class CharaDataHubUi
             ImGui.SameLine();
 
             ImGui.SetNextItemWidth(100);
-            if (ImGui.BeginCombo("Day", expiryDate.Day.ToString()))
+            if (ImGui.BeginCombo("Day", expiryDate.Day.ToString(CultureInfo.InvariantCulture)))
             {
                 for (int day = 1; day <= daysInMonth; day++)
                 {
-                    if (ImGui.Selectable(day.ToString(), day == expiryDate.Day))
+                    if (ImGui.Selectable(day.ToString(CultureInfo.InvariantCulture), day == expiryDate.Day))
                     {
                         updateDto.SetExpiry(expiryDate.Year, expiryDate.Month, day);
                     }
@@ -409,7 +410,7 @@ public sealed partial class CharaDataHubUi
         {
             ImGui.AlignTextToFramePadding();
             using var id = ImRaii.PushId("pose" + poseNumber);
-            ImGui.TextUnformatted(poseNumber.ToString());
+            ImGui.TextUnformatted(poseNumber.ToString(CultureInfo.InvariantCulture));
 
             if (pose.Id == null)
             {
@@ -601,15 +602,15 @@ public sealed partial class CharaDataHubUi
                     UiSharedService.AttachToolTip(entry.Description);
 
                     ImGui.TableNextColumn();
-                    ImGui.TextUnformatted(entry.CreatedDate.ToLocalTime().ToString());
+                    ImGui.TextUnformatted(entry.CreatedDate.ToLocalTime().ToString("g", CultureInfo.CurrentCulture));
                     if (ImGui.IsItemClicked()) SelectedDtoId = entry.Id;
 
                     ImGui.TableNextColumn();
-                    ImGui.TextUnformatted(entry.UpdatedDate.ToLocalTime().ToString());
+                    ImGui.TextUnformatted(entry.UpdatedDate.ToLocalTime().ToString("g", CultureInfo.CurrentCulture));
                     if (ImGui.IsItemClicked()) SelectedDtoId = entry.Id;
 
                     ImGui.TableNextColumn();
-                    ImGui.TextUnformatted(entry.DownloadCount.ToString());
+                    ImGui.TextUnformatted(entry.DownloadCount.ToString(CultureInfo.CurrentCulture));
                     if (ImGui.IsItemClicked()) SelectedDtoId = entry.Id;
 
                     ImGui.TableNextColumn();
@@ -621,7 +622,7 @@ public sealed partial class CharaDataHubUi
 
                     ImGui.TableNextColumn();
                     var count = entry.FileGamePaths.Concat(entry.FileSwaps).Count();
-                    ImGui.TextUnformatted(count.ToString());
+                    ImGui.TextUnformatted(count.ToString(CultureInfo.CurrentCulture));
                     if (ImGui.IsItemClicked()) SelectedDtoId = entry.Id;
                     UiSharedService.AttachToolTip(count == 0 ? "No File data attached" : "Has File data attached");
 

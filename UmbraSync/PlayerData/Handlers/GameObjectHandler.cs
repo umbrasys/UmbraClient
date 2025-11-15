@@ -5,8 +5,10 @@ using UmbraSync.Services.Mediator;
 using UmbraSync.Utils;
 using Microsoft.Extensions.Logging;
 using System.Runtime.CompilerServices;
+using System.Globalization;
 using static FFXIVClientStructs.FFXIV.Client.Game.Character.DrawDataContainer;
 using ObjectKind = UmbraSync.API.Data.Enum.ObjectKind;
+#pragma warning disable CS8500 // Interacting with native FFXIV structs that contain reference-like fields
 
 namespace UmbraSync.PlayerData.Handlers;
 
@@ -374,7 +376,7 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
         try
         {
             _performanceCollector.LogPerformance(this, $"CheckAndUpdateObject>{(_isOwnedObject ? "Self" : "Other")}+{ObjectKind}/{(string.IsNullOrEmpty(Name) ? "Unk" : Name)}"
-                + $"+{Address.ToString("X")}", CheckAndUpdateObject);
+                + $"+{Address.ToString("X", CultureInfo.InvariantCulture)}", CheckAndUpdateObject);
         }
         catch (Exception ex)
         {
@@ -390,7 +392,7 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
     private bool IsBeingDrawn()
     {
         var curPtr = _getAddress();
-        Logger.LogTrace("[{this}] IsBeingDrawn, CurPtr: {ptr}", this, curPtr.ToString("X"));
+        Logger.LogTrace("[{this}] IsBeingDrawn, CurPtr: {ptr}", this, curPtr.ToString("X", CultureInfo.InvariantCulture));
 
         if (curPtr == IntPtr.Zero && _ptrNullCounter < 2)
         {
@@ -415,7 +417,7 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
         }
 
         var drawObj = GetDrawObjUnsafe(curPtr);
-        Logger.LogTrace("[{this}] IsBeingDrawn, DrawObjPtr: {ptr}", this, drawObj.ToString("X"));
+        Logger.LogTrace("[{this}] IsBeingDrawn, DrawObjPtr: {ptr}", this, drawObj.ToString("X", CultureInfo.InvariantCulture));
         var isDrawn = IsBeingDrawnUnsafe(drawObj, curPtr);
         Logger.LogTrace("[{this}] IsBeingDrawn, Condition: {cond}", this, isDrawn);
         return isDrawn != DrawCondition.None;
@@ -485,3 +487,4 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
         });
     }
 }
+#pragma warning restore CS8500

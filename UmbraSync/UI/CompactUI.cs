@@ -18,6 +18,7 @@ using UmbraSync.Services.Notification;
 using UmbraSync.UI.Components;
 using UmbraSync.UI.Handlers;
 using UmbraSync.WebAPI;
+using System.Globalization;
 using UmbraSync.WebAPI.Files;
 using UmbraSync.WebAPI.Files.Models;
 using UmbraSync.WebAPI.SignalR.Utils;
@@ -26,7 +27,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
 using System.Numerics;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -969,8 +969,9 @@ if (showNearby && pendingInvites > 0)
     private void DrawConnectionIcon()
     {
         var state = _apiController.ServerState;
-        bool hasServer = _serverManager.CurrentServer != null;
-        bool isLinked = hasServer && !_serverManager.CurrentServer!.FullPause;
+        var hasServer = _serverManager.HasServers;
+        var currentServer = hasServer ? _serverManager.CurrentServer : null;
+        bool isLinked = currentServer != null && !currentServer.FullPause;
         var icon = isLinked ? FontAwesomeIcon.Unlink : FontAwesomeIcon.Link;
 
         using var id = ImRaii.PushId("connection-icon");
@@ -986,17 +987,12 @@ if (showNearby && pendingInvites > 0)
             ToggleConnection();
         }
 
-        if (hasServer)
-        {
-            var tooltip = isLinked
-                ? $"Disconnect from {_serverManager.CurrentServer!.ServerName}"
-                : $"Connect to {_serverManager.CurrentServer!.ServerName}";
-            UiSharedService.AttachToolTip(tooltip);
-        }
-        else
-        {
-            UiSharedService.AttachToolTip("No server configured");
-        }
+        var tooltip = hasServer
+            ? (isLinked
+                ? $"Disconnect from {currentServer!.ServerName}"
+                : $"Connect to {currentServer!.ServerName}")
+            : "No server configured";
+        UiSharedService.AttachToolTip(tooltip);
     }
 
     private bool DrawSidebarSquareButton(FontAwesomeIcon icon, bool isActive, bool highlight, bool enabled, int badgeCount, Vector4? highlightColor)
@@ -1051,7 +1047,7 @@ if (showNearby && pendingInvites > 0)
             var center = new Vector2(max.X - radius * 0.8f, min.Y + radius * 0.8f);
             var drawList = ImGui.GetWindowDrawList();
             drawList.AddCircleFilled(center, radius, ImGui.ColorConvertFloat4ToU32(UiSharedService.AccentColor));
-            string badgeText = badgeCount > 9 ? "9+" : badgeCount.ToString();
+            string badgeText = badgeCount > 9 ? "9+" : badgeCount.ToString(CultureInfo.CurrentCulture);
             var textSize = ImGui.CalcTextSize(badgeText);
             drawList.AddText(center - textSize / 2f, ImGui.GetColorU32(ImGuiCol.Text), badgeText);
         }
@@ -1062,7 +1058,7 @@ if (showNearby && pendingInvites > 0)
 
     private void ToggleConnection()
     {
-        if (_serverManager.CurrentServer == null) return;
+        if (!_serverManager.HasServers) return;
 
         _serverManager.CurrentServer.FullPause = !_serverManager.CurrentServer.FullPause;
         _serverManager.Save();

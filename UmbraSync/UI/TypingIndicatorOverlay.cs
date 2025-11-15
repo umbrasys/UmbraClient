@@ -181,7 +181,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         iconPos += iconOffset;
 
         var texture = _textureProvider.GetFromGame("ui/uld/charamake_dataimport.tex").GetWrapOrEmpty();
-        if (texture == null) return;
+        if (texture.Handle == IntPtr.Zero) return;
 
         drawList.AddImage(texture.Handle, iconPos, iconPos + iconSize, Vector2.Zero, Vector2.One,
             ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0.9f)));
@@ -191,7 +191,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         bool selfActive, DateTime now, DateTime selfStart, DateTime selfLast)
     {
         var iconWrap = _textureProvider.GetFromGameIcon(NameplateIconId).GetWrapOrEmpty();
-        if (iconWrap == null || iconWrap.Handle == IntPtr.Zero)
+        if (iconWrap.Handle == IntPtr.Zero)
             return;
 
         var showSelf = _configService.Current.TypingIndicatorShowSelf;
@@ -330,38 +330,72 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         if (namePlate == null || namePlate->RootComponentNode == null)
             return false;
 
-        var iconNode = namePlate->RootComponentNode->Component->UldManager.NodeList[0];
+        var rootComponent = namePlate->RootComponentNode;
+        var component = rootComponent->Component;
+        if (component == null || component->UldManager.NodeListCount == 0)
+            return false;
+
+        var iconNode = component->UldManager.NodeList[0];
         if (iconNode == null)
             return false;
 
-        var scaleX = namePlate->RootComponentNode->AtkResNode.ScaleX;
-        var scaleY = namePlate->RootComponentNode->AtkResNode.ScaleY;
+        var rootVisible = rootComponent->AtkResNode.IsVisible();
         var iconVisible = iconNode->IsVisible();
-        var sizeScaleFactor = 1f;
+        var isNameplateVisible = rootVisible && iconVisible;
+
+        var scaleX = rootComponent->AtkResNode.ScaleX;
+        var scaleY = rootComponent->AtkResNode.ScaleY;
         var scaleVector = new Vector2(scaleX, scaleY);
-        var rootPosition = new Vector2(namePlate->RootComponentNode->AtkResNode.X, namePlate->RootComponentNode->AtkResNode.Y);
+        var rootPosition = new Vector2(rootComponent->AtkResNode.X, rootComponent->AtkResNode.Y);
         var iconLocalPosition = new Vector2(iconNode->X, iconNode->Y) * scaleVector;
         var iconDimensions = new Vector2(iconNode->Width, iconNode->Height) * scaleVector;
 
-        if (!iconVisible)
+        // Decide style: if plate is hidden/masked, force Top; otherwise use configured style
+        var style = _configService.Current.TypingIndicatorNameplateStyle;
+        var useTop = !isNameplateVisible || style == TypingIndicatorNameplateStyle.Top;
+
+        Vector2 iconPos;
+        Vector2 iconOffset;
+        Vector2 iconSize;
+
+        if (useTop)
         {
-            return true;
+            // Top style placement above the nameplate area (centered horizontally)
+            // Compute bubble size first to properly center it.
+            iconSize = GetConfiguredBubbleSize(scaleX, scaleY, true, TypingIndicatorBubbleSize.Large);
+            var basePos = rootPosition + iconLocalPosition;
+            // Center X on the nameplate area, then apply vertical offset logic.
+            iconPos = new Vector2(basePos.X + (iconDimensions.X * 0.5f) - (iconSize.X * 0.5f), basePos.Y);
+            iconOffset = new Vector2(0f, (-24f + (distance / 1f)) * scaleY);
+            if (iconNode->Height == 24)
+            {
+                iconOffset.Y += 16f * scaleY;
+            }
+            // When nameplate UI is hidden, push the bubble a bit further down to keep it readable
+            if (!isNameplateVisible)
+            {
+                iconOffset.Y += 48f * scaleY;
+            }
+
+            iconPos += iconOffset;
+        }
+        else
+        {
+            // Side style placement next to the plate's name area (RTyping-like when plate is visible)
+            iconPos = rootPosition + iconLocalPosition + new Vector2(iconDimensions.X, 0f);
+            iconOffset = new Vector2(distance / 1.5f, distance / 3f) * scaleVector;
+            if (iconNode->Height == 24)
+            {
+                iconOffset.Y -= 8f * scaleY;
+            }
+
+            iconPos += iconOffset;
+            iconSize = GetConfiguredBubbleSize(scaleX, scaleY, true);
         }
 
-        var iconPos = rootPosition + iconLocalPosition + new Vector2(iconDimensions.X, 0f);
-
-        var iconOffset = new Vector2(distance / 1.5f, distance / 3.5f) * scaleVector;
-        if (iconNode->Height == 24)
-        {
-            iconOffset.Y -= 8f * scaleY;
-        }
-
-        iconPos += iconOffset;
-
-        var iconSize = GetConfiguredBubbleSize(scaleX * sizeScaleFactor, scaleY * sizeScaleFactor, true);
-
+        var nameplateOpacity = Math.Clamp(_configService.Current.TypingIndicatorNameplateOpacity, 0f, 1f);
         drawList.AddImage(textureWrap.Handle, iconPos, iconPos + iconSize, Vector2.Zero, Vector2.One,
-            ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0.95f)));
+            ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, nameplateOpacity)));
 
         return true;
     }
@@ -451,9 +485,12 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         position = Vector3.Zero;
         foreach (var obj in _objectTable)
         {
-            if (obj != null && obj.Name.TextValue.Equals(name, StringComparison.OrdinalIgnoreCase))
+            if (obj is not { } gameObject)
+                continue;
+
+            if (gameObject.Name.TextValue.Equals(name, StringComparison.OrdinalIgnoreCase))
             {
-                position = obj.Position;
+                position = gameObject.Position;
                 return true;
             }
         }

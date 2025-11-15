@@ -44,6 +44,8 @@ public class ServerConfigurationManager
             return _realApiUrl ?? CurrentApiUrl;
         }
     }
+    public bool HasServers => _configService.Current.ServerStorage.Count > 0;
+
     public ServerStorage CurrentServer => _configService.Current.ServerStorage[CurrentServerIndex];
 
     public IReadOnlyList<string> Whitelist => CurrentBlockStorage().Whitelist;

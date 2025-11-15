@@ -378,6 +378,10 @@ public class CharaDataGposeTogetherManager : DisposableMediatorSubscriberBase
             try
             {
                 var chara = await _dalamudUtil.GetPlayerCharacterAsync().ConfigureAwait(false);
+                if (chara == null)
+                {
+                    continue;
+                }
                 if (_dalamudUtil.IsInGpose)
                 {
                     chara = (IPlayerCharacter?)(await _dalamudUtil.GetGposeCharacterFromObjectTableByNameAsync(chara.Name.TextValue, _dalamudUtil.IsInGpose).ConfigureAwait(false));

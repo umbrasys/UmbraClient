@@ -173,7 +173,7 @@ public sealed class PerformanceCollectorService : IHostedService
         StringBuilder sb = new();
         if (limitBySeconds > 0)
         {
-            sb.AppendLine($"Performance Metrics over the past {limitBySeconds} seconds of each counter");
+            sb.AppendLine(string.Format(CultureInfo.CurrentCulture, "Performance Metrics over the past {0} seconds of each counter", limitBySeconds));
         }
         else
         {

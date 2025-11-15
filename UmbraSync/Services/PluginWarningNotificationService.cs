@@ -4,10 +4,11 @@ using UmbraSync.Interop.Ipc;
 using UmbraSync.MareConfiguration;
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.Services.Mediator;
+using UmbraSync.PlayerData.Pairs;
 using System.Collections.Concurrent;
 using PlayerChanges = UmbraSync.PlayerData.Data.PlayerChanges;
 
-namespace UmbraSync.PlayerData.Pairs;
+namespace UmbraSync.Services;
 
 public class PluginWarningNotificationService
 {

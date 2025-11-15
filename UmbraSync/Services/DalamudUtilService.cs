@@ -18,6 +18,7 @@ using UmbraSync.Utils;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Numerics;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System;
@@ -25,6 +26,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using GameObject = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
 using DalamudGameObject = Dalamud.Game.ClientState.Objects.Types.IGameObject;
+#pragma warning disable CS8500 // required pointer interop with Dalamud/FFXIV structs
 
 namespace UmbraSync.Services;
 
@@ -292,15 +294,15 @@ public class DalamudUtilService : IHostedService, IMediatorSubscriber
         return await RunOnFrameworkThread(() => GetPet(playerPointer)).ConfigureAwait(false);
     }
 
-    public async Task<IPlayerCharacter> GetPlayerCharacterAsync()
+    public async Task<IPlayerCharacter?> GetPlayerCharacterAsync()
     {
         return await RunOnFrameworkThread(GetPlayerCharacter).ConfigureAwait(false);
     }
 
-    public IPlayerCharacter GetPlayerCharacter()
+    public IPlayerCharacter? GetPlayerCharacter()
     {
         EnsureIsOnFramework();
-        return _clientState.LocalPlayer!;
+        return _clientState.LocalPlayer;
     }
 
     public IntPtr GetPlayerCharacterFromCachedTableByName(string characterName)
@@ -682,7 +684,7 @@ public class DalamudUtilService : IHostedService, IMediatorSubscriber
 
                         if (_blockedCharacterHandler.IsCharacterBlocked(chara.Address, out bool firstTime) && firstTime)
                         {
-                            _logger.LogTrace("Skipping character {addr}, blocked/muted", chara.Address.ToString("X"));
+                            _logger.LogTrace("Skipping character {addr}, blocked/muted", chara.Address.ToString("X", CultureInfo.InvariantCulture));
                             continue;
                         }
 
@@ -822,3 +824,4 @@ public class DalamudUtilService : IHostedService, IMediatorSubscriber
         });
     }
 }
+#pragma warning restore CS8500

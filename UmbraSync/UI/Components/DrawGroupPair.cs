@@ -2,6 +2,7 @@
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
+using System.Globalization;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
@@ -84,6 +85,27 @@ public class DrawGroupPair : DrawPairBase
         return width;
     }
 
+    protected override float GetLeftSideReservedWidth()
+    {
+        float spacing = ImGui.GetStyle().ItemSpacing.X;
+        float iconWidth = UiSharedService.GetIconSize(FontAwesomeIcon.Moon).X; // representative FA icon width
+
+        int iconCount = 1; // presence icon (eye/moon) is always shown
+
+        bool hasPrefixIcon = _pair.IsPaused || (_pair.UserPair != null && (_pair.IsOnline || _pair.IsVisible));
+        if (hasPrefixIcon) iconCount++;
+
+        bool entryIsOwner = string.Equals(_pair.UserData.UID, _group.OwnerUID, StringComparison.Ordinal);
+        bool entryIsMod = _fullInfoDto.GroupPairStatusInfo.IsModerator();
+        bool entryIsPinned = _fullInfoDto.GroupPairStatusInfo.IsPinned();
+        bool hasRoleIcon = entryIsOwner || entryIsMod || entryIsPinned;
+        if (hasRoleIcon) iconCount++;
+
+        // total icon widths + spacing between them + a small extra gap before the text
+        float total = iconWidth * iconCount + spacing * (iconCount + 0.5f);
+        return total;
+    }
+
     protected override void DrawLeftSide(float textPosY, float originalY)
     {
         var entryUID = _pair.UserData.AliasOrUID;
@@ -122,7 +144,7 @@ public class DrawGroupPair : DrawPairBase
             }
         }
         if (drewPrefixIcon)
-            ImGui.SameLine();
+            ImGui.SameLine(0f, ImGui.GetStyle().ItemSpacing.X * 1.2f);
 
         ImGui.SetCursorPosY(textPosY);
         ImGui.PushFont(UiBuilder.IconFont);
@@ -150,7 +172,7 @@ public class DrawGroupPair : DrawPairBase
                 if (_pair.LastAppliedDataTris >= 0)
                 {
                     presenceText += Environment.NewLine + "Triangle Count (excl. Vanilla): "
-                        + (_pair.LastAppliedDataTris > 1000 ? (_pair.LastAppliedDataTris / 1000d).ToString("0.0'k'") : _pair.LastAppliedDataTris);
+                        + (_pair.LastAppliedDataTris > 1000 ? (_pair.LastAppliedDataTris / 1000d).ToString("0.0'k'", CultureInfo.CurrentCulture) : _pair.LastAppliedDataTris.ToString(CultureInfo.CurrentCulture));
                 }
             }
         }

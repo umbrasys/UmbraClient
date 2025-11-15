@@ -2,6 +2,7 @@ using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.Havok.Animation;
 using FFXIVClientStructs.Havok.Common.Base.Types;
+using FFXIVClientStructs.Havok.Common.Serialize.Resource;
 using FFXIVClientStructs.Havok.Common.Serialize.Util;
 using Lumina.Data;
 using UmbraSync.FileCache;
@@ -10,6 +11,9 @@ using UmbraSync.MareConfiguration;
 using UmbraSync.PlayerData.Handlers;
 using Microsoft.Extensions.Logging;
 using System.Runtime.InteropServices;
+using System.Text;
+using System.Globalization;
+#pragma warning disable CS8500 // direct pointer access into Havok structures
 
 namespace UmbraSync.Services;
 
@@ -41,7 +45,7 @@ public sealed class XivDataAnalyzer
             for (int i = 0; i < chara->Skeleton->PartialSkeletonCount; i++)
             {
                 var handle = *(resHandles + i);
-                _logger.LogTrace("Iterating over SkeletonResourceHandle #{i}:{x}", i, ((nint)handle).ToString("X"));
+                _logger.LogTrace("Iterating over SkeletonResourceHandle #{i}:{x}", i, ((nint)handle).ToString("X", CultureInfo.InvariantCulture));
                 if ((nint)handle == nint.Zero) continue;
                 var curBones = handle->BoneCount;
                 // this is unrealistic, the filename shouldn't ever be that long
@@ -93,48 +97,48 @@ public sealed class XivDataAnalyzer
 
         var output = new Dictionary<string, List<ushort>>(StringComparer.OrdinalIgnoreCase);
         var tempHavokDataPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()) + ".hkx";
-        var tempHavokDataPathAnsi = Marshal.StringToHGlobalAnsi(tempHavokDataPath);
-
         try
         {
+            var typeInfoRegistry = hkBuiltinTypeRegistry.Instance()->GetTypeInfoRegistry();
+            var classNameRegistry = hkBuiltinTypeRegistry.Instance()->GetClassNameRegistry();
             File.WriteAllBytes(tempHavokDataPath, havokData);
 
             var loadoptions = stackalloc hkSerializeUtil.LoadOptions[1];
-            loadoptions->TypeInfoRegistry = hkBuiltinTypeRegistry.Instance()->GetTypeInfoRegistry();
-            loadoptions->ClassNameRegistry = hkBuiltinTypeRegistry.Instance()->GetClassNameRegistry();
+            loadoptions->TypeInfoRegistry = typeInfoRegistry;
+            loadoptions->ClassNameRegistry = classNameRegistry;
             loadoptions->Flags = new hkFlags<hkSerializeUtil.LoadOptionBits, int>
             {
                 Storage = (int)(hkSerializeUtil.LoadOptionBits.Default)
             };
 
-            var resource = hkSerializeUtil.LoadFromFile((byte*)tempHavokDataPathAnsi, null, loadoptions);
+            var pathBytes = Encoding.ASCII.GetBytes(tempHavokDataPath + "\0");
+            hkResource* resource;
+            fixed (byte* pathPtr = pathBytes)
+            {
+                resource = hkSerializeUtil.LoadFromFile(pathPtr, null, loadoptions);
+            }
             if (resource == null)
             {
                 throw new InvalidOperationException("Resource was null after loading");
             }
 
-            var rootLevelName = @"hkRootLevelContainer"u8;
-            fixed (byte* n1 = rootLevelName)
+            var container = (hkRootLevelContainer*)resource->GetContentsPointer("hkRootLevelContainer", typeInfoRegistry);
+            if (container == null)
+                throw new InvalidOperationException("Failed to get hkRootLevelContainer");
+            var animContainer = (hkaAnimationContainer*)container->findObjectByName("hkaAnimationContainer", null);
+            if (animContainer == null)
+                throw new InvalidOperationException("Failed to find hkaAnimationContainer");
+            for (int i = 0; i < animContainer->Bindings.Length; i++)
             {
-                var container = (hkRootLevelContainer*)resource->GetContentsPointer(n1, hkBuiltinTypeRegistry.Instance()->GetTypeInfoRegistry());
-                var animationName = @"hkaAnimationContainer"u8;
-                fixed (byte* n2 = animationName)
+                var binding = animContainer->Bindings[i].ptr;
+                var boneTransform = binding->TransformTrackToBoneIndices;
+                string name = binding->OriginalSkeletonName.String! + "_" + i;
+                output[name] = [];
+                for (int boneIdx = 0; boneIdx < boneTransform.Length; boneIdx++)
                 {
-                    var animContainer = (hkaAnimationContainer*)container->findObjectByName(n2, null);
-                    for (int i = 0; i < animContainer->Bindings.Length; i++)
-                    {
-                        var binding = animContainer->Bindings[i].ptr;
-                        var boneTransform = binding->TransformTrackToBoneIndices;
-                        string name = binding->OriginalSkeletonName.String! + "_" + i;
-                        output[name] = [];
-                        for (int boneIdx = 0; boneIdx < boneTransform.Length; boneIdx++)
-                        {
-                            output[name].Add((ushort)boneTransform[boneIdx]);
-                        }
-                        output[name].Sort();
-                    }
-
+                    output[name].Add((ushort)boneTransform[boneIdx]);
                 }
+                output[name].Sort();
             }
         }
         catch (Exception ex)
@@ -143,7 +147,6 @@ public sealed class XivDataAnalyzer
         }
         finally
         {
-            Marshal.FreeHGlobal(tempHavokDataPathAnsi);
             File.Delete(tempHavokDataPath);
         }
 
@@ -255,3 +258,4 @@ public sealed class XivDataAnalyzer
         }
     }
 }
+#pragma warning restore CS8500
