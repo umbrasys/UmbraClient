@@ -12,6 +12,7 @@ using UmbraSync.PlayerData.Pairs;
 using UmbraSync.WebAPI;
 using UmbraSync.MareConfiguration;
 using UmbraSync.API.Data.Enum;
+using Dalamud.Game.ClientState.Party;
 
 namespace UmbraSync.Services;
 
@@ -34,6 +35,8 @@ public sealed class ChatTypingDetectionService : IDisposable
     private bool _serverSupportWarnLogged;
     private bool _remoteNotificationsEnabled;
     private bool _subscribed;
+    private const int AllianceMemberSlots = 24;
+    private readonly List<(uint EntityId, string Name)> _allianceMemberBuffer = new(AllianceMemberSlots);
 
     public ChatTypingDetectionService(ILogger<ChatTypingDetectionService> logger, IFramework framework,
         IClientState clientState, IGameGui gameGui, ChatService chatService, PairManager pairManager, IPartyList partyList,
@@ -184,6 +187,10 @@ public sealed class ChatTypingDetectionService : IDisposable
                     return TypingScope.Party;
                 case XivChatType.CrossParty:
                     return TypingScope.CrossParty;
+                case XivChatType.Alliance:
+                    return TypingScope.Alliance;
+                case XivChatType.FreeCompany:
+                    return TypingScope.FreeCompany;
                 default:
                     return TypingScope.Unknown;
             }
@@ -211,9 +218,7 @@ public sealed class ChatTypingDetectionService : IDisposable
         return command.StartsWith("/tell", comparison)
             || command.StartsWith("/t", comparison)
             || command.StartsWith("/xllog", comparison)
-            || command.StartsWith("/umbra", comparison)
-            || command.StartsWith("/fc", comparison)
-            || command.StartsWith("/freecompany", comparison);
+            || command.StartsWith("/umbra", comparison);
     }
 
     private unsafe bool ShouldNotifyRemote()
@@ -257,6 +262,10 @@ public sealed class ChatTypingDetectionService : IDisposable
                 case XivChatType.CrossParty:
                     var eligible = PartyContainsPairedMember();
                     return eligible;
+                case XivChatType.Alliance:
+                    return AllianceContainsPairedMember();
+                case XivChatType.FreeCompany:
+                    return true;
                 case XivChatType.Debug:
                     return true;
                 default:
@@ -312,6 +321,86 @@ public sealed class ChatTypingDetectionService : IDisposable
 
         _logger.LogDebug("TypingDetection: no paired members in party");
         return false;
+    }
+
+    private bool AllianceContainsPairedMember()
+    {
+        try
+        {
+            if (!_partyList.IsAlliance)
+            {
+                _logger.LogDebug("TypingDetection: not in an alliance");
+                return false;
+            }
+
+            var allianceMembers = GetAllianceMembersSnapshot();
+            if (allianceMembers.Count == 0)
+            {
+                _logger.LogDebug("TypingDetection: alliance list empty");
+                return false;
+            }
+
+            foreach (var pair in _pairManager.GetOnlineUserPairs())
+            {
+                if (pair == null)
+                    continue;
+
+                var objectId = pair.PlayerCharacterId;
+                if (objectId != 0 && objectId != uint.MaxValue && allianceMembers.Any(m => m.EntityId == objectId))
+                {
+                    return true;
+                }
+
+                var playerName = pair.PlayerName;
+                if (string.IsNullOrEmpty(playerName))
+                    continue;
+
+                if (allianceMembers.Any(m =>
+                        !string.IsNullOrEmpty(m.Name)
+                        && m.Name.Equals(playerName, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return true;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "ChatTypingDetectionService: failed to check alliance composition");
+        }
+
+        _logger.LogDebug("TypingDetection: no paired members in alliance");
+        return false;
+    }
+
+    private IReadOnlyList<(uint EntityId, string Name)> GetAllianceMembersSnapshot()
+    {
+        _allianceMemberBuffer.Clear();
+        try
+        {
+            for (var i = 0; i < AllianceMemberSlots; ++i)
+            {
+                var memberAddress = _partyList.GetAllianceMemberAddress(i);
+                if (memberAddress == nint.Zero)
+                    continue;
+
+                var member = _partyList.CreateAllianceMemberReference(memberAddress);
+                if (member == null)
+                    continue;
+
+                var name = member.Name?.TextValue ?? string.Empty;
+                var entityId = member.EntityId;
+                if (entityId == 0 && string.IsNullOrEmpty(name))
+                    continue;
+
+                _allianceMemberBuffer.Add((entityId, name));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogTrace(ex, "ChatTypingDetectionService: failed to enumerate alliance members");
+        }
+
+        return _allianceMemberBuffer;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

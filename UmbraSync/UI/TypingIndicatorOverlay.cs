@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Linq;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Game.ClientState.Objects.SubKinds;
+using Dalamud.Game.ClientState.Party;
 using Dalamud.Interface.Utility;
 using Dalamud.Plugin.Services;
 using UmbraSync.API.Data;
@@ -29,6 +31,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
     private static readonly TimeSpan TypingDisplayTime = TimeSpan.FromSeconds(2);
     private static readonly TimeSpan TypingDisplayDelay = TimeSpan.FromMilliseconds(500);
     private static readonly TimeSpan TypingDisplayFade = TypingDisplayTime;
+    private const int AllianceMemberSlots = 24;
 
     private readonly ILogger<TypingIndicatorOverlay> _typedLogger;
     private readonly MareConfigService _configService;
@@ -41,6 +44,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
     private readonly DalamudUtilService _dalamudUtil;
     private readonly TypingIndicatorStateService _typingStateService;
     private readonly ApiController _apiController;
+    private readonly List<(uint EntityId, string Name)> _allianceMembersCache = new(AllianceMemberSlots);
 
     public TypingIndicatorOverlay(ILogger<TypingIndicatorOverlay> logger, MareMediator mediator, PerformanceCollectorService performanceCollectorService,
         MareConfigService configService, IGameGui gameGui, ITextureProvider textureProvider, IClientState clientState,
@@ -90,20 +94,21 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         var activeTypers = _typingStateService.GetActiveTypers(TypingDisplayTime);
         var hasSelf = _typingStateService.TryGetSelfTyping(TypingDisplayTime, out var selfStart, out var selfLast);
         var now = DateTime.UtcNow;
+        var allianceMembers = GetAllianceMembersSnapshot();
 
         if (showParty)
         {
-            DrawPartyIndicators(overlayDrawList, activeTypers, hasSelf, now, selfStart, selfLast);
+            DrawPartyIndicators(overlayDrawList, activeTypers, hasSelf, now, selfStart, selfLast, allianceMembers);
         }
 
         if (showNameplates)
         {
-            DrawNameplateIndicators(ImGui.GetWindowDrawList(), activeTypers, hasSelf, now, selfStart, selfLast);
+            DrawNameplateIndicators(ImGui.GetWindowDrawList(), activeTypers, hasSelf, now, selfStart, selfLast, allianceMembers);
         }
     }
 
     private unsafe void DrawPartyIndicators(ImDrawListPtr drawList, IReadOnlyDictionary<string, (UserData User, DateTime FirstSeen, DateTime LastUpdate, UmbraSync.API.Data.Enum.TypingScope Scope)> activeTypers,
-        bool selfActive, DateTime now, DateTime selfStart, DateTime selfLast)
+        bool selfActive, DateTime now, DateTime selfStart, DateTime selfLast, IReadOnlyList<(uint EntityId, string Name)> allianceMembers)
     {
         var partyAddon = (AtkUnitBase*)_gameGui.GetAddonByName("_PartyList", 1).Address;
         if (partyAddon == null || !partyAddon->IsVisible)
@@ -127,6 +132,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
             var targetIndex = -1;
             var playerName = pair?.PlayerName;
             var objectId = pair?.PlayerCharacterId ?? uint.MaxValue;
+            var resolvedName = !string.IsNullOrEmpty(playerName) ? playerName : entry.User.AliasOrUID;
 
             if (objectId != 0 && objectId != uint.MaxValue)
             {
@@ -153,6 +159,18 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
 
             if (targetIndex < 0)
                 continue;
+
+            if (entry.Scope == TypingScope.FreeCompany && !IsFreeCompanyMember(objectId, resolvedName))
+            {
+                _typedLogger.LogTrace("TypingIndicator: suppressed non-FC party bubble for {uid} due to scope={scope}", uid, entry.Scope);
+                continue;
+            }
+
+            if (entry.Scope == TypingScope.Alliance && !IsAllianceMember(objectId, resolvedName, allianceMembers))
+            {
+                _typedLogger.LogTrace("TypingIndicator: suppressed non-alliance party bubble for {uid} due to scope={scope}", uid, entry.Scope);
+                continue;
+            }
 
             DrawPartyMemberTyping(drawList, partyAddon, targetIndex);
         }
@@ -191,7 +209,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
     }
 
     private unsafe void DrawNameplateIndicators(ImDrawListPtr drawList, IReadOnlyDictionary<string, (UserData User, DateTime FirstSeen, DateTime LastUpdate, UmbraSync.API.Data.Enum.TypingScope Scope)> activeTypers,
-        bool selfActive, DateTime now, DateTime selfStart, DateTime selfLast)
+        bool selfActive, DateTime now, DateTime selfStart, DateTime selfLast, IReadOnlyList<(uint EntityId, string Name)> allianceMembers)
     {
         var iconWrap = _textureProvider.GetFromGameIcon(NameplateIconId).GetWrapOrEmpty();
         if (iconWrap.Handle == IntPtr.Zero)
@@ -224,11 +242,23 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
             var pairName = pair?.PlayerName ?? entry.User.AliasOrUID ?? string.Empty;
             var pairIdent = pair?.Ident ?? string.Empty;
             var isPartyMember = IsPartyMember(objectId, pairName);
+            var isAllianceMember = IsAllianceMember(objectId, pairName, allianceMembers);
+            var isFreeCompanyMember = IsFreeCompanyMember(objectId, pairName);
 
             // Enforce party-only visibility when the scope is Party/CrossParty
             if (entry.Scope is TypingScope.Party or TypingScope.CrossParty && !isPartyMember)
             {
                 _typedLogger.LogTrace("TypingIndicator: suppressed non-party bubble for {uid} due to scope={scope}", uid, entry.Scope);
+                continue;
+            }
+            if (entry.Scope == TypingScope.FreeCompany && !isFreeCompanyMember)
+            {
+                _typedLogger.LogTrace("TypingIndicator: suppressed non-FC bubble for {uid} due to scope={scope}", uid, entry.Scope);
+                continue;
+            }
+            if (entry.Scope == TypingScope.Alliance && !isAllianceMember)
+            {
+                _typedLogger.LogTrace("TypingIndicator: suppressed non-alliance bubble for {uid} due to scope={scope}", uid, entry.Scope);
                 continue;
             }
 
@@ -248,6 +278,10 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
 
             // For Party/CrossParty scope, do not draw fallback world icon for non-party even if nearby
             if (entry.Scope is TypingScope.Party or TypingScope.CrossParty && !isPartyMember)
+                continue;
+            if (entry.Scope == TypingScope.FreeCompany && !isFreeCompanyMember)
+                continue;
+            if (entry.Scope == TypingScope.Alliance && !isAllianceMember)
                 continue;
 
             if (pair == null)
@@ -536,6 +570,121 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
 
         if (!string.IsNullOrEmpty(playerName) && GetPartyIndexForName(playerName) >= 0)
             return true;
+
+        return false;
+    }
+
+    private IReadOnlyList<(uint EntityId, string Name)> GetAllianceMembersSnapshot()
+    {
+        _allianceMembersCache.Clear();
+        if (!_partyList.IsAlliance)
+            return _allianceMembersCache;
+
+        for (var i = 0; i < AllianceMemberSlots; ++i)
+        {
+            var memberAddress = _partyList.GetAllianceMemberAddress(i);
+            if (memberAddress == nint.Zero)
+                continue;
+
+            var member = _partyList.CreateAllianceMemberReference(memberAddress);
+            if (member == null)
+                continue;
+
+            var name = member.Name?.TextValue ?? string.Empty;
+            var entityId = member.EntityId;
+            if (entityId == 0 && string.IsNullOrEmpty(name))
+                continue;
+
+            _allianceMembersCache.Add((entityId, name));
+        }
+
+        return _allianceMembersCache;
+    }
+
+    private static bool IsAllianceMember(uint objectId, string? playerName, IReadOnlyList<(uint EntityId, string Name)> allianceMembers)
+    {
+        if (allianceMembers.Count == 0)
+            return false;
+
+        if (objectId != 0 && objectId != uint.MaxValue && allianceMembers.Any(m => m.EntityId == objectId))
+            return true;
+
+        if (string.IsNullOrEmpty(playerName))
+            return false;
+
+        return allianceMembers.Any(m =>
+            !string.IsNullOrEmpty(m.Name) && m.Name.Equals(playerName, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private bool IsFreeCompanyMember(uint objectId, string? playerName)
+    {
+        var localPlayer = _clientState.LocalPlayer;
+        if (localPlayer == null)
+            return false;
+
+        var localTag = localPlayer.CompanyTag?.TextValue;
+        if (string.IsNullOrEmpty(localTag))
+            return false;
+
+        if (TryGetFreeCompanyTag(objectId, out var remoteTag))
+            return string.Equals(remoteTag, localTag, StringComparison.OrdinalIgnoreCase);
+
+        if (!string.IsNullOrEmpty(playerName)
+            && TryGetFreeCompanyTagByName(playerName, out remoteTag))
+        {
+            return string.Equals(remoteTag, localTag, StringComparison.OrdinalIgnoreCase);
+        }
+
+        return false;
+    }
+
+    private bool TryGetFreeCompanyTag(uint objectId, out string tag)
+    {
+        tag = string.Empty;
+        if (objectId == 0 || objectId == uint.MaxValue)
+            return false;
+
+        for (var i = 0; i < _objectTable.Length; ++i)
+        {
+            var obj = _objectTable[i];
+            if (obj == null || obj.EntityId != objectId)
+                continue;
+
+            if (obj is IPlayerCharacter player)
+            {
+                var remoteTag = player.CompanyTag?.TextValue;
+                if (!string.IsNullOrEmpty(remoteTag))
+                {
+                    tag = remoteTag;
+                    return true;
+                }
+            }
+
+            break;
+        }
+
+        return false;
+    }
+
+    private bool TryGetFreeCompanyTagByName(string name, out string tag)
+    {
+        tag = string.Empty;
+        if (string.IsNullOrEmpty(name))
+            return false;
+
+        for (var i = 0; i < _objectTable.Length; ++i)
+        {
+            if (_objectTable[i] is IPlayerCharacter player
+                && player.Name.TextValue.Equals(name, StringComparison.OrdinalIgnoreCase))
+            {
+                var remoteTag = player.CompanyTag?.TextValue;
+                if (!string.IsNullOrEmpty(remoteTag))
+                {
+                    tag = remoteTag;
+                    return true;
+                }
+            }
+        }
 
         return false;
     }

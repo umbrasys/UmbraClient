@@ -15,6 +15,7 @@ using UmbraSync.MareConfiguration.Models;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services.Mediator;
 using UmbraSync.WebAPI;
+using Dalamud.Game.ClientState.Party;
 
 namespace UmbraSync.Services;
 
@@ -42,6 +43,8 @@ public sealed class ChatTwoCompatibilityService : MediatorSubscriberBase, IHoste
     private bool _chatTwoRemoteAnnounced;
     private int _chatTwoLastTextLength;
     private bool _chatTwoServerSupportWarnLogged;
+    private const int AllianceMemberSlots = 24;
+    private readonly List<(uint EntityId, string Name)> _allianceMemberBuffer = new(AllianceMemberSlots);
 
     public ChatTwoCompatibilityService(ILogger<ChatTwoCompatibilityService> logger, IDalamudPluginInterface pluginInterface,
         MareMediator mediator, TypingIndicatorStateService typingIndicatorStateService, TypingRemoteNotificationService typingRemoteNotifier,
@@ -353,6 +356,8 @@ public sealed class ChatTwoCompatibilityService : MediatorSubscriberBase, IHoste
         {
             TypingScope.Proximity => true,
             TypingScope.Party or TypingScope.CrossParty => PartyContainsPairedMember(),
+            TypingScope.FreeCompany => true,
+            TypingScope.Alliance => AllianceContainsPairedMember(),
             _ => false,
         };
     }
@@ -397,12 +402,89 @@ public sealed class ChatTwoCompatibilityService : MediatorSubscriberBase, IHoste
         return false;
     }
 
+    private bool AllianceContainsPairedMember()
+    {
+        try
+        {
+            if (!_partyList.IsAlliance)
+            {
+                Logger.LogTrace("ChatTwo typing: not in an alliance");
+                return false;
+            }
+
+            var allianceMembers = GetAllianceMembersSnapshot();
+            if (allianceMembers.Count == 0)
+            {
+                Logger.LogTrace("ChatTwo typing: alliance list empty");
+                return false;
+            }
+
+            foreach (var pair in _pairManager.GetOnlineUserPairs())
+            {
+                if (pair == null)
+                    continue;
+
+                var objectId = pair.PlayerCharacterId;
+                if (objectId != 0 && objectId != uint.MaxValue && allianceMembers.Any(m => m.EntityId == objectId))
+                    return true;
+
+                var playerName = pair.PlayerName;
+                if (string.IsNullOrEmpty(playerName))
+                    continue;
+
+                if (allianceMembers.Any(m =>
+                        !string.IsNullOrEmpty(m.Name)
+                        && m.Name.Equals(playerName, StringComparison.OrdinalIgnoreCase)))
+                    return true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogTrace(ex, "ChatTwo typing: failed to check alliance composition");
+        }
+
+        Logger.LogTrace("ChatTwo typing: no paired alliance members");
+        return false;
+    }
+
+    private IReadOnlyList<(uint EntityId, string Name)> GetAllianceMembersSnapshot()
+    {
+        _allianceMemberBuffer.Clear();
+        try
+        {
+            for (var i = 0; i < AllianceMemberSlots; ++i)
+            {
+                var address = _partyList.GetAllianceMemberAddress(i);
+                if (address == nint.Zero)
+                    continue;
+
+                var member = _partyList.CreateAllianceMemberReference(address);
+                if (member == null)
+                    continue;
+
+                var name = member.Name?.TextValue ?? string.Empty;
+                var entityId = member.EntityId;
+                if (entityId == 0 && string.IsNullOrEmpty(name))
+                    continue;
+
+                _allianceMemberBuffer.Add((entityId, name));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogTrace(ex, "ChatTwo typing: failed to enumerate alliance members");
+        }
+
+        return _allianceMemberBuffer;
+    }
+
     private static TypingScope MapChannelToTypingScope(ChatType channelType) => channelType switch
     {
         ChatType.Say or ChatType.Shout or ChatType.Yell => TypingScope.Proximity,
         ChatType.Party => TypingScope.Party,
         ChatType.CrossParty => TypingScope.CrossParty,
-        ChatType.Alliance => TypingScope.CrossParty,
+        ChatType.Alliance => TypingScope.Alliance,
+        ChatType.FreeCompany => TypingScope.FreeCompany,
         _ => TypingScope.Unknown,
     };
 
