@@ -21,6 +21,7 @@ using UmbraSync.WebAPI;
 using UmbraSync.WebAPI.Files;
 using UmbraSync.WebAPI.Files.Models;
 using UmbraSync.WebAPI.SignalR.Utils;
+using UmbraSync.Localization;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Globalization;
@@ -1049,6 +1050,39 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
         ImGui.Separator();
         _uiShared.BigText("UI");
+        var selectedLanguage = _configService.Current.UiLanguage;
+        if (!Loc.IsLanguageAvailable(selectedLanguage))
+        {
+            selectedLanguage = Loc.CurrentLanguage;
+            _configService.Current.UiLanguage = selectedLanguage;
+            _configService.Save();
+        }
+
+        var languageLabel = Loc.GetLanguageDisplayName(selectedLanguage);
+        ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
+        if (ImGui.BeginCombo("Interface Language##uiLanguage", string.IsNullOrEmpty(languageLabel) ? selectedLanguage : languageLabel))
+        {
+            foreach (var option in Loc.AvailableLanguages)
+            {
+                bool isSelected = string.Equals(option.Key, selectedLanguage, StringComparison.OrdinalIgnoreCase);
+                if (ImGui.Selectable(option.Value, isSelected))
+                {
+                    _configService.Current.UiLanguage = option.Key;
+                    _configService.Save();
+                    Loc.SetLanguage(option.Key);
+                    selectedLanguage = option.Key;
+                }
+
+                if (isSelected)
+                {
+                    ImGui.SetItemDefaultFocus();
+                }
+            }
+            ImGui.EndCombo();
+        }
+        _uiShared.DrawHelpText("Select the language used for Umbra's UI. Missing text falls back to English.");
+        ImGuiHelpers.ScaledDummy(3f);
+
         var showCharacterNames = _configService.Current.ShowCharacterNames;
         var showVisibleSeparate = _configService.Current.ShowVisibleUsersSeparately;
         var showOfflineSeparate = _configService.Current.ShowOfflineUsersSeparately;

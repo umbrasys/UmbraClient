@@ -15,6 +15,8 @@ using UmbraSync.WebAPI.SignalR.Utils;
 using Microsoft.Extensions.Logging;
 using System.Numerics;
 using System.Text.RegularExpressions;
+using System.Globalization;
+using UmbraSync.Localization;
 
 namespace UmbraSync.UI;
 
@@ -38,7 +40,7 @@ public partial class IntroUi : WindowMediatorSubscriberBase
 
     public IntroUi(ILogger<IntroUi> logger, UiSharedService uiShared, MareConfigService configService,
         CacheMonitor fileCacheManager, ServerConfigurationManager serverConfigurationManager, MareMediator mareMediator,
-        PerformanceCollectorService performanceCollectorService, DalamudUtilService dalamudUtilService, AccountRegistrationService registerService) : base(logger, mareMediator, "Umbra Setup", performanceCollectorService)
+        PerformanceCollectorService performanceCollectorService, DalamudUtilService dalamudUtilService, AccountRegistrationService registerService) : base(logger, mareMediator, Loc.Get("IntroUi.WindowTitle"), performanceCollectorService)
     {
         _uiShared = uiShared;
         _configService = configService;
@@ -87,17 +89,17 @@ public partial class IntroUi : WindowMediatorSubscriberBase
     {
         return _uiShared.ApiController.ServerState switch
         {
-            ServerState.Reconnecting => "Reconnecting",
-            ServerState.Connecting => "Connecting",
-            ServerState.Disconnected => "Disconnected",
-            ServerState.Disconnecting => "Disconnecting",
-            ServerState.Unauthorized => "Unauthorized",
-            ServerState.VersionMisMatch => "Version mismatch",
-            ServerState.Offline => "Unavailable",
-            ServerState.RateLimited => "Rate Limited",
-            ServerState.NoSecretKey => "No Secret Key",
-            ServerState.MultiChara => "Duplicate Characters",
-            ServerState.Connected => "Connected",
+            ServerState.Reconnecting => Loc.Get("IntroUi.ConnectionStatus.Reconnecting"),
+            ServerState.Connecting => Loc.Get("IntroUi.ConnectionStatus.Connecting"),
+            ServerState.Disconnected => Loc.Get("IntroUi.ConnectionStatus.Disconnected"),
+            ServerState.Disconnecting => Loc.Get("IntroUi.ConnectionStatus.Disconnecting"),
+            ServerState.Unauthorized => Loc.Get("IntroUi.ConnectionStatus.Unauthorized"),
+            ServerState.VersionMisMatch => Loc.Get("IntroUi.ConnectionStatus.VersionMismatch"),
+            ServerState.Offline => Loc.Get("IntroUi.ConnectionStatus.Offline"),
+            ServerState.RateLimited => Loc.Get("IntroUi.ConnectionStatus.RateLimited"),
+            ServerState.NoSecretKey => Loc.Get("IntroUi.ConnectionStatus.NoSecretKey"),
+            ServerState.MultiChara => Loc.Get("IntroUi.ConnectionStatus.MultiChara"),
+            ServerState.Connected => Loc.Get("IntroUi.ConnectionStatus.Connected"),
             _ => string.Empty
         };
     }
@@ -108,26 +110,24 @@ public partial class IntroUi : WindowMediatorSubscriberBase
 
         if (!_configService.Current.AcceptedAgreement && !_readFirstPage)
         {
-            _uiShared.BigText("Welcome to Umbra");
+            _uiShared.BigText(Loc.Get("IntroUi.Welcome.Title"));
             ImGui.Separator();
-            UiSharedService.TextWrapped("Umbra is a plugin that will replicate your full current character state including all Penumbra mods to other paired users. " +
-                              "Note that you will have to have Penumbra as well as Glamourer installed to use this plugin.");
-            UiSharedService.TextWrapped("We will have to setup a few things first before you can start using this plugin. Click on next to continue.");
+            UiSharedService.TextWrapped(Loc.Get("IntroUi.Welcome.Description"));
+            UiSharedService.TextWrapped(Loc.Get("IntroUi.Welcome.SetupInfo"));
 
-            UiSharedService.ColorTextWrapped("Note: Any modifications you have applied through anything but Penumbra cannot be shared and your character state on other clients " +
-                                 "might look broken because of this or others players mods might not apply on your end altogether. " +
-                                 "If you want to use this plugin you will have to move your mods to Penumbra.", ImGuiColors.DalamudYellow);
+            UiSharedService.ColorTextWrapped(Loc.Get("IntroUi.Welcome.ModNote"), ImGuiColors.DalamudYellow);
             if (!_uiShared.DrawOtherPluginState(intro: true)) return;
             ImGui.Separator();
-            if (ImGui.Button("Next##toAgreement"))
+            var nextLabel = $"{Loc.Get("IntroUi.Welcome.NextButton")}##toAgreement";
+            if (ImGui.Button(nextLabel))
             {
                 _readFirstPage = true;
 #if !DEBUG
                 _timeoutTask = Task.Run(async () =>
                 {
-                    for (int i = 10; i > 0; i--)
+                    for (int i = 10; i >= 0; i--)
                     {
-                        _timeoutLabel = $"'I agree' button will be available in {i}s";
+                        _timeoutLabel = string.Format(CultureInfo.CurrentCulture, Loc.Get("IntroUi.Agreement.TimeoutLabel"), i);
                         await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
                     }
                 });
@@ -140,52 +140,33 @@ public partial class IntroUi : WindowMediatorSubscriberBase
         {
             using (_uiShared.UidFont.Push())
             {
-                ImGui.TextUnformatted("Conditions d'utilisation");
+                ImGui.TextUnformatted(Loc.Get("IntroUi.Agreement.Title"));
             }
 
             ImGui.Separator();
             UiSharedService.SetFontScale(1.5f);
-            string readThis = "MERCI DE LIRE ATTENTIVEMENT";
+            string readThis = Loc.Get("IntroUi.Agreement.ReadHeader");
             Vector2 textSize = ImGui.CalcTextSize(readThis);
             ImGui.SetCursorPosX(ImGui.GetWindowSize().X / 2 - textSize.X / 2);
             UiSharedService.ColorText(readThis, UiSharedService.AccentColor);
             UiSharedService.SetFontScale(1.0f);
             ImGui.Separator();
-            UiSharedService.TextWrapped("""
-                                        Pour utiliser les services UmbraSync, vous devez être âgé de plus de 18 ans, où plus de 21 ans dans certaines juridictions.
-                                        """);
-            UiSharedService.TextWrapped("""
-                                        Tout les mods actuellement actifs sur votre personnage et ses états associés seront automatiquement téléchargés vers le serveur UmbraSync auquel vous vous êtes inscrit.Il sera téléchargé exclusivement les fichiers nécessaires à la synchronisation et non l'intégralité du mod.
-                                        """);
-            UiSharedService.TextWrapped("""
-                                        Si vous disposez d'une connexion Internet limitée, des frais supplémentaires peuvent s'appliquer en fonction du nombre de fichiers envoyés et reçus. Les fichiers seront compressés afin d'économiser la bande passante. En raison des variations de vitesse de débit, les sychronisations peuvent ne pas être visible immédiatement.
-                                        """);
-            UiSharedService.TextWrapped("""
-                                        Les fichiers téléchargés sont confidentiels et ne seront pas distribués à des solutions tierces où autres personnes. Uniquement les personnes avec qui vous êtes appairés demandent exactement les mêmes fichiers. Réfléchissez donc bien avec qui vous allez vous appairer.
-                                        """);
-            UiSharedService.TextWrapped("""
-                                        Le gentil dev' a fait de son mieux pour assurer votre sécurité. Cependant le risque 0 n'existe pas. Ne vous appairez pas aveuglément avec n'importe qui.
-                                        """);
-            UiSharedService.TextWrapped("""
-                                        Après une periode d'inactivité, les mods enregistrés sur le serveur UmbraSync seront automatiquement supprimés.
-                                        """);
-            UiSharedService.TextWrapped("""
-                                        Les comptes inactifs pendant 90 jours seront supprimés pour des raisons de stockage et de confidentialité.
-                                        """);
-            UiSharedService.TextWrapped("""
-                                        L'infrastructure Umbrasync est hebergé dans l'Union Européenne (Allemagne) et en Suisse. Vous acceptez alors de ne pas télécharger de contenu qui pourrait aller à l'encontre des législations de ces deux pays.
-                                        """);
-            UiSharedService.TextWrapped("""
-                                        Vous pouvez supprimer votre compte à tout moment. Votre compte et toutes les données associées seront supprimés dans un délai de 14 jours.
-                                        """);
-            UiSharedService.TextWrapped("""
-                                        Ce service est fourni tel quel.
-                                        """);
+            UiSharedService.TextWrapped(Loc.Get("IntroUi.Agreement.AgeRequirement"));
+            UiSharedService.TextWrapped(Loc.Get("IntroUi.Agreement.ModUpload"));
+            UiSharedService.TextWrapped(Loc.Get("IntroUi.Agreement.Bandwidth"));
+            UiSharedService.TextWrapped(Loc.Get("IntroUi.Agreement.Privacy"));
+            UiSharedService.TextWrapped(Loc.Get("IntroUi.Agreement.Caution"));
+            UiSharedService.TextWrapped(Loc.Get("IntroUi.Agreement.Inactivity"));
+            UiSharedService.TextWrapped(Loc.Get("IntroUi.Agreement.AccountRemoval"));
+            UiSharedService.TextWrapped(Loc.Get("IntroUi.Agreement.Infrastructure"));
+            UiSharedService.TextWrapped(Loc.Get("IntroUi.Agreement.Deletion"));
+            UiSharedService.TextWrapped(Loc.Get("IntroUi.Agreement.Disclaimer"));
 
             ImGui.Separator();
             if (_timeoutTask?.IsCompleted ?? true)
             {
-                if (ImGui.Button("I agree##toSetup"))
+                var agreeLabel = $"{Loc.Get("IntroUi.Agreement.AgreeButton")}##toSetup";
+                if (ImGui.Button(agreeLabel))
                 {
                     _configService.Current.AcceptedAgreement = true;
                     _configService.Save();
@@ -202,29 +183,27 @@ public partial class IntroUi : WindowMediatorSubscriberBase
                      || !Directory.Exists(_configService.Current.CacheFolder)))
         {
             using (_uiShared.UidFont.Push())
-                ImGui.TextUnformatted("File Storage Setup");
+                ImGui.TextUnformatted(Loc.Get("IntroUi.Storage.Title"));
 
             ImGui.Separator();
 
             if (!_uiShared.HasValidPenumbraModPath)
             {
-                UiSharedService.ColorTextWrapped("You do not have a valid Penumbra path set. Open Penumbra and set up a valid path for the mod directory.", UiSharedService.AccentColor);
+                UiSharedService.ColorTextWrapped(Loc.Get("IntroUi.Storage.InvalidPenumbraPath"), UiSharedService.AccentColor);
             }
             else
             {
-                UiSharedService.TextWrapped("To not unnecessary download files already present on your computer, Umbra will have to scan your Penumbra mod directory. " +
-                                     "Additionally, a local storage folder must be set where Umbra will download other character files to. " +
-                                     "Once the storage folder is set and the scan complete, this page will automatically forward to registration at a service.");
-                UiSharedService.TextWrapped("Note: The initial scan, depending on the amount of mods you have, might take a while. Please wait until it is completed.");
-                UiSharedService.ColorTextWrapped("Warning: once past this step you should not delete the FileCache.csv of Umbra in the Plugin Configurations folder of Dalamud. " +
-                                          "Otherwise on the next launch a full re-scan of the file cache database will be initiated.", ImGuiColors.DalamudYellow);
-                UiSharedService.ColorTextWrapped("Warning: if the scan is hanging and does nothing for a long time, chances are high your Penumbra folder is not set up properly.", ImGuiColors.DalamudYellow);
+                UiSharedService.TextWrapped(Loc.Get("IntroUi.Storage.Description"));
+                UiSharedService.TextWrapped(Loc.Get("IntroUi.Storage.Note"));
+                UiSharedService.ColorTextWrapped(Loc.Get("IntroUi.Storage.WarningFileCache"), ImGuiColors.DalamudYellow);
+                UiSharedService.ColorTextWrapped(Loc.Get("IntroUi.Storage.WarningScan"), ImGuiColors.DalamudYellow);
                 _uiShared.DrawCacheDirectorySetting();
             }
 
             if (!_cacheMonitor.IsScanRunning && !string.IsNullOrEmpty(_configService.Current.CacheFolder) && _uiShared.HasValidPenumbraModPath && Directory.Exists(_configService.Current.CacheFolder))
             {
-                if (ImGui.Button("Start Scan##startScan"))
+                var startScanLabel = $"{Loc.Get("IntroUi.Storage.StartScanButton")}##startScan";
+                if (ImGui.Button(startScanLabel))
                 {
                     _cacheMonitor.InvokeScan();
                 }
@@ -236,22 +215,21 @@ public partial class IntroUi : WindowMediatorSubscriberBase
             if (!_dalamudUtilService.IsWine)
             {
                 var useFileCompactor = _configService.Current.UseCompactor;
-                if (ImGui.Checkbox("Use File Compactor", ref useFileCompactor))
+                if (ImGui.Checkbox(Loc.Get("IntroUi.Storage.UseCompactorLabel"), ref useFileCompactor))
                 {
                     _configService.Current.UseCompactor = useFileCompactor;
                     _configService.Save();
                 }
-                UiSharedService.ColorTextWrapped("The File Compactor can save a tremendeous amount of space on the hard disk for downloads through Umbra. It will incur a minor CPU penalty on download but can speed up " +
-                    "loading of other characters. It is recommended to keep it enabled. You can change this setting later anytime in the Umbra settings.", ImGuiColors.DalamudYellow);
+                UiSharedService.ColorTextWrapped(Loc.Get("IntroUi.Storage.UseCompactorDescription"), ImGuiColors.DalamudYellow);
             }
         }
         else if (!_uiShared.ApiController.IsConnected)
         {
             using (_uiShared.UidFont.Push())
-                ImGui.TextUnformatted("Service Registration");
+                ImGui.TextUnformatted(Loc.Get("IntroUi.Service.Title"));
             ImGui.Separator();
-            UiSharedService.TextWrapped("To be able to use Umbra you will have to register an account.");
-            UiSharedService.TextWrapped("Refer to the instructions at the location you obtained this plugin for more information or support.");
+            UiSharedService.TextWrapped(Loc.Get("IntroUi.Service.RegisterIntro"));
+            UiSharedService.TextWrapped(Loc.Get("IntroUi.Service.RegisterSupport"));
 
             ImGui.Separator();
 
@@ -262,8 +240,8 @@ public partial class IntroUi : WindowMediatorSubscriberBase
             {
                 ImGui.BeginDisabled(_registrationInProgress || _registrationSuccess || _secretKey.Length > 0);
                 ImGui.Separator();
-                ImGui.TextUnformatted("If you have not used Umbra before, click below to register a new account.");
-                if (_uiShared.IconTextButton(FontAwesomeIcon.Plus, "Register a new Umbra account"))
+                ImGui.TextUnformatted(Loc.Get("IntroUi.Service.RegisterInfo"));
+                if (_uiShared.IconTextButton(FontAwesomeIcon.Plus, Loc.Get("IntroUi.Service.RegisterButton")))
                 {
                     _registrationInProgress = true;
                     _ = Task.Run(async () => {
@@ -275,10 +253,10 @@ public partial class IntroUi : WindowMediatorSubscriberBase
                                 _logger.LogWarning("Registration failed: {err}", reply.ErrorMessage);
                                 _registrationMessage = reply.ErrorMessage;
                                 if (_registrationMessage.IsNullOrEmpty())
-                                    _registrationMessage = "An unknown error occured. Please try again later.";
+                                    _registrationMessage = Loc.Get("IntroUi.Service.RegisterErrorUnknown");
                                 return;
                             }
-                            _registrationMessage = "New account registered.\nPlease keep a copy of your secret key in case you need to reset your plugins, or to use it on another PC.";
+                            _registrationMessage = Loc.Get("IntroUi.Service.RegisterSuccess");
                             _secretKey = reply.SecretKey ?? "";
                             _registrationReply = reply;
                             _registrationSuccess = true;
@@ -287,7 +265,7 @@ public partial class IntroUi : WindowMediatorSubscriberBase
                         {
                             _logger.LogWarning(ex, "Registration failed");
                             _registrationSuccess = false;
-                            _registrationMessage = "An unknown error occured. Please try again later.";
+                            _registrationMessage = Loc.Get("IntroUi.Service.RegisterErrorUnknown");
                         }
                         finally
                         {
@@ -298,7 +276,7 @@ public partial class IntroUi : WindowMediatorSubscriberBase
                 ImGui.EndDisabled(); // _registrationInProgress || _registrationSuccess
                 if (_registrationInProgress)
                 {
-                    ImGui.TextUnformatted("Sending request...");
+                    ImGui.TextUnformatted(Loc.Get("IntroUi.Service.RegisterSending"));
                 }
                 else if (!_registrationMessage.IsNullOrEmpty())
                 {
@@ -311,15 +289,15 @@ public partial class IntroUi : WindowMediatorSubscriberBase
 
             ImGui.Separator();
 
-            var text = "Enter Secret Key";
+            var text = Loc.Get("IntroUi.SecretKey.EnterLabel");
 
             if (_registrationSuccess)
             {
-                text = "Secret Key";
+                text = Loc.Get("IntroUi.SecretKey.DisplayLabel");
             }
             else
             {
-                ImGui.TextUnformatted("If you already have a registered account, you can enter its secret key below to use it instead.");
+                ImGui.TextUnformatted(Loc.Get("IntroUi.SecretKey.ExistingAccountInfo"));
             }
 
             var textSize = ImGui.CalcTextSize(text);
@@ -330,23 +308,23 @@ public partial class IntroUi : WindowMediatorSubscriberBase
             ImGui.InputText("", ref _secretKey, 64);
             if (_secretKey.Length > 0 && _secretKey.Length != 64)
             {
-                UiSharedService.ColorTextWrapped("Your secret key must be exactly 64 characters long.", UiSharedService.AccentColor);
+                UiSharedService.ColorTextWrapped(Loc.Get("IntroUi.SecretKey.LengthError"), UiSharedService.AccentColor);
             }
             else if (_secretKey.Length == 64 && !HexRegex().IsMatch(_secretKey))
             {
-                UiSharedService.ColorTextWrapped("Your secret key can only contain ABCDEF and the numbers 0-9.", UiSharedService.AccentColor);
+                UiSharedService.ColorTextWrapped(Loc.Get("IntroUi.SecretKey.FormatError"), UiSharedService.AccentColor);
             }
             else if (_secretKey.Length == 64)
             {
                 using var saveDisabled = ImRaii.Disabled(_uiShared.ApiController.ServerState == ServerState.Connecting || _uiShared.ApiController.ServerState == ServerState.Reconnecting);
-                if (ImGui.Button("Save and Connect"))
+                if (ImGui.Button(Loc.Get("IntroUi.SecretKey.SaveConnectButton")))
                 {
                     string keyName;
                     if (!_serverConfigurationManager.HasServers) _serverConfigurationManager.SelectServer(0);
                     if (_registrationReply != null && _secretKey.Equals(_registrationReply.SecretKey, StringComparison.Ordinal))
-                        keyName = _registrationReply.UID + $" (registered {DateTime.Now:yyyy-MM-dd})";
+                        keyName = string.Format(CultureInfo.CurrentCulture, Loc.Get("IntroUi.SecretKey.FriendlyNameRegistered"), _registrationReply.UID, DateTime.Now);
                     else
-                        keyName = $"Secret Key added on Setup ({DateTime.Now:yyyy-MM-dd})";
+                        keyName = string.Format(CultureInfo.CurrentCulture, Loc.Get("IntroUi.SecretKey.FriendlyNameDefault"), DateTime.Now);
                     _serverConfigurationManager.CurrentServer!.SecretKeys.Add(_serverConfigurationManager.CurrentServer.SecretKeys.Select(k => k.Key).LastOrDefault() + 1, new SecretKey()
                     {
                         FriendlyName = keyName,

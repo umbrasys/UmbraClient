@@ -321,6 +321,21 @@ public class DalamudUtilService : IHostedService, IMediatorSubscriber
         return IntPtr.Zero;
     }
 
+    public bool TryGetPlayerCharacterByObjectId(uint objectId, out PlayerCharacter playerCharacter)
+    {
+        foreach (var entry in _playerCharas.Values)
+        {
+            if (entry.ObjectId == objectId)
+            {
+                playerCharacter = entry;
+                return true;
+            }
+        }
+
+        playerCharacter = default;
+        return false;
+    }
+
     public string GetPlayerName()
     {
         EnsureIsOnFramework();

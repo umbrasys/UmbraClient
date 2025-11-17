@@ -19,6 +19,7 @@ using UmbraSync.UI.Components;
 using UmbraSync.UI.Handlers;
 using UmbraSync.WebAPI;
 using System.Globalization;
+using UmbraSync.Localization;
 using UmbraSync.WebAPI.Files;
 using UmbraSync.WebAPI.Files.Models;
 using UmbraSync.WebAPI.SignalR.Utils;
@@ -257,12 +258,12 @@ public class CompactUi : WindowMediatorSubscriberBase
         ImGuiHelpers.ScaledDummy(3f);
         using (ImRaii.PushId("sync-defaults"))
         {
-            const string soundLabel = "Audio";
-            const string animLabel = "Anim";
-            const string vfxLabel = "VFX";
-            const string soundSubject = "de l'audio";
-            const string animSubject = "des animations";
-            const string vfxSubject = "des effets visuels";
+            var soundLabel = Loc.Get("CompactUi.SyncDefaults.AudioLabel");
+            var animLabel = Loc.Get("CompactUi.SyncDefaults.AnimationLabel");
+            var vfxLabel = Loc.Get("CompactUi.SyncDefaults.VfxLabel");
+            var soundSubject = Loc.Get("CompactUi.SyncDefaults.AudioSubject");
+            var animSubject = Loc.Get("CompactUi.SyncDefaults.AnimationSubject");
+            var vfxSubject = Loc.Get("CompactUi.SyncDefaults.VfxSubject");
 
             bool soundsDisabled = _configService.Current.DefaultDisableSounds;
             bool animsDisabled = _configService.Current.DefaultDisableAnimations;
@@ -313,10 +314,10 @@ public class CompactUi : WindowMediatorSubscriberBase
                 },
                 () => DisableStateTooltip(vfxSubject, _configService.Current.DefaultDisableVfx), spacing);
 
-if (showNearby && pendingInvites > 0)
+            if (showNearby && pendingInvites > 0)
             {
                 ImGuiHelpers.ScaledDummy(3f);
-                UiSharedService.ColorTextWrapped($"AutoDetect : {pendingInvites} invitation(s) en attente. Utilisez l'icône AutoDetect dans la barre latérale pour y répondre.", ImGuiColors.DalamudYellow);
+                UiSharedService.ColorTextWrapped(string.Format(CultureInfo.CurrentCulture, Loc.Get("CompactUi.SyncDefaults.AutoDetectPending"), pendingInvites), ImGuiColors.DalamudYellow);
             }
 
             DrawSelfAnalysisPreview();
@@ -352,7 +353,7 @@ if (showNearby && pendingInvites > 0)
 
                 ImGui.SameLine(0f, 6f * ImGuiHelpers.GlobalScale);
                 ImGui.AlignTextToFramePadding();
-                ImGui.TextUnformatted("Self Analysis");
+                ImGui.TextUnformatted(Loc.Get("CompactUi.SelfAnalysis.Header"));
                 if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
                 {
                     _selfAnalysisOpen = !_selfAnalysisOpen;
@@ -371,38 +372,38 @@ if (showNearby && pendingInvites > 0)
                 if (isAnalyzing)
                 {
                     UiSharedService.ColorTextWrapped(
-                        $"Analyse en cours ({_characterAnalyzer.CurrentFile}/{System.Math.Max(_characterAnalyzer.TotalFiles, 1)})...",
+                        string.Format(CultureInfo.CurrentCulture, Loc.Get("CompactUi.SelfAnalysis.AnalyzingStatus"), _characterAnalyzer.CurrentFile, System.Math.Max(_characterAnalyzer.TotalFiles, 1)),
                         ImGuiColors.DalamudYellow);
-                    if (_uiSharedService.IconTextButton(FontAwesomeIcon.StopCircle, "Annuler l'analyse"))
+                    if (_uiSharedService.IconTextButton(FontAwesomeIcon.StopCircle, Loc.Get("CompactUi.SelfAnalysis.CancelButton")))
                     {
                         _characterAnalyzer.CancelAnalyze();
                     }
-                    UiSharedService.AttachToolTip("Stopper l'analyse en cours.");
+                    UiSharedService.AttachToolTip(Loc.Get("CompactUi.SelfAnalysis.CancelTooltip"));
                 }
                 else
                 {
                     bool recalculate = !summary.HasUncomputedEntries && !summary.IsEmpty;
-                    var label = recalculate ? "Recalculer l'analyse" : "Lancer l'analyse";
+                    var label = Loc.Get(recalculate ? "CompactUi.SelfAnalysis.RecalculateButton" : "CompactUi.SelfAnalysis.StartButton");
                     var icon = recalculate ? FontAwesomeIcon.Sync : FontAwesomeIcon.PlayCircle;
                     if (_uiSharedService.IconTextButton(icon, label))
                     {
                         _ = _characterAnalyzer.ComputeAnalysis(print: false, recalculate: recalculate);
                     }
                     UiSharedService.AttachToolTip(recalculate
-                        ? "Recalcule toutes les entrées pour mettre à jour les tailles partagées."
-                        : "Analyse vos fichiers actuels pour estimer le poids partagé.");
+                        ? Loc.Get("CompactUi.SelfAnalysis.RecalculateTooltip")
+                        : Loc.Get("CompactUi.SelfAnalysis.StartTooltip"));
                 }
 
                 if (summary.IsEmpty && !isAnalyzing)
                 {
-                    UiSharedService.ColorTextWrapped("Aucune donnée analysée pour l'instant. Lancez une analyse pour générer cet aperçu.",
+                    UiSharedService.ColorTextWrapped(Loc.Get("CompactUi.SelfAnalysis.NoData"),
                         ImGuiColors.DalamudGrey2);
                     return;
                 }
 
                 if (summary.HasUncomputedEntries && !isAnalyzing)
                 {
-                    UiSharedService.ColorTextWrapped("Certaines entrées n'ont pas encore de taille calculée. Lancez l'analyse pour compléter les données.",
+                    UiSharedService.ColorTextWrapped(Loc.Get("CompactUi.SelfAnalysis.UncomputedWarning"),
                         ImGuiColors.DalamudYellow);
                 }
 
@@ -415,7 +416,7 @@ if (showNearby && pendingInvites > 0)
                         ImGui.TableSetupColumn("label", ImGuiTableColumnFlags.WidthStretch, 0.55f);
                         ImGui.TableSetupColumn("value", ImGuiTableColumnFlags.WidthStretch, 0.45f);
 
-                        DrawSelfAnalysisStatRow("Fichiers moddés", summary.TotalFiles.ToString("N0", CultureInfo.CurrentCulture));
+                        DrawSelfAnalysisStatRow(Loc.Get("CompactUi.SelfAnalysis.Stat.Files"), summary.TotalFiles.ToString("N0", CultureInfo.CurrentCulture));
 
                         var compressedValue = UiSharedService.ByteToString(summary.TotalCompressedSize);
                         Vector4? compressedColor = null;
@@ -425,18 +426,18 @@ if (showNearby && pendingInvites > 0)
                         if (summary.HasUncomputedEntries)
                         {
                             compressedColor = ImGuiColors.DalamudYellow;
-                            compressedTooltip = "Lancez l'analyse pour calculer la taille de téléchargement exacte.";
+                            compressedTooltip = Loc.Get("CompactUi.SelfAnalysis.Tooltip.ComputeSizes");
                         }
                         else if (summary.TotalCompressedSize >= SelfAnalysisSizeWarningThreshold)
                         {
                             compressedColor = ImGuiColors.DalamudYellow;
-                            compressedTooltip = "Au-delà de 300 MiB, certains joueurs peuvent ne pas voir toutes vos modifications.";
+                            compressedTooltip = Loc.Get("CompactUi.SelfAnalysis.Tooltip.SizeWarning");
                             compressedIcon = FontAwesomeIcon.ExclamationTriangle;
                             compressedIconColor = ImGuiColors.DalamudYellow;
                         }
 
-                        DrawSelfAnalysisStatRow("Taille compressée", compressedValue, compressedColor, compressedTooltip, compressedIcon, compressedIconColor);
-                        DrawSelfAnalysisStatRow("Taille extraite", UiSharedService.ByteToString(summary.TotalOriginalSize));
+                        DrawSelfAnalysisStatRow(Loc.Get("CompactUi.SelfAnalysis.Stat.CompressedSize"), compressedValue, compressedColor, compressedTooltip, compressedIcon, compressedIconColor);
+                        DrawSelfAnalysisStatRow(Loc.Get("CompactUi.SelfAnalysis.Stat.ExtractedSize"), UiSharedService.ByteToString(summary.TotalOriginalSize));
 
                         Vector4? trianglesColor = null;
                         FontAwesomeIcon? trianglesIcon = null;
@@ -445,11 +446,11 @@ if (showNearby && pendingInvites > 0)
                         if (summary.TotalTriangles >= SelfAnalysisTriangleWarningThreshold)
                         {
                             trianglesColor = ImGuiColors.DalamudYellow;
-                            trianglesTooltip = "Plus de 150k triangles peuvent entraîner un auto-pause et impacter les performances.";
+                            trianglesTooltip = Loc.Get("CompactUi.SelfAnalysis.Tooltip.TriangleWarning");
                             trianglesIcon = FontAwesomeIcon.ExclamationTriangle;
                             trianglesIconColor = ImGuiColors.DalamudYellow;
                         }
-                        DrawSelfAnalysisStatRow("Triangles moddés", UiSharedService.TrisToString(summary.TotalTriangles), trianglesColor, trianglesTooltip, trianglesIcon, trianglesIconColor);
+                        DrawSelfAnalysisStatRow(Loc.Get("CompactUi.SelfAnalysis.Stat.Triangles"), UiSharedService.TrisToString(summary.TotalTriangles), trianglesColor, trianglesTooltip, trianglesIcon, trianglesIconColor);
 
                         ImGui.EndTable();
                     }
@@ -459,17 +460,17 @@ if (showNearby && pendingInvites > 0)
                 Vector4 lastAnalysisColor = ImGuiColors.DalamudGrey2;
                 if (isAnalyzing)
                 {
-                    lastAnalysisText = "Dernière analyse : en cours...";
+                    lastAnalysisText = Loc.Get("CompactUi.SelfAnalysis.LastAnalysis.InProgress");
                     lastAnalysisColor = ImGuiColors.DalamudYellow;
                 }
                 else if (_characterAnalyzer.LastCompletedAnalysis.HasValue)
                 {
                     var localTime = _characterAnalyzer.LastCompletedAnalysis.Value.ToLocalTime();
-                    lastAnalysisText = $"Dernière analyse : {localTime.ToString("g", CultureInfo.CurrentCulture)}";
+                    lastAnalysisText = string.Format(CultureInfo.CurrentCulture, Loc.Get("CompactUi.SelfAnalysis.LastAnalysis.At"), localTime.ToString("g", CultureInfo.CurrentCulture));
                 }
                 else
                 {
-                    lastAnalysisText = "Dernière analyse : jamais";
+                    lastAnalysisText = Loc.Get("CompactUi.SelfAnalysis.LastAnalysis.Never");
                 }
 
                 ImGuiHelpers.ScaledDummy(2f);
@@ -477,7 +478,7 @@ if (showNearby && pendingInvites > 0)
 
                 ImGuiHelpers.ScaledDummy(3f);
 
-                if (_uiSharedService.IconTextButton(FontAwesomeIcon.PersonCircleQuestion, "Ouvrir l'analyse détaillée"))
+                if (_uiSharedService.IconTextButton(FontAwesomeIcon.PersonCircleQuestion, Loc.Get("CompactUi.SelfAnalysis.OpenDetailsButton")))
                 {
                     Mediator.Publish(new UiToggleMessage(typeof(DataAnalysisUi)));
                 }
@@ -555,8 +556,8 @@ if (showNearby && pendingInvites > 0)
 
     private static string DisableStateTooltip(string context, bool disabled)
     {
-        var state = disabled ? "désactivée" : "activée";
-        return $"Synchronisation {context} par défaut : {state}.\nCliquez pour modifier.";
+        var state = Loc.Get(disabled ? "CompactUi.SyncDefaults.State.Disabled" : "CompactUi.SyncDefaults.State.Enabled");
+        return string.Format(CultureInfo.CurrentCulture, Loc.Get("CompactUi.SyncDefaults.Tooltip"), context, state);
     }
 
     private void DrawAddCharacter()
@@ -566,7 +567,7 @@ if (showNearby && pendingInvites > 0)
         if (keys.Any())
         {
             if (_secretKeyIdx == -1) _secretKeyIdx = keys.First().Key;
-            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Plus, "Add current character with secret key"))
+            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Plus, Loc.Get("CompactUi.AddCharacter.AddCurrentWithKey")))
             {
                 _serverManager.CurrentServer!.Authentications.Add(new MareConfiguration.Models.Authentication()
                 {
@@ -580,11 +581,12 @@ if (showNearby && pendingInvites > 0)
                 _ = _apiController.CreateConnections();
             }
 
-            _uiSharedService.DrawCombo("Secret Key##addCharacterSecretKey", keys, (f) => f.Value.FriendlyName, (f) => _secretKeyIdx = f.Key);
+            var secretKeyLabel = $"{Loc.Get("CompactUi.AddCharacter.SecretKeyLabel")}##addCharacterSecretKey";
+            _uiSharedService.DrawCombo(secretKeyLabel, keys, (f) => f.Value.FriendlyName, (f) => _secretKeyIdx = f.Key);
         }
         else
         {
-            UiSharedService.ColorTextWrapped("No secret keys are configured for the current server.", ImGuiColors.DalamudYellow);
+            UiSharedService.ColorTextWrapped(Loc.Get("CompactUi.AddCharacter.NoSecretKeys"), ImGuiColors.DalamudYellow);
         }
     }
 
@@ -592,7 +594,7 @@ if (showNearby && pendingInvites > 0)
     {
         var buttonSize = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Plus);
         ImGui.SetNextItemWidth(UiSharedService.GetWindowContentRegionWidth() - ImGui.GetWindowContentRegionMin().X - buttonSize.X);
-        ImGui.InputTextWithHint("##otheruid", "Other players UID/Alias", ref _pairToAdd, 20);
+        ImGui.InputTextWithHint("##otheruid", Loc.Get("CompactUi.AddPair.OtherUidPlaceholder"), ref _pairToAdd, 20);
         ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - buttonSize.X);
         var canAdd = !_pairManager.DirectPairs.Any(p => string.Equals(p.UserData.UID, _pairToAdd, StringComparison.Ordinal) || string.Equals(p.UserData.Alias, _pairToAdd, StringComparison.Ordinal));
         using (ImRaii.Disabled(!canAdd))
@@ -602,7 +604,8 @@ if (showNearby && pendingInvites > 0)
                 _ = _apiController.UserAddPair(new(new(_pairToAdd)));
                 _pairToAdd = string.Empty;
             }
-            UiSharedService.AttachToolTip("Pair with " + (_pairToAdd.IsNullOrEmpty() ? "other user" : _pairToAdd));
+            var target = _pairToAdd.IsNullOrEmpty() ? Loc.Get("CompactUi.AddPair.OtherUserFallback") : _pairToAdd;
+            UiSharedService.AttachToolTip(string.Format(CultureInfo.CurrentCulture, Loc.Get("CompactUi.AddPair.PairWithFormat"), target));
         }
 
         ImGuiHelpers.ScaledDummy(2);
@@ -620,7 +623,7 @@ if (showNearby && pendingInvites > 0)
             : 0;
 
         ImGui.SetNextItemWidth(WindowContentWidth - spacing);
-        ImGui.InputTextWithHint("##filter", "Filter for UID/notes", ref _characterOrCommentFilter, 255);
+        ImGui.InputTextWithHint("##filter", Loc.Get("CompactUi.Filter.Placeholder"), ref _characterOrCommentFilter, 255);
 
         if (userCount == 0) return;
 
@@ -669,9 +672,15 @@ if (showNearby && pendingInvites > 0)
                 _buttonState = !_buttonState;
             }
             if (!_timeout.IsRunning)
-                UiSharedService.AttachToolTip($"Hold Control to {(button == FontAwesomeIcon.Play ? "resume" : "pause")} pairing with {users.Count} out of {userCount} displayed users.");
+            {
+                var action = button == FontAwesomeIcon.Play ? Loc.Get("CompactUi.Pairs.ResumeAction") : Loc.Get("CompactUi.Pairs.PauseAction");
+                UiSharedService.AttachToolTip(string.Format(CultureInfo.CurrentCulture, Loc.Get("CompactUi.Pairs.MultiToggleTooltip"), action, users.Count, userCount));
+            }
             else
-                UiSharedService.AttachToolTip($"Next execution is available at {(5000 - _timeout.ElapsedMilliseconds) / 1000} seconds");
+            {
+                var secondsRemaining = (5000 - _timeout.ElapsedMilliseconds) / 1000;
+                UiSharedService.AttachToolTip(string.Format(CultureInfo.CurrentCulture, Loc.Get("CompactUi.Pairs.NextExecutionTooltip"), secondsRemaining));
+            }
         }
     }
 
@@ -718,7 +727,7 @@ if (showNearby && pendingInvites > 0)
             var pendingCount = _nearbyPending.Pending.Count;
             if (pendingCount > 0)
             {
-                UiSharedService.ColorTextWrapped("Invitation AutoDetect en attente. Ouvrez l\'interface AutoDetect pour gérer vos demandes.", ImGuiColors.DalamudYellow);
+                UiSharedService.ColorTextWrapped(Loc.Get("CompactUi.AutoDetect.PendingInvitation"), ImGuiColors.DalamudYellow);
                 ImGuiHelpers.ScaledDummy(4);
             }
         }
@@ -731,7 +740,7 @@ if (showNearby && pendingInvites > 0)
 
             if (!showVisibleCard && !showNearbyCard)
             {
-                const string calmMessage = "C'est bien trop calme ici... Il n'y a personne pour le moment.";
+                var calmMessage = Loc.Get("CompactUi.Pairs.VisibleEmpty");
                 using (_uiSharedService.UidFont.Push())
                 {
                     var regionMin = ImGui.GetWindowContentRegionMin();
@@ -810,7 +819,7 @@ if (showNearby && pendingInvites > 0)
 
                 ImGui.SameLine(0f, 6f * ImGuiHelpers.GlobalScale);
                 ImGui.AlignTextToFramePadding();
-                ImGui.TextUnformatted($"Visible ({visibleUsers.Count})");
+                ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("CompactUi.Pairs.VisibleHeader"), visibleUsers.Count));
                 if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
                 {
                     _visibleOpen = !_visibleOpen;
@@ -853,7 +862,7 @@ if (showNearby && pendingInvites > 0)
                 ImGui.SameLine(0f, 6f * ImGuiHelpers.GlobalScale);
                 var onUmbra = nearbyEntries.Count;
                 ImGui.AlignTextToFramePadding();
-                ImGui.TextUnformatted($"Nearby ({onUmbra})");
+                ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("CompactUi.Nearby.Header"), onUmbra));
                 if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
                 {
                     _nearbyOpen = !_nearbyOpen;
@@ -872,8 +881,8 @@ if (showNearby && pendingInvites > 0)
                 var actionButtonSize = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.UserPlus);
                 if (ImGui.BeginTable("nearby-table", 2, ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX | ImGuiTableFlags.BordersInnerV))
                 {
-                    ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthStretch, 1f);
-                    ImGui.TableSetupColumn("Action", ImGuiTableColumnFlags.WidthFixed, actionButtonSize.X);
+                    ImGui.TableSetupColumn(Loc.Get("CompactUi.Nearby.Table.Name"), ImGuiTableColumnFlags.WidthStretch, 1f);
+                    ImGui.TableSetupColumn(Loc.Get("CompactUi.Nearby.Table.Action"), ImGuiTableColumnFlags.WidthFixed, actionButtonSize.X);
 
                     foreach (var e in nearbyEntries)
                     {
@@ -902,7 +911,7 @@ if (showNearby && pendingInvites > 0)
                                 _ = _autoDetectRequestService.SendRequestAsync(e.Token!, e.Uid, e.DisplayName);
                             }
                         }
-                        UiSharedService.AttachToolTip("Envoyer une invitation d'apparaige");
+                        UiSharedService.AttachToolTip(Loc.Get("CompactUi.Nearby.InviteTooltip"));
                     }
                     ImGui.EndTable();
                 }
@@ -920,29 +929,29 @@ if (showNearby && pendingInvites > 0)
         ImGuiHelpers.ScaledDummy(6f);
         DrawConnectionIcon();
         ImGuiHelpers.ScaledDummy(12f);
-        DrawSidebarButton(FontAwesomeIcon.Bell, "Notifications", CompactUiSection.Notifications, true, _notificationCount > 0, _notificationCount, null, ImGuiColors.DalamudOrange);
+        DrawSidebarButton(FontAwesomeIcon.Bell, Loc.Get("CompactUi.Sidebar.Notifications"), CompactUiSection.Notifications, true, _notificationCount > 0, _notificationCount, null, ImGuiColors.DalamudOrange);
         ImGuiHelpers.ScaledDummy(3f);
 
-        DrawSidebarButton(FontAwesomeIcon.Eye, "Visible pairs", CompactUiSection.VisiblePairs, isConnected);
+        DrawSidebarButton(FontAwesomeIcon.Eye, Loc.Get("CompactUi.Sidebar.VisiblePairs"), CompactUiSection.VisiblePairs, isConnected);
         ImGuiHelpers.ScaledDummy(3f);
-        DrawSidebarButton(FontAwesomeIcon.User, "Individual pairs", CompactUiSection.IndividualPairs, isConnected);
+        DrawSidebarButton(FontAwesomeIcon.User, Loc.Get("CompactUi.Sidebar.IndividualPairs"), CompactUiSection.IndividualPairs, isConnected);
         ImGuiHelpers.ScaledDummy(3f);
-        DrawSidebarButton(FontAwesomeIcon.UserFriends, "Syncshells", CompactUiSection.Syncshells, isConnected);
+        DrawSidebarButton(FontAwesomeIcon.UserFriends, Loc.Get("CompactUi.Sidebar.Syncshells"), CompactUiSection.Syncshells, isConnected);
         ImGuiHelpers.ScaledDummy(3f);
         int pendingInvites = _nearbyPending.Pending.Count;
         bool highlightAutoDetect = pendingInvites > 0;
         string autoDetectTooltip = highlightAutoDetect
-            ? $"AutoDetect — {pendingInvites} invitation(s) en attente"
-            : "AutoDetect";
+            ? string.Format(CultureInfo.CurrentCulture, Loc.Get("CompactUi.Sidebar.AutoDetectPending"), pendingInvites)
+            : Loc.Get("CompactUi.Sidebar.AutoDetect");
         DrawSidebarButton(FontAwesomeIcon.BroadcastTower, autoDetectTooltip, CompactUiSection.AutoDetect, isConnected, highlightAutoDetect, pendingInvites);
         ImGuiHelpers.ScaledDummy(3f);
-        DrawSidebarButton(FontAwesomeIcon.PersonCircleQuestion, "Character Analysis", CompactUiSection.CharacterAnalysis, isConnected);
+        DrawSidebarButton(FontAwesomeIcon.PersonCircleQuestion, Loc.Get("CompactUi.Sidebar.CharacterAnalysis"), CompactUiSection.CharacterAnalysis, isConnected);
         ImGuiHelpers.ScaledDummy(3f);
-        DrawSidebarButton(FontAwesomeIcon.Running, "Character Data Hub", CompactUiSection.CharacterDataHub, isConnected);
+        DrawSidebarButton(FontAwesomeIcon.Running, Loc.Get("CompactUi.Sidebar.CharacterDataHub"), CompactUiSection.CharacterDataHub, isConnected);
         ImGuiHelpers.ScaledDummy(12f);
-        DrawSidebarButton(FontAwesomeIcon.UserCircle, "Edit Profile", CompactUiSection.EditProfile, isConnected);
+        DrawSidebarButton(FontAwesomeIcon.UserCircle, Loc.Get("CompactUi.Sidebar.EditProfile"), CompactUiSection.EditProfile, isConnected);
         ImGuiHelpers.ScaledDummy(3f);
-        DrawSidebarButton(FontAwesomeIcon.Cog, "Settings", CompactUiSection.Settings, true, _settingsUi.IsOpen, 0, () =>
+        DrawSidebarButton(FontAwesomeIcon.Cog, Loc.Get("CompactUi.Sidebar.Settings"), CompactUiSection.Settings, true, _settingsUi.IsOpen, 0, () =>
         {
             Mediator.Publish(new UiToggleMessage(typeof(SettingsUi)));
         });
@@ -996,9 +1005,9 @@ if (showNearby && pendingInvites > 0)
 
         var tooltip = hasServer
             ? (isLinked
-                ? $"Disconnect from {currentServer!.ServerName}"
-                : $"Connect to {currentServer!.ServerName}")
-            : "No server configured";
+                ? string.Format(CultureInfo.CurrentCulture, Loc.Get("CompactUi.Connection.DisconnectTooltip"), currentServer!.ServerName)
+                : string.Format(CultureInfo.CurrentCulture, Loc.Get("CompactUi.Connection.ConnectTooltip"), currentServer!.ServerName))
+            : Loc.Get("CompactUi.Connection.NoServer");
         UiSharedService.AttachToolTip(tooltip);
     }
 
@@ -1075,7 +1084,7 @@ if (showNearby && pendingInvites > 0)
     private void DrawUnsupportedVersionBanner()
     {
         var ver = _apiController.CurrentClientVersion;
-        var unsupported = "UNSUPPORTED VERSION";
+        var unsupported = Loc.Get("CompactUi.UnsupportedVersion.Title");
         using (_uiSharedService.UidFont.Push())
         {
             var uidTextSize = ImGui.CalcTextSize(unsupported);
@@ -1084,9 +1093,9 @@ if (showNearby && pendingInvites > 0)
             ImGui.TextColored(UiSharedService.AccentColor, unsupported);
         }
 
+        var version = $"{ver.Major}.{ver.Minor}.{ver.Build}";
         UiSharedService.ColorTextWrapped(
-            $"Your UmbraSync installation is out of date, the current version is {ver.Major}.{ver.Minor}.{ver.Build}. " +
-            "It is highly recommended to keep UmbraSync up to date. Open /xlplugins and update the plugin.",
+            string.Format(CultureInfo.CurrentCulture, Loc.Get("CompactUi.UnsupportedVersion.Message"), version),
             UiSharedService.AccentColor);
     }
 
@@ -1102,7 +1111,7 @@ if (showNearby && pendingInvites > 0)
         bool requiresConnection = RequiresServerConnection(_activeSection);
         if (requiresConnection && _apiController.ServerState is not ServerState.Connected)
         {
-            UiSharedService.ColorTextWrapped("Connectez-vous au serveur pour accéder à cette section.", ImGuiColors.DalamudGrey3);
+            UiSharedService.ColorTextWrapped(Loc.Get("CompactUi.General.ConnectToServerNotice"), ImGuiColors.DalamudGrey3);
             DrawNewUserNoteModal();
             return;
         }
@@ -1168,7 +1177,7 @@ if (showNearby && pendingInvites > 0)
         var notifications = _notificationTracker.GetEntries();
         if (notifications.Count == 0)
         {
-            UiSharedService.ColorTextWrapped("Aucune notification en attente.", ImGuiColors.DalamudGrey3);
+            UiSharedService.ColorTextWrapped(Loc.Get("CompactUi.Notifications.Empty"), ImGuiColors.DalamudGrey3);
             return;
         }
 
@@ -1223,12 +1232,12 @@ if (showNearby && pendingInvites > 0)
             {
                 using (ImRaii.Disabled(!hasPending))
                 {
-                    if (ImGui.Button("Accepter"))
+                    if (ImGui.Button(Loc.Get("CompactUi.Notifications.Accept")))
                     {
                         TriggerAcceptAutoDetectNotification(notification.Id);
                     }
                     ImGui.SameLine();
-                    if (ImGui.Button("Refuser"))
+                    if (ImGui.Button(Loc.Get("CompactUi.Notifications.Decline")))
                     {
                         _nearbyPending.Remove(notification.Id);
                     }
@@ -1237,7 +1246,7 @@ if (showNearby && pendingInvites > 0)
                 if (!hasPending)
                 {
                     ImGui.SameLine();
-                    if (ImGui.Button("Effacer"))
+                    if (ImGui.Button(Loc.Get("CompactUi.Notifications.Clear")))
                     {
                         _notificationTracker.Remove(NotificationCategory.AutoDetect, notification.Id);
                     }
@@ -1262,7 +1271,7 @@ if (showNearby && pendingInvites > 0)
 
             using (ImRaii.PushId($"syncshell-{notification.Id}"))
             {
-                if (ImGui.Button("Effacer"))
+                if (ImGui.Button(Loc.Get("CompactUi.Notifications.Clear")))
                 {
                     _notificationTracker.Remove(NotificationCategory.Syncshell, notification.Id);
                 }
@@ -1277,23 +1286,24 @@ if (showNearby && pendingInvites > 0)
             bool accepted = await _nearbyPending.AcceptAsync(uid).ConfigureAwait(false);
             if (!accepted)
             {
-                Mediator.Publish(new NotificationMessage("AutoDetect", $"Impossible d'accepter l'invitation {uid}.", NotificationType.Warning, TimeSpan.FromSeconds(5)));
+                Mediator.Publish(new NotificationMessage(Loc.Get("CompactUi.Notifications.AutoDetectTitle"), string.Format(CultureInfo.CurrentCulture, Loc.Get("CompactUi.Notifications.AcceptFailed"), uid), NotificationType.Warning, TimeSpan.FromSeconds(5)));
             }
         });
     }
 
     private void DrawNewUserNoteModal()
     {
+        var newUserModalTitle = Loc.Get("CompactUi.NewUserModal.Title");
         if (_configService.Current.OpenPopupOnAdd && _pairManager.LastAddedUser != null)
         {
             _lastAddedUser = _pairManager.LastAddedUser;
             _pairManager.LastAddedUser = null;
-            ImGui.OpenPopup("Set Notes for New User");
+            ImGui.OpenPopup(newUserModalTitle);
             _showModalForUserAddition = true;
             _lastAddedUserComment = string.Empty;
         }
 
-        if (ImGui.BeginPopupModal("Set Notes for New User", ref _showModalForUserAddition, UiSharedService.PopupWindowFlags))
+        if (ImGui.BeginPopupModal(newUserModalTitle, ref _showModalForUserAddition, UiSharedService.PopupWindowFlags))
         {
             if (_lastAddedUser == null)
             {
@@ -1301,9 +1311,9 @@ if (showNearby && pendingInvites > 0)
             }
             else
             {
-                UiSharedService.TextWrapped($"You have successfully added {_lastAddedUser.UserData.AliasOrUID}. Set a local note for the user in the field below:");
-                ImGui.InputTextWithHint("##noteforuser", $"Note for {_lastAddedUser.UserData.AliasOrUID}", ref _lastAddedUserComment, 100);
-                if (_uiSharedService.IconTextButton(FontAwesomeIcon.Save, "Save Note"))
+                UiSharedService.TextWrapped(string.Format(CultureInfo.CurrentCulture, Loc.Get("CompactUi.NewUserModal.Description"), _lastAddedUser.UserData.AliasOrUID));
+                ImGui.InputTextWithHint("##noteforuser", string.Format(CultureInfo.CurrentCulture, Loc.Get("CompactUi.NewUserModal.NotePlaceholder"), _lastAddedUser.UserData.AliasOrUID), ref _lastAddedUserComment, 100);
+                if (_uiSharedService.IconTextButton(FontAwesomeIcon.Save, Loc.Get("CompactUi.NewUserModal.SaveButton")))
                 {
                     _serverManager.SetNoteForUid(_lastAddedUser.UserData.UID, _lastAddedUserComment);
                     _lastAddedUser = null;
@@ -1353,8 +1363,9 @@ if (showNearby && pendingInvites > 0)
     {
         var userCount = _apiController.OnlineUsers.ToString(CultureInfo.InvariantCulture);
         var userSize = ImGui.CalcTextSize(userCount);
-        var textSize = ImGui.CalcTextSize("Users Online");
-        string shardConnection = string.Equals(_apiController.ServerInfo.ShardName, "Main", StringComparison.OrdinalIgnoreCase) ? string.Empty : $"Shard: {_apiController.ServerInfo.ShardName}";
+        var usersOnlineText = Loc.Get("CompactUi.ServerStatus.UsersOnline");
+        var textSize = ImGui.CalcTextSize(usersOnlineText);
+        string shardConnection = string.Equals(_apiController.ServerInfo.ShardName, "Main", StringComparison.OrdinalIgnoreCase) ? string.Empty : string.Format(CultureInfo.CurrentCulture, Loc.Get("CompactUi.ServerStatus.ShardLabel"), _apiController.ServerInfo.ShardName);
         var shardTextSize = ImGui.CalcTextSize(shardConnection);
         var printShard = !string.IsNullOrEmpty(_apiController.ServerInfo.ShardName) && shardConnection != string.Empty;
 
@@ -1365,12 +1376,12 @@ if (showNearby && pendingInvites > 0)
             ImGui.TextColored(UiSharedService.AccentColor, userCount);
             ImGui.SameLine();
             if (!printShard) ImGui.AlignTextToFramePadding();
-            ImGui.TextUnformatted("Users Online");
+            ImGui.TextUnformatted(usersOnlineText);
         }
         else
         {
             ImGui.AlignTextToFramePadding();
-            ImGui.TextColored(UiSharedService.AccentColor, "Not connected to any server");
+            ImGui.TextColored(UiSharedService.AccentColor, Loc.Get("CompactUi.ServerStatus.NotConnected"));
         }
 
         if (printShard)
@@ -1479,7 +1490,7 @@ if (showNearby && pendingInvites > 0)
                 float fontSize = ImGui.GetFontSize() * scale;
                 drawList.AddText(font, fontSize, iconPos, ImGui.GetColorU32(ImGuiCol.Text), iconText);
             }
-            UiSharedService.AttachToolTip("Copy your UID to clipboard");
+            UiSharedService.AttachToolTip(Loc.Get("CompactUi.Uid.CopyTooltip"));
             ImGui.SameLine(0f, spacingX);
         }
         else
@@ -1519,18 +1530,18 @@ if (showNearby && pendingInvites > 0)
     {
         return _apiController.ServerState switch
         {
-            ServerState.Connecting => "Attempting to connect to the server.",
-            ServerState.Reconnecting => "Connection to server interrupted, attempting to reconnect to the server.",
-            ServerState.Disconnected => "You are currently disconnected from the sync server.",
-            ServerState.Disconnecting => "Disconnecting from the server",
-            ServerState.Unauthorized => "Server Response: " + _apiController.AuthFailureMessage,
-            ServerState.Offline => "Your selected sync server is currently offline.",
+            ServerState.Connecting => Loc.Get("CompactUi.ServerErrors.AttemptingToConnect"),
+            ServerState.Reconnecting => Loc.Get("CompactUi.ServerErrors.Reconnecting"),
+            ServerState.Disconnected => Loc.Get("CompactUi.ServerErrors.Disconnected"),
+            ServerState.Disconnecting => Loc.Get("CompactUi.ServerErrors.Disconnecting"),
+            ServerState.Unauthorized => string.Format(CultureInfo.CurrentCulture, Loc.Get("CompactUi.ServerErrors.Unauthorized"), _apiController.AuthFailureMessage),
+            ServerState.Offline => Loc.Get("CompactUi.ServerErrors.Offline"),
             ServerState.VersionMisMatch =>
-                "Your plugin or the server you are connecting to is out of date. Please update your plugin now. If you already did so, contact the server provider to update their server to the latest version.",
-            ServerState.RateLimited => "You are rate limited for (re)connecting too often. Disconnect, wait 10 minutes and try again.",
+                Loc.Get("CompactUi.ServerErrors.VersionMismatch"),
+            ServerState.RateLimited => Loc.Get("CompactUi.ServerErrors.RateLimited"),
             ServerState.Connected => string.Empty,
-            ServerState.NoSecretKey => "You have no secret key set for this current character. Use the button below or open the settings and set a secret key for the current character. You can reuse the same secret key for multiple characters.",
-            ServerState.MultiChara => "Your Character Configuration has multiple characters configured with same name and world. You will not be able to connect until you fix this issue. Remove the duplicates from the configuration in Settings -> Service Settings -> Character Management and reconnect manually after.",
+            ServerState.NoSecretKey => Loc.Get("CompactUi.ServerErrors.NoSecretKey"),
+            ServerState.MultiChara => Loc.Get("CompactUi.ServerErrors.MultiChara"),
             _ => string.Empty
         };
     }
@@ -1558,16 +1569,16 @@ if (showNearby && pendingInvites > 0)
     {
         return _apiController.ServerState switch
         {
-            ServerState.Reconnecting => "Reconnecting",
-            ServerState.Connecting => "Connecting",
-            ServerState.Disconnected => "Disconnected",
-            ServerState.Disconnecting => "Disconnecting",
-            ServerState.Unauthorized => "Unauthorized",
-            ServerState.VersionMisMatch => "Version mismatch",
-            ServerState.Offline => "Unavailable",
-            ServerState.RateLimited => "Rate Limited",
-            ServerState.NoSecretKey => "No Secret Key",
-            ServerState.MultiChara => "Duplicate Characters",
+            ServerState.Reconnecting => Loc.Get("CompactUi.UidStatus.Reconnecting"),
+            ServerState.Connecting => Loc.Get("CompactUi.UidStatus.Connecting"),
+            ServerState.Disconnected => Loc.Get("CompactUi.UidStatus.Disconnected"),
+            ServerState.Disconnecting => Loc.Get("CompactUi.UidStatus.Disconnecting"),
+            ServerState.Unauthorized => Loc.Get("CompactUi.UidStatus.Unauthorized"),
+            ServerState.VersionMisMatch => Loc.Get("CompactUi.UidStatus.VersionMismatch"),
+            ServerState.Offline => Loc.Get("CompactUi.UidStatus.Offline"),
+            ServerState.RateLimited => Loc.Get("CompactUi.UidStatus.RateLimited"),
+            ServerState.NoSecretKey => Loc.Get("CompactUi.UidStatus.NoSecretKey"),
+            ServerState.MultiChara => Loc.Get("CompactUi.UidStatus.MultiChara"),
             ServerState.Connected => _apiController.DisplayName,
             _ => string.Empty
         };

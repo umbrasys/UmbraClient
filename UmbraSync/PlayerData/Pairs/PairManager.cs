@@ -1,4 +1,9 @@
-﻿using Dalamud.Plugin.Services;
+﻿using System;
+using System.Collections.Concurrent;
+using System.Globalization;
+using System.Linq;
+using Dalamud.Game.Gui.ContextMenu;
+using Dalamud.Plugin.Services;
 using UmbraSync.API.Data;
 using UmbraSync.API.Data.Comparer;
 using UmbraSync.API.Data.Extensions;
@@ -7,10 +12,14 @@ using UmbraSync.API.Dto.User;
 using UmbraSync.MareConfiguration;
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.PlayerData.Factories;
+using UmbraSync.Services;
+using UmbraSync.Services.AutoDetect;
 using UmbraSync.Services.Events;
 using UmbraSync.Services.Mediator;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using System.Collections.Concurrent;
+using UmbraSync.Localization;
+using UmbraSync.WebAPI;
 
 namespace UmbraSync.PlayerData.Pairs;
 
@@ -20,17 +29,27 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
     private readonly ConcurrentDictionary<GroupData, GroupFullInfoDto> _allGroups = new(GroupDataComparer.Instance);
     private readonly MareConfigService _configurationService;
     private readonly IContextMenu _dalamudContextMenu;
+    private readonly NearbyDiscoveryService _nearbyDiscoveryService;
+    private readonly AutoDetectRequestService _autoDetectRequestService;
+    private readonly DalamudUtilService _dalamudUtilService;
     private readonly PairFactory _pairFactory;
+    private readonly Lazy<ApiController> _apiController;
     private Lazy<List<Pair>> _directPairsInternal;
     private Lazy<Dictionary<GroupFullInfoDto, List<Pair>>> _groupPairsInternal;
 
     public PairManager(ILogger<PairManager> logger, PairFactory pairFactory,
                 MareConfigService configurationService, MareMediator mediator,
-                IContextMenu dalamudContextMenu) : base(logger, mediator)
+                IContextMenu dalamudContextMenu, NearbyDiscoveryService nearbyDiscoveryService,
+                AutoDetectRequestService autoDetectRequestService, DalamudUtilService dalamudUtilService,
+                IServiceProvider serviceProvider) : base(logger, mediator)
     {
         _pairFactory = pairFactory;
         _configurationService = configurationService;
         _dalamudContextMenu = dalamudContextMenu;
+        _nearbyDiscoveryService = nearbyDiscoveryService;
+        _autoDetectRequestService = autoDetectRequestService;
+        _dalamudUtilService = dalamudUtilService;
+        _apiController = new Lazy<ApiController>(() => serviceProvider.GetRequiredService<ApiController>());
         Mediator.Subscribe<DisconnectedMessage>(this, (_) => ClearPairs());
         Mediator.Subscribe<CutsceneEndMessage>(this, (_) => ReapplyPairData());
         _directPairsInternal = DirectPairsLazy();
@@ -370,11 +389,131 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
     {
         if (args.MenuType == Dalamud.Game.Gui.ContextMenu.ContextMenuType.Inventory) return;
         if (!_configurationService.Current.EnableRightClickMenus) return;
+        try
+        {
+            Logger.LogDebug("[ContextMenu] Opened: Type={type}, TargetType={tgtType}", args.MenuType, args.Target?.GetType().Name ?? "null");
+        }
+        catch { /* logging should never break menu */ }
+
+        TryAddAutoDetectPairRequestItem(args);
 
         foreach (var pair in _allClientPairs.Where((p => p.Value.IsVisible)))
         {
             pair.Value.AddContextMenu(args);
         }
+    }
+
+    private void TryAddAutoDetectPairRequestItem(IMenuOpenedArgs args)
+    {
+        if (!_configurationService.Current.EnableAutoDetectDiscovery) { Logger.LogDebug("[ContextMenu] Skipped pair request: AutoDetectDiscovery disabled"); return; }
+        if (!_configurationService.Current.AllowAutoDetectPairRequests) { Logger.LogDebug("[ContextMenu] Skipped pair request: PairRequests not allowed"); return; }
+        if (args.Target is not MenuTargetDefault target) { Logger.LogDebug("[ContextMenu] Skipped pair request: Target not MenuTargetDefault (was {t})", args.Target?.GetType().Name ?? "null"); return; }
+
+        uint targetObjectId = (uint)target.TargetObjectId;
+        if (targetObjectId == 0 || targetObjectId == uint.MaxValue) { Logger.LogDebug("[ContextMenu] Skipped pair request: invalid targetObjectId={id}", targetObjectId); return; }
+
+        if (_allClientPairs.Any(p => p.Value.GetPlayerCharacterId() == targetObjectId))
+        {
+            Logger.LogDebug("[ContextMenu] Skipped pair request: target is already a known pair (objId={id})", targetObjectId);
+            return;
+        }
+
+        if (!_dalamudUtilService.TryGetPlayerCharacterByObjectId(targetObjectId, out var clickedPlayer))
+        {
+            Logger.LogDebug("[ContextMenu] Skipped pair request: could not resolve player for objId={id}", targetObjectId);
+            return;
+        }
+
+        var entries = _nearbyDiscoveryService.SnapshotEntries();
+        var clickedPlayerName = clickedPlayer.Name ?? string.Empty;
+
+        static bool NamesEqual(string left, string right)
+        {
+            if (string.IsNullOrWhiteSpace(left) || string.IsNullOrWhiteSpace(right)) return false;
+            return CompareInfo.Compare(left, right, CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreSymbols) == 0;
+        }
+
+        static bool NameMatches(UmbraSync.Services.Mediator.NearbyEntry entry, string clicked) =>
+            NamesEqual(entry.DisplayName ?? string.Empty, clicked) ||
+            NamesEqual(entry.Name, clicked);
+
+        var nearbyEntry = entries.FirstOrDefault(e =>
+            e.IsMatch
+            && NameMatches(e, clickedPlayerName)
+            && e.WorldId == (ushort)clickedPlayer.HomeWorldId);
+
+        if (nearbyEntry == null)
+        {
+            Logger.LogDebug("[ContextMenu] No AutoDetect match for {name}@{world} (entries={cnt}). Example entries: {examples}",
+                clickedPlayerName,
+                (ushort)clickedPlayer.HomeWorldId,
+                entries.Count,
+                string.Join(", ", entries.Take(5).Select(e => $"{e.Name}/{e.DisplayName}@{e.WorldId}")));
+            return;
+        }
+
+        bool canSendRequest = nearbyEntry.AcceptPairRequests && !string.IsNullOrEmpty(nearbyEntry.Token);
+        bool canAddPair = !string.IsNullOrEmpty(nearbyEntry.Uid)
+            && !_allClientPairs.Keys.Any(p => string.Equals(p.UID, nearbyEntry.Uid, StringComparison.Ordinal));
+
+        if (!canSendRequest && !canAddPair)
+        {
+            Logger.LogDebug("[ContextMenu] AutoDetect entry for {name}@{world} is not actionable (Token={hasToken}, Uid={hasUid}, Accepts={accepts})",
+                clickedPlayerName, (ushort)clickedPlayer.HomeWorldId,
+                !string.IsNullOrEmpty(nearbyEntry.Token),
+                !string.IsNullOrEmpty(nearbyEntry.Uid),
+                nearbyEntry.AcceptPairRequests);
+            return;
+        }
+
+        Logger.LogDebug("[ContextMenu] AutoDetect match found for {name}@{world}: entry={entryName}/{display}@{entryWorld} (Uid={uid}, Token={hasToken})",
+            clickedPlayerName, (ushort)clickedPlayer.HomeWorldId,
+            nearbyEntry.Name, nearbyEntry.DisplayName ?? "<null>", nearbyEntry.WorldId, nearbyEntry.Uid ?? "<null>", !string.IsNullOrEmpty(nearbyEntry.Token));
+
+        if (canSendRequest)
+        {
+            args.AddMenuItem(new MenuItem
+            {
+                Name = Loc.Get("ContextMenu.AutoDetect.SendRequest"),
+                // Umbra-branded context entry styling: purple background with 'U'
+                PrefixColor = 708,
+                PrefixChar = 'U',
+                UseDefaultPrefix = false,
+                IsEnabled = true,
+                IsSubmenu = false,
+                IsReturn = false,
+                Priority = 1,
+                OnClicked = args =>
+                {
+                    _ = _autoDetectRequestService.SendRequestAsync(
+                        nearbyEntry.Token!,
+                        nearbyEntry.Uid,
+                        nearbyEntry.DisplayName ?? nearbyEntry.Name);
+                }
+            });
+        }
+
+        if (canAddPair)
+        {
+            args.AddMenuItem(new MenuItem
+            {
+                Name = Loc.Get("ContextMenu.AutoDetect.AddPair"),
+                PrefixColor = 708,
+                PrefixChar = '+',
+                UseDefaultPrefix = false,
+                IsEnabled = true,
+                IsSubmenu = false,
+                IsReturn = false,
+                Priority = 0,
+                OnClicked = args =>
+                {
+                    _ = _apiController.Value.UserAddPair(new UserDto(new UserData(nearbyEntry.Uid!)));
+                }
+            });
+        }
+
+        Logger.LogDebug("[ContextMenu] Added auto-detect menu for {name}@{world} (Uid={uid}) Request={reqEnabled} AddPair={addEnabled}",
+            clickedPlayerName, (ushort)clickedPlayer.HomeWorldId, nearbyEntry.Uid, canSendRequest, canAddPair);
     }
 
     private Lazy<List<Pair>> DirectPairsLazy() => new(() => _allClientPairs.Select(k => k.Value)
@@ -417,4 +556,6 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         _directPairsInternal = DirectPairsLazy();
         _groupPairsInternal = GroupPairsLazy();
     }
+
+    private static readonly CompareInfo CompareInfo = CultureInfo.InvariantCulture.CompareInfo;
 }

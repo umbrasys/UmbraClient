@@ -256,53 +256,72 @@ public class PlayerPerformanceService : DisposableMediatorSubscriberBase
 
                 try
                 {
-                    var inFile = new FileStream(filePath, FileMode.Open, FileAccess.Read);
-                    await using var _inFileDispose = inFile.ConfigureAwait(false);
-                    using var reader = new BinaryReader(inFile, Encoding.UTF8, leaveOpen: true);
+#pragma warning disable MA0004
+                    await using (var inFile = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    await using (var outFile = new FileStream(tmpFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
+#pragma warning restore MA0004
+                    {
+                        using var reader = new BinaryReader(inFile, Encoding.UTF8, leaveOpen: false);
+                        using var writer = new BinaryWriter(outFile, Encoding.UTF8, leaveOpen: false);
 
-                    var header = reader.ReadBytes(80);
-                    reader.BaseStream.Position = 14;
-                    byte mipByte = reader.ReadByte();
-                    byte mipCount = (byte)(mipByte & 0x7F);
+                        var header = reader.ReadBytes(80);
+                        reader.BaseStream.Position = 14;
+                        byte mipByte = reader.ReadByte();
+                        byte mipCount = (byte)(mipByte & 0x7F);
 
-                    var outFile = new FileStream(tmpFilePath, FileMode.Create, FileAccess.Write, FileShare.None);
-                    await using var _outFileDispose = outFile.ConfigureAwait(false);
-                    using var writer = new BinaryWriter(outFile, Encoding.UTF8, leaveOpen: true);
-                    writer.Write(header);
+                        writer.Write(header);
 
-                    // Update width/height
-                    writer.BaseStream.Position = 8;
-                    writer.Write((ushort)width);
-                    writer.Write((ushort)height);
+                        // Update width/height
+                        writer.BaseStream.Position = 8;
+                        writer.Write((ushort)width);
+                        writer.Write((ushort)height);
 
-                    // Update the mip count
-                    writer.BaseStream.Position = 14;
-                    writer.Write((ushort)((mipByte & 0x80) | (mipCount - mipLevel)));
+                        // Update the mip count
+                        writer.BaseStream.Position = 14;
+                        writer.Write((ushort)((mipByte & 0x80) | (mipCount - mipLevel)));
 
-                    // Reset all of the LoD mips
-                    writer.BaseStream.Position = 16;
-                    for (int i = 0; i < 3; ++i)
-                        writer.Write((uint)0);
+                        // Reset all of the LoD mips
+                        writer.BaseStream.Position = 16;
+                        for (int i = 0; i < 3; ++i)
+                            writer.Write((uint)0);
 
-                    // Reset all of the mip offsets
-                    // (This data is garbage in a lot of modded textures, so its hard to fix it up correctly)
-                    writer.BaseStream.Position = 28;
-                    for (int i = 0; i < 13; ++i)
-                        writer.Write((uint)80);
+                        // Reset all of the mip offsets
+                        // (This data is garbage in a lot of modded textures, so its hard to fix it up correctly)
+                        writer.BaseStream.Position = 28;
+                        for (int i = 0; i < 13; ++i)
+                            writer.Write((uint)80);
 
-                    // Write the texture data shifted
-                    outFile.Position = 80;
-                    inFile.Position = 80 + offsetDelta;
+                        // Write the texture data shifted
+                        outFile.Position = 80;
+                        inFile.Position = 80 + offsetDelta;
 
-                    await inFile.CopyToAsync(outFile, 81920, token).ConfigureAwait(false);
+                        await inFile.CopyToAsync(outFile, 81920, token).ConfigureAwait(false);
+                    }
+                }
+                catch (Exception e)
+                {
+                    _logger.LogWarning(e, "Failed to shrink texture {hash}", hash);
+                    if (File.Exists(tmpFilePath))
+                        File.Delete(tmpFilePath);
+                    return; // do not try to finalize if write failed
+                }
+
+                // Finalize after streams have been disposed to avoid file-in-use errors
+                try
+                {
+                    if (File.Exists(newFilePath))
+                    {
+                        File.Delete(newFilePath);
+                    }
 
                     File.Move(tmpFilePath, newFilePath);
+
                     var substEntry = _fileCacheManager.CreateSubstEntry(newFilePath);
                     if (substEntry != null)
                         substEntry.CompressedSize = fileEntry.CompressedSize;
                     shrunken = true;
 
-                    // Make sure its a cache file before trying to delete it !!
+                    // Make sure it's a cache file before trying to delete it !!
                     bool shouldDelete = fileEntry.IsCacheEntry && File.Exists(filePath);
 
                     if (_playerPerformanceConfigService.Current.TextureShrinkDeleteOriginal && shouldDelete)
@@ -320,7 +339,7 @@ public class PlayerPerformanceService : DisposableMediatorSubscriberBase
                 }
                 catch (Exception e)
                 {
-                    _logger.LogWarning(e, "Failed to shrink texture {hash}", hash);
+                    _logger.LogWarning(e, "Failed to finalize shrunken texture {hash}", hash);
                     if (File.Exists(tmpFilePath))
                         File.Delete(tmpFilePath);
                 }

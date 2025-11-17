@@ -235,4 +235,6 @@ public sealed class ServerMatch
     public string? Token { get; set; }
     public string? Uid { get; set; }
     public string? DisplayName { get; set; }
+    [JsonPropertyName("acceptPairRequests")]
+    public bool? AcceptPairRequests { get; set; }
 }

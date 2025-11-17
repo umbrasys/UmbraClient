@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using UmbraSync.WebAPI.AutoDetect;
 using UmbraSync.MareConfiguration;
@@ -29,9 +30,9 @@ public class AutoDetectRequestService
     private readonly ConcurrentDictionary<string, PendingRequestInfo> _pendingRequests = new(StringComparer.Ordinal);
     private static readonly TimeSpan RequestCooldown = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan RefusalLockDuration = TimeSpan.FromMinutes(15);
-    private readonly ApiController _apiController;
+    private readonly Lazy<ApiController> _apiController;
 
-    public AutoDetectRequestService(ILogger<AutoDetectRequestService> logger, DiscoveryConfigProvider configProvider, DiscoveryApiClient client, MareConfigService configService, MareMediator mediator, DalamudUtilService dalamudUtilService, ApiController apiController)
+    public AutoDetectRequestService(ILogger<AutoDetectRequestService> logger, DiscoveryConfigProvider configProvider, DiscoveryApiClient client, MareConfigService configService, MareMediator mediator, DalamudUtilService dalamudUtilService, IServiceProvider serviceProvider)
     {
         _logger = logger;
         _configProvider = configProvider;
@@ -39,7 +40,7 @@ public class AutoDetectRequestService
         _configService = configService;
         _mediator = mediator;
         _dalamud = dalamudUtilService;
-        _apiController = apiController;
+        _apiController = new Lazy<ApiController>(() => serviceProvider.GetRequiredService<ApiController>());
     }
 
     public async Task<bool> SendRequestAsync(string? token, string? uid = null, string? targetDisplayName = null, CancellationToken ct = default)
@@ -260,7 +261,7 @@ public class AutoDetectRequestService
 
         try
         {
-            await _apiController.UserAddPair(new UserDto(new UserData(uid))).ConfigureAwait(false);
+            await _apiController.Value.UserAddPair(new UserDto(new UserData(uid))).ConfigureAwait(false);
 
             if (!string.IsNullOrEmpty(targetKey))
             {

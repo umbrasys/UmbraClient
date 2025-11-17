@@ -84,10 +84,15 @@ public class Pair : DisposableMediatorSubscriberBase
         {
             args.AddMenuItem(new MenuItem()
             {
-                Name = name,
+                Name = name + " [Umbra U]",
                 OnClicked = action,
-                PrefixColor = 526,
-                PrefixChar = 'S'
+                PrefixColor = 708,
+                PrefixChar = 'U',
+                UseDefaultPrefix = false,
+                IsEnabled = true,
+                IsSubmenu = false,
+                IsReturn = false,
+                Priority = 1,
             });
         }
 
@@ -130,6 +135,7 @@ public class Pair : DisposableMediatorSubscriberBase
             Add("Cycle pause state", _ => Mediator.Publish(new CyclePauseMessage(UserData)));
         }
     }
+
 
     public void ApplyData(OnlineUserCharaDataDto data)
     {

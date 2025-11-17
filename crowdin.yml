@@ -1,0 +1,11 @@
+project_id: "847142"
+base_path: "."
+base_url: "https://api.crowdin.com"
+preserve_hierarchy: true
+
+files:
+  - source: "/UmbraSync/Localization/Strings.resx"
+    translation: "/UmbraSync/Localization/Strings.%two_letters_code%.resx"
+    dest: "/Localization/Strings.resx"
+    skip_untranslated_strings: true
+    type: resx

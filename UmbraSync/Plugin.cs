@@ -27,6 +27,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using UmbraSync.Services.CharaData;
+using UmbraSync.Localization;
 
 using UmbraSync;
 
@@ -240,6 +241,14 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddHostedService(p => p.GetRequiredService<UmbraSync.Services.AutoDetect.AutoDetectSuppressionService>());
         })
         .Build();
+
+        var configService = _host.Services.GetRequiredService<MareConfigService>();
+        Loc.Initialize(configService.Current.UiLanguage);
+        if (!string.Equals(configService.Current.UiLanguage, Loc.CurrentLanguage, StringComparison.OrdinalIgnoreCase))
+        {
+            configService.Current.UiLanguage = Loc.CurrentLanguage;
+            configService.Save();
+        }
 
         try
         {

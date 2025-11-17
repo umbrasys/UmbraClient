@@ -1,0 +1,526 @@
+<?xml version='1.0' encoding='utf-8'?>
+<root xmlns:ns1="urn:schemas-microsoft-com:xml-msdata" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:schema id="root">
+    <xs:element name="root" ns1:IsDataSet="true">
+      <xs:complexType>
+        <xs:choice maxOccurs="unbounded">
+          <xs:element name="metadata">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="value" type="xsd:string" minOccurs="0" />
+              </xs:sequence>
+              <xs:attribute name="name" type="xsd:string" />
+              <xs:attribute name="type" type="xsd:string" />
+              <xs:attribute name="mimetype" type="xsd:string" />
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="assembly">
+            <xs:complexType>
+              <xs:attribute name="alias" type="xsd:string" />
+              <xs:attribute name="name" type="xsd:string" />
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="data">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="value" type="xsd:string" minOccurs="0" ns1:Ordinal="1" />
+                <xs:element name="comment" type="xsd:string" minOccurs="0" ns1:Ordinal="2" />
+              </xs:sequence>
+              <xs:attribute name="name" type="xsd:string" use="required" />
+              <xs:attribute name="type" type="xsd:string" />
+              <xs:attribute name="mimetype" type="xsd:string" />
+              <xs:attribute ref="xml:space" />
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="resheader">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="value" type="xsd:string" minOccurs="0" ns1:Ordinal="1" />
+              </xs:sequence>
+              <xs:attribute name="name" type="xsd:string" use="required" />
+            </xs:complexType>
+          </xs:element>
+        </xs:choice>
+      </xs:complexType>
+    </xs:element>
+  </xs:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="CompactUi.AddCharacter.AddCurrentWithKey" xml:space="preserve">
+    <value>Add current character with secret key</value>
+  </data>
+  <data name="CompactUi.AddCharacter.NoSecretKeys" xml:space="preserve">
+    <value>No secret keys are configured for the current server.</value>
+  </data>
+  <data name="CompactUi.AddCharacter.SecretKeyLabel" xml:space="preserve">
+    <value>Secret Key</value>
+  </data>
+  <data name="CompactUi.AddPair.OtherUidPlaceholder" xml:space="preserve">
+    <value>Other player's UID/Alias</value>
+  </data>
+  <data name="CompactUi.AddPair.OtherUserFallback" xml:space="preserve">
+    <value>other user</value>
+  </data>
+  <data name="CompactUi.AddPair.PairWithFormat" xml:space="preserve">
+    <value>Pair with {0}</value>
+  </data>
+  <data name="CompactUi.AutoDetect.PendingInvitation" xml:space="preserve">
+    <value>Pending AutoDetect invitation. Open the AutoDetect interface to manage your requests.</value>
+  </data>
+  <data name="CompactUi.Connection.ConnectTooltip" xml:space="preserve">
+    <value>Connect to {0}</value>
+  </data>
+  <data name="CompactUi.Connection.DisconnectTooltip" xml:space="preserve">
+    <value>Disconnect from {0}</value>
+  </data>
+  <data name="CompactUi.Connection.NoServer" xml:space="preserve">
+    <value>No server configured</value>
+  </data>
+  <data name="CompactUi.Filter.Placeholder" xml:space="preserve">
+    <value>Filter for UID/notes</value>
+  </data>
+  <data name="CompactUi.General.ConnectToServerNotice" xml:space="preserve">
+    <value>Connect to the server to access this section.</value>
+  </data>
+  <data name="CompactUi.IntroUi.Agreement.AccountRemoval" xml:space="preserve">
+    <value>Inactive accounts are deleted after 90 days for storage and privacy reasons.</value>
+  </data>
+  <data name="CompactUi.IntroUi.Agreement.AgeRequirement" xml:space="preserve">
+    <value>To use UmbraSync services you must be over 18 years old, or 21 in certain jurisdictions.</value>
+  </data>
+  <data name="CompactUi.IntroUi.Agreement.AgreeButton" xml:space="preserve">
+    <value>I agree</value>
+  </data>
+  <data name="CompactUi.IntroUi.Agreement.Bandwidth" xml:space="preserve">
+    <value>If you have a limited internet connection, additional charges may apply depending on how many files you send and receive. Files are compressed to save bandwidth, but varying speeds may delay syncing.</value>
+  </data>
+  <data name="CompactUi.IntroUi.Agreement.Caution" xml:space="preserve">
+    <value>The developer did their best to keep you safe, but there is no such thing as zero risk. Do not pair blindly with random people.</value>
+  </data>
+  <data name="CompactUi.IntroUi.Agreement.Deletion" xml:space="preserve">
+    <value>You can delete your account at any time. Your account and all associated data will be removed within 14 days.</value>
+  </data>
+  <data name="CompactUi.IntroUi.Agreement.Disclaimer" xml:space="preserve">
+    <value>This service is provided as-is.</value>
+  </data>
+  <data name="CompactUi.IntroUi.Agreement.Inactivity" xml:space="preserve">
+    <value>After a period of inactivity, mods stored on the UmbraSync server are automatically deleted.</value>
+  </data>
+  <data name="CompactUi.IntroUi.Agreement.Infrastructure" xml:space="preserve">
+    <value>UmbraSync infrastructure is hosted in the European Union (Germany) and Switzerland. Do not upload content that violates the laws of those countries.</value>
+  </data>
+  <data name="CompactUi.IntroUi.Agreement.ModUpload" xml:space="preserve">
+    <value>All mods currently active on your character and related states are automatically uploaded to the UmbraSync server you registered on. Only the files required for synchronization are transferred, not the full mod.</value>
+  </data>
+  <data name="CompactUi.IntroUi.Agreement.Privacy" xml:space="preserve">
+    <value>Uploaded files remain confidential and are only distributed to paired users who request the exact same files. Be careful who you pair with.</value>
+  </data>
+  <data name="CompactUi.IntroUi.Agreement.ReadHeader" xml:space="preserve">
+    <value>PLEASE READ ME</value>
+  </data>
+  <data name="CompactUi.IntroUi.Agreement.TimeoutLabel" xml:space="preserve">
+    <value>'I agree' button will be available in {0}s</value>
+  </data>
+  <data name="CompactUi.IntroUi.Agreement.Title" xml:space="preserve">
+    <value>Conditions d'utilisation</value>
+  </data>
+  <data name="CompactUi.IntroUi.ConnectionStatus.Connected" xml:space="preserve">
+    <value>Connected</value>
+  </data>
+  <data name="CompactUi.IntroUi.ConnectionStatus.Connecting" xml:space="preserve">
+    <value>Connecting</value>
+  </data>
+  <data name="CompactUi.IntroUi.ConnectionStatus.Disconnected" xml:space="preserve">
+    <value>Disconnected</value>
+  </data>
+  <data name="CompactUi.IntroUi.ConnectionStatus.Disconnecting" xml:space="preserve">
+    <value>Disconnecting</value>
+  </data>
+  <data name="CompactUi.IntroUi.ConnectionStatus.MultiChara" xml:space="preserve">
+    <value>Duplicate Characters</value>
+  </data>
+  <data name="CompactUi.IntroUi.ConnectionStatus.NoSecretKey" xml:space="preserve">
+    <value>No Secret Key</value>
+  </data>
+  <data name="CompactUi.IntroUi.ConnectionStatus.Offline" xml:space="preserve">
+    <value>Unavailable</value>
+  </data>
+  <data name="CompactUi.IntroUi.ConnectionStatus.RateLimited" xml:space="preserve">
+    <value>Rate Limited</value>
+  </data>
+  <data name="CompactUi.IntroUi.ConnectionStatus.Reconnecting" xml:space="preserve">
+    <value>Reconnecting</value>
+  </data>
+  <data name="CompactUi.IntroUi.ConnectionStatus.Unauthorized" xml:space="preserve">
+    <value>Unauthorized</value>
+  </data>
+  <data name="CompactUi.IntroUi.ConnectionStatus.VersionMismatch" xml:space="preserve">
+    <value>Version mismatch</value>
+  </data>
+  <data name="CompactUi.IntroUi.SecretKey.DisplayLabel" xml:space="preserve">
+    <value>Secret Key</value>
+  </data>
+  <data name="CompactUi.IntroUi.SecretKey.EnterLabel" xml:space="preserve">
+    <value>Enter Secret Key</value>
+  </data>
+  <data name="CompactUi.IntroUi.SecretKey.ExistingAccountInfo" xml:space="preserve">
+    <value>If you already have a registered account, enter its secret key below to use it.</value>
+  </data>
+  <data name="CompactUi.IntroUi.SecretKey.FormatError" xml:space="preserve">
+    <value>Your secret key can only contain ABCDEF and the numbers 0-9.</value>
+  </data>
+  <data name="CompactUi.IntroUi.SecretKey.FriendlyNameDefault" xml:space="preserve">
+    <value>Secret Key added on Setup ({0:yyyy-MM-dd})</value>
+  </data>
+  <data name="CompactUi.IntroUi.SecretKey.FriendlyNameRegistered" xml:space="preserve">
+    <value>{0} (registered {1:yyyy-MM-dd})</value>
+  </data>
+  <data name="CompactUi.IntroUi.SecretKey.LengthError" xml:space="preserve">
+    <value>Your secret key must be exactly 64 characters long.</value>
+  </data>
+  <data name="CompactUi.IntroUi.SecretKey.SaveConnectButton" xml:space="preserve">
+    <value>Save and Connect</value>
+  </data>
+  <data name="CompactUi.IntroUi.Service.RegisterButton" xml:space="preserve">
+    <value>Register a new Umbra account</value>
+  </data>
+  <data name="CompactUi.IntroUi.Service.RegisterErrorUnknown" xml:space="preserve">
+    <value>An unknown error occured. Please try again later.</value>
+  </data>
+  <data name="CompactUi.IntroUi.Service.RegisterInfo" xml:space="preserve">
+    <value>If you have not used Umbra before, click below to register a new account.</value>
+  </data>
+  <data name="CompactUi.IntroUi.Service.RegisterIntro" xml:space="preserve">
+    <value>To be able to use Umbra you will have to register an account.</value>
+  </data>
+  <data name="CompactUi.IntroUi.Service.RegisterSending" xml:space="preserve">
+    <value>Sending request...</value>
+  </data>
+  <data name="CompactUi.IntroUi.Service.RegisterSuccess" xml:space="preserve">
+    <value>New account registered.
+Please keep a copy of your secret key in case you need to reset your plugins, or to use it on another PC.</value>
+  </data>
+  <data name="CompactUi.IntroUi.Service.RegisterSupport" xml:space="preserve">
+    <value>Refer to the instructions at the location you obtained this plugin for more information or support.</value>
+  </data>
+  <data name="CompactUi.IntroUi.Service.Title" xml:space="preserve">
+    <value>Service Registration</value>
+  </data>
+  <data name="CompactUi.IntroUi.Storage.Description" xml:space="preserve">
+    <value>To not unnecessary download files already present on your computer, Umbra will have to scan your Penumbra mod directory. Additionally, a local storage folder must be set where Umbra will download other character files to. Once the storage folder is set and the scan complete, this page will automatically forward to registration at a service.</value>
+  </data>
+  <data name="CompactUi.IntroUi.Storage.InvalidPenumbraPath" xml:space="preserve">
+    <value>You do not have a valid Penumbra path set. Open Penumbra and set up a valid path for the mod directory.</value>
+  </data>
+  <data name="CompactUi.IntroUi.Storage.Note" xml:space="preserve">
+    <value>Note: The initial scan, depending on the amount of mods you have, might take a while. Please wait until it is completed.</value>
+  </data>
+  <data name="CompactUi.IntroUi.Storage.StartScanButton" xml:space="preserve">
+    <value>Start Scan</value>
+  </data>
+  <data name="CompactUi.IntroUi.Storage.Title" xml:space="preserve">
+    <value>File Storage Setup</value>
+  </data>
+  <data name="CompactUi.IntroUi.Storage.UseCompactorDescription" xml:space="preserve">
+    <value>The File Compactor can save a tremendeous amount of space on the hard disk for downloads through Umbra. It will incur a minor CPU penalty on download but can speed up loading of other characters. It is recommended to keep it enabled. You can change this setting later anytime in the Umbra settings.</value>
+  </data>
+  <data name="CompactUi.IntroUi.Storage.UseCompactorLabel" xml:space="preserve">
+    <value>Use File Compactor</value>
+  </data>
+  <data name="CompactUi.IntroUi.Storage.WarningFileCache" xml:space="preserve">
+    <value>Warning: once past this step you should not delete the FileCache.csv of Umbra in the Plugin Configurations folder of Dalamud. Otherwise on the next launch a full re-scan of the file cache database will be initiated.</value>
+  </data>
+  <data name="CompactUi.IntroUi.Storage.WarningScan" xml:space="preserve">
+    <value>Warning: if the scan is hanging and does nothing for a long time, chances are high your Penumbra folder is not set up properly.</value>
+  </data>
+  <data name="CompactUi.IntroUi.Welcome.Description" xml:space="preserve">
+    <value>Umbra is a plugin that will replicate your full current character state including all Penumbra mods to other paired users. Note that you will have to have Penumbra as well as Glamourer installed to use this plugin.</value>
+  </data>
+  <data name="CompactUi.IntroUi.Welcome.ModNote" xml:space="preserve">
+    <value>Note: Any modifications you have applied through anything but Penumbra cannot be shared and your character state on other clients might look broken because of this or others players mods might not apply on your end altogether. If you want to use this plugin you will have to move your mods to Penumbra.</value>
+  </data>
+  <data name="CompactUi.IntroUi.Welcome.NextButton" xml:space="preserve">
+    <value>Next</value>
+  </data>
+  <data name="CompactUi.IntroUi.Welcome.SetupInfo" xml:space="preserve">
+    <value>We will have to setup a few things first before you can start using this plugin. Click on next to continue.</value>
+  </data>
+  <data name="CompactUi.IntroUi.Welcome.Title" xml:space="preserve">
+    <value>Welcome to Umbra</value>
+  </data>
+  <data name="CompactUi.IntroUi.WindowTitle" xml:space="preserve">
+    <value>Umbra Setup</value>
+  </data>
+  <data name="CompactUi.Nearby.Header" xml:space="preserve">
+    <value>Nearby ({0})</value>
+  </data>
+  <data name="CompactUi.Nearby.InviteTooltip" xml:space="preserve">
+    <value>Send pairing invitation</value>
+  </data>
+  <data name="CompactUi.Nearby.Table.Action" xml:space="preserve">
+    <value>Action</value>
+  </data>
+  <data name="CompactUi.Nearby.Table.Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="CompactUi.NewUserModal.Description" xml:space="preserve">
+    <value>You have successfully added {0}. Set a local note for the user below:</value>
+  </data>
+  <data name="CompactUi.NewUserModal.NotePlaceholder" xml:space="preserve">
+    <value>Note for {0}</value>
+  </data>
+  <data name="CompactUi.NewUserModal.SaveButton" xml:space="preserve">
+    <value>Save Note</value>
+  </data>
+  <data name="CompactUi.NewUserModal.Title" xml:space="preserve">
+    <value>Set Notes for New User</value>
+  </data>
+  <data name="CompactUi.Notifications.Accept" xml:space="preserve">
+    <value>Accept</value>
+  </data>
+  <data name="CompactUi.Notifications.AcceptFailed" xml:space="preserve">
+    <value>Unable to accept invitation {0}.</value>
+  </data>
+  <data name="CompactUi.Notifications.AutoDetectTitle" xml:space="preserve">
+    <value>AutoDetect</value>
+  </data>
+  <data name="CompactUi.Notifications.Clear" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="CompactUi.Notifications.Decline" xml:space="preserve">
+    <value>Decline</value>
+  </data>
+  <data name="CompactUi.Notifications.Empty" xml:space="preserve">
+    <value>No pending notifications.</value>
+  </data>
+  <data name="CompactUi.Pairs.MultiToggleTooltip" xml:space="preserve">
+    <value>Hold Control to {0} pairing with {1} out of {2} displayed users.</value>
+  </data>
+  <data name="CompactUi.Pairs.NextExecutionTooltip" xml:space="preserve">
+    <value>Next execution available in {0} seconds</value>
+  </data>
+  <data name="CompactUi.Pairs.PauseAction" xml:space="preserve">
+    <value>pause</value>
+  </data>
+  <data name="CompactUi.Pairs.ResumeAction" xml:space="preserve">
+    <value>resume</value>
+  </data>
+  <data name="CompactUi.Pairs.VisibleEmpty" xml:space="preserve">
+    <value>It's far too quiet here... No one around at the moment.</value>
+  </data>
+  <data name="CompactUi.Pairs.VisibleHeader" xml:space="preserve">
+    <value>Visible ({0})</value>
+  </data>
+  <data name="CompactUi.SelfAnalysis.AnalyzingStatus" xml:space="preserve">
+    <value>Analyzing ({0}/{1})...</value>
+  </data>
+  <data name="CompactUi.SelfAnalysis.CancelButton" xml:space="preserve">
+    <value>Cancel analysis</value>
+  </data>
+  <data name="CompactUi.SelfAnalysis.CancelTooltip" xml:space="preserve">
+    <value>Stop the ongoing analysis.</value>
+  </data>
+  <data name="CompactUi.SelfAnalysis.Header" xml:space="preserve">
+    <value>Self Analysis</value>
+  </data>
+  <data name="CompactUi.SelfAnalysis.LastAnalysis.At" xml:space="preserve">
+    <value>Last analysis: {0}</value>
+  </data>
+  <data name="CompactUi.SelfAnalysis.LastAnalysis.InProgress" xml:space="preserve">
+    <value>Last analysis: in progress...</value>
+  </data>
+  <data name="CompactUi.SelfAnalysis.LastAnalysis.Never" xml:space="preserve">
+    <value>Last analysis: never</value>
+  </data>
+  <data name="CompactUi.SelfAnalysis.NoData" xml:space="preserve">
+    <value>No data analyzed yet. Start an analysis to generate this overview.</value>
+  </data>
+  <data name="CompactUi.SelfAnalysis.OpenDetailsButton" xml:space="preserve">
+    <value>Open detailed analysis</value>
+  </data>
+  <data name="CompactUi.SelfAnalysis.RecalculateButton" xml:space="preserve">
+    <value>Recalculate analysis</value>
+  </data>
+  <data name="CompactUi.SelfAnalysis.RecalculateTooltip" xml:space="preserve">
+    <value>Recalculates all entries to update shared sizes.</value>
+  </data>
+  <data name="CompactUi.SelfAnalysis.StartButton" xml:space="preserve">
+    <value>Start analysis</value>
+  </data>
+  <data name="CompactUi.SelfAnalysis.StartTooltip" xml:space="preserve">
+    <value>Analyzes your current files to estimate shared data weight.</value>
+  </data>
+  <data name="CompactUi.SelfAnalysis.Stat.CompressedSize" xml:space="preserve">
+    <value>Compressed size</value>
+  </data>
+  <data name="CompactUi.SelfAnalysis.Stat.ExtractedSize" xml:space="preserve">
+    <value>Extracted size</value>
+  </data>
+  <data name="CompactUi.SelfAnalysis.Stat.Files" xml:space="preserve">
+    <value>Modded files</value>
+  </data>
+  <data name="CompactUi.SelfAnalysis.Stat.Triangles" xml:space="preserve">
+    <value>Modded triangles</value>
+  </data>
+  <data name="CompactUi.SelfAnalysis.Tooltip.ComputeSizes" xml:space="preserve">
+    <value>Start the analysis to calculate the exact download size.</value>
+  </data>
+  <data name="CompactUi.SelfAnalysis.Tooltip.SizeWarning" xml:space="preserve">
+    <value>Above 300 MiB, some players may not see all your modifications.</value>
+  </data>
+  <data name="CompactUi.SelfAnalysis.Tooltip.TriangleWarning" xml:space="preserve">
+    <value>More than 150k triangles may trigger auto-pause and impact performance.</value>
+  </data>
+  <data name="CompactUi.SelfAnalysis.UncomputedWarning" xml:space="preserve">
+    <value>Some entries do not have a calculated size yet. Run the analysis to complete the data.</value>
+  </data>
+  <data name="CompactUi.ServerErrors.AttemptingToConnect" xml:space="preserve">
+    <value>Attempting to connect to the server.</value>
+  </data>
+  <data name="CompactUi.ServerErrors.Disconnected" xml:space="preserve">
+    <value>You are currently disconnected from the sync server.</value>
+  </data>
+  <data name="CompactUi.ServerErrors.Disconnecting" xml:space="preserve">
+    <value>Disconnecting from the server</value>
+  </data>
+  <data name="CompactUi.ServerErrors.MultiChara" xml:space="preserve">
+    <value>Your configuration contains multiple characters with the same name and world. You cannot connect until this is fixed. Remove duplicates in Settings → Service Settings → Character Management.</value>
+  </data>
+  <data name="CompactUi.ServerErrors.NoSecretKey" xml:space="preserve">
+    <value>You have no secret key set for this character. Use the button below or open settings to set one. You can reuse the same secret key across characters.</value>
+  </data>
+  <data name="CompactUi.ServerErrors.Offline" xml:space="preserve">
+    <value>Your selected sync server is currently offline.</value>
+  </data>
+  <data name="CompactUi.ServerErrors.RateLimited" xml:space="preserve">
+    <value>You are rate limited for connecting too often. Disconnect, wait 10 minutes, and try again.</value>
+  </data>
+  <data name="CompactUi.ServerErrors.Reconnecting" xml:space="preserve">
+    <value>Connection interrupted, attempting to reconnect.</value>
+  </data>
+  <data name="CompactUi.ServerErrors.Unauthorized" xml:space="preserve">
+    <value>Server Response: {0}</value>
+  </data>
+  <data name="CompactUi.ServerErrors.VersionMismatch" xml:space="preserve">
+    <value>Your plugin or server is out of date. Update your plugin now. If already updated, contact the server provider.</value>
+  </data>
+  <data name="CompactUi.ServerStatus.NotConnected" xml:space="preserve">
+    <value>Not connected to any server</value>
+  </data>
+  <data name="CompactUi.ServerStatus.ShardLabel" xml:space="preserve">
+    <value>Shard: {0}</value>
+  </data>
+  <data name="CompactUi.ServerStatus.UsersOnline" xml:space="preserve">
+    <value>Users Online</value>
+  </data>
+  <data name="CompactUi.Sidebar.AutoDetect" xml:space="preserve">
+    <value>AutoDetect</value>
+  </data>
+  <data name="CompactUi.Sidebar.AutoDetectPending" xml:space="preserve">
+    <value>AutoDetect — {0} pending invitation(s)</value>
+  </data>
+  <data name="CompactUi.Sidebar.CharacterAnalysis" xml:space="preserve">
+    <value>Character Analysis</value>
+  </data>
+  <data name="CompactUi.Sidebar.CharacterDataHub" xml:space="preserve">
+    <value>Character Data Hub</value>
+  </data>
+  <data name="CompactUi.Sidebar.EditProfile" xml:space="preserve">
+    <value>Edit Profile</value>
+  </data>
+  <data name="CompactUi.Sidebar.IndividualPairs" xml:space="preserve">
+    <value>Individual pairs</value>
+  </data>
+  <data name="CompactUi.Sidebar.Notifications" xml:space="preserve">
+    <value>Notifications</value>
+  </data>
+  <data name="CompactUi.Sidebar.Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="CompactUi.Sidebar.Syncshells" xml:space="preserve">
+    <value>Syncshells</value>
+  </data>
+  <data name="CompactUi.Sidebar.VisiblePairs" xml:space="preserve">
+    <value>Visible pairs</value>
+  </data>
+  <data name="CompactUi.SyncDefaults.AnimationLabel" xml:space="preserve">
+    <value>Anim</value>
+  </data>
+  <data name="CompactUi.SyncDefaults.AnimationSubject" xml:space="preserve">
+    <value>animations</value>
+  </data>
+  <data name="CompactUi.SyncDefaults.AudioLabel" xml:space="preserve">
+    <value>Audio</value>
+  </data>
+  <data name="CompactUi.SyncDefaults.AudioSubject" xml:space="preserve">
+    <value>audio</value>
+  </data>
+  <data name="CompactUi.SyncDefaults.AutoDetectPending" xml:space="preserve">
+    <value>AutoDetect: {0} pending invitation(s). Use the AutoDetect icon in the sidebar to respond.</value>
+  </data>
+  <data name="CompactUi.SyncDefaults.State.Disabled" xml:space="preserve">
+    <value>disabled</value>
+  </data>
+  <data name="CompactUi.SyncDefaults.State.Enabled" xml:space="preserve">
+    <value>enabled</value>
+  </data>
+  <data name="CompactUi.SyncDefaults.Tooltip" xml:space="preserve">
+    <value>Default {0} sync: {1}.
+Click to change.</value>
+  </data>
+  <data name="CompactUi.SyncDefaults.VfxLabel" xml:space="preserve">
+    <value>VFX</value>
+  </data>
+  <data name="CompactUi.SyncDefaults.VfxSubject" xml:space="preserve">
+    <value>visual effects</value>
+  </data>
+  <data name="CompactUi.Uid.CopyTooltip" xml:space="preserve">
+    <value>Copy your UID to clipboard</value>
+  </data>
+  <data name="CompactUi.UidStatus.Connecting" xml:space="preserve">
+    <value>Connecting</value>
+  </data>
+  <data name="CompactUi.UidStatus.Disconnected" xml:space="preserve">
+    <value>Disconnected</value>
+  </data>
+  <data name="CompactUi.UidStatus.Disconnecting" xml:space="preserve">
+    <value>Disconnecting</value>
+  </data>
+  <data name="CompactUi.UidStatus.MultiChara" xml:space="preserve">
+    <value>Duplicate Characters</value>
+  </data>
+  <data name="CompactUi.UidStatus.NoSecretKey" xml:space="preserve">
+    <value>No Secret Key</value>
+  </data>
+  <data name="CompactUi.UidStatus.Offline" xml:space="preserve">
+    <value>Unavailable</value>
+  </data>
+  <data name="CompactUi.UidStatus.RateLimited" xml:space="preserve">
+    <value>Rate Limited</value>
+  </data>
+  <data name="CompactUi.UidStatus.Reconnecting" xml:space="preserve">
+    <value>Reconnecting</value>
+  </data>
+  <data name="CompactUi.UidStatus.Unauthorized" xml:space="preserve">
+    <value>Unauthorized</value>
+  </data>
+  <data name="CompactUi.UidStatus.VersionMismatch" xml:space="preserve">
+    <value>Version mismatch</value>
+  </data>
+  <data name="CompactUi.UnsupportedVersion.Message" xml:space="preserve">
+    <value>Your UmbraSync installation is out of date, current version is {0}. It is recommended to keep UmbraSync updated. Open /xlplugins and update the plugin.</value>
+  </data>
+  <data name="CompactUi.UnsupportedVersion.Title" xml:space="preserve">
+    <value>UNSUPPORTED VERSION</value>
+  </data>
+<data name="ContextMenu.AutoDetect.SendRequest" xml:space="preserve"><value>Send Umbra pairing request [Umbra U]</value></data><data name="ContextMenu.AutoDetect.AddPair" xml:space="preserve"><value>Add as Umbra pair [Umbra +]</value></data></root>

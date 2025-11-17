@@ -70,6 +70,7 @@ public class MareConfig : IMareConfiguration
     public bool ShowUploading { get; set; } = true;
     public bool ShowUploadingBigText { get; set; } = true;
     public bool ShowVisibleUsersSeparately { get; set; } = true;
+    public string UiLanguage { get; set; } = "fr";
     public string LastChangelogVersionSeen { get; set; } = string.Empty;
     public bool DefaultDisableSounds { get; set; } = false;
     public bool DefaultDisableAnimations { get; set; } = false;

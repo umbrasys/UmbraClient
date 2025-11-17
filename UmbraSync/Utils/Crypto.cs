@@ -5,14 +5,10 @@ namespace UmbraSync.Utils;
 
 public static class Crypto
 {
-#pragma warning disable SYSLIB0021 // Type or member is obsolete
-
-    private static readonly SHA256CryptoServiceProvider _sha256CryptoProvider = new();
-
     public static string GetFileHash(this string filePath)
     {
-        using SHA1CryptoServiceProvider cryptoProvider = new();
-        return BitConverter.ToString(cryptoProvider.ComputeHash(File.ReadAllBytes(filePath))).Replace("-", "", StringComparison.Ordinal);
+        using SHA1 sha1 = SHA1.Create();
+        return BitConverter.ToString(sha1.ComputeHash(File.ReadAllBytes(filePath))).Replace("-", "", StringComparison.Ordinal);
     }
 
     public static string GetHash256(this string stringToHash)
@@ -22,7 +18,9 @@ public static class Crypto
 
     private static string GetOrComputeHashSHA256(string stringToCompute)
     {
-        return BitConverter.ToString(_sha256CryptoProvider.ComputeHash(Encoding.UTF8.GetBytes(stringToCompute))).Replace("-", "", StringComparison.Ordinal);
+        ArgumentNullException.ThrowIfNull(stringToCompute);
+
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(stringToCompute));
+        return BitConverter.ToString(hash).Replace("-", "", StringComparison.Ordinal);
     }
-#pragma warning restore SYSLIB0021 // Type or member is obsolete
 }
