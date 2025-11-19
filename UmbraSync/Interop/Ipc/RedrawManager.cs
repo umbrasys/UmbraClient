@@ -29,7 +29,7 @@ public class RedrawManager : IDisposable
         try
         {
             using CancellationTokenSource cancelToken = new CancellationTokenSource();
-            using CancellationTokenSource combinedCts = CancellationTokenSource.CreateLinkedTokenSource(cancelToken.Token, token, EnsureFreshCts(ref _disposalCts).Token);
+            using CancellationTokenSource combinedCts = CancellationTokenSource.CreateLinkedTokenSource(cancelToken.Token, token, EnsureActiveCts(ref _disposalCts).Token);
             var combinedToken = combinedCts.Token;
             cancelToken.CancelAfter(TimeSpan.FromSeconds(15));
             await handler.ActOnFrameworkAfterEnsureNoDrawAsync(action, combinedToken).ConfigureAwait(false);
@@ -65,11 +65,27 @@ public class RedrawManager : IDisposable
         _disposed = true;
     }
 
-    private static CancellationTokenSource EnsureFreshCts(ref CancellationTokenSource? cts)
+    private static CancellationTokenSource EnsureActiveCts(ref CancellationTokenSource? cts)
+    {
+        if (cts == null)
+        {
+            cts = new CancellationTokenSource();
+            return cts;
+        }
+
+        if (cts.IsCancellationRequested)
+        {
+            cts.Dispose();
+            cts = new CancellationTokenSource();
+        }
+
+        return cts;
+    }
+
+    private static void EnsureFreshCts(ref CancellationTokenSource? cts)
     {
         CancelAndDispose(ref cts);
         cts = new CancellationTokenSource();
-        return cts;
     }
 
     private static void CancelAndDispose(ref CancellationTokenSource? cts)
