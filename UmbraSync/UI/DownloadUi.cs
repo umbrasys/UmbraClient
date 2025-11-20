@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Numerics;
 using UmbraSync.Localization;
+using System;
 using System.Globalization;
 
 namespace UmbraSync.UI;
@@ -149,8 +150,9 @@ public class DownloadUi : WindowMediatorSubscriberBase
 
                 var totalBytes = transfer.Value.Sum(c => c.Value.TotalBytes);
                 var transferredBytes = transfer.Value.Sum(c => c.Value.TransferredBytes);
+                var displayTotalBytes = Math.Max(totalBytes, transferredBytes);
 
-                var maxDlText = $"{UiSharedService.ByteToString(totalBytes, addSuffix: false)}/{UiSharedService.ByteToString(totalBytes)}";
+                var maxDlText = $"{UiSharedService.ByteToString(displayTotalBytes, addSuffix: false)}/{UiSharedService.ByteToString(displayTotalBytes)}";
                 var textSize = _configService.Current.TransferBarsShowText ? ImGui.CalcTextSize(maxDlText) : new Vector2(10, 10);
 
                 int dlBarHeight = _configService.Current.TransferBarsHeight > ((int)textSize.Y + 5) ? _configService.Current.TransferBarsHeight : (int)textSize.Y + 5;
@@ -168,14 +170,16 @@ public class DownloadUi : WindowMediatorSubscriberBase
                     UiSharedService.Color(230, 200, 255, transparency), 1);
                 drawList.AddRectFilled(dlBarStart, dlBarEnd,
                     UiSharedService.Color(0, 0, 0, transparency), 1);
-                var dlProgressPercent = transferredBytes / (double)totalBytes;
+                var dlProgressPercent = displayTotalBytes == 0
+                    ? 0
+                    : Math.Min(transferredBytes / (double)displayTotalBytes, 1);
                 drawList.AddRectFilled(dlBarStart,
                     dlBarEnd with { X = dlBarStart.X + (float)(dlProgressPercent * dlBarWidth) },
                     UiSharedService.Color(160, 64, 255, transparency), 1);
 
                 if (_configService.Current.TransferBarsShowText)
                 {
-                    var downloadText = $"{UiSharedService.ByteToString(transferredBytes, addSuffix: false)}/{UiSharedService.ByteToString(totalBytes)}";
+                    var downloadText = $"{UiSharedService.ByteToString(transferredBytes, addSuffix: false)}/{UiSharedService.ByteToString(displayTotalBytes)}";
                     UiSharedService.DrawOutlinedFont(drawList, downloadText,
                         screenPos with { X = screenPos.X - textSize.X / 2f - 1, Y = screenPos.Y - textSize.Y / 2f - 1 },
                         UiSharedService.Color(255, 255, 255, transparency),

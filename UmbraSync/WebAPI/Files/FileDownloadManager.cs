@@ -325,6 +325,10 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
                     {
                         if (!_downloadStatus.TryGetValue(fileGroup.Key, out FileDownloadStatus? value)) return;
                         value.TransferredBytes += bytesDownloaded;
+                        if (value.TransferredBytes > value.TotalBytes)
+                        {
+                            value.TotalBytes = value.TransferredBytes;
+                        }
                     }
                     catch (Exception ex)
                     {

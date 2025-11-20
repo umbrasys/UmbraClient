@@ -366,13 +366,13 @@ public class DalamudUtilService : IHostedService, IMediatorSubscriber
     public uint GetHomeWorldId()
     {
         EnsureIsOnFramework();
-        return _clientState.LocalPlayer!.HomeWorld.RowId;
+        return _clientState.LocalPlayer?.HomeWorld.RowId ?? 0;
     }
 
     public uint GetWorldId()
     {
         EnsureIsOnFramework();
-        return _clientState.LocalPlayer!.CurrentWorld.RowId;
+        return _clientState.LocalPlayer?.CurrentWorld.RowId ?? 0;
     }
 
     public unsafe LocationInfo GetMapData()
