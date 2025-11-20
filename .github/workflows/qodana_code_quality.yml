@@ -57,8 +57,14 @@ jobs:
             --linter jetbrains/qodana-dotnet:2025.2 \
             --baseline baseline.sarif.json \
             --results-dir .qodana/results \
-            --cache-dir .qodana/cache \
-            --upload
+            --cache-dir .qodana/cache
+
+      - name: Qodana Upload to Cloud
+        env:
+          QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
+          QODANA_ENDPOINT: https://qodana.cloud
+        run: |
+          qodana send --results-dir .qodana/results
 
       - name: Commit baseline if generated
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'

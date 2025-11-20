@@ -68,7 +68,22 @@ public class DalamudUtilService : IHostedService, IMediatorSubscriber
     private bool _sentBetweenAreas = false;
     private static readonly Dictionary<uint, PlayerInfo> _playerInfoCache = new();
 
-    private IPlayerCharacter? LocalPlayer => _clientState.LocalPlayer;
+    // Prefer IObjectTable.LocalPlayer when available (newer Dalamud),
+    // otherwise fall back to obsolete IClientState.LocalPlayer (suppressed) for compatibility.
+    private IPlayerCharacter? LocalPlayer
+    {
+        get
+        {
+            var prop = _objectTable.GetType().GetProperty("LocalPlayer");
+            if (prop != null)
+            {
+                return prop.GetValue(_objectTable) as IPlayerCharacter;
+            }
+#pragma warning disable CS0618 // Type or member is obsolete
+            return _clientState.LocalPlayer;
+#pragma warning restore CS0618
+        }
+    }
 
 
     public DalamudUtilService(ILogger<DalamudUtilService> logger, IClientState clientState, IObjectTable objectTable, IFramework framework,

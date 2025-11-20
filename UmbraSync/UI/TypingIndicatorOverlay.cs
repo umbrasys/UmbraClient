@@ -42,7 +42,22 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
     private readonly PairManager _pairManager;
     private readonly IPartyList _partyList;
     private readonly IObjectTable _objectTable;
-    private IPlayerCharacter? LocalPlayer => _clientState.LocalPlayer;
+    // Prefer IObjectTable.LocalPlayer when available (newer Dalamud),
+    // otherwise fall back to obsolete IClientState.LocalPlayer (suppressed) for compatibility.
+    private IPlayerCharacter? LocalPlayer
+    {
+        get
+        {
+            var prop = _objectTable.GetType().GetProperty("LocalPlayer");
+            if (prop != null)
+            {
+                return prop.GetValue(_objectTable) as IPlayerCharacter;
+            }
+#pragma warning disable CS0618 // Type or member is obsolete
+            return _clientState.LocalPlayer;
+#pragma warning restore CS0618
+        }
+    }
     private readonly DalamudUtilService _dalamudUtil;
     private readonly TypingIndicatorStateService _typingStateService;
     private readonly ApiController _apiController;
