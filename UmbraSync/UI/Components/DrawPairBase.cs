@@ -43,7 +43,7 @@ public abstract class DrawPairBase
 
         float pauseClusterWidth = Math.Max(pauseButtonSize.X, playButtonSize.X);
         float pauseClusterHeight = Math.Max(Math.Max(pauseButtonSize.Y, playButtonSize.Y), ImGui.GetFrameHeight());
-        float reservedSpacing = style.ItemSpacing.X * 1.6f;
+        float reservedSpacing = style.ItemSpacing.X * 3f + style.FramePadding.X;
         float rightButtonWidth =
             menuButtonSize.X +
             pauseClusterWidth +

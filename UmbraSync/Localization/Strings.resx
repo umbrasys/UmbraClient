@@ -303,6 +303,9 @@ Please keep a copy of your secret key in case you need to reset your plugins, or
   <data name="CompactUi.Notifications.Empty" xml:space="preserve">
     <value>No pending notifications.</value>
   </data>
+  <data name="CompactUi.Notifications.EmptyTooltip" xml:space="preserve">
+    <value>No notifications</value>
+  </data>
   <data name="CompactUi.Pairs.MultiToggleTooltip" xml:space="preserve">
     <value>Hold Control to {0} pairing with {1} out of {2} displayed users.</value>
   </data>
@@ -317,6 +320,9 @@ Please keep a copy of your secret key in case you need to reset your plugins, or
   </data>
   <data name="CompactUi.Pairs.VisibleEmpty" xml:space="preserve">
     <value>It's far too quiet here... No one around at the moment.</value>
+  </data>
+  <data name="CompactUi.Pairs.VisibleEmptyTooltip" xml:space="preserve">
+    <value>No visible pairs</value>
   </data>
   <data name="CompactUi.Pairs.VisibleHeader" xml:space="preserve">
     <value>Visible ({0})</value>
@@ -444,6 +450,9 @@ Please keep a copy of your secret key in case you need to reset your plugins, or
   <data name="CompactUi.Sidebar.Notifications" xml:space="preserve">
     <value>Notifications</value>
   </data>
+  <data name="CompactUi.Sidebar.NotificationsEmpty" xml:space="preserve">
+    <value>No notifications</value>
+  </data>
   <data name="CompactUi.Sidebar.Settings" xml:space="preserve">
     <value>Settings</value>
   </data>
@@ -452,6 +461,318 @@ Please keep a copy of your secret key in case you need to reset your plugins, or
   </data>
   <data name="CompactUi.Sidebar.VisiblePairs" xml:space="preserve">
     <value>Visible pairs</value>
+  </data>
+  <data name="CompactUi.Sidebar.VisiblePairsEmpty" xml:space="preserve">
+    <value>No visible pairs</value>
+  </data>
+  <data name="PairGroups.Pause.All" xml:space="preserve">
+    <value>Pause pairing with all pairs in {0}</value>
+  </data>
+  <data name="PairGroups.Pause.ResumeAll" xml:space="preserve">
+    <value>Resume pairing with all pairs in {0}</value>
+  </data>
+  <data name="PairGroups.AddPeople" xml:space="preserve">
+    <value>Add people to {0}</value>
+  </data>
+  <data name="PairGroups.AddPeopleTooltip" xml:space="preserve">
+    <value>Add more users to Group {0}</value>
+  </data>
+  <data name="PairGroups.DeleteGroup" xml:space="preserve">
+    <value>Delete {0}</value>
+  </data>
+  <data name="PairGroups.DeleteGroupTooltip" xml:space="preserve">
+    <value>Delete Group {0} (Will not delete the pairs)</value>
+  </data>
+  <data name="PairGroups.DeleteGroupTooltip.Ctrl" xml:space="preserve">
+    <value>Hold CTRL to delete</value>
+  </data>
+  <data name="PairGroups.Tag.Unpaired" xml:space="preserve">
+    <value>Unpaired</value>
+  </data>
+  <data name="PairGroups.Tag.Offline" xml:space="preserve">
+    <value>Offline</value>
+  </data>
+  <data name="PairGroups.Tag.Online" xml:space="preserve">
+    <value>Online</value>
+  </data>
+  <data name="PairGroups.Tag.Contacts" xml:space="preserve">
+    <value>Contacts</value>
+  </data>
+  <data name="PairGroups.Tag.Visible" xml:space="preserve">
+    <value>Visible</value>
+  </data>
+  <data name="PairGroups.FolderName" xml:space="preserve">
+    <value>{0} ({1}/{2}/{3} Pairs)</value>
+  </data>
+  <data name="PairGroups.FolderNameNoTotal" xml:space="preserve">
+    <value>{0} ({1} Pairs)</value>
+  </data>
+  <data name="PairGroups.Tooltip.Group" xml:space="preserve">
+    <value>Group {0}</value>
+  </data>
+  <data name="PairGroups.Tooltip.Visible" xml:space="preserve">
+    <value>{0} Pairs visible</value>
+  </data>
+  <data name="PairGroups.Tooltip.Online" xml:space="preserve">
+    <value>{0} Pairs online/paused</value>
+  </data>
+  <data name="PairGroups.Tooltip.Total" xml:space="preserve">
+    <value>{0} Pairs total</value>
+  </data>
+  <data name="DrawUserPair.Online" xml:space="preserve">
+    <value>User is online</value>
+  </data>
+  <data name="DrawUserPair.Offline" xml:space="preserve">
+    <value>User is offline</value>
+  </data>
+  <data name="DrawUserPair.NotMutual" xml:space="preserve">
+    <value>{0} has not added you back</value>
+  </data>
+  <data name="DrawUserPair.Paused" xml:space="preserve">
+    <value>Pairing with {0} is paused</value>
+  </data>
+  <data name="DrawUserPair.VisibleHeader" xml:space="preserve">
+    <value>{0} is visible: {1}</value>
+  </data>
+  <data name="DrawUserPair.VisibleTarget" xml:space="preserve">
+    <value>Click to target this player</value>
+  </data>
+  <data name="DrawUserPair.VisibleLastPrefix" xml:space="preserve">
+    <value>(Last) </value>
+  </data>
+  <data name="DrawUserPair.VisibleMods" xml:space="preserve">
+    <value>Mods Info</value>
+  </data>
+  <data name="DrawUserPair.VisibleFiles" xml:space="preserve">
+    <value>Files Size: {0}</value>
+  </data>
+  <data name="DrawUserPair.VisibleVram" xml:space="preserve">
+    <value>Approx. VRAM Usage: {0}</value>
+  </data>
+  <data name="DrawUserPair.VisibleTris" xml:space="preserve">
+    <value>Triangle Count (excl. Vanilla): {0}</value>
+  </data>
+  <data name="DrawUserPair.Pause" xml:space="preserve">
+    <value>Pause pairing with {0}</value>
+  </data>
+  <data name="DrawUserPair.Resume" xml:space="preserve">
+    <value>Resume pairing with {0}</value>
+  </data>
+  <data name="DrawUserPair.Permissions.Header" xml:space="preserve">
+    <value>Individual User permissions</value>
+  </data>
+  <data name="DrawUserPair.Permissions.SoundDisabled" xml:space="preserve">
+    <value>Sound sync disabled with {0}</value>
+  </data>
+  <data name="DrawUserPair.Permissions.AnimDisabled" xml:space="preserve">
+    <value>Animation sync disabled with {0}</value>
+  </data>
+  <data name="DrawUserPair.Permissions.VfxDisabled" xml:space="preserve">
+    <value>VFX sync disabled with {0}</value>
+  </data>
+  <data name="DrawUserPair.Permissions.StatusLine" xml:space="preserve">
+    <value>You: {0}, They: {1}</value>
+  </data>
+  <data name="DrawUserPair.SharedData" xml:space="preserve">
+    <value>This user has shared {0} Character Data Sets with you.</value>
+  </data>
+  <data name="DrawUserPair.SharedDataHint" xml:space="preserve">
+    <value>Click to open the Character Data Hub and show the entries.</value>
+  </data>
+  <data name="DrawUserPair.Menu.Target" xml:space="preserve">
+    <value>Target player</value>
+  </data>
+  <data name="DrawUserPair.Menu.Profile" xml:space="preserve">
+    <value>Open Profile</value>
+  </data>
+  <data name="DrawUserPair.Menu.ProfileTooltip" xml:space="preserve">
+    <value>Opens the profile for this user in a new window</value>
+  </data>
+  <data name="DrawUserPair.Menu.Analysis" xml:space="preserve">
+    <value>Open Analysis</value>
+  </data>
+  <data name="DrawUserPair.Menu.Reload" xml:space="preserve">
+    <value>Reload last data</value>
+  </data>
+  <data name="DrawUserPair.Menu.ReloadTooltip" xml:space="preserve">
+    <value>This reapplies the last received character data to this character</value>
+  </data>
+  <data name="DrawUserPair.Menu.CyclePause" xml:space="preserve">
+    <value>Cycle pause state</value>
+  </data>
+  <data name="DrawUserPair.Menu.PairGroups" xml:space="preserve">
+    <value>Pair Groups</value>
+  </data>
+  <data name="DrawUserPair.Menu.PairGroupsTooltip" xml:space="preserve">
+    <value>Choose pair groups for {0}</value>
+  </data>
+  <data name="DrawUserPair.Menu.EnableSounds" xml:space="preserve">
+    <value>Enable sound sync</value>
+  </data>
+  <data name="DrawUserPair.Menu.DisableSounds" xml:space="preserve">
+    <value>Disable sound sync</value>
+  </data>
+  <data name="DrawUserPair.Menu.EnableAnim" xml:space="preserve">
+    <value>Enable animation sync</value>
+  </data>
+  <data name="DrawUserPair.Menu.DisableAnim" xml:space="preserve">
+    <value>Disable animation sync</value>
+  </data>
+  <data name="DrawUserPair.Menu.EnableVfx" xml:space="preserve">
+    <value>Enable VFX sync</value>
+  </data>
+  <data name="DrawUserPair.Menu.DisableVfx" xml:space="preserve">
+    <value>Disable VFX sync</value>
+  </data>
+  <data name="DrawUserPair.Menu.Unpair" xml:space="preserve">
+    <value>Unpair Permanently</value>
+  </data>
+  <data name="DrawUserPair.Menu.UnpairTooltip" xml:space="preserve">
+    <value>Hold CTRL and click to unpair permanently from {0}</value>
+  </data>
+  <data name="DrawUserPair.SeenAs" xml:space="preserve">
+    <value>(Seen as: {0})</value>
+  </data>
+  <data name="Common.Enabled" xml:space="preserve">
+    <value>Enabled</value>
+  </data>
+  <data name="Common.Disabled" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+  <data name="Syncshell.Input.Placeholder" xml:space="preserve">
+    <value>Syncshell GID/Alias (leave empty to create)</value>
+  </data>
+  <data name="Syncshell.Tooltip.CreateAllowed" xml:space="preserve">
+    <value>Create Syncshell</value>
+  </data>
+  <data name="Syncshell.Tooltip.CreateDenied" xml:space="preserve">
+    <value>You cannot create more than {0} Syncshells</value>
+  </data>
+  <data name="Syncshell.Tooltip.JoinAllowed" xml:space="preserve">
+    <value>Join Syncshell {0}</value>
+  </data>
+  <data name="Syncshell.Tooltip.JoinDenied" xml:space="preserve">
+    <value>You cannot join more than {0} Syncshells</value>
+  </data>
+  <data name="Syncshell.Join.ModalTitle" xml:space="preserve">
+    <value>Enter Syncshell Password</value>
+  </data>
+  <data name="Syncshell.Join.Warning" xml:space="preserve">
+    <value>Before joining any Syncshells please be aware that you will be automatically paired with everyone in the Syncshell.</value>
+  </data>
+  <data name="Syncshell.Join.PasswordPrompt" xml:space="preserve">
+    <value>Enter the password for Syncshell {0}:</value>
+  </data>
+  <data name="Syncshell.Join.PasswordPlaceholder" xml:space="preserve">
+    <value>{0} Password</value>
+  </data>
+  <data name="Syncshell.Join.Error" xml:space="preserve">
+    <value>An error occurred during joining of this Syncshell: you either have joined the maximum amount of Syncshells ({0}), it does not exist, the password you entered is wrong, you already joined the Syncshell, the Syncshell is full ({1} users) or the Syncshell has closed invites.</value>
+  </data>
+  <data name="Syncshell.Join.Button" xml:space="preserve">
+    <value>Join {0}</value>
+  </data>
+  <data name="Syncshell.Create.ModalTitle" xml:space="preserve">
+    <value>Create Syncshell</value>
+  </data>
+  <data name="Syncshell.Create.TypePrompt" xml:space="preserve">
+    <value>Choose the type of Syncshell to create.</value>
+  </data>
+  <data name="Syncshell.Create.TypePermanent" xml:space="preserve">
+    <value>Permanent</value>
+  </data>
+  <data name="Syncshell.Create.TypeTemporary" xml:space="preserve">
+    <value>Temporary</value>
+  </data>
+  <data name="Syncshell.Create.AliasPrompt" xml:space="preserve">
+    <value>Give your Syncshell a name (optional) then create it.</value>
+  </data>
+  <data name="Syncshell.Create.AliasPlaceholder" xml:space="preserve">
+    <value>Syncshell Name</value>
+  </data>
+  <data name="Syncshell.Create.TempMaxDuration" xml:space="preserve">
+    <value>Maximum duration for a temporary Syncshell: 7 days.</value>
+  </data>
+  <data name="Syncshell.Create.Duration24h" xml:space="preserve">
+    <value>24h</value>
+  </data>
+  <data name="Syncshell.Create.DurationDays" xml:space="preserve">
+    <value>{0}d</value>
+  </data>
+  <data name="Syncshell.Create.DurationHours" xml:space="preserve">
+    <value>{0}h</value>
+  </data>
+  <data name="Syncshell.Create.ExpiresAt" xml:space="preserve">
+    <value>Expires on {0} (local time).</value>
+  </data>
+  <data name="Syncshell.Create.ButtonPrompt" xml:space="preserve">
+    <value>Click the button below to create a new Syncshell.</value>
+  </data>
+  <data name="Syncshell.Create.NameInUse" xml:space="preserve">
+    <value>The Syncshell name is already in use.</value>
+  </data>
+  <data name="Syncshell.Create.Tooltip" xml:space="preserve">
+    <value>Create Syncshell</value>
+  </data>
+  <data name="Syncshell.Create.Result.Name" xml:space="preserve">
+    <value>Syncshell Name: {0}</value>
+  </data>
+  <data name="Syncshell.Create.Result.Id" xml:space="preserve">
+    <value>Syncshell ID: {0}</value>
+  </data>
+  <data name="Syncshell.Create.Result.Password" xml:space="preserve">
+    <value>Syncshell Password: {0}</value>
+  </data>
+  <data name="Syncshell.Create.Result.PasswordNote" xml:space="preserve">
+    <value>You can change the Syncshell password later at any time.</value>
+  </data>
+  <data name="Syncshell.Create.TempExpires" xml:space="preserve">
+    <value>This Syncshell will expire on {0}.</value>
+  </data>
+  <data name="Syncshell.Create.Error.General" xml:space="preserve">
+    <value>You are already owner of the maximum amount of Syncshells or joined the maximum amount. Relinquish ownership or leave existing Syncshells.</value>
+  </data>
+  <data name="Syncshell.Card.Owner" xml:space="preserve">
+    <value>You are the owner of Syncshell {0}</value>
+  </data>
+  <data name="Syncshell.Card.Moderator" xml:space="preserve">
+    <value>You are a moderator of Syncshell {0}</value>
+  </data>
+  <data name="Syncshell.Card.ConnectedTooltip" xml:space="preserve">
+    <value>Connected members / total&#x0A;{0}/{1}&#x0A;Max capacity: {2}&#x0A;Syncshell ID: {3}</value>
+  </data>
+  <data name="Syncshell.Card.SwitchTooltip" xml:space="preserve">
+    <value>Left click to switch between GID display and comment&#x0A;Right click to change comment for {0}&#x0A;&#x0A;Users: {1}, Owner: {2}</value>
+  </data>
+  <data name="Syncshell.Card.TempLabel" xml:space="preserve">
+    <value>(Temp)</value>
+  </data>
+  <data name="Syncshell.Card.TempExpire" xml:space="preserve">
+    <value>Expires on {0}</value>
+  </data>
+  <data name="Syncshell.Card.TempTooltip" xml:space="preserve">
+    <value>Temporary Syncshell</value>
+  </data>
+  <data name="SelectGroupForPair.Title" xml:space="preserve">
+    <value>Choose Groups for {0}</value>
+  </data>
+  <data name="SelectGroupForPair.Instruction" xml:space="preserve">
+    <value>Select the groups you want {0} to be in.</value>
+  </data>
+  <data name="SelectGroupForPair.CreateInstruction" xml:space="preserve">
+    <value>Create a new group for {0}.</value>
+  </data>
+  <data name="SelectGroupForPair.NewGroupPlaceholder" xml:space="preserve">
+    <value>New Group</value>
+  </data>
+  <data name="SelectPairForGroup.Title" xml:space="preserve">
+    <value>Choose Users for Group {0}</value>
+  </data>
+  <data name="SelectPairForGroup.Instruction" xml:space="preserve">
+    <value>Select users for group {0}</value>
+  </data>
+  <data name="SelectPairForGroup.FilterPlaceholder" xml:space="preserve">
+    <value>Filter</value>
   </data>
   <data name="CompactUi.SyncDefaults.AnimationLabel" xml:space="preserve">
     <value>Anim</value>
@@ -523,4 +844,1930 @@ Click to change.</value>
   <data name="CompactUi.UnsupportedVersion.Title" xml:space="preserve">
     <value>UNSUPPORTED VERSION</value>
   </data>
-<data name="ContextMenu.AutoDetect.SendRequest" xml:space="preserve"><value>Send Umbra pairing request [Umbra U]</value></data><data name="ContextMenu.AutoDetect.AddPair" xml:space="preserve"><value>Add as Umbra pair [Umbra +]</value></data></root>
+  <data name="BanUserPopup.BanNotice" xml:space="preserve">
+    <value>User {0} will be banned and removed from this Syncshell.</value>
+  </data>
+  <data name="BanUserPopup.ReasonInfo" xml:space="preserve">
+    <value>The reason will be displayed in the banlist. The current server-side alias if present (Vanity ID) will automatically be attached to the reason.</value>
+  </data>
+  <data name="BanUserPopup.ReasonPlaceholder" xml:space="preserve">
+    <value>Ban Reason</value>
+  </data>
+  <data name="BanUserPopup.SubmitButton" xml:space="preserve">
+    <value>Ban User</value>
+  </data>
+  <data name="PopupHandler.CloseButton" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="ReportPopup.Note" xml:space="preserve">
+    <value>Note: Sending a report will disable the offending profile globally.&#x0A;The report will be sent to the team of your currently connected server.&#x0A;Depending on the severity of the offense the users profile or account can be permanently disabled or banned.</value>
+  </data>
+  <data name="ReportPopup.ScopeWarning" xml:space="preserve">
+    <value>This is not for reporting misbehavior but solely for the actual profile. Reports that are not solely for the profile will be ignored.</value>
+  </data>
+  <data name="ReportPopup.SpamWarning" xml:space="preserve">
+    <value>Report spam and wrong reports will not be tolerated and can lead to permanent account suspension.</value>
+  </data>
+  <data name="ReportPopup.SubmitButton" xml:space="preserve">
+    <value>Send Report</value>
+  </data>
+  <data name="ReportPopup.Title" xml:space="preserve">
+    <value>Report {0} Profile</value>
+  </data>
+  <data name="AutoDetectUi.Duration.Minute.Plural" xml:space="preserve">
+    <value>{0} minutes</value>
+  </data>
+  <data name="AutoDetectUi.Duration.Minute.Single" xml:space="preserve">
+    <value>1 minute</value>
+  </data>
+  <data name="AutoDetectUi.Duration.Second.Plural" xml:space="preserve">
+    <value>{0} seconds</value>
+  </data>
+  <data name="AutoDetectUi.Duration.Second.Single" xml:space="preserve">
+    <value>1 second</value>
+  </data>
+  <data name="AutoDetectUi.Invitations.Accept" xml:space="preserve">
+    <value>Accept</value>
+  </data>
+  <data name="AutoDetectUi.Invitations.Decline" xml:space="preserve">
+    <value>Decline</value>
+  </data>
+  <data name="AutoDetectUi.Invitations.EmptyAll" xml:space="preserve">
+    <value>No pending invitations. This page will group the requests you receive and the ones you send.</value>
+  </data>
+  <data name="AutoDetectUi.Invitations.NoIncoming" xml:space="preserve">
+    <value>You have no pending pair invitations at the moment.</value>
+  </data>
+  <data name="AutoDetectUi.Invitations.Processing" xml:space="preserve">
+    <value>Processing...</value>
+  </data>
+  <data name="AutoDetectUi.Invitations.ReceivedEmpty" xml:space="preserve">
+    <value>No incoming invitations.</value>
+  </data>
+  <data name="AutoDetectUi.Invitations.ReceivedHeader" xml:space="preserve">
+    <value>Incoming invitations ({0})</value>
+  </data>
+  <data name="AutoDetectUi.Invitations.Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="AutoDetectUi.Invitations.RemoveTooltip" xml:space="preserve">
+    <value>Removes only this local tracking entry.</value>
+  </data>
+  <data name="AutoDetectUi.Invitations.SentAgo" xml:space="preserve">
+    <value>Sent {0} ago</value>
+  </data>
+  <data name="AutoDetectUi.Invitations.SentEmpty" xml:space="preserve">
+    <value>No outgoing invitations.</value>
+  </data>
+  <data name="AutoDetectUi.Invitations.SentHeader" xml:space="preserve">
+    <value>Outgoing invitations ({0})</value>
+  </data>
+  <data name="AutoDetectUi.Nearby.DisabledNotice" xml:space="preserve">
+    <value>AutoDetect is disabled. Enable it in settings to detect nearby Umbra users.</value>
+  </data>
+  <data name="AutoDetectUi.Nearby.Empty" xml:space="preserve">
+    <value>No nearby UmbraSync presence detected right now.</value>
+  </data>
+  <data name="AutoDetectUi.Nearby.InviteButton" xml:space="preserve">
+    <value>Send invitation</value>
+  </data>
+  <data name="AutoDetectUi.Nearby.InviteTooltip" xml:space="preserve">
+    <value>Sends a pairing request via AutoDetect.</value>
+  </data>
+  <data name="AutoDetectUi.Nearby.MaxDistanceLabel" xml:space="preserve">
+    <value>Max distance (m)</value>
+  </data>
+  <data name="AutoDetectUi.Nearby.Reason.InvitesDisabled" xml:space="preserve">
+    <value>This player disabled automatically receiving invitations.</value>
+  </data>
+  <data name="AutoDetectUi.Nearby.Reason.OutOfRange" xml:space="preserve">
+    <value>This player is beyond the configured maximum distance ({0} m).</value>
+  </data>
+  <data name="AutoDetectUi.Nearby.Reason.Paired" xml:space="preserve">
+    <value>You are already paired with this player.</value>
+  </data>
+  <data name="AutoDetectUi.Nearby.Reason.Unavailable" xml:space="preserve">
+    <value>Unable to request an invitation token for this player.</value>
+  </data>
+  <data name="AutoDetectUi.Nearby.Status.Available" xml:space="preserve">
+    <value>Available</value>
+  </data>
+  <data name="AutoDetectUi.Nearby.Status.InvitesDisabled" xml:space="preserve">
+    <value>Invites disabled</value>
+  </data>
+  <data name="AutoDetectUi.Nearby.Status.OutOfRange" xml:space="preserve">
+    <value>Out of range (&gt; {0} m)</value>
+  </data>
+  <data name="AutoDetectUi.Nearby.Status.Paired" xml:space="preserve">
+    <value>Already paired</value>
+  </data>
+  <data name="AutoDetectUi.Nearby.Status.Unavailable" xml:space="preserve">
+    <value>Unavailable</value>
+  </data>
+  <data name="AutoDetectUi.Nearby.Table.Action" xml:space="preserve">
+    <value>Action</value>
+  </data>
+  <data name="AutoDetectUi.Nearby.Table.Distance" xml:space="preserve">
+    <value>Distance</value>
+  </data>
+  <data name="AutoDetectUi.Nearby.Table.Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="AutoDetectUi.Nearby.Table.Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="AutoDetectUi.Nearby.Table.World" xml:space="preserve">
+    <value>World</value>
+  </data>
+  <data name="AutoDetectUi.Notification.AcceptFailed" xml:space="preserve">
+    <value>Unable to accept invitation {0}.</value>
+  </data>
+  <data name="AutoDetectUi.Notification.AcceptTitle" xml:space="preserve">
+    <value>AutoDetect</value>
+  </data>
+  <data name="AutoDetectUi.Syncshell.Description" xml:space="preserve">
+    <value>The syncshells shown here temporarily disabled their password to allow direct access via AutoDetect. Join only if you trust the administrators.</value>
+  </data>
+  <data name="AutoDetectUi.Syncshell.Empty" xml:space="preserve">
+    <value>No Syncshell is currently visible in AutoDetect.</value>
+  </data>
+  <data name="AutoDetectUi.Syncshell.InviteMode.Auto" xml:space="preserve">
+    <value>Auto</value>
+  </data>
+  <data name="AutoDetectUi.Syncshell.InviteMode.Manual" xml:space="preserve">
+    <value>Manual</value>
+  </data>
+  <data name="AutoDetectUi.Syncshell.InviteMode.ManualTooltip" xml:space="preserve">
+    <value>The administrator must manually approve new members.</value>
+  </data>
+  <data name="AutoDetectUi.Syncshell.JoinButton" xml:space="preserve">
+    <value>Join</value>
+  </data>
+  <data name="AutoDetectUi.Syncshell.JoinError" xml:space="preserve">
+    <value>Error while joining: {0}</value>
+  </data>
+  <data name="AutoDetectUi.Syncshell.JoinFailed" xml:space="preserve">
+    <value>Unable to join {0}.</value>
+  </data>
+  <data name="AutoDetectUi.Syncshell.Joined" xml:space="preserve">
+    <value>Joined {0}.</value>
+  </data>
+  <data name="AutoDetectUi.Syncshell.NotificationTitle" xml:space="preserve">
+    <value>AutoDetect Syncshell</value>
+  </data>
+  <data name="AutoDetectUi.Syncshell.RefreshButton" xml:space="preserve">
+    <value>Refresh list</value>
+  </data>
+  <data name="AutoDetectUi.Syncshell.Refreshing" xml:space="preserve">
+    <value>Refreshing...</value>
+  </data>
+  <data name="AutoDetectUi.Syncshell.RefreshTooltip" xml:space="preserve">
+    <value>Refreshes the list of AutoDetect-enabled syncshells.</value>
+  </data>
+  <data name="AutoDetectUi.Syncshell.Status.Joining" xml:space="preserve">
+    <value>Joining...</value>
+  </data>
+  <data name="AutoDetectUi.Syncshell.Status.Member" xml:space="preserve">
+    <value>Already a member</value>
+  </data>
+  <data name="AutoDetectUi.Syncshell.Table.Action" xml:space="preserve">
+    <value>Action</value>
+  </data>
+  <data name="AutoDetectUi.Syncshell.Table.Invites" xml:space="preserve">
+    <value>Invites</value>
+  </data>
+  <data name="AutoDetectUi.Syncshell.Table.Members" xml:space="preserve">
+    <value>Members</value>
+  </data>
+  <data name="AutoDetectUi.Syncshell.Table.Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="AutoDetectUi.Syncshell.Table.Owner" xml:space="preserve">
+    <value>Owner</value>
+  </data>
+  <data name="AutoDetectUi.Tab.Invitations" xml:space="preserve">
+    <value>Invitations ({0})</value>
+  </data>
+  <data name="AutoDetectUi.Tab.Nearby" xml:space="preserve">
+    <value>Nearby</value>
+  </data>
+  <data name="AutoDetectUi.Tab.Syncshell" xml:space="preserve">
+    <value>Syncshell</value>
+  </data>
+  <data name="ChangelogUi.0_1_8_0.Line1" xml:space="preserve">
+    <value>AutoDetect: automatically detects Umbra players around you and suggests pairing.</value>
+  </data>
+  <data name="ChangelogUi.0_1_8_0.Line2" xml:space="preserve">
+    <value>AutoDetect: disabled by default to preserve privacy.</value>
+  </data>
+  <data name="ChangelogUi.0_1_8_0.Line3" xml:space="preserve">
+    <value>AutoDetect: enable it in 'Transfers' with Nearby detection and Allow pair requests options.</value>
+  </data>
+  <data name="ChangelogUi.0_1_8_0.Line4" xml:space="preserve">
+    <value>Temporary syncshell: configurable duration from 1h to 7 days with automatic expiration.</value>
+  </data>
+  <data name="ChangelogUi.0_1_8_0.Line5" xml:space="preserve">
+    <value>Permanent syncshell: name and organize your long-term groups.</value>
+  </data>
+  <data name="ChangelogUi.0_1_8_0.Line6" xml:space="preserve">
+    <value>Interface: harmonized UmbraSync palette and lighter menus for RP use.</value>
+  </data>
+  <data name="ChangelogUi.0_1_8_1.Line1" xml:space="preserve">
+    <value>'Seen as' fix: tooltip now shows last observed character.</value>
+  </data>
+  <data name="ChangelogUi.0_1_8_1.Line2" xml:space="preserve">
+    <value>AutoDetect invites: sorted to the top to spot them easier.</value>
+  </data>
+  <data name="ChangelogUi.0_1_8_1.Line3" xml:space="preserve">
+    <value>AutoDetect invites: kept across plugin or game restarts.</value>
+  </data>
+  <data name="ChangelogUi.0_1_8_1.Line4" xml:space="preserve">
+    <value>Server status bar: default purple adopted.</value>
+  </data>
+  <data name="ChangelogUi.0_1_8_2.Line1" xml:space="preserve">
+    <value>Nearby detection: quick list now only shows players you can actually invite.</value>
+  </data>
+  <data name="ChangelogUi.0_1_8_2.Line2" xml:space="preserve">
+    <value>Automatically filters refused or already paired people.</value>
+  </data>
+  <data name="ChangelogUi.0_1_8_2.Line3" xml:space="preserve">
+    <value>Nearby invitations: 5-minute per-person anti-spam, 15-minute block after three declines.</value>
+  </data>
+  <data name="ChangelogUi.0_1_8_2.Line4" xml:space="preserve">
+    <value>Display: show default notes instead of the ID when available.</value>
+  </data>
+  <data name="ChangelogUi.0_1_8_2.Line5" xml:space="preserve">
+    <value>Block notifications are sent directly into chat.</value>
+  </data>
+  <data name="ChangelogUi.0_1_8_2.Line6" xml:space="preserve">
+    <value>DTR overlay: shows number of available Nearby invites in title and tooltip.</value>
+  </data>
+  <data name="ChangelogUi.0_1_8_2.Line7" xml:space="preserve">
+    <value>Nearby poses: filter works again with your local notes to find matching entries.</value>
+  </data>
+  <data name="ChangelogUi.0_1_9_0.Line1" xml:space="preserve">
+    <value>You can now configure default sync choices (VFX, Music, Animation).</value>
+  </data>
+  <data name="ChangelogUi.0_1_9_0.Line2" xml:space="preserve">
+    <value>The 'Pending' category only shows when an invitation is pending.</value>
+  </data>
+  <data name="ChangelogUi.0_1_9_0.Line3" xml:space="preserve">
+    <value>(PREVIEW) You can see when a paired user is typing via a bubble.</value>
+  </data>
+  <data name="ChangelogUi.0_1_9_0.Line4" xml:space="preserve">
+    <value>(PREVIEW) The typing bubble also appears on your own nameplate when you type.</value>
+  </data>
+  <data name="ChangelogUi.0_1_9_0.Line5" xml:space="preserve">
+    <value>Sync toggles now show a single summary notification.</value>
+  </data>
+  <data name="ChangelogUi.0_1_9_0.Line6" xml:space="preserve">
+    <value>Fix: incoming invitations now only show once instead of twice.</value>
+  </data>
+  <data name="ChangelogUi.0_1_9_1.Line1" xml:space="preserve">
+    <value>Initial fix for the typing bubble.</value>
+  </data>
+  <data name="ChangelogUi.0_1_9_1.Line2" xml:space="preserve">
+    <value>Sync toggles now show only one summarized notification.</value>
+  </data>
+  <data name="ChangelogUi.0_1_9_2.Line1" xml:space="preserve">
+    <value>Fix typing bubble display.</value>
+  </data>
+  <data name="ChangelogUi.0_1_9_3.Line1" xml:space="preserve">
+    <value>Fix typing bubble display when UI is above 100% scale.</value>
+  </data>
+  <data name="ChangelogUi.0_1_9_4.Line1" xml:space="preserve">
+    <value>Complete rewrite of typing bubble with selectable bubble size.</value>
+  </data>
+  <data name="ChangelogUi.0_1_9_4.Line2" xml:space="preserve">
+    <value>Disable AutoDetect in instanced areas.</value>
+  </data>
+  <data name="ChangelogUi.0_1_9_4.Line3" xml:space="preserve">
+    <value>Rewrite AutoDetect UI to host pending invites and prepare public syncshells.</value>
+  </data>
+  <data name="ChangelogUi.0_1_9_4.Line4" xml:space="preserve">
+    <value>Better clarity on enabling/disabling default sync preferences.</value>
+  </data>
+  <data name="ChangelogUi.0_1_9_4.Line5" xml:space="preserve">
+    <value>Highlight Self Analysis with a warning when a data threshold is reached.</value>
+  </data>
+  <data name="ChangelogUi.0_1_9_4.Line6" xml:space="preserve">
+    <value>Add warning about Chat2 plugin incompatibility.</value>
+  </data>
+  <data name="ChangelogUi.0_1_9_4.Line7" xml:space="preserve">
+    <value>Misc UI fixes.</value>
+  </data>
+  <data name="ChangelogUi.0_1_9_5.Line1" xml:space="preserve">
+    <value>Fix bubble display in group list.</value>
+  </data>
+  <data name="ChangelogUi.0_1_9_5.Line2" xml:space="preserve">
+    <value>Improved adding users via the '+' button.</value>
+  </data>
+  <data name="ChangelogUi.0_1_9_5.Line3" xml:space="preserve">
+    <value>Can pause individual users in a syncshell.</value>
+  </data>
+  <data name="ChangelogUi.0_1_9_5.Line4" xml:space="preserve">
+    <value>Improved plugin stability on lower connections/setups.</value>
+  </data>
+  <data name="ChangelogUi.0_1_9_5.Line5" xml:space="preserve">
+    <value>Misc UI fixes.</value>
+  </data>
+  <data name="ChangelogUi.FullHistory" xml:space="preserve">
+    <value>Full history</value>
+  </data>
+  <data name="ChangelogUi.HeaderTitle" xml:space="preserve">
+    <value>Changelog</value>
+  </data>
+  <data name="ChangelogUi.LoadedVersion" xml:space="preserve">
+    <value>Loaded version: {0}</value>
+  </data>
+  <data name="ChangelogUi.MarkAsRead" xml:space="preserve">
+    <value>Mark as read</value>
+  </data>
+  <data name="ChangelogUi.ShowAll" xml:space="preserve">
+    <value>Show all</value>
+  </data>
+  <data name="ChangelogUi.WindowTitle" xml:space="preserve">
+    <value>Umbra Sync - Changelog</value>
+  </data>
+  <data name="CharaDataHub.AccessType.AllPairs" xml:space="preserve">
+    <value>All Pairs</value>
+  </data>
+  <data name="CharaDataHub.AccessType.DirectPairs" xml:space="preserve">
+    <value>Direct Pairs</value>
+  </data>
+  <data name="CharaDataHub.AccessType.Everyone" xml:space="preserve">
+    <value>Everyone</value>
+  </data>
+  <data name="CharaDataHub.AccessType.Specified" xml:space="preserve">
+    <value>Specified</value>
+  </data>
+  <data name="CharaDataHub.ApplicationWarning" xml:space="preserve">
+    <value>WARNING: During the data application avoid interacting with this actor to prevent potential crashes.</value>
+  </data>
+  <data name="CharaDataHub.ApplyingData" xml:space="preserve">
+    <value>Applying Data to Actor</value>
+  </data>
+  <data name="CharaDataHub.BrioRequired" xml:space="preserve">
+    <value>To utilize any features related to posing or spawning characters you require to have Brio installed.</value>
+  </data>
+  <data name="CharaDataHub.CancelApplication" xml:space="preserve">
+    <value>Cancel Application</value>
+  </data>
+  <data name="CharaDataHub.CreationDisabledTooltip" xml:space="preserve">
+    <value>Cannot use creation tools while having Character Data applied to self.</value>
+  </data>
+  <data name="CharaDataHub.Gpose.ActionCannotExecute" xml:space="preserve">
+    <value>Cannot execute:</value>
+  </data>
+  <data name="CharaDataHub.Gpose.Error.NoMetaInfo" xml:space="preserve">
+    <value>- No metainfo present</value>
+  </data>
+  <data name="CharaDataHub.Gpose.Error.NotDownloadable" xml:space="preserve">
+    <value>- Character is not downloadable</value>
+  </data>
+  <data name="CharaDataHub.Gpose.Error.RequiresBrio" xml:space="preserve">
+    <value>- Requires Brio to be installed.</value>
+  </data>
+  <data name="CharaDataHub.Gpose.Error.RequiresGpose" xml:space="preserve">
+    <value>- Requires to be in GPose</value>
+  </data>
+  <data name="CharaDataHub.Gpose.Error.RequiresTarget" xml:space="preserve">
+    <value>- Requires a valid GPose target</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.ApplyDataTooltip.Main" xml:space="preserve">
+    <value>Apply newly received character data to selected actor.</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.ApplyDataTooltip.Note" xml:space="preserve">
+    <value>Note: If the button is grayed out, the latest data has already been applied.</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.AssignRequiresGpose" xml:space="preserve">
+    <value>Assigning users to characters is only available in GPose.</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.BrioRequired" xml:space="preserve">
+    <value>BRIO IS MANDATORY FOR GPOSE TOGETHER.</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.ConnectionRequired" xml:space="preserve">
+    <value>CANNOT USE GPOSE TOGETHER WHILE DISCONNECTED FROM THE SERVER.</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.CopyLobbyIdTooltip" xml:space="preserve">
+    <value>Copy Lobby ID to clipboard.</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.CreateLobby" xml:space="preserve">
+    <value>Create New GPose Together Lobby</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.CurrentLobby" xml:space="preserve">
+    <value>GPose Lobby</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.Help" xml:space="preserve">
+    <value>GPose together is a way to do multiplayer GPose sessions and collaborations.&#x0A;&#x0A;GPose together requires Brio to function. Only Brio is also supported for the actual posing interactions. Attempting to pose using other tools will lead to conflicts and exploding characters.&#x0A;&#x0A;To use GPose together you either create or join a GPose Together Lobby. After you and other people have joined, make sure that everyone is on the same map. It is not required for you to be on the same server, DC or instance. Users that are on the same map will be drawn as moving purple wisps in the overworld, so you can easily find each other.&#x0A;&#x0A;Once you are close to each other you can initiate GPose. You must either assign or spawn characters for each of the lobby users. Their own poses and positions to their character will be automatically applied.&#x0A;Pose and location data during GPose are updated approximately every few seconds.</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.JoinLobby" xml:space="preserve">
+    <value>Join GPose Together Lobby</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.LeaveLobby" xml:space="preserve">
+    <value>Leave GPose Lobby</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.LeaveTooltip.Hint" xml:space="preserve">
+    <value>Hold CTRL and click to leave.</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.LeaveTooltip.Main" xml:space="preserve">
+    <value>Leave the current GPose lobby.</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.LobbyControls" xml:space="preserve">
+    <value>Lobby Controls</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.LobbyIdPlaceholder" xml:space="preserve">
+    <value>GPose Lobby Id</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.MapInfo" xml:space="preserve">
+    <value>Map Info</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.NoCharacter" xml:space="preserve">
+    <value>No character assigned</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.NoCharacterWarning" xml:space="preserve">
+    <value>No valid character assigned for this user. Pose data will not be applied.</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.NoUsers" xml:space="preserve">
+    <value>No other users in current GPose lobby</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.RejoinLobby" xml:space="preserve">
+    <value>Rejoin Last Lobby {0}</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.SendCharacterData" xml:space="preserve">
+    <value>Send Updated Character Data</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.SendCharacterDataTooltip" xml:space="preserve">
+    <value>This will send your current appearance, pose and world data to all users in the lobby.</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.SpawnTooltip.Main" xml:space="preserve">
+    <value>Spawn new actor, apply character data and assign it to this user.</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.SpawnTooltip.Note" xml:space="preserve">
+    <value>Note: If the button is grayed out, the user has not sent any character data or you are on the same map, server and instance. If the latter is the case, join a group with that user and assign the character to them.</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.Tooltip.InstanceNote" xml:space="preserve">
+    <value>Note: Users not in your instance, but on the same map, will be drawn as floating wisps.</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.Tooltip.InstanceSpawnNote" xml:space="preserve">
+    <value>Note: GPose synchronization is not dependent on the current instance, but you will have to spawn a character for the other lobby users.</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.Tooltip.MapClick" xml:space="preserve">
+    <value>Note: Click to open the users location on your map.</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.Tooltip.MapRequirement" xml:space="preserve">
+    <value>Note: For GPose synchronization to work properly, you must be on the same map.</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.Tooltip.NotSameInstance" xml:space="preserve">
+    <value>You are not the same instanced area.</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.Tooltip.NotSameMap" xml:space="preserve">
+    <value>You are not on the same map.</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.Tooltip.NotSameServer" xml:space="preserve">
+    <value>You are not on the same server.</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.Tooltip.SameInstance" xml:space="preserve">
+    <value>You are in the same instanced area.</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.Tooltip.SameMap" xml:space="preserve">
+    <value>You are on the same map.</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.Tooltip.SameServer" xml:space="preserve">
+    <value>You are on the same server.</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.Tooltip.ServerNote" xml:space="preserve">
+    <value>Note: GPose synchronization is not dependent on the current server, but you will have to spawn a character for the other lobby users.</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.UnassignTooltip" xml:space="preserve">
+    <value>Unassign Actor for this user</value>
+  </data>
+  <data name="CharaDataHub.GposeTogether.UsersInLobby" xml:space="preserve">
+    <value>Users In Lobby</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Access.AllPairs" xml:space="preserve">
+    <value>All Pairs: All people you have paired can access this character data</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Access.CodeOnly" xml:space="preserve">
+    <value>Code Only: People require to have the code to download this character data</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Access.DirectPairs" xml:space="preserve">
+    <value>Direct Pairs: Only people you have directly paired can access this character data</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Access.Everyone" xml:space="preserve">
+    <value>Everyone: Everyone can access this character data</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Access.Help" xml:space="preserve">
+    <value>You can control who has access to your character data based on the access restrictions.</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Access.NoteCode" xml:space="preserve">
+    <value>Note: To access your character data the person in question requires to have the code. Exceptions for 'Shared' data, see 'Sharing' below.</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Access.NotePause" xml:space="preserve">
+    <value>Note: For 'Direct' and 'All Pairs' the pause state plays a role. Paused people will not be able to access your character data.</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Access.NoteSpecific" xml:space="preserve">
+    <value>Note: Directly specified Individuals or Syncshells in the 'Specific Individuals / Syncshells' list will be able to access your character data regardless of pause or pair state.</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Access.RestrictionsLabel" xml:space="preserve">
+    <value>Access Restrictions</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Access.Shared" xml:space="preserve">
+    <value>Shared: People that are allowed through 'Access Restrictions' will have this character data entry displayed in 'Shared with You' (it can also be accessed through the code)</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Access.SharedNote" xml:space="preserve">
+    <value>Note: Shared is incompatible with Access Restriction 'Everyone'</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Access.SharingHelp" xml:space="preserve">
+    <value>This regulates how you want to distribute this character data.</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Access.SharingLabel" xml:space="preserve">
+    <value>Sharing</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Access.Specified" xml:space="preserve">
+    <value>Specified: Only people and syncshells you directly specify in 'Specific Individuals / Syncshells' can access this character data</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Access.Title" xml:space="preserve">
+    <value>Access and Sharing</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Edit.CancelUpload" xml:space="preserve">
+    <value>Cancel Upload</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Edit.NoUpdateDto" xml:space="preserve">
+    <value>Something went awfully wrong and there's no update DTO. Try updating Character Data via the button above.</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Edit.Save" xml:space="preserve">
+    <value>Save to Server</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Edit.SelectEntry" xml:space="preserve">
+    <value>Select an entry above to edit its data.</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Edit.UndoAll" xml:space="preserve">
+    <value>Undo all changes</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Edit.UnsavedWarning" xml:space="preserve">
+    <value>Warning: You have unsaved changes!</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Edit.Updating" xml:space="preserve">
+    <value>Updating data on server, please wait.</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Appearance.CopyTooltip" xml:space="preserve">
+    <value>Copy Code to Clipboard</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Appearance.Created" xml:space="preserve">
+    <value>Creation Date</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Appearance.Day" xml:space="preserve">
+    <value>Day</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Appearance.Delete" xml:space="preserve">
+    <value>Delete Character Data</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Appearance.DeleteTooltip" xml:space="preserve">
+    <value>Hold CTRL and click to delete the current data. This operation is irreversible.</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Appearance.DescriptionHelp" xml:space="preserve">
+    <value>Description for this Character Data.&#x0A;Note: the description will be visible to anyone who can access this character data. See 'Access Restrictions' and 'Sharing' below.</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Appearance.DescriptionLabel" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Appearance.DownloadCount" xml:space="preserve">
+    <value>Download Count</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Appearance.Expires" xml:space="preserve">
+    <value>Expires</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Appearance.ExpiresHelp" xml:space="preserve">
+    <value>If expiration is enabled, the uploaded character data will be automatically deleted from the server at the specified date.</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Appearance.HasCustomize" xml:space="preserve">
+    <value>Contains Customize+ Data</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Appearance.Month" xml:space="preserve">
+    <value>Month</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Appearance.Title" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Appearance.Updated" xml:space="preserve">
+    <value>Last Update Date</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Appearance.Year" xml:space="preserve">
+    <value>Year</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Appearance.CodeLabel" xml:space="preserve">
+    <value>Chara Data Code</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Poses.Add" xml:space="preserve">
+    <value>Add new Pose</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Poses.AttachPose" xml:space="preserve">
+    <value>Apply current pose data to pose</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Poses.AttachWorldData" xml:space="preserve">
+    <value>Apply current world position data to pose</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Poses.Count" xml:space="preserve">
+    <value>{0}/{1} poses attached</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Poses.Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Poses.DeletePoseData" xml:space="preserve">
+    <value>Delete current pose data from pose</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Poses.DeleteWorldData" xml:space="preserve">
+    <value>Delete current world position data from pose</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Poses.DescriptionPlaceholder" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Poses.HasPoseData" xml:space="preserve">
+    <value>This Pose entry has pose data attached</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Poses.NoPoseData" xml:space="preserve">
+    <value>This Pose entry has no pose data attached</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Poses.NotUploaded" xml:space="preserve">
+    <value>This pose has not been added to the server yet. Save changes to upload this Pose data.</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Poses.RequireBrio" xml:space="preserve">
+    <value>To attach pose and world data Brio requires to be installed.</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Poses.RequireGpose" xml:space="preserve">
+    <value>To attach pose and world data you need to be in GPose.</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Poses.ScheduledDeletion" xml:space="preserve">
+    <value>Pose scheduled for deletion</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Poses.Title" xml:space="preserve">
+    <value>Poses</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Poses.Undo" xml:space="preserve">
+    <value>Undo</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Poses.UnsavedChanges" xml:space="preserve">
+    <value>This pose has changes that have not been saved to the server yet.</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Poses.WorldDataMap" xml:space="preserve">
+    <value>Click to show location on map</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Poses.WorldDataPresent" xml:space="preserve">
+    <value>This Pose has world data attached.</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Share.HasGlamourer" xml:space="preserve">
+    <value>Has Glamourer data attached</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Share.NoGlamourer" xml:space="preserve">
+    <value>No Glamourer data attached</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Share.HasCustomize" xml:space="preserve">
+    <value>Has Customize+ data attached</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Share.NoCustomize" xml:space="preserve">
+    <value>No Customize+ data attached</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Share.HasFiles" xml:space="preserve">
+    <value>Has File data attached</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Share.NoFiles" xml:space="preserve">
+    <value>No File data attached</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Online.DownloadAll" xml:space="preserve">
+    <value>Download your Online Character Data from Server</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Online.DownloadAllCooldown" xml:space="preserve">
+    <value>You can only refresh all character data from server every minute. Please wait.</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Online.EntryCount" xml:space="preserve">
+    <value>Chara Data Entries on Server: {0}/{1}</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Online.Help" xml:space="preserve">
+    <value>In this tab you can create, view and edit your own Character Data that is stored on the server.&#x0A;&#x0A;Character Data Online functions similar to the previous MCDF standard for exporting your character, except that you do not have to send a file to the other person but solely a code.&#x0A;&#x0A;There would be a bit too much to explain here on what you can do here in its entirety, however, all elements in this tab have help texts attached what they are used for. Please review them carefully.&#x0A;&#x0A;Be mindful that when you share your Character Data with other people there is a chance that, with the help of unsanctioned 3rd party plugins, your appearance could be stolen irreversibly, just like when using MCDF.</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Online.InitNotice" xml:space="preserve">
+    <value>Please use the button "Get Own Chara Data" once before you can add new data entries.</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Online.NewEntry" xml:space="preserve">
+    <value>New Character Data Entry</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Online.NewEntryCooldown" xml:space="preserve">
+    <value>You can only create new character data every few seconds. Please wait.</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Online.Table.Code" xml:space="preserve">
+    <value>Code</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Online.Table.Created" xml:space="preserve">
+    <value>Created</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Online.Table.Customize" xml:space="preserve">
+    <value>Customize+</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Online.Table.Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Online.Table.DownloadCount" xml:space="preserve">
+    <value>Download Count</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Online.Table.Downloadable" xml:space="preserve">
+    <value>Downloadable</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Online.Table.Expires" xml:space="preserve">
+    <value>Expires</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Online.Table.Files" xml:space="preserve">
+    <value>Files</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Online.Table.Glamourer" xml:space="preserve">
+    <value>Glamourer</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Online.Table.Title" xml:space="preserve">
+    <value>Own Character Data</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Online.Table.Updated" xml:space="preserve">
+    <value>Updated</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Online.Title" xml:space="preserve">
+    <value>Online Character Data</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Online.UnsavedEntry" xml:space="preserve">
+    <value>This entry has unsaved changes</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Online.Downloadable" xml:space="preserve">
+    <value>Can be downloaded by others</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Online.ExpiresOn" xml:space="preserve">
+    <value>This entry will expire on {0}</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Online.HasCustomize" xml:space="preserve">
+    <value>Has Customize+ data attached</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Online.HasFiles" xml:space="preserve">
+    <value>Has File data attached</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Online.HasGlamourer" xml:space="preserve">
+    <value>Has Glamourer data attached</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Online.NoCustomize" xml:space="preserve">
+    <value>No Customize+ data attached</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Online.NoFiles" xml:space="preserve">
+    <value>No File data attached</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Online.NoGlamourer" xml:space="preserve">
+    <value>No Glamourer data attached</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Online.NotDownloadable" xml:space="preserve">
+    <value>Cannot be downloaded: Has missing files or data, please review this entry manually</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Online.EntryMaxed" xml:space="preserve">
+    <value>You have reached the maximum Character Data entries and cannot create more.</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Online.Creating" xml:space="preserve">
+    <value>Creating new character data entry on server...</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Specific.AllowedGroups" xml:space="preserve">
+    <value>Allowed Syncshells</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Specific.AllowedIndividuals" xml:space="preserve">
+    <value>Allowed Individuals</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Specific.GroupHelp" xml:space="preserve">
+    <value>Users in Syncshells added to this list will be able to access this character data regardless of your pause or pair state with them.</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Specific.GroupHelpNote" xml:space="preserve">
+    <value>Note: Mistyped entries will be automatically removed on updating data to server.</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Specific.GroupLabel" xml:space="preserve">
+    <value>GID/Vanity GID to Add</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Specific.RemoveGroup" xml:space="preserve">
+    <value>Remove selected Syncshell</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Specific.RemoveUser" xml:space="preserve">
+    <value>Remove selected User</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Specific.Title" xml:space="preserve">
+    <value>Access for Specific Individuals / Syncshells</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Specific.UserHelp" xml:space="preserve">
+    <value>Users added to this list will be able to access this character data regardless of your pause or pair state with them.</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Specific.UserHelpNote" xml:space="preserve">
+    <value>Note: Mistyped entries will be automatically removed on updating data to server.</value>
+  </data>
+  <data name="CharaDataHub.Mcd.Specific.UserLabel" xml:space="preserve">
+    <value>UID/Vanity UID to Add</value>
+  </data>
+  <data name="CharaDataHub.Apply.Favorites.MetaDescription" xml:space="preserve">
+    <value>Description: {0}</value>
+  </data>
+  <data name="CharaDataHub.Apply.Favorites.MetaInfoPresent" xml:space="preserve">
+    <value>Metainfo present</value>
+  </data>
+  <data name="CharaDataHub.Apply.Favorites.MetaNotAccessible" xml:space="preserve">
+    <value>The data associated with the code is either not present on the server anymore or you have no access to it</value>
+  </data>
+  <data name="CharaDataHub.Apply.Favorites.MetaNotDownloaded" xml:space="preserve">
+    <value>Metainfo could not be downloaded.</value>
+  </data>
+  <data name="CharaDataHub.Apply.Favorites.MetaPoses" xml:space="preserve">
+    <value>Poses: {0}</value>
+  </data>
+  <data name="CharaDataHub.Apply.Favorites.MetaUnknown" xml:space="preserve">
+    <value>Unknown accessibility state. Click the button on the right to refresh.</value>
+  </data>
+  <data name="CharaDataHub.Apply.Favorites.MetaUpdated" xml:space="preserve">
+    <value>Last Updated: {0}</value>
+  </data>
+  <data name="CharaDataHub.Apply.Favorites.RefreshTimeout" xml:space="preserve">
+    <value>Timeout for refreshing active, please wait before refreshing again.</value>
+  </data>
+  <data name="CharaDataHub.Apply.Favorites.RefreshTooltip" xml:space="preserve">
+    <value>Refresh data for this entry from the Server.</value>
+  </data>
+  <data name="CharaDataHub.Apply.Filters.CodeOwner" xml:space="preserve">
+    <value>Code/Owner Filter</value>
+  </data>
+  <data name="CharaDataHub.Apply.Filters.Description" xml:space="preserve">
+    <value>Custom Description Filter</value>
+  </data>
+  <data name="CharaDataHub.Apply.Filters.OnlyPose" xml:space="preserve">
+    <value>Only show entries with pose data</value>
+  </data>
+  <data name="CharaDataHub.Apply.Filters.OnlyWorld" xml:space="preserve">
+    <value>Only show entries with world data</value>
+  </data>
+  <data name="CharaDataHub.Apply.Filters.Reset" xml:space="preserve">
+    <value>Reset Filter</value>
+  </data>
+  <data name="CharaDataHub.Apply.Filters.Title" xml:space="preserve">
+    <value>Filters</value>
+  </data>
+  <data name="CharaDataHub.Apply.GposeActors.AppliedDataTooltip" xml:space="preserve">
+    <value>Applied Data: {0}</value>
+  </data>
+  <data name="CharaDataHub.Apply.GposeActors.NoData" xml:space="preserve">
+    <value>No data applied</value>
+  </data>
+  <data name="CharaDataHub.Apply.GposeActors.RemoveTooltip" xml:space="preserve">
+    <value>Remove character {0}</value>
+  </data>
+  <data name="CharaDataHub.Apply.GposeActors.RevertTooltip" xml:space="preserve">
+    <value>Revert applied data from {0}</value>
+  </data>
+  <data name="CharaDataHub.Apply.GposeActors.TargetTooltip" xml:space="preserve">
+    <value>Target the GPose Character {0}</value>
+  </data>
+  <data name="CharaDataHub.Apply.GposeActors.Title" xml:space="preserve">
+    <value>GPose Actors</value>
+  </data>
+  <data name="CharaDataHub.Apply.TabTitle" xml:space="preserve">
+    <value>Apply Character Appearance</value>
+  </data>
+  <data name="CharaDataHub.Apply.TargetLabel" xml:space="preserve">
+    <value>GPose Target</value>
+  </data>
+  <data name="CharaDataHub.Apply.TargetWarning" xml:space="preserve">
+    <value>Applying data is only available in GPose with a valid selected GPose target.</value>
+  </data>
+  <data name="CharaDataHub.Apply.Tabs.Favorites" xml:space="preserve">
+    <value>Favorites</value>
+  </data>
+  <data name="CharaDataHub.Apply.Title" xml:space="preserve">
+    <value>Apply Character Appearance</value>
+  </data>
+  <data name="DataAnalysis.AndMore" xml:space="preserve">
+    <value>(and {0} more)</value>
+  </data>
+  <data name="DataAnalysis.Analyzing" xml:space="preserve">
+    <value>Analyzing {0}/{1}</value>
+  </data>
+  <data name="DataAnalysis.Bc7.Enable" xml:space="preserve">
+    <value>Enable BC7 Conversion Mode</value>
+  </data>
+  <data name="DataAnalysis.Bc7.Start" xml:space="preserve">
+    <value>Start conversion of {0} texture(s)</value>
+  </data>
+  <data name="DataAnalysis.Bc7.WarningDetails" xml:space="preserve">
+    <value>- Converting textures to BC7 will reduce their size (compressed and uncompressed) drastically. It is recommended to be used for large (4k+) textures.&#x0A;- Some textures, especially ones utilizing colorsets, might not be suited for BC7 conversion and might produce visual artifacts.&#x0A;- Before converting textures, make sure to have the original files of the mod you are converting so you can reimport it in case of issues.&#x0A;- Conversion will convert all found texture duplicates (entries with more than 1 file path) automatically.&#x0A;- Converting textures to BC7 is a very expensive operation and, depending on the amount of textures to convert, will take a while to complete.</value>
+  </data>
+  <data name="DataAnalysis.Bc7.WarningIrreversible" xml:space="preserve">
+    <value>Converting textures to BC7 is irreversible!</value>
+  </data>
+  <data name="DataAnalysis.Bc7.WarningTitle" xml:space="preserve">
+    <value>WARNING BC7 CONVERSION:</value>
+  </data>
+  <data name="DataAnalysis.CancelAnalysis" xml:space="preserve">
+    <value>Cancel analysis</value>
+  </data>
+  <data name="DataAnalysis.GamePath" xml:space="preserve">
+    <value>Used by game path:</value>
+  </data>
+  <data name="DataAnalysis.Intro" xml:space="preserve">
+    <value>This window shows you all files and their sizes that are currently in use through your character and associated entities</value>
+  </data>
+  <data name="DataAnalysis.LocalPath" xml:space="preserve">
+    <value>Local file path:</value>
+  </data>
+  <data name="DataAnalysis.MissingEntriesWarning" xml:space="preserve">
+    <value>Some entries in the analysis have file size not determined yet, press the button below to analyze your current data</value>
+  </data>
+  <data name="DataAnalysis.Modal.Cancel" xml:space="preserve">
+    <value>Cancel conversion</value>
+  </data>
+  <data name="DataAnalysis.Modal.CurrentFile" xml:space="preserve">
+    <value>Current file: {0}</value>
+  </data>
+  <data name="DataAnalysis.Modal.Progress" xml:space="preserve">
+    <value>BC7 Conversion in progress: {0}/{1}</value>
+  </data>
+  <data name="DataAnalysis.Modal.Title" xml:space="preserve">
+    <value>BC7 Conversion in Progress</value>
+  </data>
+  <data name="DataAnalysis.ObjectSizeActual" xml:space="preserve">
+    <value>{0} size (actual):</value>
+  </data>
+  <data name="DataAnalysis.ObjectSizeDownload" xml:space="preserve">
+    <value>{0} size (download size):</value>
+  </data>
+  <data name="DataAnalysis.ObjectTriangles" xml:space="preserve">
+    <value>{0} modded model triangles: {1}</value>
+  </data>
+  <data name="DataAnalysis.ObjectVram" xml:space="preserve">
+    <value>{0} VRAM usage:</value>
+  </data>
+  <data name="DataAnalysis.SelectedFile" xml:space="preserve">
+    <value>Selected file:</value>
+  </data>
+  <data name="DataAnalysis.StartAll" xml:space="preserve">
+    <value>Start analysis (recalculate all entries)</value>
+  </data>
+  <data name="DataAnalysis.StartMissing" xml:space="preserve">
+    <value>Start analysis (missing entries)</value>
+  </data>
+  <data name="DataAnalysis.Table.ConvertBc7" xml:space="preserve">
+    <value>Convert to BC7</value>
+  </data>
+  <data name="DataAnalysis.Table.DownloadSize" xml:space="preserve">
+    <value>Download Size</value>
+  </data>
+  <data name="DataAnalysis.Table.FileSize" xml:space="preserve">
+    <value>File Size</value>
+  </data>
+  <data name="DataAnalysis.Table.Filepaths" xml:space="preserve">
+    <value>Filepaths</value>
+  </data>
+  <data name="DataAnalysis.Table.Format" xml:space="preserve">
+    <value>Format</value>
+  </data>
+  <data name="DataAnalysis.Table.Gamepaths" xml:space="preserve">
+    <value>Gamepaths</value>
+  </data>
+  <data name="DataAnalysis.Table.Hash" xml:space="preserve">
+    <value>Hash</value>
+  </data>
+  <data name="DataAnalysis.Table.Triangles" xml:space="preserve">
+    <value>Triangles</value>
+  </data>
+  <data name="DataAnalysis.TotalFiles" xml:space="preserve">
+    <value>Total files:</value>
+  </data>
+  <data name="DataAnalysis.TotalSizeActual" xml:space="preserve">
+    <value>Total size (actual):</value>
+  </data>
+  <data name="DataAnalysis.TotalSizeDownload" xml:space="preserve">
+    <value>Total size (download size):</value>
+  </data>
+  <data name="DataAnalysis.TotalSizeTooltip" xml:space="preserve">
+    <value>Click "Start analysis" to calculate download size</value>
+  </data>
+  <data name="DataAnalysis.TotalTriangles" xml:space="preserve">
+    <value>Total modded model triangles: {0}</value>
+  </data>
+  <data name="DataAnalysis.FileGroup.Files" xml:space="preserve">
+    <value>{0} files</value>
+  </data>
+  <data name="DataAnalysis.FileGroup.SizeActual" xml:space="preserve">
+    <value>{0} files size (actual):</value>
+  </data>
+  <data name="DataAnalysis.FileGroup.SizeDownload" xml:space="preserve">
+    <value>{0} files size (download size):</value>
+  </data>
+  <data name="DataAnalysis.FileTypeSummary" xml:space="preserve">
+    <value>{0}: {1} files, size: {2}, compressed: {3}</value>
+  </data>
+  <data name="DataAnalysis.FilesFor" xml:space="preserve">
+    <value>Files for {0}</value>
+  </data>
+  <data name="DataAnalysis.WindowTitle" xml:space="preserve">
+    <value>Character Data Analysis</value>
+  </data>
+  <data name="DownloadUi.Downloads.Status" xml:space="preserve">
+    <value>{0} [W:{1}/Q:{2}/P:{3}/D:{4}]</value>
+  </data>
+  <data name="DownloadUi.UploadingLabel" xml:space="preserve">
+    <value>Uploading</value>
+  </data>
+  <data name="DownloadUi.Uploads.Status" xml:space="preserve">
+    <value>Compressing+Uploading {0}/{1}</value>
+  </data>
+  <data name="DownloadUi.WindowTitle" xml:space="preserve">
+    <value>Umbra Downloads</value>
+  </data>
+  <data name="DtrEntry.Tooltip.Connected" xml:space="preserve">
+    <value>Umbra: Connected</value>
+  </data>
+  <data name="DtrEntry.Tooltip.Disconnected" xml:space="preserve">
+    <value>Umbra: Not Connected</value>
+  </data>
+  <data name="DtrEntry.Tooltip.PendingInvites" xml:space="preserve">
+    <value>Pending invitation: {0}</value>
+  </data>
+  <data name="EditProfile.ClearDescription" xml:space="preserve">
+    <value>Clear Description</value>
+  </data>
+  <data name="EditProfile.ClearDescriptionTooltip" xml:space="preserve">
+    <value>Clears your profile description text</value>
+  </data>
+  <data name="EditProfile.ClearPicture" xml:space="preserve">
+    <value>Clear uploaded profile picture</value>
+  </data>
+  <data name="EditProfile.ClearPictureTooltip" xml:space="preserve">
+    <value>Clear your currently uploaded profile picture</value>
+  </data>
+  <data name="EditProfile.CurrentProfile" xml:space="preserve">
+    <value>Current Profile (as saved on server)</value>
+  </data>
+  <data name="EditProfile.DescriptionCounter" xml:space="preserve">
+    <value>Description {0}/1500</value>
+  </data>
+  <data name="EditProfile.DescriptionPreview" xml:space="preserve">
+    <value>Preview (approximate)</value>
+  </data>
+  <data name="EditProfile.IsNsfwLabel" xml:space="preserve">
+    <value>Is NSFW</value>
+  </data>
+  <data name="EditProfile.ProfileIsNsfw" xml:space="preserve">
+    <value>Profile is NSFW</value>
+  </data>
+  <data name="EditProfile.ProfileIsNsfwHelp" xml:space="preserve">
+    <value>If your profile description or image can be considered NSFW, toggle this to ON</value>
+  </data>
+  <data name="EditProfile.SaveDescription" xml:space="preserve">
+    <value>Save Description</value>
+  </data>
+  <data name="EditProfile.SaveDescriptionTooltip" xml:space="preserve">
+    <value>Sets your profile description text</value>
+  </data>
+  <data name="EditProfile.SettingsTitle" xml:space="preserve">
+    <value>Profile Settings</value>
+  </data>
+  <data name="EditProfile.UploadDialogTitle" xml:space="preserve">
+    <value>Select new Profile picture</value>
+  </data>
+  <data name="EditProfile.UploadPicture" xml:space="preserve">
+    <value>Upload new profile picture</value>
+  </data>
+  <data name="EditProfile.UploadPictureError" xml:space="preserve">
+    <value>The profile picture must be a PNG file with a maximum height and width of 256px and 250KiB size</value>
+  </data>
+  <data name="EditProfile.UploadPictureTooltip" xml:space="preserve">
+    <value>Select and upload a new profile picture</value>
+  </data>
+  <data name="EditProfile.WindowTitle" xml:space="preserve">
+    <value>Umbra Edit Profile</value>
+  </data>
+  <data name="EventViewer.EmptyPlaceholder" xml:space="preserve">
+    <value>--</value>
+  </data>
+  <data name="EventViewer.FilterLabel" xml:space="preserve">
+    <value>Filter lines</value>
+  </data>
+  <data name="EventViewer.Freeze" xml:space="preserve">
+    <value>Freeze View</value>
+  </data>
+  <data name="EventViewer.OpenLog" xml:space="preserve">
+    <value>Open EventLog folder</value>
+  </data>
+  <data name="EventViewer.Table.Character" xml:space="preserve">
+    <value>Character</value>
+  </data>
+  <data name="EventViewer.Table.Event" xml:space="preserve">
+    <value>Event</value>
+  </data>
+  <data name="EventViewer.Table.Source" xml:space="preserve">
+    <value>Source</value>
+  </data>
+  <data name="EventViewer.Table.Time" xml:space="preserve">
+    <value>Time</value>
+  </data>
+  <data name="EventViewer.Table.Uid" xml:space="preserve">
+    <value>UID</value>
+  </data>
+  <data name="EventViewer.Unfreeze" xml:space="preserve">
+    <value>Unfreeze View</value>
+  </data>
+  <data name="EventViewer.UnfreezeTooltip" xml:space="preserve">
+    <value>New events are available. Click to resume updating.</value>
+  </data>
+  <data name="EventViewer.WindowTitle" xml:space="preserve">
+    <value>Event Viewer</value>
+  </data>
+  <data name="Settings.AutoDetect.AllowInvites" xml:space="preserve">
+    <value>Allow incoming invitations</value>
+  </data>
+  <data name="Settings.AutoDetect.Enable" xml:space="preserve">
+    <value>Enable AutoDetect</value>
+  </data>
+  <data name="Settings.AutoDetect.InvitesDisabled" xml:space="preserve">
+    <value>Incoming invitations disabled: others cannot invite you.</value>
+  </data>
+  <data name="Settings.AutoDetect.InvitesEnabled" xml:space="preserve">
+    <value>Incoming invitations enabled: others can invite you.</value>
+  </data>
+  <data name="Settings.AutoDetect.LockedInInstance" xml:space="preserve">
+    <value>AutoDetect is locked while you remain in an instanced area.</value>
+  </data>
+  <data name="Settings.AutoDetect.MaxDistance" xml:space="preserve">
+    <value>Max distance (meters)</value>
+  </data>
+  <data name="Settings.AutoDetect.SuppressedTooltip" xml:space="preserve">
+    <value>AutoDetect is temporarily disabled in this instanced area.</value>
+  </data>
+  <data name="Settings.DownloadQueue.Enable" xml:space="preserve">
+    <value>Enable download queue</value>
+  </data>
+  <data name="Settings.DownloadQueue.EnableTooltip" xml:space="preserve">
+    <value>Starts character downloads sequentially instead of all at once. When enabled, only the configured number of downloads will run in parallel.</value>
+  </data>
+  <data name="Settings.DownloadQueue.MaxStreams" xml:space="preserve">
+    <value>Maximum number of file streams started in parallel for each download.</value>
+  </data>
+  <data name="Settings.DownloadQueue.MaxWhenEnabled" xml:space="preserve">
+    <value>Maximum number of character downloads allowed simultaneously when the queue is enabled.</value>
+  </data>
+  <data name="Settings.Typing.BlockedNameColor" xml:space="preserve">
+    <value>Blocked name color</value>
+  </data>
+  <data name="Settings.Typing.BubbleHeader" xml:space="preserve">
+    <value>Typing Bubble</value>
+  </data>
+  <data name="Settings.Typing.BubbleSize" xml:space="preserve">
+    <value>Typing bubble size</value>
+  </data>
+  <data name="Settings.Typing.BubbleSizeLarge" xml:space="preserve">
+    <value>Large</value>
+  </data>
+  <data name="Settings.Typing.BubbleSizeMedium" xml:space="preserve">
+    <value>Medium</value>
+  </data>
+  <data name="Settings.Typing.BubbleSizeSmall" xml:space="preserve">
+    <value>Small</value>
+  </data>
+  <data name="Settings.Typing.EnableSystem" xml:space="preserve">
+    <value>Enable typing indicator system</value>
+  </data>
+  <data name="Settings.Typing.EnableSystemHelp" xml:space="preserve">
+    <value>Completely enable or disable sending/receiving and displaying typing bubbles.</value>
+  </data>
+  <data name="Settings.Typing.LogPartyList" xml:space="preserve">
+    <value>Log typing in party list</value>
+  </data>
+  <data name="Settings.Typing.LogPartyListHelp" xml:space="preserve">
+    <value>Log in party list when a group pair is typing (visual bubble later).</value>
+  </data>
+  <data name="Settings.Typing.ShowOnNameplates" xml:space="preserve">
+    <value>Show typing bubble on nameplates</value>
+  </data>
+  <data name="Settings.Typing.ShowOnNameplatesHelp" xml:space="preserve">
+    <value>Adds a '...' bubble on nameplates of pairs who are typing.</value>
+  </data>
+  <data name="Settings.Typing.ShowSelf" xml:space="preserve">
+    <value>Show my own bubble</value>
+  </data>
+  <data name="Settings.Typing.ShowSelfHelp" xml:space="preserve">
+    <value>Show your own bubble when typing (useful for testing/visual feedback).</value>
+  </data>
+  <data name="Permissions.DisableAnimations" xml:space="preserve">
+    <value>Disable Animations</value>
+  </data>
+  <data name="Permissions.DisableAnimations.Help" xml:space="preserve">
+    <value>Disabling sounds will remove all animations synced with this user on both sides.</value>
+  </data>
+  <data name="Permissions.DisableAnimations.Note" xml:space="preserve">
+    <value>Note: this is bidirectional, either user disabling animation sync will stop animation sync on both sides.</value>
+  </data>
+  <data name="Permissions.DisableSounds" xml:space="preserve">
+    <value>Disable Sounds</value>
+  </data>
+  <data name="Permissions.DisableSounds.Help" xml:space="preserve">
+    <value>Disabling sounds will remove all sounds synced with this user on both sides.</value>
+  </data>
+  <data name="Permissions.DisableSounds.Note" xml:space="preserve">
+    <value>Note: this is bidirectional, either user disabling sound sync will stop sound sync on both sides.</value>
+  </data>
+  <data name="Permissions.DisableVfx" xml:space="preserve">
+    <value>Disable VFX</value>
+  </data>
+  <data name="Permissions.DisableVfx.Help" xml:space="preserve">
+    <value>Disabling sounds will remove all VFX synced with this user on both sides.</value>
+  </data>
+  <data name="Permissions.DisableVfx.Note" xml:space="preserve">
+    <value>Note: this is bidirectional, either user disabling VFX sync will stop VFX sync on both sides.</value>
+  </data>
+  <data name="Permissions.Header" xml:space="preserve">
+    <value>Permissions for {0}</value>
+  </data>
+  <data name="Permissions.Other.Animations" xml:space="preserve">
+    <value>{0} has {1}disabled animation sync with you</value>
+  </data>
+  <data name="Permissions.Other.NotPrefix" xml:space="preserve">
+    <value>not </value>
+  </data>
+  <data name="Permissions.Other.Paused" xml:space="preserve">
+    <value>{0} has {1}paused you</value>
+  </data>
+  <data name="Permissions.Other.Sounds" xml:space="preserve">
+    <value>{0} has {1}disabled sound sync with you</value>
+  </data>
+  <data name="Permissions.Other.Vfx" xml:space="preserve">
+    <value>{0} has {1}disabled VFX sync with you</value>
+  </data>
+  <data name="Permissions.Pause" xml:space="preserve">
+    <value>Pause Sync</value>
+  </data>
+  <data name="Permissions.Pause.Help" xml:space="preserve">
+    <value>Pausing will completely cease any sync with this user.</value>
+  </data>
+  <data name="Permissions.Pause.Note" xml:space="preserve">
+    <value>Note: this is bidirectional, either user pausing will cease sync completely.</value>
+  </data>
+  <data name="Permissions.Reset" xml:space="preserve">
+    <value>Reset to Default</value>
+  </data>
+  <data name="Permissions.ResetTooltip" xml:space="preserve">
+    <value>This will set all permissions to their default setting</value>
+  </data>
+  <data name="Permissions.Revert" xml:space="preserve">
+    <value>Revert</value>
+  </data>
+  <data name="Permissions.RevertTooltip" xml:space="preserve">
+    <value>Revert all changes</value>
+  </data>
+  <data name="Permissions.Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Permissions.SaveTooltip" xml:space="preserve">
+    <value>Save and apply all changes</value>
+  </data>
+  <data name="Permissions.WindowTitle" xml:space="preserve">
+    <value>Permissions for {0}</value>
+  </data>
+  <data name="PlayerAnalysis.Analyzing" xml:space="preserve">
+    <value>Analyzing {0}/{1}</value>
+  </data>
+  <data name="PlayerAnalysis.AndMore" xml:space="preserve">
+    <value>(and {0} more)</value>
+  </data>
+  <data name="PlayerAnalysis.CancelAnalysis" xml:space="preserve">
+    <value>Cancel analysis</value>
+  </data>
+  <data name="PlayerAnalysis.FileGroup.Files" xml:space="preserve">
+    <value>{0} files</value>
+  </data>
+  <data name="PlayerAnalysis.FileGroup.SizeActual" xml:space="preserve">
+    <value>{0} files size (actual):</value>
+  </data>
+  <data name="PlayerAnalysis.FileGroup.SizeDownload" xml:space="preserve">
+    <value>{0} files size (download size):</value>
+  </data>
+  <data name="PlayerAnalysis.FileTypeSummary" xml:space="preserve">
+    <value>{0}: {1} files, size: {2}, compressed: {3}</value>
+  </data>
+  <data name="PlayerAnalysis.FilesFor" xml:space="preserve">
+    <value>Files for {0}</value>
+  </data>
+  <data name="PlayerAnalysis.GamePath" xml:space="preserve">
+    <value>Used by game path:</value>
+  </data>
+  <data name="PlayerAnalysis.Intro" xml:space="preserve">
+    <value>This window shows you all files and their sizes that are currently in use by {0} and associated entities</value>
+  </data>
+  <data name="PlayerAnalysis.MissingEntriesWarning" xml:space="preserve">
+    <value>Some entries in the analysis have file size not determined yet, press the button below to compute missing data</value>
+  </data>
+  <data name="PlayerAnalysis.ModTriangles" xml:space="preserve">
+    <value>{0} modded model triangles: {1}</value>
+  </data>
+  <data name="PlayerAnalysis.ObjectSizeActual" xml:space="preserve">
+    <value>{0} size (actual):</value>
+  </data>
+  <data name="PlayerAnalysis.ObjectSizeDownload" xml:space="preserve">
+    <value>{0} size (download size):</value>
+  </data>
+  <data name="PlayerAnalysis.ObjectTriangles" xml:space="preserve">
+    <value>{0} model triangles: {1}</value>
+  </data>
+  <data name="PlayerAnalysis.SelectedFile" xml:space="preserve">
+    <value>Selected file:</value>
+  </data>
+  <data name="PlayerAnalysis.StartMissing" xml:space="preserve">
+    <value>Start analysis (missing entries)</value>
+  </data>
+  <data name="PlayerAnalysis.StartAnalysisTooltip" xml:space="preserve">
+    <value>Click 'Start analysis' to calculate download size</value>
+  </data>
+  <data name="PlayerAnalysis.Table.DownloadSize" xml:space="preserve">
+    <value>Download Size</value>
+  </data>
+  <data name="PlayerAnalysis.Table.FileSize" xml:space="preserve">
+    <value>File Size</value>
+  </data>
+  <data name="PlayerAnalysis.Table.Format" xml:space="preserve">
+    <value>Format</value>
+  </data>
+  <data name="PlayerAnalysis.Table.Gamepaths" xml:space="preserve">
+    <value>Gamepaths</value>
+  </data>
+  <data name="PlayerAnalysis.Table.Hash" xml:space="preserve">
+    <value>Hash</value>
+  </data>
+  <data name="PlayerAnalysis.Table.Triangles" xml:space="preserve">
+    <value>Triangles</value>
+  </data>
+  <data name="PlayerAnalysis.TotalFiles" xml:space="preserve">
+    <value>Total files:</value>
+  </data>
+  <data name="PlayerAnalysis.TotalSizeActual" xml:space="preserve">
+    <value>Total size (actual):</value>
+  </data>
+  <data name="PlayerAnalysis.TotalSizeCompressed" xml:space="preserve">
+    <value>Total size (compressed for up/download only):</value>
+  </data>
+  <data name="PlayerAnalysis.TotalSizeTooltip" xml:space="preserve">
+    <value>Click "Start analysis" to calculate download size</value>
+  </data>
+  <data name="PlayerAnalysis.TotalTriangles" xml:space="preserve">
+    <value>Total modded model triangles: {0}</value>
+  </data>
+  <data name="PlayerAnalysis.VramUsage" xml:space="preserve">
+    <value>{0} VRAM usage:</value>
+  </data>
+  <data name="PlayerAnalysis.WindowTitlePrefix" xml:space="preserve">
+    <value>Character Data Analysis for</value>
+  </data>
+  <data name="PopoutProfile.DescriptionLabel" xml:space="preserve">
+    <value>Description:</value>
+  </data>
+  <data name="PopoutProfile.PairStatus.Direct" xml:space="preserve">
+    <value>Directly paired</value>
+  </data>
+  <data name="PopoutProfile.PairStatus.Indirect" xml:space="preserve">
+    <value>Not paired directly, but in same Syncshell</value>
+  </data>
+  <data name="PopoutProfile.PairStatus.SyncshellHeader" xml:space="preserve">
+    <value>Paired through Syncshells:</value>
+  </data>
+  <data name="PopoutProfile.PairStatus.TheyPaused" xml:space="preserve">
+    <value>They: paused</value>
+  </data>
+  <data name="PopoutProfile.PairStatus.YouPaused" xml:space="preserve">
+    <value>You: paused</value>
+  </data>
+  <data name="PopoutProfile.ReadMoreHint" xml:space="preserve">
+    <value>[Open Full Profile for complete description]</value>
+  </data>
+  <data name="PopoutProfile.Status.Offline" xml:space="preserve">
+    <value>Offline</value>
+  </data>
+  <data name="PopoutProfile.Status.Online" xml:space="preserve">
+    <value>Online</value>
+  </data>
+  <data name="PopoutProfile.Status.Visible" xml:space="preserve">
+    <value>Visible</value>
+  </data>
+  <data name="PopoutProfile.SupporterTooltip" xml:space="preserve">
+    <value>Umbra supporter</value>
+  </data>
+  <data name="StandaloneProfile.PairStatus.Direct" xml:space="preserve">
+    <value>Directly paired</value>
+  </data>
+  <data name="StandaloneProfile.PairStatus.SyncshellHeader" xml:space="preserve">
+    <value>Paired through Syncshells:</value>
+  </data>
+  <data name="StandaloneProfile.PairStatus.TheyPaused" xml:space="preserve">
+    <value>They: paused</value>
+  </data>
+  <data name="StandaloneProfile.PairStatus.YouPaused" xml:space="preserve">
+    <value>You: paused</value>
+  </data>
+  <data name="StandaloneProfile.ReportButton" xml:space="preserve">
+    <value>Report Profile</value>
+  </data>
+  <data name="StandaloneProfile.Status.Offline" xml:space="preserve">
+    <value>Offline</value>
+  </data>
+  <data name="StandaloneProfile.Status.Online" xml:space="preserve">
+    <value>Online</value>
+  </data>
+  <data name="StandaloneProfile.Status.Visible" xml:space="preserve">
+    <value>Visible</value>
+  </data>
+  <data name="StandaloneProfile.WindowTitle" xml:space="preserve">
+    <value>Profile of {0}</value>
+  </data>
+  <data name="SyncshellAdmin.AdminPanelTitle" xml:space="preserve">
+    <value>{0} Administrative Panel</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.CheckboxHelp" xml:space="preserve">
+    <value>When enabled, the password is temporarily disabled while visibility remains active.</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.CheckboxLabel" xml:space="preserve">
+    <value>Show this Syncshell in AutoDetect</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.Description" xml:space="preserve">
+    <value>Enabling AutoDetect visibility makes the Syncshell visible in the AutoDetect tab and temporarily disables the password.</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.DurationHelp" xml:space="preserve">
+    <value>How long the Syncshell should stay visible, in hours.</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.DurationHours" xml:space="preserve">
+    <value>Duration (hours)</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.Loading" xml:space="preserve">
+    <value>Loading AutoDetect state...</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.Options" xml:space="preserve">
+    <value>AutoDetect display options</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.PasswordDisabled" xml:space="preserve">
+    <value>The password is currently disabled while AutoDetect visibility is active.</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.Recurring" xml:space="preserve">
+    <value>Recurring display</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.RecurringHelp" xml:space="preserve">
+    <value>If enabled, you can choose recurring days and a time range. If disabled, only the duration is used.</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.Refresh" xml:space="preserve">
+    <value>Reload state</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.RefreshError" xml:space="preserve">
+    <value>Error while refreshing: {0}</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.StateFetchFailed" xml:space="preserve">
+    <value>Unable to retrieve AutoDetect state.</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.StartHour" xml:space="preserve">
+    <value>Start hour</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.StartMinute" xml:space="preserve">
+    <value>min</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.EndHour" xml:space="preserve">
+    <value>End hour</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.EndMinute" xml:space="preserve">
+    <value>min</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.Submit" xml:space="preserve">
+    <value>Validate and send</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.SubmitError" xml:space="preserve">
+    <value>Error sending AutoDetect settings: {0}</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.SubmitFailed" xml:space="preserve">
+    <value>Unable to send AutoDetect settings.</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.TimeRangeHelp" xml:space="preserve">
+    <value>Example: 21:00 to 23:00. Timezone used: Europe/Paris (with DST).</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.TimeRangeLabel" xml:space="preserve">
+    <value>Time range (Europe/Paris local time):</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.VisibleOff" xml:space="preserve">
+    <value>Syncshell is no longer visible in AutoDetect.</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.VisibleOn" xml:space="preserve">
+    <value>AutoDetect settings sent. The Syncshell will be visible by the defined schedule.</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.Weekday.Mon" xml:space="preserve">
+    <value>Mon</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.Weekday.Tue" xml:space="preserve">
+    <value>Tue</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.Weekday.Wed" xml:space="preserve">
+    <value>Wed</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.Weekday.Thu" xml:space="preserve">
+    <value>Thu</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.Weekday.Fri" xml:space="preserve">
+    <value>Fri</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.Weekday.Sat" xml:space="preserve">
+    <value>Sat</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.Weekday.Sun" xml:space="preserve">
+    <value>Sun</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.Weekdays" xml:space="preserve">
+    <value>Active weekdays:</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.WeekdaysHelp" xml:space="preserve">
+    <value>Select the days when the display is allowed (e.g., Thu and Sun).</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.NotificationTitle" xml:space="preserve">
+    <value>Public Syncshell: {0}</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.NotificationMessage" xml:space="preserve">
+    <value>The Syncshell is now visible via AutoDetect.</value>
+  </data>
+  <data name="SyncshellAdmin.Bans.ColActions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="SyncshellAdmin.Bans.ColUid" xml:space="preserve">
+    <value>UID</value>
+  </data>
+  <data name="SyncshellAdmin.Bans.ColAlias" xml:space="preserve">
+    <value>Alias</value>
+  </data>
+  <data name="SyncshellAdmin.Bans.ColBy" xml:space="preserve">
+    <value>By</value>
+  </data>
+  <data name="SyncshellAdmin.Bans.ColDate" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="SyncshellAdmin.Bans.ColReason" xml:space="preserve">
+    <value>Reason</value>
+  </data>
+  <data name="SyncshellAdmin.Bans.Refresh" xml:space="preserve">
+    <value>Refresh Banlist from Server</value>
+  </data>
+  <data name="SyncshellAdmin.Bans.Tree" xml:space="preserve">
+    <value>User Bans</value>
+  </data>
+  <data name="SyncshellAdmin.Bans.Unban" xml:space="preserve">
+    <value>Unban</value>
+  </data>
+  <data name="SyncshellAdmin.Cleanup.Clear" xml:space="preserve">
+    <value>Clear Syncshell</value>
+  </data>
+  <data name="SyncshellAdmin.Cleanup.ClearTooltip" xml:space="preserve">
+    <value>This will remove all non-pinned, non-moderator users from the Syncshell.</value>
+  </data>
+  <data name="SyncshellAdmin.Cleanup.CheckInactive" xml:space="preserve">
+    <value>Find inactive users</value>
+  </data>
+  <data name="SyncshellAdmin.Cleanup.CtrlHint" xml:space="preserve">
+    <value>Hold CTRL to enable this button</value>
+  </data>
+  <data name="SyncshellAdmin.Cleanup.PruneCalculating" xml:space="preserve">
+    <value>Calculating inactive users...</value>
+  </data>
+  <data name="SyncshellAdmin.Cleanup.PruneDaysEntry" xml:space="preserve">
+    <value>{0} days</value>
+  </data>
+  <data name="SyncshellAdmin.Cleanup.PruneDaysLabel" xml:space="preserve">
+    <value>Days of inactivity</value>
+  </data>
+  <data name="SyncshellAdmin.Cleanup.PruneExecute" xml:space="preserve">
+    <value>Prune Inactive Users</value>
+  </data>
+  <data name="SyncshellAdmin.Cleanup.PruneExecuteTooltip" xml:space="preserve">
+    <value>Pruning will remove {0} inactive user(s).</value>
+  </data>
+  <data name="SyncshellAdmin.Cleanup.PruneFound" xml:space="preserve">
+    <value>Found {0} user(s) that have not logged in the past {1} days.</value>
+  </data>
+  <data name="SyncshellAdmin.Cleanup.PruneNote" xml:space="preserve">
+    <value>Note: pruning excludes pinned users and moderators of this Syncshell.</value>
+  </data>
+  <data name="SyncshellAdmin.Cleanup.PruneReview" xml:space="preserve">
+    <value>You will be able to review the amount of inactive users before executing the prune.</value>
+  </data>
+  <data name="SyncshellAdmin.Cleanup.PruneTooltip" xml:space="preserve">
+    <value>This will start the prune process for this Syncshell of inactive users that have not logged in the past {0} days.</value>
+  </data>
+  <data name="SyncshellAdmin.Cleanup.PrunedResult" xml:space="preserve">
+    <value>Syncshell was pruned and {0} inactive user(s) have been removed.</value>
+  </data>
+  <data name="SyncshellAdmin.Cleanup.Pruning" xml:space="preserve">
+    <value>Pruning Syncshell...</value>
+  </data>
+  <data name="SyncshellAdmin.Cleanup.Tree" xml:space="preserve">
+    <value>Mass Cleanup</value>
+  </data>
+  <data name="SyncshellAdmin.Invites.Copy" xml:space="preserve">
+    <value>Copy Invites to clipboard</value>
+  </data>
+  <data name="SyncshellAdmin.Invites.Description" xml:space="preserve">
+    <value>One-time invites work as single-use passwords. Use those if you do not want to distribute your Syncshell password.</value>
+  </data>
+  <data name="SyncshellAdmin.Invites.GeneratedLabel" xml:space="preserve">
+    <value>Generated Multi Invites</value>
+  </data>
+  <data name="SyncshellAdmin.Invites.Lock" xml:space="preserve">
+    <value>Lock Syncshell</value>
+  </data>
+  <data name="SyncshellAdmin.Invites.Multi" xml:space="preserve">
+    <value>Generate {0} one-time invites</value>
+  </data>
+  <data name="SyncshellAdmin.Invites.Single" xml:space="preserve">
+    <value>Single one-time invite</value>
+  </data>
+  <data name="SyncshellAdmin.Invites.SingleTooltip" xml:space="preserve">
+    <value>Creates a single-use password for joining the syncshell which is valid for 24h and copies it to the clipboard.</value>
+  </data>
+  <data name="SyncshellAdmin.Invites.Unlock" xml:space="preserve">
+    <value>Unlock Syncshell</value>
+  </data>
+  <data name="SyncshellAdmin.Owner.ChangePassword" xml:space="preserve">
+    <value>Change Password</value>
+  </data>
+  <data name="SyncshellAdmin.Owner.ChangePasswordFailed" xml:space="preserve">
+    <value>Failed to change the password. Password requires to be at least 10 characters long.</value>
+  </data>
+  <data name="SyncshellAdmin.Owner.ChangePasswordTooltip" xml:space="preserve">
+    <value>Password requires to be at least 10 characters long. This action is irreversible.</value>
+  </data>
+  <data name="SyncshellAdmin.Owner.DeleteSyncshell" xml:space="preserve">
+    <value>Delete Syncshell</value>
+  </data>
+  <data name="SyncshellAdmin.Owner.DeleteTooltip" xml:space="preserve">
+    <value>Hold CTRL and Shift and click to delete this Syncshell.&#x0A;WARNING: this action is irreversible.</value>
+  </data>
+  <data name="SyncshellAdmin.Owner.NewPassword" xml:space="preserve">
+    <value>New Password</value>
+  </data>
+  <data name="SyncshellAdmin.Owner.PasswordPlaceholder" xml:space="preserve">
+    <value>Min 10 characters</value>
+  </data>
+  <data name="SyncshellAdmin.Permissions.Animation" xml:space="preserve">
+    <value>Animation Sync</value>
+  </data>
+  <data name="SyncshellAdmin.Permissions.DisableAnimation" xml:space="preserve">
+    <value>Disable animation sync</value>
+  </data>
+  <data name="SyncshellAdmin.Permissions.DisableSound" xml:space="preserve">
+    <value>Disable sound sync</value>
+  </data>
+  <data name="SyncshellAdmin.Permissions.DisableVfx" xml:space="preserve">
+    <value>Disable VFX sync</value>
+  </data>
+  <data name="SyncshellAdmin.Permissions.EnableAnimation" xml:space="preserve">
+    <value>Enable animation sync</value>
+  </data>
+  <data name="SyncshellAdmin.Permissions.EnableSound" xml:space="preserve">
+    <value>Enable sound sync</value>
+  </data>
+  <data name="SyncshellAdmin.Permissions.EnableVfx" xml:space="preserve">
+    <value>Enable VFX sync</value>
+  </data>
+  <data name="SyncshellAdmin.Permissions.Sound" xml:space="preserve">
+    <value>Sound Sync</value>
+  </data>
+  <data name="SyncshellAdmin.Permissions.Vfx" xml:space="preserve">
+    <value>VFX Sync</value>
+  </data>
+  <data name="SyncshellAdmin.Tab.AutoDetect" xml:space="preserve">
+    <value>AutoDetect</value>
+  </data>
+  <data name="SyncshellAdmin.Tab.Invites" xml:space="preserve">
+    <value>Invites</value>
+  </data>
+  <data name="SyncshellAdmin.Tab.Owner" xml:space="preserve">
+    <value>Owner Settings</value>
+  </data>
+  <data name="SyncshellAdmin.Tab.Permissions" xml:space="preserve">
+    <value>Permissions</value>
+  </data>
+  <data name="SyncshellAdmin.Tab.UserManagement" xml:space="preserve">
+    <value>User Management</value>
+  </data>
+  <data name="SyncshellAdmin.Users.Ban" xml:space="preserve">
+    <value>Ban user from Syncshell</value>
+  </data>
+  <data name="SyncshellAdmin.Users.BanHint" xml:space="preserve">
+    <value>Hold CTRL to enable this button</value>
+  </data>
+  <data name="SyncshellAdmin.Users.ColActions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="SyncshellAdmin.Users.ColAlias" xml:space="preserve">
+    <value>Alias/UID/Note</value>
+  </data>
+  <data name="SyncshellAdmin.Users.ColFlags" xml:space="preserve">
+    <value>Flags</value>
+  </data>
+  <data name="SyncshellAdmin.Users.ColOnline" xml:space="preserve">
+    <value>Online/Name</value>
+  </data>
+  <data name="SyncshellAdmin.Users.Demod" xml:space="preserve">
+    <value>Demod user</value>
+  </data>
+  <data name="SyncshellAdmin.Users.Empty" xml:space="preserve">
+    <value>No users found in this Syncshell</value>
+  </data>
+  <data name="SyncshellAdmin.Users.Mod" xml:space="preserve">
+    <value>Mod user</value>
+  </data>
+  <data name="SyncshellAdmin.Users.ModeratorTooltip" xml:space="preserve">
+    <value>Moderator</value>
+  </data>
+  <data name="SyncshellAdmin.Users.Online" xml:space="preserve">
+    <value>Online</value>
+  </data>
+  <data name="SyncshellAdmin.Users.Offline" xml:space="preserve">
+    <value>Offline</value>
+  </data>
+  <data name="SyncshellAdmin.Users.Pin" xml:space="preserve">
+    <value>Pin user</value>
+  </data>
+  <data name="SyncshellAdmin.Users.PinnedTooltip" xml:space="preserve">
+    <value>Pinned</value>
+  </data>
+  <data name="SyncshellAdmin.Users.Remove" xml:space="preserve">
+    <value>Remove user from Syncshell</value>
+  </data>
+  <data name="SyncshellAdmin.Users.RemoveHint" xml:space="preserve">
+    <value>Hold CTRL to enable this button</value>
+  </data>
+  <data name="SyncshellAdmin.Users.Tree" xml:space="preserve">
+    <value>User List &amp; Administration</value>
+  </data>
+  <data name="SyncshellAdmin.Users.Unpin" xml:space="preserve">
+    <value>Unpin user</value>
+  </data>
+  <data name="SyncshellAdmin.WindowTitle" xml:space="preserve">
+    <value>Syncshell Admin Panel ({0})</value>
+  </data>
+  <data name="UidDisplay.EditPlaceholder" xml:space="preserve">
+    <value>Nick/Notes</value>
+  </data>
+  <data name="UidDisplay.EditTooltip" xml:space="preserve">
+    <value>Press ENTER to save&#x0A;Right click to cancel</value>
+  </data>
+  <data name="UidDisplay.Tooltip.LastSeenPrefix" xml:space="preserve">
+    <value>Seen as: {0}</value>
+  </data>
+  <data name="UidDisplay.Tooltip.Main" xml:space="preserve">
+    <value>Left click to switch between UID display and nick&#x0A;Right click to change nick for {0}&#x0A;Middle Mouse Button to open their profile in a separate window</value>
+  </data>
+  <data name="TypingOverlay.WindowTitle" xml:space="preserve">
+    <value>TypingIndicatorOverlay</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.ApplyPose" xml:space="preserve">
+    <value>Apply Pose</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.ApplyPoseTooltip" xml:space="preserve">
+    <value>Apply pose and position to {0}</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.CharaDescriptionLabel" xml:space="preserve">
+    <value>Character Data Description</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.DescriptionLabel" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.DetectionDistance" xml:space="preserve">
+    <value>Detection Distance</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.DetectionDistanceHelp" xml:space="preserve">
+    <value>Maximum distance in which poses will be shown. Set it to the maximum if you want to see all poses on the current map.</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.FilterByUser" xml:space="preserve">
+    <value>Filter by User</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.GposeOnly" xml:space="preserve">
+    <value>Spawning and applying pose data is only available in GPose.</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.Help" xml:space="preserve">
+    <value>This tab will show you all Shared World Poses nearby you.&#x0A;&#x0A;Shared World Poses are poses in character data that have world data attached to them and are set to shared. This means that all data that is in 'Shared with You' that has a pose with world data attached to it will be shown here if you are nearby.&#x0A;By default all poses that are shared will be shown. Poses taken in housing areas will by default only be shown on the correct world and location.&#x0A;&#x0A;Shared World Poses will appear in the world as floating wisps, as well as in the list below. You can mouse over a Shared World Pose in the list for it to get highlighted in the world.&#x0A;&#x0A;You can apply Shared World Poses to yourself or spawn the associated character to pose with them.&#x0A;&#x0A;You can adjust the filter and change further settings in the 'Settings &amp; Filter' foldout.</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.IgnoreHousing" xml:space="preserve">
+    <value>Ignore Housing Limitations</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.IgnoreHousingHelp" xml:space="preserve">
+    <value>Display all poses in their location regardless of housing limitations. (Ignoring Ward, Plot, Room)</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.IgnoreHousingNote" xml:space="preserve">
+    <value>Note: Poses that utilize housing props, furniture, etc. will not be displayed correctly if not spawned in the right location.</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.MapTooltip" xml:space="preserve">
+    <value>Click to open corresponding map and set map marker</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.MaxWisps" xml:space="preserve">
+    <value>Maximum wisps</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.MaxWispsHelp" xml:space="preserve">
+    <value>Limit how many wisps are active at once. Set to 0 to disable wisps even when enabled above.</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.NoDescription" xml:space="preserve">
+    <value>No Pose Description was set</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.NoneFound" xml:space="preserve">
+    <value>No Shared World Poses found nearby.</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.OnlyCurrentWorld" xml:space="preserve">
+    <value>Only show Poses on current world</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.OnlyCurrentWorldHelp" xml:space="preserve">
+    <value>Show the location of shared Poses with World Data from current world only</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.PoseBy" xml:space="preserve">
+    <value>Pose by</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.SettingsTitle" xml:space="preserve">
+    <value>Settings &amp; Filters</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.ShowAlways" xml:space="preserve">
+    <value>Keep active outside Poses Nearby tab</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.ShowAlwaysHelp" xml:space="preserve">
+    <value>Continue the calculation of position of wisps etc. active outside of the 'Poses Nearby' tab.</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.ShowAlwaysNote" xml:space="preserve">
+    <value>Note: The wisps etc. will disappear during combat and performing.</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.ShowOwnData" xml:space="preserve">
+    <value>Also show your own data</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.ShowOwnDataHelp" xml:space="preserve">
+    <value>Show your own Poses as well</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.ShowWisps" xml:space="preserve">
+    <value>Show Pose Wisps in the overworld</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.ShowWispsHelp" xml:space="preserve">
+    <value>Draw floating wisps where other's poses are in the world.</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.SpawnAndPose" xml:space="preserve">
+    <value>Spawn and Pose</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.SpawnAndPoseTooltip" xml:space="preserve">
+    <value>Spawn actor and apply pose and position</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.Title" xml:space="preserve">
+    <value>Poses Nearby</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.UpdateShared" xml:space="preserve">
+    <value>Update Data Shared With You</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.UpdateSharedCooldown" xml:space="preserve">
+    <value>You can only refresh all character data from server every minute. Please wait.</value>
+  </data>
+  <data name="CharaDataHub.NearbyPoses.YouLabel" xml:space="preserve">
+    <value>YOU</value>
+  </data>
+  <data name="CharaDataHub.ShareType.CodeOnly" xml:space="preserve">
+    <value>Code Only</value>
+  </data>
+  <data name="CharaDataHub.ShareType.Shared" xml:space="preserve">
+    <value>Shared</value>
+  </data>
+  <data name="CharaDataHub.Tab.Application" xml:space="preserve">
+    <value>Data Application</value>
+  </data>
+  <data name="CharaDataHub.Tab.ApplyData" xml:space="preserve">
+    <value>Apply Data</value>
+  </data>
+  <data name="CharaDataHub.Tab.DataCreation" xml:space="preserve">
+    <value>Data Creation</value>
+  </data>
+  <data name="CharaDataHub.Tab.GposeActors" xml:space="preserve">
+    <value>GPose Actors</value>
+  </data>
+  <data name="CharaDataHub.Tab.GposeTogether" xml:space="preserve">
+    <value>GPose Together</value>
+  </data>
+  <data name="CharaDataHub.Tab.McdfExport" xml:space="preserve">
+    <value>MCDF Export</value>
+  </data>
+  <data name="CharaDataHub.Tab.McdfShare" xml:space="preserve">
+    <value>MCDF Share</value>
+  </data>
+  <data name="CharaDataHub.Tab.OnlineData" xml:space="preserve">
+    <value>Online Data</value>
+  </data>
+  <data name="CharaDataHub.Tab.PosesNearby" xml:space="preserve">
+    <value>Poses Nearby</value>
+  </data>
+  <data name="CharaDataHub.Tab.Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="CharaDataHub.WorldDataTooltip.None" xml:space="preserve">
+    <value>This Pose has no world data attached.</value>
+  </data>
+  <data name="CharaDataHub.WindowTitle" xml:space="preserve">
+    <value>Umbra Character Data Hub</value>
+  </data>
+  <data name="ContextMenu.AutoDetect.SendRequest" xml:space="preserve">
+    <value>Send Umbra pairing request [Umbra U]</value>
+  </data>
+  <data name="ContextMenu.AutoDetect.AddPair" xml:space="preserve">
+    <value>Add as Umbra pair [Umbra +]</value>
+  </data>
+</root>

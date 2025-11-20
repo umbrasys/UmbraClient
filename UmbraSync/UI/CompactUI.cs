@@ -79,13 +79,15 @@ public class CompactUi : WindowMediatorSubscriberBase
     private int _notificationCount;
     private const long SelfAnalysisSizeWarningThreshold = 300L * 1024 * 1024;
     private const long SelfAnalysisTriangleWarningThreshold = 150_000;
-    private CompactUiSection _activeSection = CompactUiSection.VisiblePairs;
+    private CompactUiSection _activeSection = CompactUiSection.IndividualPairs;
     private const float SidebarWidth = 42f;
     private const float SidebarIconSize = 22f;
     private const float ContentFontScale = UiSharedService.ContentFontScale;
     private static readonly Vector4 SidebarButtonColor = new(0.08f, 0.08f, 0.10f, 0.92f);
     private static readonly Vector4 SidebarButtonHoverColor = new(0.12f, 0.12f, 0.16f, 0.95f);
     private static readonly Vector4 SidebarButtonActiveColor = new(0.16f, 0.16f, 0.22f, 0.95f);
+    private static readonly Vector4 MutedCardBackground = new(0.10f, 0.10f, 0.13f, 0.78f);
+    private static readonly Vector4 MutedCardBorder = new(0.55f, 0.55f, 0.62f, 0.82f);
 
     private enum CompactUiSection
     {
@@ -592,14 +594,20 @@ public class CompactUi : WindowMediatorSubscriberBase
 
     private void DrawAddPair()
     {
-        var buttonSize = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Plus);
-        ImGui.SetNextItemWidth(UiSharedService.GetWindowContentRegionWidth() - ImGui.GetWindowContentRegionMin().X - buttonSize.X);
+        var style = ImGui.GetStyle();
+        float buttonHeight = ImGui.GetFrameHeight() + style.FramePadding.Y * 0.5f;
+        float glyphWidth;
+        using (_uiSharedService.IconFont.Push())
+            glyphWidth = ImGui.CalcTextSize(FontAwesomeIcon.Plus.ToIconString()).X;
+        var buttonWidth = glyphWidth + style.FramePadding.X * 2f;
+
+        ImGui.SetNextItemWidth(UiSharedService.GetWindowContentRegionWidth() - ImGui.GetWindowContentRegionMin().X - buttonWidth - style.ItemSpacing.X);
         ImGui.InputTextWithHint("##otheruid", Loc.Get("CompactUi.AddPair.OtherUidPlaceholder"), ref _pairToAdd, 20);
-        ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - buttonSize.X);
+        ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - buttonWidth);
         var canAdd = !_pairManager.DirectPairs.Any(p => string.Equals(p.UserData.UID, _pairToAdd, StringComparison.Ordinal) || string.Equals(p.UserData.Alias, _pairToAdd, StringComparison.Ordinal));
         using (ImRaii.Disabled(!canAdd))
         {
-            if (_uiSharedService.IconButton(FontAwesomeIcon.Plus))
+            if (_uiSharedService.IconPlusButtonCentered(height: buttonHeight))
             {
                 _ = _apiController.UserAddPair(new(new(_pairToAdd)));
                 _pairToAdd = string.Empty;
@@ -659,7 +667,10 @@ public class CompactUi : WindowMediatorSubscriberBase
 
         using (ImRaii.Disabled(_timeout.IsRunning))
         {
-            if (_uiSharedService.IconButton(button) && UiSharedService.CtrlPressed())
+            bool clicked = button == FontAwesomeIcon.Pause
+                ? _uiSharedService.IconPauseButtonCentered(playButtonSize.Y)
+                : _uiSharedService.IconButtonCentered(button, playButtonSize.Y);
+            if (clicked && UiSharedService.CtrlPressed())
             {
                 foreach (var entry in users)
                 {
@@ -737,33 +748,24 @@ public class CompactUi : WindowMediatorSubscriberBase
             var visibleUsers = visibleUsersSource.Select(c => new DrawUserPair("Visible" + c.UserData.UID, c, _uidDisplayHandler, _apiController, Mediator, _selectGroupForPairUi, _uiSharedService, _charaDataManager, _serverManager)).ToList();
             bool showVisibleCard = visibleUsers.Count > 0;
             bool showNearbyCard = nearbyEntriesForDisplay.Count > 0;
+            var visibleHeader = string.Format(CultureInfo.CurrentCulture, Loc.Get("CompactUi.Pairs.VisibleHeader"), visibleUsersSource.Count);
 
-            if (!showVisibleCard && !showNearbyCard)
+            if (showVisibleCard)
             {
-                var calmMessage = Loc.Get("CompactUi.Pairs.VisibleEmpty");
-                using (_uiSharedService.UidFont.Push())
-                {
-                    var regionMin = ImGui.GetWindowContentRegionMin();
-                    var availableWidth = UiSharedService.GetWindowContentRegionWidth();
-                    var regionHeight = UiSharedService.GetWindowContentRegionHeight();
-                    var textSize = ImGui.CalcTextSize(calmMessage, hideTextAfterDoubleHash: false, availableWidth);
-                    var xOffset = MathF.Max(0f, (availableWidth - textSize.X) / 2f);
-                    var yOffset = MathF.Max(0f, (regionHeight - textSize.Y) / 2f);
-                    ImGui.SetCursorPos(new Vector2(regionMin.X + xOffset, regionMin.Y + yOffset));
-                    UiSharedService.ColorTextWrapped(calmMessage, ImGuiColors.DalamudGrey3, regionMin.X + availableWidth);
-                }
+                DrawVisibleCard(visibleUsers);
             }
             else
             {
-                if (showVisibleCard)
-                {
-                    DrawVisibleCard(visibleUsers);
-                }
+                DrawEmptySectionCard(
+                    "visible-card-empty",
+                    visibleHeader,
+                    Loc.Get("CompactUi.Pairs.VisibleEmpty"),
+                    Loc.Get("CompactUi.Pairs.VisibleEmptyTooltip"));
+            }
 
-                if (showNearbyCard)
-                {
-                    DrawNearbyCard(nearbyEntriesForDisplay);
-                }
+            if (showNearbyCard)
+            {
+                DrawNearbyCard(nearbyEntriesForDisplay);
             }
         }
         else
@@ -925,14 +927,22 @@ public class CompactUi : WindowMediatorSubscriberBase
     private void DrawSidebar()
     {
         bool isConnected = _apiController.ServerState is ServerState.Connected;
+        bool hasNotifications = _notificationCount > 0;
+        bool hasVisiblePairs = _pairManager.DirectPairs.Any(p => p.IsVisible);
 
         ImGuiHelpers.ScaledDummy(6f);
         DrawConnectionIcon();
         ImGuiHelpers.ScaledDummy(12f);
-        DrawSidebarButton(FontAwesomeIcon.Bell, Loc.Get("CompactUi.Sidebar.Notifications"), CompactUiSection.Notifications, true, _notificationCount > 0, _notificationCount, null, ImGuiColors.DalamudOrange);
+        string notificationsTooltip = hasNotifications
+            ? Loc.Get("CompactUi.Sidebar.Notifications")
+            : Loc.Get("CompactUi.Sidebar.NotificationsEmpty");
+        DrawSidebarButton(FontAwesomeIcon.Bell, notificationsTooltip, CompactUiSection.Notifications, hasNotifications, hasNotifications, _notificationCount, null, ImGuiColors.DalamudOrange);
         ImGuiHelpers.ScaledDummy(3f);
 
-        DrawSidebarButton(FontAwesomeIcon.Eye, Loc.Get("CompactUi.Sidebar.VisiblePairs"), CompactUiSection.VisiblePairs, isConnected);
+        string visibleTooltip = hasVisiblePairs
+            ? Loc.Get("CompactUi.Sidebar.VisiblePairs")
+            : Loc.Get("CompactUi.Sidebar.VisiblePairsEmpty");
+        DrawSidebarButton(FontAwesomeIcon.Eye, visibleTooltip, CompactUiSection.VisiblePairs, isConnected && hasVisiblePairs);
         ImGuiHelpers.ScaledDummy(3f);
         DrawSidebarButton(FontAwesomeIcon.User, Loc.Get("CompactUi.Sidebar.IndividualPairs"), CompactUiSection.IndividualPairs, isConnected);
         ImGuiHelpers.ScaledDummy(3f);
@@ -1042,15 +1052,20 @@ public class CompactUi : WindowMediatorSubscriberBase
             var textPos = new Vector2(
                 start.X + (size - iconSize.X) / 2f,
                 start.Y + (size - iconSize.Y) / 2f);
-            uint iconColor = ImGui.ColorConvertFloat4ToU32(new Vector4(0.85f, 0.85f, 0.9f, 1f));
-            if (highlight)
+            uint iconColor = !enabled
+                ? ImGui.GetColorU32(ImGuiCol.TextDisabled)
+                : ImGui.ColorConvertFloat4ToU32(new Vector4(0.85f, 0.85f, 0.9f, 1f));
+            if (enabled)
             {
-                var color = highlightColor ?? new Vector4(0.45f, 0.85f, 0.45f, 1f);
-                iconColor = ImGui.ColorConvertFloat4ToU32(color);
-            }
-            else if (isActive)
-            {
-                iconColor = ImGui.GetColorU32(ImGuiCol.Text);
+                if (highlight)
+                {
+                    var color = highlightColor ?? new Vector4(0.45f, 0.85f, 0.45f, 1f);
+                    iconColor = ImGui.ColorConvertFloat4ToU32(color);
+                }
+                else if (isActive)
+                {
+                    iconColor = ImGui.GetColorU32(ImGuiCol.Text);
+                }
             }
             ImGui.GetWindowDrawList().AddText(textPos, iconColor, iconText);
         }
@@ -1177,7 +1192,11 @@ public class CompactUi : WindowMediatorSubscriberBase
         var notifications = _notificationTracker.GetEntries();
         if (notifications.Count == 0)
         {
-            UiSharedService.ColorTextWrapped(Loc.Get("CompactUi.Notifications.Empty"), ImGuiColors.DalamudGrey3);
+            DrawEmptySectionCard(
+                "notifications-empty",
+                Loc.Get("CompactUi.Sidebar.Notifications"),
+                Loc.Get("CompactUi.Notifications.Empty"),
+                Loc.Get("CompactUi.Notifications.EmptyTooltip"));
             return;
         }
 
@@ -1253,6 +1272,24 @@ public class CompactUi : WindowMediatorSubscriberBase
                 }
             }
         }, stretchWidth: true);
+    }
+
+    private static void DrawEmptySectionCard(string id, string header, string description, string tooltip)
+    {
+        ImGuiHelpers.ScaledDummy(4f);
+        using (ImRaii.PushStyle(ImGuiStyleVar.Alpha, ImGui.GetStyle().Alpha * 0.9f))
+        {
+            UiSharedService.DrawCard(id, () =>
+            {
+                ImGui.AlignTextToFramePadding();
+                ImGui.TextUnformatted(header);
+
+                ImGuiHelpers.ScaledDummy(3f);
+                UiSharedService.ColorTextWrapped(description, ImGuiColors.DalamudGrey3);
+            }, background: MutedCardBackground, border: MutedCardBorder, stretchWidth: true);
+        }
+
+        UiSharedService.AttachToolTip(tooltip);
     }
 
     private void DrawSyncshellNotification(NotificationEntry notification)

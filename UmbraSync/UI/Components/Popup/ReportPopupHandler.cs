@@ -2,9 +2,11 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
+using UmbraSync.Localization;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services.Mediator;
 using UmbraSync.WebAPI;
+using System.Globalization;
 using System.Numerics;
 
 namespace UmbraSync.UI.Components.Popup;
@@ -29,19 +31,16 @@ internal class ReportPopupHandler : IPopupHandler
     public void DrawContent()
     {
         using (_uiSharedService.UidFont.Push())
-            UiSharedService.TextWrapped("Report " + _reportedPair!.UserData.AliasOrUID + " Profile");
+            UiSharedService.TextWrapped(string.Format(CultureInfo.CurrentCulture, Loc.Get("ReportPopup.Title"), _reportedPair!.UserData.AliasOrUID));
 
         ImGui.InputTextMultiline("##reportReason", ref _reportReason, 500, new Vector2(500 - ImGui.GetStyle().ItemSpacing.X * 2, 200));
-        UiSharedService.TextWrapped($"Note: Sending a report will disable the offending profile globally.{Environment.NewLine}" +
-            $"The report will be sent to the team of your currently connected server.{Environment.NewLine}" +
-            $"Depending on the severity of the offense the users profile or account can be permanently disabled or banned.");
-        UiSharedService.ColorTextWrapped("Report spam and wrong reports will not be tolerated and can lead to permanent account suspension.", UiSharedService.AccentColor);
-        UiSharedService.ColorTextWrapped("This is not for reporting misbehavior but solely for the actual profile. " +
-            "Reports that are not solely for the profile will be ignored.", ImGuiColors.DalamudYellow);
+        UiSharedService.TextWrapped(Loc.Get("ReportPopup.Note"));
+        UiSharedService.ColorTextWrapped(Loc.Get("ReportPopup.SpamWarning"), UiSharedService.AccentColor);
+        UiSharedService.ColorTextWrapped(Loc.Get("ReportPopup.ScopeWarning"), ImGuiColors.DalamudYellow);
 
         using (ImRaii.Disabled(string.IsNullOrEmpty(_reportReason)))
         {
-            if (_uiSharedService.IconTextButton(FontAwesomeIcon.ExclamationTriangle, "Send Report"))
+            if (_uiSharedService.IconTextButton(FontAwesomeIcon.ExclamationTriangle, Loc.Get("ReportPopup.SubmitButton")))
             {
                 ImGui.CloseCurrentPopup();
                 var reason = _reportReason;

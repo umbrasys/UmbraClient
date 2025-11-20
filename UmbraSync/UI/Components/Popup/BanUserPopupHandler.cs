@@ -2,8 +2,10 @@
 using Dalamud.Interface;
 using UmbraSync.API.Dto.Group;
 using UmbraSync.PlayerData.Pairs;
+using UmbraSync.Localization;
 using UmbraSync.Services.Mediator;
 using UmbraSync.WebAPI;
+using System.Globalization;
 using System.Numerics;
 
 namespace UmbraSync.UI.Components.Popup;
@@ -28,17 +30,17 @@ public class BanUserPopupHandler : IPopupHandler
 
     public void DrawContent()
     {
-        UiSharedService.TextWrapped("User " + (_reportedPair.UserData.AliasOrUID) + " will be banned and removed from this Syncshell.");
-        ImGui.InputTextWithHint("##banreason", "Ban Reason", ref _banReason, 255);
+        UiSharedService.TextWrapped(string.Format(CultureInfo.CurrentCulture, Loc.Get("BanUserPopup.BanNotice"), _reportedPair.UserData.AliasOrUID));
+        ImGui.InputTextWithHint("##banreason", Loc.Get("BanUserPopup.ReasonPlaceholder"), ref _banReason, 255);
 
-        if (_uiSharedService.IconTextButton(FontAwesomeIcon.UserSlash, "Ban User"))
+        if (_uiSharedService.IconTextButton(FontAwesomeIcon.UserSlash, Loc.Get("BanUserPopup.SubmitButton")))
         {
             ImGui.CloseCurrentPopup();
             var reason = _banReason;
             _ = _apiController.GroupBanUser(new GroupPairDto(_group.Group, _reportedPair.UserData), reason);
             _banReason = string.Empty;
         }
-        UiSharedService.TextWrapped("The reason will be displayed in the banlist. The current server-side alias if present (Vanity ID) will automatically be attached to the reason.");
+        UiSharedService.TextWrapped(Loc.Get("BanUserPopup.ReasonInfo"));
     }
 
     public void Open(OpenBanUserPopupMessage message)

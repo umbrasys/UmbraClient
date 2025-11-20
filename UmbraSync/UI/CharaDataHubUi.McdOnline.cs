@@ -7,6 +7,7 @@ using UmbraSync.API.Dto.CharaData;
 using UmbraSync.Services.CharaData.Models;
 using System.Numerics;
 using System.Globalization;
+using UmbraSync.Localization;
 
 namespace UmbraSync.UI;
 
@@ -19,7 +20,7 @@ public sealed partial class CharaDataHubUi
         if (dataDto == null)
         {
             ImGuiHelpers.ScaledDummy(5);
-            UiSharedService.DrawGroupedCenteredColorText("Select an entry above to edit its data.", UiSharedService.AccentColor);
+            UiSharedService.DrawGroupedCenteredColorText(Loc.Get("CharaDataHub.Mcd.Edit.SelectEntry"), UiSharedService.AccentColor);
             return;
         }
 
@@ -27,7 +28,7 @@ public sealed partial class CharaDataHubUi
 
         if (updateDto == null)
         {
-            UiSharedService.DrawGroupedCenteredColorText("Something went awfully wrong and there's no update DTO. Try updating Character Data via the button above.", UiSharedService.AccentColor);
+            UiSharedService.DrawGroupedCenteredColorText(Loc.Get("CharaDataHub.Mcd.Edit.NoUpdateDto"), UiSharedService.AccentColor);
             return;
         }
 
@@ -46,23 +47,23 @@ public sealed partial class CharaDataHubUi
                 if (canUpdate)
                 {
                     ImGui.AlignTextToFramePadding();
-                    UiSharedService.ColorTextWrapped("Warning: You have unsaved changes!", UiSharedService.AccentColor);
+                    UiSharedService.ColorTextWrapped(Loc.Get("CharaDataHub.Mcd.Edit.UnsavedWarning"), UiSharedService.AccentColor);
                     ImGui.SameLine();
                     using (ImRaii.Disabled(_charaDataManager.CharaUpdateTask != null && !_charaDataManager.CharaUpdateTask.IsCompleted))
                     {
-                        if (_uiSharedService.IconTextButton(FontAwesomeIcon.ArrowCircleUp, "Save to Server"))
+                        if (_uiSharedService.IconTextButton(FontAwesomeIcon.ArrowCircleUp, Loc.Get("CharaDataHub.Mcd.Edit.Save")))
                         {
                             _charaDataManager.UploadCharaData(dataDto.Id);
                         }
                         ImGui.SameLine();
-                        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Undo, "Undo all changes"))
+                        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Undo, Loc.Get("CharaDataHub.Mcd.Edit.UndoAll")))
                         {
                             updateDto.UndoChanges();
                         }
                     }
                     if (_charaDataManager.CharaUpdateTask != null && !_charaDataManager.CharaUpdateTask.IsCompleted)
                     {
-                        UiSharedService.ColorTextWrapped("Updating data on server, please wait.", UiSharedService.AccentColor);
+                        UiSharedService.ColorTextWrapped(Loc.Get("CharaDataHub.Mcd.Edit.Updating"), UiSharedService.AccentColor);
                     }
                 }
 
@@ -74,7 +75,7 @@ public sealed partial class CharaDataHubUi
                         {
                             UiSharedService.ColorTextWrapped(_charaDataManager.UploadProgress.Value ?? string.Empty, UiSharedService.AccentColor);
                         }
-                        if ((!_charaDataManager.UploadTask?.IsCompleted ?? false) && _uiSharedService.IconTextButton(FontAwesomeIcon.Ban, "Cancel Upload"))
+                        if ((!_charaDataManager.UploadTask?.IsCompleted ?? false) && _uiSharedService.IconTextButton(FontAwesomeIcon.Ban, Loc.Get("CharaDataHub.Mcd.Edit.CancelUpload")))
                         {
                             _charaDataManager.CancelUpload();
                         }
@@ -112,11 +113,11 @@ public sealed partial class CharaDataHubUi
 
     private void DrawEditCharaDataAccessAndSharing(CharaDataExtendedUpdateDto updateDto)
     {
-        _uiSharedService.BigText("Access and Sharing");
+        _uiSharedService.BigText(Loc.Get("CharaDataHub.Mcd.Access.Title"));
 
         ImGui.SetNextItemWidth(200);
         var dtoAccessType = updateDto.AccessType;
-        if (ImGui.BeginCombo("Access Restrictions", GetAccessTypeString(dtoAccessType)))
+        if (ImGui.BeginCombo(Loc.Get("CharaDataHub.Mcd.Access.RestrictionsLabel"), GetAccessTypeString(dtoAccessType)))
         {
             foreach (var accessType in Enum.GetValues(typeof(AccessTypeDto)).Cast<AccessTypeDto>())
             {
@@ -128,14 +129,14 @@ public sealed partial class CharaDataHubUi
 
             ImGui.EndCombo();
         }
-        _uiSharedService.DrawHelpText("You can control who has access to your character data based on the access restrictions." + UiSharedService.TooltipSeparator
-            + "Specified: Only people and syncshells you directly specify in 'Specific Individuals / Syncshells' can access this character data" + Environment.NewLine
-            + "Direct Pairs: Only people you have directly paired can access this character data" + Environment.NewLine
-            + "All Pairs: All people you have paired can access this character data" + Environment.NewLine
-            + "Everyone: Everyone can access this character data" + UiSharedService.TooltipSeparator
-            + "Note: To access your character data the person in question requires to have the code. Exceptions for 'Shared' data, see 'Sharing' below." + Environment.NewLine
-            + "Note: For 'Direct' and 'All Pairs' the pause state plays a role. Paused people will not be able to access your character data." + Environment.NewLine
-            + "Note: Directly specified Individuals or Syncshells in the 'Specific Individuals / Syncshells' list will be able to access your character data regardless of pause or pair state.");
+        _uiSharedService.DrawHelpText(Loc.Get("CharaDataHub.Mcd.Access.Help") + UiSharedService.TooltipSeparator
+            + Loc.Get("CharaDataHub.Mcd.Access.Specified") + Environment.NewLine
+            + Loc.Get("CharaDataHub.Mcd.Access.DirectPairs") + Environment.NewLine
+            + Loc.Get("CharaDataHub.Mcd.Access.AllPairs") + Environment.NewLine
+            + Loc.Get("CharaDataHub.Mcd.Access.Everyone") + UiSharedService.TooltipSeparator
+            + Loc.Get("CharaDataHub.Mcd.Access.NoteCode") + Environment.NewLine
+            + Loc.Get("CharaDataHub.Mcd.Access.NotePause") + Environment.NewLine
+            + Loc.Get("CharaDataHub.Mcd.Access.NoteSpecific"));
 
         DrawSpecific(updateDto);
 
@@ -143,7 +144,7 @@ public sealed partial class CharaDataHubUi
         var dtoShareType = updateDto.ShareType;
         using (ImRaii.Disabled(dtoAccessType == AccessTypeDto.Public))
         {
-            if (ImGui.BeginCombo("Sharing", GetShareTypeString(dtoShareType)))
+            if (ImGui.BeginCombo(Loc.Get("CharaDataHub.Mcd.Access.SharingLabel"), GetShareTypeString(dtoShareType)))
             {
                 foreach (var shareType in Enum.GetValues(typeof(ShareTypeDto)).Cast<ShareTypeDto>())
                 {
@@ -156,10 +157,10 @@ public sealed partial class CharaDataHubUi
                 ImGui.EndCombo();
             }
         }
-        _uiSharedService.DrawHelpText("This regulates how you want to distribute this character data." + UiSharedService.TooltipSeparator
-            + "Code Only: People require to have the code to download this character data" + Environment.NewLine
-            + "Shared: People that are allowed through 'Access Restrictions' will have this character data entry displayed in 'Shared with You' (it can also be accessed through the code)" + UiSharedService.TooltipSeparator
-            + "Note: Shared is incompatible with Access Restriction 'Everyone'");
+        _uiSharedService.DrawHelpText(Loc.Get("CharaDataHub.Mcd.Access.SharingHelp") + UiSharedService.TooltipSeparator
+            + Loc.Get("CharaDataHub.Mcd.Access.CodeOnly") + Environment.NewLine
+            + Loc.Get("CharaDataHub.Mcd.Access.Shared") + UiSharedService.TooltipSeparator
+            + Loc.Get("CharaDataHub.Mcd.Access.SharedNote"));
 
         ImGuiHelpers.ScaledDummy(10f);
     }
@@ -239,7 +240,7 @@ public sealed partial class CharaDataHubUi
         ImGui.SameLine(200);
         _uiSharedService.BooleanToColoredIcon(hasManipData, false);
 
-        ImGui.TextUnformatted("Contains Customize+ Data");
+        ImGui.TextUnformatted(Loc.Get("CharaDataHub.Mcd.Appearance.HasCustomize"));
         ImGui.SameLine();
         bool hasCustomizeData = !string.IsNullOrEmpty(updateDto.CustomizeData);
         ImGui.SameLine(200);
@@ -248,7 +249,7 @@ public sealed partial class CharaDataHubUi
 
     private void DrawEditCharaDataGeneral(CharaDataFullExtendedDto dataDto, CharaDataExtendedUpdateDto updateDto)
     {
-        _uiSharedService.BigText("General");
+        _uiSharedService.BigText(Loc.Get("CharaDataHub.Mcd.Appearance.Title"));
         string code = dataDto.FullId;
         using (ImRaii.Disabled())
         {
@@ -256,13 +257,13 @@ public sealed partial class CharaDataHubUi
             ImGui.InputText("##CharaDataCode", ref code, 255, ImGuiInputTextFlags.ReadOnly);
         }
         ImGui.SameLine();
-        ImGui.TextUnformatted("Chara Data Code");
+        ImGui.TextUnformatted(Loc.Get("CharaDataHub.Mcd.Appearance.CodeLabel"));
         ImGui.SameLine();
         if (_uiSharedService.IconButton(FontAwesomeIcon.Copy))
         {
             ImGui.SetClipboardText(code);
         }
-        UiSharedService.AttachToolTip("Copy Code to Clipboard");
+        UiSharedService.AttachToolTip(Loc.Get("CharaDataHub.Mcd.Appearance.CopyTooltip"));
 
         string creationTime = dataDto.CreatedDate.ToLocalTime().ToString("g", CultureInfo.CurrentCulture);
         string updateTime = dataDto.UpdatedDate.ToLocalTime().ToString("g", CultureInfo.CurrentCulture);
@@ -273,7 +274,7 @@ public sealed partial class CharaDataHubUi
             ImGui.InputText("##CreationDate", ref creationTime, 255, ImGuiInputTextFlags.ReadOnly);
         }
         ImGui.SameLine();
-        ImGui.TextUnformatted("Creation Date");
+        ImGui.TextUnformatted(Loc.Get("CharaDataHub.Mcd.Appearance.Created"));
         ImGui.SameLine();
         ImGuiHelpers.ScaledDummy(20);
         ImGui.SameLine();
@@ -283,7 +284,7 @@ public sealed partial class CharaDataHubUi
             ImGui.InputText("##LastUpdate", ref updateTime, 255, ImGuiInputTextFlags.ReadOnly);
         }
         ImGui.SameLine();
-        ImGui.TextUnformatted("Last Update Date");
+        ImGui.TextUnformatted(Loc.Get("CharaDataHub.Mcd.Appearance.Updated"));
         ImGui.SameLine();
         ImGuiHelpers.ScaledDummy(23);
         ImGui.SameLine();
@@ -293,7 +294,7 @@ public sealed partial class CharaDataHubUi
             ImGui.InputText("##DlCount", ref downloadCount, 255, ImGuiInputTextFlags.ReadOnly);
         }
         ImGui.SameLine();
-        ImGui.TextUnformatted("Download Count");
+        ImGui.TextUnformatted(Loc.Get("CharaDataHub.Mcd.Appearance.DownloadCount"));
 
         string description = updateDto.Description;
         ImGui.SetNextItemWidth(735);
@@ -302,22 +303,21 @@ public sealed partial class CharaDataHubUi
             updateDto.Description = description;
         }
         ImGui.SameLine();
-        ImGui.TextUnformatted("Description");
-        _uiSharedService.DrawHelpText("Description for this Character Data." + UiSharedService.TooltipSeparator
-            + "Note: the description will be visible to anyone who can access this character data. See 'Access Restrictions' and 'Sharing' below.");
+        ImGui.TextUnformatted(Loc.Get("CharaDataHub.Mcd.Appearance.DescriptionLabel"));
+        _uiSharedService.DrawHelpText(Loc.Get("CharaDataHub.Mcd.Appearance.DescriptionHelp"));
 
         var expiryDate = updateDto.ExpiryDate;
         bool isExpiring = expiryDate != DateTime.MaxValue;
-        if (ImGui.Checkbox("Expires", ref isExpiring))
+        if (ImGui.Checkbox(Loc.Get("CharaDataHub.Mcd.Appearance.Expires"), ref isExpiring))
         {
             updateDto.SetExpiry(isExpiring);
         }
-        _uiSharedService.DrawHelpText("If expiration is enabled, the uploaded character data will be automatically deleted from the server at the specified date.");
+        _uiSharedService.DrawHelpText(Loc.Get("CharaDataHub.Mcd.Appearance.ExpiresHelp"));
         using (ImRaii.Disabled(!isExpiring))
         {
             ImGui.SameLine();
             ImGui.SetNextItemWidth(100);
-            if (ImGui.BeginCombo("Year", expiryDate.Year.ToString(CultureInfo.InvariantCulture)))
+            if (ImGui.BeginCombo(Loc.Get("CharaDataHub.Mcd.Appearance.Year"), expiryDate.Year.ToString(CultureInfo.InvariantCulture)))
             {
                 for (int year = DateTime.UtcNow.Year; year < DateTime.UtcNow.Year + 4; year++)
                 {
@@ -332,7 +332,7 @@ public sealed partial class CharaDataHubUi
 
             int daysInMonth = DateTime.DaysInMonth(expiryDate.Year, expiryDate.Month);
             ImGui.SetNextItemWidth(100);
-            if (ImGui.BeginCombo("Month", expiryDate.Month.ToString(CultureInfo.InvariantCulture)))
+            if (ImGui.BeginCombo(Loc.Get("CharaDataHub.Mcd.Appearance.Month"), expiryDate.Month.ToString(CultureInfo.InvariantCulture)))
             {
                 for (int month = 1; month <= 12; month++)
                 {
@@ -346,7 +346,7 @@ public sealed partial class CharaDataHubUi
             ImGui.SameLine();
 
             ImGui.SetNextItemWidth(100);
-            if (ImGui.BeginCombo("Day", expiryDate.Day.ToString(CultureInfo.InvariantCulture)))
+            if (ImGui.BeginCombo(Loc.Get("CharaDataHub.Mcd.Appearance.Day"), expiryDate.Day.ToString(CultureInfo.InvariantCulture)))
             {
                 for (int day = 1; day <= daysInMonth; day++)
                 {
@@ -362,7 +362,7 @@ public sealed partial class CharaDataHubUi
 
         using (ImRaii.Disabled(!UiSharedService.CtrlPressed()))
         {
-            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Trash, "Delete Character Data"))
+            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Trash, Loc.Get("CharaDataHub.Mcd.Appearance.Delete")))
             {
                 _ = _charaDataManager.DeleteCharaData(dataDto);
                 SelectedDtoId = string.Empty;
@@ -370,24 +370,24 @@ public sealed partial class CharaDataHubUi
         }
         if (!UiSharedService.CtrlPressed())
         {
-            UiSharedService.AttachToolTip("Hold CTRL and click to delete the current data. This operation is irreversible.");
+            UiSharedService.AttachToolTip(Loc.Get("CharaDataHub.Mcd.Appearance.DeleteTooltip"));
         }
     }
 
     private void DrawEditCharaDataPoses(CharaDataExtendedUpdateDto updateDto)
     {
-        _uiSharedService.BigText("Poses");
+        _uiSharedService.BigText(Loc.Get("CharaDataHub.Mcd.Poses.Title"));
         var poseCount = updateDto.PoseList.Count();
         using (ImRaii.Disabled(poseCount >= maxPoses))
         {
-            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Plus, "Add new Pose"))
+            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Plus, Loc.Get("CharaDataHub.Mcd.Poses.Add")))
             {
                 updateDto.AddPose();
             }
         }
         ImGui.SameLine();
         using (ImRaii.PushColor(ImGuiCol.Text, UiSharedService.AccentColor, poseCount == maxPoses))
-            ImGui.TextUnformatted($"{poseCount}/{maxPoses} poses attached");
+            ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("CharaDataHub.Mcd.Poses.Count"), poseCount, maxPoses));
         ImGuiHelpers.ScaledDummy(5);
 
         using var indent = ImRaii.PushIndent(10f);
@@ -396,13 +396,13 @@ public sealed partial class CharaDataHubUi
         if (!_uiSharedService.IsInGpose && _charaDataManager.BrioAvailable)
         {
             ImGuiHelpers.ScaledDummy(5);
-            UiSharedService.DrawGroupedCenteredColorText("To attach pose and world data you need to be in GPose.", UiSharedService.AccentColor);
+            UiSharedService.DrawGroupedCenteredColorText(Loc.Get("CharaDataHub.Mcd.Poses.RequireGpose"), UiSharedService.AccentColor);
             ImGuiHelpers.ScaledDummy(5);
         }
         else if (!_charaDataManager.BrioAvailable)
         {
             ImGuiHelpers.ScaledDummy(5);
-            UiSharedService.DrawGroupedCenteredColorText("To attach pose and world data Brio requires to be installed.", UiSharedService.AccentColor);
+            UiSharedService.DrawGroupedCenteredColorText(Loc.Get("CharaDataHub.Mcd.Poses.RequireBrio"), UiSharedService.AccentColor);
             ImGuiHelpers.ScaledDummy(5);
         }
 
@@ -416,7 +416,7 @@ public sealed partial class CharaDataHubUi
             {
                 ImGui.SameLine(50);
                 _uiSharedService.IconText(FontAwesomeIcon.Plus, UiSharedService.AccentColor);
-                UiSharedService.AttachToolTip("This pose has not been added to the server yet. Save changes to upload this Pose data.");
+                UiSharedService.AttachToolTip(Loc.Get("CharaDataHub.Mcd.Poses.NotUploaded"));
             }
 
             bool poseHasChanges = updateDto.PoseHasChanges(pose);
@@ -424,24 +424,24 @@ public sealed partial class CharaDataHubUi
             {
                 ImGui.SameLine(50);
                 _uiSharedService.IconText(FontAwesomeIcon.ExclamationTriangle, UiSharedService.AccentColor);
-                UiSharedService.AttachToolTip("This pose has changes that have not been saved to the server yet.");
+                UiSharedService.AttachToolTip(Loc.Get("CharaDataHub.Mcd.Poses.UnsavedChanges"));
             }
 
             ImGui.SameLine(75);
             if (pose.Description == null && pose.WorldData == null && pose.PoseData == null)
             {
-                UiSharedService.ColorText("Pose scheduled for deletion", UiSharedService.AccentColor);
+                UiSharedService.ColorText(Loc.Get("CharaDataHub.Mcd.Poses.ScheduledDeletion"), UiSharedService.AccentColor);
             }
             else
             {
                 var desc = pose.Description ?? string.Empty;
-                if (ImGui.InputTextWithHint("##description", "Description", ref desc, 100))
+                if (ImGui.InputTextWithHint("##description", Loc.Get("CharaDataHub.Mcd.Poses.DescriptionPlaceholder"), ref desc, 100))
                 {
                     pose.Description = desc;
                     updateDto.UpdatePoseList();
                 }
                 ImGui.SameLine();
-                if (_uiSharedService.IconTextButton(FontAwesomeIcon.Trash, "Delete"))
+                if (_uiSharedService.IconTextButton(FontAwesomeIcon.Trash, Loc.Get("CharaDataHub.Mcd.Poses.Delete")))
                 {
                     updateDto.RemovePose(pose);
                 }
@@ -452,8 +452,8 @@ public sealed partial class CharaDataHubUi
                 bool hasPoseData = !string.IsNullOrEmpty(pose.PoseData);
                 _uiSharedService.IconText(FontAwesomeIcon.Running, UiSharedService.GetBoolColor(hasPoseData));
                 UiSharedService.AttachToolTip(hasPoseData
-                    ? "This Pose entry has pose data attached"
-                    : "This Pose entry has no pose data attached");
+                    ? Loc.Get("CharaDataHub.Mcd.Poses.HasPoseData")
+                    : Loc.Get("CharaDataHub.Mcd.Poses.NoPoseData"));
                 ImGui.SameLine();
 
                 using (ImRaii.Disabled(!_uiSharedService.IsInGpose || !(_charaDataManager.AttachingPoseTask?.IsCompleted ?? true) || !_charaDataManager.BrioAvailable))
@@ -463,7 +463,7 @@ public sealed partial class CharaDataHubUi
                     {
                         _charaDataManager.AttachPoseData(pose, updateDto);
                     }
-                    UiSharedService.AttachToolTip("Apply current pose data to pose");
+                    UiSharedService.AttachToolTip(Loc.Get("CharaDataHub.Mcd.Poses.AttachPose"));
                 }
                 ImGui.SameLine();
                 using (ImRaii.Disabled(!hasPoseData))
@@ -474,7 +474,7 @@ public sealed partial class CharaDataHubUi
                         pose.PoseData = string.Empty;
                         updateDto.UpdatePoseList();
                     }
-                    UiSharedService.AttachToolTip("Delete current pose data from pose");
+                    UiSharedService.AttachToolTip(Loc.Get("CharaDataHub.Mcd.Poses.DeletePoseData"));
                 }
 
                 ImGui.SameLine();
@@ -483,10 +483,10 @@ public sealed partial class CharaDataHubUi
                 var worldData = pose.WorldData ?? default;
                 bool hasWorldData = worldData != default;
                 _uiSharedService.IconText(FontAwesomeIcon.Globe, UiSharedService.GetBoolColor(hasWorldData));
-                var tooltipText = !hasWorldData ? "This Pose has no world data attached." : "This Pose has world data attached.";
+                var tooltipText = !hasWorldData ? Loc.Get("CharaDataHub.WorldDataTooltip.None") : Loc.Get("CharaDataHub.Mcd.Poses.WorldDataPresent");
                 if (hasWorldData)
                 {
-                    tooltipText += UiSharedService.TooltipSeparator + "Click to show location on map";
+                    tooltipText += UiSharedService.TooltipSeparator + Loc.Get("CharaDataHub.Mcd.Poses.WorldDataMap");
                 }
                 UiSharedService.AttachToolTip(tooltipText);
                 if (hasWorldData && ImGui.IsItemClicked(ImGuiMouseButton.Left))
@@ -502,7 +502,7 @@ public sealed partial class CharaDataHubUi
                     {
                         _charaDataManager.AttachWorldData(pose, updateDto);
                     }
-                    UiSharedService.AttachToolTip("Apply current world position data to pose");
+                    UiSharedService.AttachToolTip(Loc.Get("CharaDataHub.Mcd.Poses.AttachWorldData"));
                 }
                 ImGui.SameLine();
                 using (ImRaii.Disabled(!hasWorldData))
@@ -513,7 +513,7 @@ public sealed partial class CharaDataHubUi
                         pose.WorldData = default(WorldData);
                         updateDto.UpdatePoseList();
                     }
-                    UiSharedService.AttachToolTip("Delete current world position data from pose");
+                    UiSharedService.AttachToolTip(Loc.Get("CharaDataHub.Mcd.Poses.DeleteWorldData"));
                 }
             }
 
@@ -532,7 +532,7 @@ public sealed partial class CharaDataHubUi
 
     private void DrawMcdOnline()
     {
-        _uiSharedService.BigText("Online Character Data");
+        _uiSharedService.BigText(Loc.Get("CharaDataHub.Mcd.Online.Title"));
 
         DrawHelpFoldout("In this tab you can create, view and edit your own Character Data that is stored on the server." + Environment.NewLine + Environment.NewLine
             + "Character Data Online functions similar to the previous MCDF standard for exporting your character, except that you do not have to send a file to the other person but solely a code." + Environment.NewLine + Environment.NewLine
@@ -543,7 +543,7 @@ public sealed partial class CharaDataHubUi
         using (ImRaii.Disabled((!_charaDataManager.GetAllDataTask?.IsCompleted ?? false)
             || (_charaDataManager.DataGetTimeoutTask != null && !_charaDataManager.DataGetTimeoutTask.IsCompleted)))
         {
-            if (_uiSharedService.IconTextButton(FontAwesomeIcon.ArrowCircleDown, "Download your Online Character Data from Server"))
+            if (_uiSharedService.IconTextButton(FontAwesomeIcon.ArrowCircleDown, Loc.Get("CharaDataHub.Mcd.Online.DownloadAll")))
             {
                 var cts = EnsureFreshCts(ref _disposalCts);
                 _ = _charaDataManager.GetAllData(cts.Token);
@@ -561,16 +561,16 @@ public sealed partial class CharaDataHubUi
             {
                 ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 18);
                 ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 18);
-                ImGui.TableSetupColumn("Code");
-                ImGui.TableSetupColumn("Description", ImGuiTableColumnFlags.WidthStretch);
-                ImGui.TableSetupColumn("Created");
-                ImGui.TableSetupColumn("Updated");
-                ImGui.TableSetupColumn("Download Count", ImGuiTableColumnFlags.WidthFixed, 18);
-                ImGui.TableSetupColumn("Downloadable", ImGuiTableColumnFlags.WidthFixed, 18);
-                ImGui.TableSetupColumn("Files", ImGuiTableColumnFlags.WidthFixed, 32);
-                ImGui.TableSetupColumn("Glamourer", ImGuiTableColumnFlags.WidthFixed, 18);
-                ImGui.TableSetupColumn("Customize+", ImGuiTableColumnFlags.WidthFixed, 18);
-                ImGui.TableSetupColumn("Expires", ImGuiTableColumnFlags.WidthFixed, 18);
+                ImGui.TableSetupColumn(Loc.Get("CharaDataHub.Mcd.Online.Table.Code"));
+                ImGui.TableSetupColumn(Loc.Get("CharaDataHub.Mcd.Online.Table.Description"), ImGuiTableColumnFlags.WidthStretch);
+                ImGui.TableSetupColumn(Loc.Get("CharaDataHub.Mcd.Online.Table.Created"));
+                ImGui.TableSetupColumn(Loc.Get("CharaDataHub.Mcd.Online.Table.Updated"));
+                ImGui.TableSetupColumn(Loc.Get("CharaDataHub.Mcd.Online.Table.DownloadCount"), ImGuiTableColumnFlags.WidthFixed, 18);
+                ImGui.TableSetupColumn(Loc.Get("CharaDataHub.Mcd.Online.Table.Downloadable"), ImGuiTableColumnFlags.WidthFixed, 18);
+                ImGui.TableSetupColumn(Loc.Get("CharaDataHub.Mcd.Online.Table.Files"), ImGuiTableColumnFlags.WidthFixed, 32);
+                ImGui.TableSetupColumn(Loc.Get("CharaDataHub.Mcd.Online.Table.Glamourer"), ImGuiTableColumnFlags.WidthFixed, 18);
+                ImGui.TableSetupColumn(Loc.Get("CharaDataHub.Mcd.Online.Table.Customize"), ImGuiTableColumnFlags.WidthFixed, 18);
+                ImGui.TableSetupColumn(Loc.Get("CharaDataHub.Mcd.Online.Table.Expires"), ImGuiTableColumnFlags.WidthFixed, 18);
                 ImGui.TableSetupScrollFreeze(0, 1);
                 ImGui.TableHeadersRow();
                 foreach (var entry in _charaDataManager.OwnCharaData.Values.OrderBy(b => b.CreatedDate))
@@ -588,7 +588,7 @@ public sealed partial class CharaDataHubUi
                     if (uDto?.HasChanges ?? false)
                     {
                         UiSharedService.ColorText(idText, UiSharedService.AccentColor);
-                        UiSharedService.AttachToolTip("This entry has unsaved changes");
+                        UiSharedService.AttachToolTip(Loc.Get("CharaDataHub.Mcd.Online.UnsavedEntry"));
                     }
                     else
                     {
@@ -618,25 +618,25 @@ public sealed partial class CharaDataHubUi
                         && !string.IsNullOrEmpty(entry.GlamourerData);
                     _uiSharedService.BooleanToColoredIcon(isDownloadable, false);
                     if (ImGui.IsItemClicked()) SelectedDtoId = entry.Id;
-                    UiSharedService.AttachToolTip(isDownloadable ? "Can be downloaded by others" : "Cannot be downloaded: Has missing files or data, please review this entry manually");
+                    UiSharedService.AttachToolTip(isDownloadable ? Loc.Get("CharaDataHub.Mcd.Online.Downloadable") : Loc.Get("CharaDataHub.Mcd.Online.NotDownloadable"));
 
                     ImGui.TableNextColumn();
                     var count = entry.FileGamePaths.Concat(entry.FileSwaps).Count();
                     ImGui.TextUnformatted(count.ToString(CultureInfo.CurrentCulture));
                     if (ImGui.IsItemClicked()) SelectedDtoId = entry.Id;
-                    UiSharedService.AttachToolTip(count == 0 ? "No File data attached" : "Has File data attached");
+                    UiSharedService.AttachToolTip(count == 0 ? Loc.Get("CharaDataHub.Mcd.Online.NoFiles") : Loc.Get("CharaDataHub.Mcd.Online.HasFiles"));
 
                     ImGui.TableNextColumn();
                     bool hasGlamourerData = !string.IsNullOrEmpty(entry.GlamourerData);
                     _uiSharedService.BooleanToColoredIcon(hasGlamourerData, false);
                     if (ImGui.IsItemClicked()) SelectedDtoId = entry.Id;
-                    UiSharedService.AttachToolTip(string.IsNullOrEmpty(entry.GlamourerData) ? "No Glamourer data attached" : "Has Glamourer data attached");
+                    UiSharedService.AttachToolTip(string.IsNullOrEmpty(entry.GlamourerData) ? Loc.Get("CharaDataHub.Mcd.Online.NoGlamourer") : Loc.Get("CharaDataHub.Mcd.Online.HasGlamourer"));
 
                     ImGui.TableNextColumn();
                     bool hasCustomizeData = !string.IsNullOrEmpty(entry.CustomizeData);
                     _uiSharedService.BooleanToColoredIcon(hasCustomizeData, false);
                     if (ImGui.IsItemClicked()) SelectedDtoId = entry.Id;
-                    UiSharedService.AttachToolTip(string.IsNullOrEmpty(entry.CustomizeData) ? "No Customize+ data attached" : "Has Customize+ data attached");
+                    UiSharedService.AttachToolTip(string.IsNullOrEmpty(entry.CustomizeData) ? Loc.Get("CharaDataHub.Mcd.Online.NoCustomize") : Loc.Get("CharaDataHub.Mcd.Online.HasCustomize"));
 
                     ImGui.TableNextColumn();
                     FontAwesomeIcon eIcon = FontAwesomeIcon.None;
@@ -646,7 +646,7 @@ public sealed partial class CharaDataHubUi
                     if (ImGui.IsItemClicked()) SelectedDtoId = entry.Id;
                     if (eIcon != FontAwesomeIcon.None)
                     {
-                        UiSharedService.AttachToolTip($"This entry will expire on {entry.ExpiryDate.ToLocalTime()}");
+                        UiSharedService.AttachToolTip(string.Format(CultureInfo.CurrentCulture, Loc.Get("CharaDataHub.Mcd.Online.ExpiresOn"), entry.ExpiryDate.ToLocalTime()));
                     }
                 }
             }
@@ -654,7 +654,7 @@ public sealed partial class CharaDataHubUi
 
         using (ImRaii.Disabled(!_charaDataManager.Initialized || _charaDataManager.DataCreationTask != null || _charaDataManager.OwnCharaData.Count == _charaDataManager.MaxCreatableCharaData))
         {
-            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Plus, "New Character Data Entry"))
+            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Plus, Loc.Get("CharaDataHub.Mcd.Online.NewEntry")))
             {
                 var cts = EnsureFreshCts(ref _closalCts);
                 _charaDataManager.CreateCharaDataEntry(cts.Token);
@@ -663,28 +663,28 @@ public sealed partial class CharaDataHubUi
         }
         if (_charaDataManager.DataCreationTask != null)
         {
-            UiSharedService.AttachToolTip("You can only create new character data every few seconds. Please wait.");
+            UiSharedService.AttachToolTip(Loc.Get("CharaDataHub.Mcd.Online.NewEntryCooldown"));
         }
         if (!_charaDataManager.Initialized)
         {
-            UiSharedService.AttachToolTip("Please use the button \"Get Own Chara Data\" once before you can add new data entries.");
+            UiSharedService.AttachToolTip(Loc.Get("CharaDataHub.Mcd.Online.InitNotice"));
         }
 
         if (_charaDataManager.Initialized)
         {
             ImGui.SameLine();
             ImGui.AlignTextToFramePadding();
-            UiSharedService.TextWrapped($"Chara Data Entries on Server: {_charaDataManager.OwnCharaData.Count}/{_charaDataManager.MaxCreatableCharaData}");
+            UiSharedService.TextWrapped(string.Format(CultureInfo.CurrentCulture, Loc.Get("CharaDataHub.Mcd.Online.EntryCount"), _charaDataManager.OwnCharaData.Count, _charaDataManager.MaxCreatableCharaData));
             if (_charaDataManager.OwnCharaData.Count == _charaDataManager.MaxCreatableCharaData)
             {
                 ImGui.AlignTextToFramePadding();
-                UiSharedService.ColorTextWrapped("You have reached the maximum Character Data entries and cannot create more.", UiSharedService.AccentColor);
+                UiSharedService.ColorTextWrapped(Loc.Get("CharaDataHub.Mcd.Online.EntryMaxed"), UiSharedService.AccentColor);
             }
         }
 
         if (_charaDataManager.DataCreationTask != null && !_charaDataManager.DataCreationTask.IsCompleted)
         {
-            UiSharedService.ColorTextWrapped("Creating new character data entry on server...", UiSharedService.AccentColor);
+            UiSharedService.ColorTextWrapped(Loc.Get("CharaDataHub.Mcd.Online.Creating"), UiSharedService.AccentColor);
         }
         else if (_charaDataManager.DataCreationTask != null && _charaDataManager.DataCreationTask.IsCompleted)
         {
@@ -712,7 +712,7 @@ public sealed partial class CharaDataHubUi
 
     private void DrawSpecific(CharaDataExtendedUpdateDto updateDto)
     {
-        UiSharedService.DrawTree("Access for Specific Individuals / Syncshells", () =>
+        UiSharedService.DrawTree(Loc.Get("CharaDataHub.Mcd.Specific.Title"), () =>
         {
             using (ImRaii.PushId("user"))
             {
@@ -731,11 +731,11 @@ public sealed partial class CharaDataHubUi
                         }
                     }
                     ImGui.SameLine();
-                    ImGui.TextUnformatted("UID/Vanity UID to Add");
-                    _uiSharedService.DrawHelpText("Users added to this list will be able to access this character data regardless of your pause or pair state with them." + UiSharedService.TooltipSeparator
-                        + "Note: Mistyped entries will be automatically removed on updating data to server.");
+                    ImGui.TextUnformatted(Loc.Get("CharaDataHub.Mcd.Specific.UserLabel"));
+                    _uiSharedService.DrawHelpText(Loc.Get("CharaDataHub.Mcd.Specific.UserHelp") + UiSharedService.TooltipSeparator
+                        + Loc.Get("CharaDataHub.Mcd.Specific.UserHelpNote"));
 
-                    using (var lb = ImRaii.ListBox("Allowed Individuals", new(200, 200)))
+                    using (var lb = ImRaii.ListBox(Loc.Get("CharaDataHub.Mcd.Specific.AllowedIndividuals"), new(200, 200)))
                     {
                         foreach (var user in updateDto.UserList)
                         {
@@ -749,7 +749,7 @@ public sealed partial class CharaDataHubUi
 
                     using (ImRaii.Disabled(string.IsNullOrEmpty(_selectedSpecificUserIndividual)))
                     {
-                        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Trash, "Remove selected User"))
+                        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Trash, Loc.Get("CharaDataHub.Mcd.Specific.RemoveUser")))
                         {
                             updateDto.RemoveUserFromList(_selectedSpecificUserIndividual);
                             _selectedSpecificUserIndividual = string.Empty;
@@ -778,11 +778,11 @@ public sealed partial class CharaDataHubUi
                         }
                     }
                     ImGui.SameLine();
-                    ImGui.TextUnformatted("GID/Vanity GID to Add");
-                    _uiSharedService.DrawHelpText("Users in Syncshells added to this list will be able to access this character data regardless of your pause or pair state with them." + UiSharedService.TooltipSeparator
-                        + "Note: Mistyped entries will be automatically removed on updating data to server.");
+                    ImGui.TextUnformatted(Loc.Get("CharaDataHub.Mcd.Specific.GroupLabel"));
+                    _uiSharedService.DrawHelpText(Loc.Get("CharaDataHub.Mcd.Specific.GroupHelp") + UiSharedService.TooltipSeparator
+                        + Loc.Get("CharaDataHub.Mcd.Specific.GroupHelpNote"));
 
-                    using (var lb = ImRaii.ListBox("Allowed Syncshells", new(200, 200)))
+                    using (var lb = ImRaii.ListBox(Loc.Get("CharaDataHub.Mcd.Specific.AllowedGroups"), new(200, 200)))
                     {
                         foreach (var group in updateDto.GroupList)
                         {
@@ -796,7 +796,7 @@ public sealed partial class CharaDataHubUi
 
                     using (ImRaii.Disabled(string.IsNullOrEmpty(_selectedSpecificGroupIndividual)))
                     {
-                        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Trash, "Remove selected Syncshell"))
+                        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Trash, Loc.Get("CharaDataHub.Mcd.Specific.RemoveGroup")))
                         {
                             updateDto.RemoveGroupFromList(_selectedSpecificGroupIndividual);
                             _selectedSpecificGroupIndividual = string.Empty;

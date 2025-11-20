@@ -2,13 +2,15 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using UmbraSync.API.Data.Extensions;
 using UmbraSync.MareConfiguration;
 using UmbraSync.UI.Handlers;
 using UmbraSync.WebAPI;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using UmbraSync.Localization;
 
 namespace UmbraSync.UI.Components;
 
@@ -55,7 +57,10 @@ public class PairGroupsUi
         var pauseStart = Math.Max(currentX, currentX + availableWidth - buttonsWidth);
 
         ImGui.SameLine(pauseStart);
-        if (_uiSharedService.IconButton(pauseButton))
+        bool clickedPause = pauseButton == FontAwesomeIcon.Pause
+            ? _uiSharedService.IconPauseButtonCentered(pauseButtonSize.Y)
+            : _uiSharedService.IconButtonCentered(pauseButton, pauseButtonSize.Y);
+        if (clickedPause)
         {
             if (allArePaused)
             {
@@ -66,14 +71,8 @@ public class PairGroupsUi
                 PauseRemainingPairs(availablePairsInThisTag);
             }
         }
-        if (allArePaused)
-        {
-            UiSharedService.AttachToolTip($"Resume pairing with all pairs in {tag}");
-        }
-        else
-        {
-            UiSharedService.AttachToolTip($"Pause pairing with all pairs in {tag}");
-        }
+        var pauseTooltipKey = allArePaused ? "PairGroups.Pause.ResumeAll" : "PairGroups.Pause.All";
+        UiSharedService.AttachToolTip(string.Format(CultureInfo.CurrentCulture, Loc.Get(pauseTooltipKey), tag));
 
         var menuStart = Math.Max(pauseStart + pauseButtonSize.X + spacingX, currentX);
         ImGui.SameLine(menuStart);
@@ -143,31 +142,33 @@ public class PairGroupsUi
 
     private void DrawGroupMenu(string tag)
     {
-        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Users, "Add people to " + tag))
+        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Users, string.Format(CultureInfo.CurrentCulture, Loc.Get("PairGroups.AddPeople"), tag)))
         {
             _selectGroupForPairUi.Open(tag);
         }
-        UiSharedService.AttachToolTip($"Add more users to Group {tag}");
+        UiSharedService.AttachToolTip(string.Format(CultureInfo.CurrentCulture, Loc.Get("PairGroups.AddPeopleTooltip"), tag));
 
-        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Trash, "Delete " + tag) && UiSharedService.CtrlPressed())
+        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Trash, string.Format(CultureInfo.CurrentCulture, Loc.Get("PairGroups.DeleteGroup"), tag)) && UiSharedService.CtrlPressed())
         {
             _tagHandler.RemoveTag(tag);
         }
-        UiSharedService.AttachToolTip($"Delete Group {tag} (Will not delete the pairs)" + Environment.NewLine + "Hold CTRL to delete");
+        UiSharedService.AttachToolTip(string.Format(CultureInfo.CurrentCulture, Loc.Get("PairGroups.DeleteGroupTooltip"), tag) + Environment.NewLine + Loc.Get("PairGroups.DeleteGroupTooltip.Ctrl"));
     }
 
     private void DrawName(string tag, bool isSpecialTag, int visible, int online, int? total)
     {
         string displayedName = tag switch
         {
-            TagHandler.CustomUnpairedTag => "Unpaired",
-            TagHandler.CustomOfflineTag => "Offline",
-            TagHandler.CustomOnlineTag => _mareConfig.Current.ShowOfflineUsersSeparately ? "Online" : "Contacts",
-            TagHandler.CustomVisibleTag => "Visible",
+            TagHandler.CustomUnpairedTag => Loc.Get("PairGroups.Tag.Unpaired"),
+            TagHandler.CustomOfflineTag => Loc.Get("PairGroups.Tag.Offline"),
+            TagHandler.CustomOnlineTag => _mareConfig.Current.ShowOfflineUsersSeparately ? Loc.Get("PairGroups.Tag.Online") : Loc.Get("PairGroups.Tag.Contacts"),
+            TagHandler.CustomVisibleTag => Loc.Get("PairGroups.Tag.Visible"),
             _ => tag
         };
 
-        string resultFolderName = !isSpecialTag ? $"{displayedName} ({visible}/{online}/{total} Pairs)" : $"{displayedName} ({online} Pairs)";
+        string resultFolderName = !isSpecialTag
+            ? string.Format(CultureInfo.CurrentCulture, Loc.Get("PairGroups.FolderName"), displayedName, visible, online, total)
+            : string.Format(CultureInfo.CurrentCulture, Loc.Get("PairGroups.FolderNameNoTotal"), displayedName, online);
         bool isOpen = _tagHandler.IsTagOpen(tag);
         bool previousState = isOpen;
         UiSharedService.DrawArrowToggle(ref isOpen, $"##group-toggle-{tag}");
@@ -187,11 +188,11 @@ public class PairGroupsUi
         if (!isSpecialTag && ImGui.IsItemHovered())
         {
             ImGui.BeginTooltip();
-            ImGui.TextUnformatted($"Group {tag}");
+            ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("PairGroups.Tooltip.Group"), tag));
             ImGui.Separator();
-            ImGui.TextUnformatted($"{visible} Pairs visible");
-            ImGui.TextUnformatted($"{online} Pairs online/paused");
-            ImGui.TextUnformatted($"{total} Pairs total");
+            ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("PairGroups.Tooltip.Visible"), visible));
+            ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("PairGroups.Tooltip.Online"), online));
+            ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("PairGroups.Tooltip.Total"), total));
             ImGui.EndTooltip();
         }
     }

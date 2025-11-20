@@ -7,6 +7,7 @@ using UmbraSync.MareConfiguration;
 using UmbraSync.Services;
 using UmbraSync.Services.Events;
 using UmbraSync.Services.Mediator;
+using UmbraSync.Localization;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Globalization;
@@ -40,7 +41,7 @@ internal class EventViewerUI : WindowMediatorSubscriberBase
     public EventViewerUI(ILogger<EventViewerUI> logger, MareMediator mediator,
         EventAggregator eventAggregator, UiSharedService uiSharedService, MareConfigService configService,
         PerformanceCollectorService performanceCollectorService)
-        : base(logger, mediator, "Event Viewer", performanceCollectorService)
+        : base(logger, mediator, Loc.Get("EventViewer.WindowTitle"), performanceCollectorService)
     {
         _eventAggregator = eventAggregator;
         _uiSharedService = uiSharedService;
@@ -81,20 +82,20 @@ internal class EventViewerUI : WindowMediatorSubscriberBase
     {
         var newEventsAvailable = _eventAggregator.NewEventsAvailable;
 
-        var freezeSize = _uiSharedService.GetIconTextButtonSize(FontAwesomeIcon.PlayCircle, "Unfreeze View");
+        var freezeSize = _uiSharedService.GetIconTextButtonSize(FontAwesomeIcon.PlayCircle, Loc.Get("EventViewer.Unfreeze"));
         if (_isPaused)
         {
             using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudYellow, newEventsAvailable))
             {
-                if (_uiSharedService.IconTextButton(FontAwesomeIcon.PlayCircle, "Unfreeze View"))
+                if (_uiSharedService.IconTextButton(FontAwesomeIcon.PlayCircle, Loc.Get("EventViewer.Unfreeze")))
                     _isPaused = false;
                 if (newEventsAvailable)
-                    UiSharedService.AttachToolTip("New events are available. Click to resume updating.");
+                    UiSharedService.AttachToolTip(Loc.Get("EventViewer.UnfreezeTooltip"));
             }
         }
         else
         {
-            if (_uiSharedService.IconTextButton(FontAwesomeIcon.PauseCircle, "Freeze View"))
+            if (_uiSharedService.IconTextButton(FontAwesomeIcon.PauseCircle, Loc.Get("EventViewer.Freeze")))
                 _isPaused = true;
         }
 
@@ -105,7 +106,7 @@ internal class EventViewerUI : WindowMediatorSubscriberBase
 
         bool changedFilter = false;
         ImGui.SetNextItemWidth(200);
-        changedFilter |= ImGui.InputText("Filter lines", ref _filterFreeText, 50);
+        changedFilter |= ImGui.InputText(Loc.Get("EventViewer.FilterLabel"), ref _filterFreeText, 50);
         if (changedFilter) _filteredEvents = RecreateFilter();
 
         using (ImRaii.Disabled(_filterFreeText.IsNullOrEmpty()))
@@ -123,7 +124,7 @@ internal class EventViewerUI : WindowMediatorSubscriberBase
             var buttonSize = _uiSharedService.GetIconTextButtonSize(FontAwesomeIcon.FolderOpen, "Open EventLog Folder");
             var dist = ImGui.GetWindowContentRegionMax().X - buttonSize;
             ImGui.SameLine(dist);
-            if (_uiSharedService.IconTextButton(FontAwesomeIcon.FolderOpen, "Open EventLog folder"))
+            if (_uiSharedService.IconTextButton(FontAwesomeIcon.FolderOpen, Loc.Get("EventViewer.OpenLog")))
             {
                 ProcessStartInfo ps = new()
                 {
@@ -152,11 +153,11 @@ internal class EventViewerUI : WindowMediatorSubscriberBase
         {
             ImGui.TableSetupScrollFreeze(0, 1);
             ImGui.TableSetupColumn(string.Empty, ImGuiTableColumnFlags.NoSort);
-            ImGui.TableSetupColumn("Time", ImGuiTableColumnFlags.None, timeColWidth);
-            ImGui.TableSetupColumn("Source", ImGuiTableColumnFlags.None, sourceColWidth);
-            ImGui.TableSetupColumn("UID", ImGuiTableColumnFlags.None, uidColWidth);
-            ImGui.TableSetupColumn("Character", ImGuiTableColumnFlags.None, characterColWidth);
-            ImGui.TableSetupColumn("Event", ImGuiTableColumnFlags.None);
+            ImGui.TableSetupColumn(Loc.Get("EventViewer.Table.Time"), ImGuiTableColumnFlags.None, timeColWidth);
+            ImGui.TableSetupColumn(Loc.Get("EventViewer.Table.Source"), ImGuiTableColumnFlags.None, sourceColWidth);
+            ImGui.TableSetupColumn(Loc.Get("EventViewer.Table.Uid"), ImGuiTableColumnFlags.None, uidColWidth);
+            ImGui.TableSetupColumn(Loc.Get("EventViewer.Table.Character"), ImGuiTableColumnFlags.None, characterColWidth);
+            ImGui.TableSetupColumn(Loc.Get("EventViewer.Table.Event"), ImGuiTableColumnFlags.None);
             ImGui.TableHeadersRow();
             int i = 0;
             foreach (var ev in _filteredEvents.Value)
@@ -200,7 +201,7 @@ internal class EventViewerUI : WindowMediatorSubscriberBase
                 }
                 else
                 {
-                    ImGui.TextUnformatted("--");
+                    ImGui.TextUnformatted(Loc.Get("EventViewer.EmptyPlaceholder"));
                 }
                 ImGui.TableNextColumn();
                 ImGui.AlignTextToFramePadding();
@@ -214,7 +215,7 @@ internal class EventViewerUI : WindowMediatorSubscriberBase
                 }
                 else
                 {
-                    ImGui.TextUnformatted("--");
+                    ImGui.TextUnformatted(Loc.Get("EventViewer.EmptyPlaceholder"));
                 }
                 ImGui.TableNextColumn();
                 ImGui.AlignTextToFramePadding();

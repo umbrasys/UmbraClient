@@ -4,8 +4,10 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Utility;
 using UmbraSync.PlayerData.Pairs;
-using UmbraSync.UI.Handlers;
 using System.Numerics;
+using System.Globalization;
+using UmbraSync.UI.Handlers;
+using UmbraSync.Localization;
 
 namespace UmbraSync.UI.Components;
 
@@ -36,7 +38,7 @@ public class SelectGroupForPairUi
         }
 
         var name = PairName(_pair);
-        var popupName = $"Choose Groups for {name}";
+        var popupName = string.Format(CultureInfo.CurrentCulture, Loc.Get("SelectGroupForPair.Title"), name);
         if (_show)
         {
             ImGui.OpenPopup(popupName);
@@ -49,7 +51,7 @@ public class SelectGroupForPairUi
             var childHeight = tags.Count != 0 ? tags.Count * 25 : 1;
             var childSize = new Vector2(0, childHeight > 100 ? 100 : childHeight) * ImGuiHelpers.GlobalScale;
 
-            ImGui.TextUnformatted($"Select the groups you want {name} to be in.");
+            ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("SelectGroupForPair.Instruction"), name));
             if (ImGui.BeginChild(name + "##listGroups", childSize))
             {
                 foreach (var tag in tags)
@@ -60,13 +62,13 @@ public class SelectGroupForPairUi
             }
 
             ImGui.Separator();
-            ImGui.TextUnformatted($"Create a new group for {name}.");
+            ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("SelectGroupForPair.CreateInstruction"), name));
             if (_uiSharedService.IconButton(FontAwesomeIcon.Plus))
             {
                 HandleAddTag();
             }
             ImGui.SameLine();
-            ImGui.InputTextWithHint("##category_name", "New Group", ref _tagNameToAdd, 40);
+            ImGui.InputTextWithHint("##category_name", Loc.Get("SelectGroupForPair.NewGroupPlaceholder"), ref _tagNameToAdd, 40);
             if (ImGui.IsKeyDown(ImGuiKey.Enter))
             {
                 HandleAddTag();

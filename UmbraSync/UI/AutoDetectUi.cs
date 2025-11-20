@@ -10,6 +10,7 @@ using Dalamud.Interface.Utility.Raii;
 using UmbraSync.API.Dto.Group;
 using UmbraSync.MareConfiguration;
 using UmbraSync.PlayerData.Pairs;
+using UmbraSync.Localization;
 using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Logging;
 using System.Numerics;
@@ -84,13 +85,14 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
         if (!tabs.Success) return;
 
         var incomingCount = incomingInvites.Count;
-        DrawStyledTab($"Invitations ({incomingCount})", accent, inactiveTab, hoverTab, () =>
+        var inviteTabLabel = string.Format(CultureInfo.CurrentCulture, Loc.Get("AutoDetectUi.Tab.Invitations"), incomingCount);
+        DrawStyledTab(inviteTabLabel, accent, inactiveTab, hoverTab, () =>
         {
             DrawInvitationsTab(incomingInvites, outgoingInvites);
         });
 
-        DrawStyledTab("Proximité", accent, inactiveTab, hoverTab, DrawNearbyTab);
-        DrawStyledTab("Syncshell", accent, inactiveTab, hoverTab, DrawSyncshellTab);
+        DrawStyledTab(Loc.Get("AutoDetectUi.Tab.Nearby"), accent, inactiveTab, hoverTab, DrawNearbyTab);
+        DrawStyledTab(Loc.Get("AutoDetectUi.Tab.Syncshell"), accent, inactiveTab, hoverTab, DrawSyncshellTab);
     }
 
     public void DrawInline()
@@ -118,25 +120,26 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
     {
         if (incomingInvites.Count == 0 && outgoingInvites.Count == 0)
         {
-            UiSharedService.ColorTextWrapped("Aucune invitation en attente. Cette page regroupera les demandes reçues et celles que vous avez envoyées.", ImGuiColors.DalamudGrey3);
+            UiSharedService.ColorTextWrapped(Loc.Get("AutoDetectUi.Invitations.EmptyAll"), ImGuiColors.DalamudGrey3);
             return;
         }
 
         if (incomingInvites.Count == 0)
         {
-            UiSharedService.ColorTextWrapped("Vous n'avez aucune invitation de pair en attente pour le moment.", ImGuiColors.DalamudGrey3);
+            UiSharedService.ColorTextWrapped(Loc.Get("AutoDetectUi.Invitations.NoIncoming"), ImGuiColors.DalamudGrey3);
         }
 
         ImGuiHelpers.ScaledDummy(4);
-        float leftWidth = Math.Max(220f * ImGuiHelpers.GlobalScale, ImGui.CalcTextSize("Invitations reçues (00)").X + ImGui.GetStyle().FramePadding.X * 4f);
+        var receivedHeaderSample = string.Format(CultureInfo.CurrentCulture, Loc.Get("AutoDetectUi.Invitations.ReceivedHeader"), 0);
+        float leftWidth = Math.Max(220f * ImGuiHelpers.GlobalScale, ImGui.CalcTextSize(receivedHeaderSample).X + ImGui.GetStyle().FramePadding.X * 4f);
         var avail = ImGui.GetContentRegionAvail();
 
         ImGui.BeginChild("incoming-requests", new Vector2(leftWidth, avail.Y), true);
-        ImGui.TextColored(ImGuiColors.DalamudOrange, $"Invitations reçues ({incomingInvites.Count})");
+        ImGui.TextColored(ImGuiColors.DalamudOrange, string.Format(CultureInfo.CurrentCulture, Loc.Get("AutoDetectUi.Invitations.ReceivedHeader"), incomingInvites.Count));
         ImGui.Separator();
         if (incomingInvites.Count == 0)
         {
-            ImGui.TextDisabled("Aucune invitation reçue.");
+            ImGui.TextDisabled(Loc.Get("AutoDetectUi.Invitations.ReceivedEmpty"));
         }
         else
         {
@@ -148,16 +151,16 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
                 ImGui.TextDisabled(uid);
                 if (processing)
                 {
-                    ImGui.TextDisabled("Traitement en cours...");
+                    ImGui.TextDisabled(Loc.Get("AutoDetectUi.Invitations.Processing"));
                 }
                 else
                 {
-                    if (ImGui.Button("Accepter"))
+                    if (ImGui.Button(Loc.Get("AutoDetectUi.Invitations.Accept")))
                     {
                         TriggerAccept(uid);
                     }
                     ImGui.SameLine();
-                    if (ImGui.Button("Refuser"))
+                    if (ImGui.Button(Loc.Get("AutoDetectUi.Invitations.Decline")))
                     {
                         _pendingService.Remove(uid);
                     }
@@ -170,11 +173,11 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
         ImGui.SameLine();
 
         ImGui.BeginChild("outgoing-requests", new Vector2(0, avail.Y), true);
-        ImGui.TextColored(ImGuiColors.DalamudOrange, $"Invitations envoyées ({outgoingInvites.Count})");
+        ImGui.TextColored(ImGuiColors.DalamudOrange, string.Format(CultureInfo.CurrentCulture, Loc.Get("AutoDetectUi.Invitations.SentHeader"), outgoingInvites.Count));
         ImGui.Separator();
         if (outgoingInvites.Count == 0)
         {
-            ImGui.TextDisabled("Aucune invitation envoyée en attente.");
+            ImGui.TextDisabled(Loc.Get("AutoDetectUi.Invitations.SentEmpty"));
             ImGui.EndChild();
             return;
         }
@@ -188,12 +191,12 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
                 ImGui.TextDisabled(info.Uid);
             }
 
-            ImGui.TextDisabled($"Envoyée il y a {FormatDuration(DateTime.UtcNow - info.SentAt)}");
-            if (ImGui.Button("Retirer"))
+            ImGui.TextDisabled(string.Format(CultureInfo.CurrentCulture, Loc.Get("AutoDetectUi.Invitations.SentAgo"), FormatDuration(DateTime.UtcNow - info.SentAt)));
+            if (ImGui.Button(Loc.Get("AutoDetectUi.Invitations.Remove")))
             {
                 _requestService.RemovePendingRequestByKey(info.Key);
             }
-            UiSharedService.AttachToolTip("Retire uniquement cette entrée locale de suivi.");
+            UiSharedService.AttachToolTip(Loc.Get("AutoDetectUi.Invitations.RemoveTooltip"));
             ImGui.Separator();
         }
 
@@ -204,13 +207,13 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
     {
         if (!_configService.Current.EnableAutoDetectDiscovery)
         {
-            UiSharedService.ColorTextWrapped("AutoDetect est désactivé. Activez-le dans les paramètres pour détecter les utilisateurs Umbra à proximité.", ImGuiColors.DalamudYellow);
+            UiSharedService.ColorTextWrapped(Loc.Get("AutoDetectUi.Nearby.DisabledNotice"), ImGuiColors.DalamudYellow);
             ImGuiHelpers.ScaledDummy(6);
         }
 
         int maxDist = Math.Clamp(_configService.Current.AutoDetectMaxDistanceMeters, 5, 100);
         ImGui.AlignTextToFramePadding();
-        ImGui.TextUnformatted("Max distance (m)");
+        ImGui.TextUnformatted(Loc.Get("AutoDetectUi.Nearby.MaxDistanceLabel"));
         ImGui.SameLine();
         ImGui.SetNextItemWidth(120 * ImGuiHelpers.GlobalScale);
         if (ImGui.SliderInt("##autodetect-dist", ref maxDist, 5, 100))
@@ -229,7 +232,7 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
 
         if (orderedEntries.Count == 0)
         {
-            UiSharedService.ColorTextWrapped("Aucune présence UmbraSync détectée à proximité pour le moment.", ImGuiColors.DalamudGrey3);
+            UiSharedService.ColorTextWrapped(Loc.Get("AutoDetectUi.Nearby.Empty"), ImGuiColors.DalamudGrey3);
             return;
         }
 
@@ -238,11 +241,11 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
             return;
         }
 
-        ImGui.TableSetupColumn("Nom");
-        ImGui.TableSetupColumn("Monde");
-        ImGui.TableSetupColumn("Distance");
-        ImGui.TableSetupColumn("Statut");
-        ImGui.TableSetupColumn("Action");
+        ImGui.TableSetupColumn(Loc.Get("AutoDetectUi.Nearby.Table.Name"));
+        ImGui.TableSetupColumn(Loc.Get("AutoDetectUi.Nearby.Table.World"));
+        ImGui.TableSetupColumn(Loc.Get("AutoDetectUi.Nearby.Table.Distance"));
+        ImGui.TableSetupColumn(Loc.Get("AutoDetectUi.Nearby.Table.Status"));
+        ImGui.TableSetupColumn(Loc.Get("AutoDetectUi.Nearby.Table.Action"));
         ImGui.TableHeadersRow();
 
         for (int i = 0; i < orderedEntries.Count; i++)
@@ -259,14 +262,14 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
             string distanceText = float.IsNaN(entry.Distance) ? "-" : $"{entry.Distance:0.0} m";
 
             string status = alreadyPaired
-                ? "Déjà appairé"
+                ? Loc.Get("AutoDetectUi.Nearby.Status.Paired")
                 : overDistance
-                    ? $"Hors portée (> {maxDist} m)"
+                    ? string.Format(CultureInfo.CurrentCulture, Loc.Get("AutoDetectUi.Nearby.Status.OutOfRange"), maxDist)
                     : !entry.AcceptPairRequests
-                        ? "Invitations refusées"
+                        ? Loc.Get("AutoDetectUi.Nearby.Status.InvitesDisabled")
                         : string.IsNullOrEmpty(entry.Token)
-                            ? "Indisponible"
-                            : "Disponible";
+                            ? Loc.Get("AutoDetectUi.Nearby.Status.Unavailable")
+                            : Loc.Get("AutoDetectUi.Nearby.Status.Available");
 
             ImGui.TableNextColumn();
             ImGui.TextUnformatted(displayName);
@@ -285,22 +288,22 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
             {
                 if (canRequest && !overDistance)
                 {
-                    if (ImGui.Button("Envoyer invitation"))
+                    if (ImGui.Button(Loc.Get("AutoDetectUi.Nearby.InviteButton")))
                     {
                         _ = _requestService.SendRequestAsync(entry.Token!, entry.Uid, entry.DisplayName);
                     }
-                    UiSharedService.AttachToolTip("Envoie une demande d'appairage via AutoDetect.");
+                    UiSharedService.AttachToolTip(Loc.Get("AutoDetectUi.Nearby.InviteTooltip"));
                 }
                 else
                 {
                     string reason = alreadyPaired
-                        ? "Vous êtes déjà appairé avec ce joueur."
+                        ? Loc.Get("AutoDetectUi.Nearby.Reason.Paired")
                         : overDistance
-                            ? $"Ce joueur est au-delà de la distance maximale configurée ({maxDist} m)."
+                            ? string.Format(CultureInfo.CurrentCulture, Loc.Get("AutoDetectUi.Nearby.Reason.OutOfRange"), maxDist)
                             : !entry.AcceptPairRequests
-                                ? "Ce joueur a désactivé la réception automatique des invitations."
+                                ? Loc.Get("AutoDetectUi.Nearby.Reason.InvitesDisabled")
                                 : string.IsNullOrEmpty(entry.Token)
-                                    ? "Impossible d'obtenir un jeton d'invitation pour ce joueur."
+                                    ? Loc.Get("AutoDetectUi.Nearby.Reason.Unavailable")
                                     : string.Empty;
 
                     ImGui.TextDisabled(status);
@@ -327,19 +330,19 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
             var joined = await _syncshellDiscoveryService.JoinAsync(entry.GID, CancellationToken.None).ConfigureAwait(false);
             if (joined)
             {
-                Mediator.Publish(new NotificationMessage("AutoDetect Syncshell", $"Rejoint {entry.Alias ?? entry.GID}.", NotificationType.Info, TimeSpan.FromSeconds(5)));
+                Mediator.Publish(new NotificationMessage(Loc.Get("AutoDetectUi.Syncshell.NotificationTitle"), string.Format(CultureInfo.CurrentCulture, Loc.Get("AutoDetectUi.Syncshell.Joined"), entry.Alias ?? entry.GID), NotificationType.Info, TimeSpan.FromSeconds(5)));
                 await _syncshellDiscoveryService.RefreshAsync(CancellationToken.None).ConfigureAwait(false);
             }
             else
             {
-                _syncshellLastError = $"Impossible de rejoindre {entry.Alias ?? entry.GID}.";
-                Mediator.Publish(new NotificationMessage("AutoDetect Syncshell", _syncshellLastError, NotificationType.Warning, TimeSpan.FromSeconds(5)));
+                _syncshellLastError = string.Format(CultureInfo.CurrentCulture, Loc.Get("AutoDetectUi.Syncshell.JoinFailed"), entry.Alias ?? entry.GID);
+                Mediator.Publish(new NotificationMessage(Loc.Get("AutoDetectUi.Syncshell.NotificationTitle"), _syncshellLastError, NotificationType.Warning, TimeSpan.FromSeconds(5)));
             }
         }
         catch (Exception ex)
         {
-            _syncshellLastError = $"Erreur lors de l'adhésion : {ex.Message}";
-            Mediator.Publish(new NotificationMessage("AutoDetect Syncshell", _syncshellLastError, NotificationType.Error, TimeSpan.FromSeconds(5)));
+            _syncshellLastError = string.Format(CultureInfo.CurrentCulture, Loc.Get("AutoDetectUi.Syncshell.JoinError"), ex.Message);
+            Mediator.Publish(new NotificationMessage(Loc.Get("AutoDetectUi.Syncshell.NotificationTitle"), _syncshellLastError, NotificationType.Error, TimeSpan.FromSeconds(5)));
         }
         finally
         {
@@ -358,20 +361,20 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
         bool isRefreshing = _syncshellDiscoveryService.IsRefreshing;
         var serviceError = _syncshellDiscoveryService.LastError;
 
-        if (ImGui.Button("Actualiser la liste"))
+        if (ImGui.Button(Loc.Get("AutoDetectUi.Syncshell.RefreshButton")))
         {
             _ = _syncshellDiscoveryService.RefreshAsync(CancellationToken.None);
         }
-        UiSharedService.AttachToolTip("Met à jour la liste des Syncshells ayant activé l'AutoDetect.");
+        UiSharedService.AttachToolTip(Loc.Get("AutoDetectUi.Syncshell.RefreshTooltip"));
 
         if (isRefreshing)
         {
             ImGui.SameLine();
-            ImGui.TextDisabled("Actualisation...");
+            ImGui.TextDisabled(Loc.Get("AutoDetectUi.Syncshell.Refreshing"));
         }
 
         ImGuiHelpers.ScaledDummy(4);
-        UiSharedService.TextWrapped("Les Syncshells affichées ont temporairement désactivé leur mot de passe pour permettre un accès direct via AutoDetect. Rejoignez-les uniquement si vous faites confiance aux administrateurs.");
+        UiSharedService.TextWrapped(Loc.Get("AutoDetectUi.Syncshell.Description"));
 
         if (!string.IsNullOrEmpty(serviceError))
         {
@@ -386,7 +389,7 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
         if (entries.Count == 0)
         {
             ImGuiHelpers.ScaledDummy(4);
-            UiSharedService.ColorTextWrapped("Aucune Syncshell n'est actuellement visible dans AutoDetect.", ImGuiColors.DalamudGrey3);
+            UiSharedService.ColorTextWrapped(Loc.Get("AutoDetectUi.Syncshell.Empty"), ImGuiColors.DalamudGrey3);
             return;
         }
 
@@ -395,11 +398,11 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
             return;
         }
 
-        ImGui.TableSetupColumn("Nom");
-        ImGui.TableSetupColumn("Propriétaire");
-        ImGui.TableSetupColumn("Membres");
-        ImGui.TableSetupColumn("Invitations");
-        ImGui.TableSetupColumn("Action");
+        ImGui.TableSetupColumn(Loc.Get("AutoDetectUi.Syncshell.Table.Name"));
+        ImGui.TableSetupColumn(Loc.Get("AutoDetectUi.Syncshell.Table.Owner"));
+        ImGui.TableSetupColumn(Loc.Get("AutoDetectUi.Syncshell.Table.Members"));
+        ImGui.TableSetupColumn(Loc.Get("AutoDetectUi.Syncshell.Table.Invites"));
+        ImGui.TableSetupColumn(Loc.Get("AutoDetectUi.Syncshell.Table.Action"));
         ImGui.TableHeadersRow();
 
         foreach (var entry in entries.OrderBy(e => e.Alias ?? e.GID, StringComparer.OrdinalIgnoreCase))
@@ -417,11 +420,11 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
             ImGui.TextUnformatted(entry.MemberCount.ToString(CultureInfo.InvariantCulture));
 
             ImGui.TableNextColumn();
-            string inviteMode = entry.AutoAcceptPairs ? "Auto" : "Manuel";
+            string inviteMode = entry.AutoAcceptPairs ? Loc.Get("AutoDetectUi.Syncshell.InviteMode.Auto") : Loc.Get("AutoDetectUi.Syncshell.InviteMode.Manual");
             ImGui.TextUnformatted(inviteMode);
             if (!entry.AutoAcceptPairs)
             {
-                UiSharedService.AttachToolTip("L'administrateur doit approuver manuellement les nouveaux membres.");
+                UiSharedService.AttachToolTip(Loc.Get("AutoDetectUi.Syncshell.InviteMode.ManualTooltip"));
             }
 
             ImGui.TableNextColumn();
@@ -429,13 +432,13 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
             {
                 if (alreadyMember)
                 {
-                    ImGui.TextDisabled("Déjà membre");
+                    ImGui.TextDisabled(Loc.Get("AutoDetectUi.Syncshell.Status.Member"));
                 }
                 else if (joining)
                 {
-                    ImGui.TextDisabled("Connexion...");
+                    ImGui.TextDisabled(Loc.Get("AutoDetectUi.Syncshell.Status.Joining"));
                 }
-                else if (ImGui.Button("Rejoindre"))
+                else if (ImGui.Button(Loc.Get("AutoDetectUi.Syncshell.JoinButton")))
                 {
                     _syncshellLastError = null;
                     _ = JoinSyncshellAsync(entry);
@@ -512,7 +515,7 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
                 bool ok = await _pendingService.AcceptAsync(uid).ConfigureAwait(false);
                 if (!ok)
                 {
-                    Mediator.Publish(new NotificationMessage("AutoDetect", $"Impossible d'accepter l'invitation {uid}.", NotificationType.Warning, TimeSpan.FromSeconds(5)));
+                    Mediator.Publish(new NotificationMessage(Loc.Get("AutoDetectUi.Notification.AcceptTitle"), string.Format(CultureInfo.CurrentCulture, Loc.Get("AutoDetectUi.Notification.AcceptFailed"), uid), NotificationType.Warning, TimeSpan.FromSeconds(5)));
                 }
             }
             finally
@@ -527,10 +530,10 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
         if (span.TotalMinutes >= 1)
         {
             var minutes = Math.Max(1, (int)Math.Round(span.TotalMinutes));
-            return minutes == 1 ? "1 minute" : $"{minutes} minutes";
+            return minutes == 1 ? Loc.Get("AutoDetectUi.Duration.Minute.Single") : string.Format(CultureInfo.CurrentCulture, Loc.Get("AutoDetectUi.Duration.Minute.Plural"), minutes);
         }
 
         var seconds = Math.Max(1, (int)Math.Round(span.TotalSeconds));
-        return seconds == 1 ? "1 seconde" : $"{seconds} secondes";
+        return seconds == 1 ? Loc.Get("AutoDetectUi.Duration.Second.Single") : string.Format(CultureInfo.CurrentCulture, Loc.Get("AutoDetectUi.Duration.Second.Plural"), seconds);
     }
 }

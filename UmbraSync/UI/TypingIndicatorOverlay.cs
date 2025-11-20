@@ -16,6 +16,7 @@ using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.WebAPI;
+using UmbraSync.Localization;
 using Microsoft.Extensions.Logging;
 using Dalamud.Interface.Textures.TextureWraps;
 using FFXIVClientStructs.Interop;
@@ -50,7 +51,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         MareConfigService configService, IGameGui gameGui, ITextureProvider textureProvider, IClientState clientState,
         IPartyList partyList, IObjectTable objectTable, DalamudUtilService dalamudUtil, PairManager pairManager,
         TypingIndicatorStateService typingStateService, ApiController apiController)
-        : base(logger, mediator, nameof(TypingIndicatorOverlay), performanceCollectorService)
+        : base(logger, mediator, Loc.Get("TypingOverlay.WindowTitle"), performanceCollectorService)
     {
         _typedLogger = logger;
         _configService = configService;

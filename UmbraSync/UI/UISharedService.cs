@@ -552,16 +552,18 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         Vector2 glyphSize;
         using (IconFont.Push())
             glyphSize = ImGui.CalcTextSize(text);
-        ImDrawListPtr drawList = ImGui.GetWindowDrawList();
-        Vector2 cursorScreenPos = ImGui.GetCursorScreenPos();
         float frameHeight = height ?? ImGui.GetFrameHeight();
         float buttonWidth = square ? frameHeight : glyphSize.X + ImGui.GetStyle().FramePadding.X * 2f;
         using var hoverColor = ImRaii.PushColor(ImGuiCol.ButtonHovered, AccentHoverColor);
         using var activeColor = ImRaii.PushColor(ImGuiCol.ButtonActive, AccentActiveColor);
         bool clicked = ImGui.Button(string.Empty, new Vector2(buttonWidth, frameHeight));
+        var min = ImGui.GetItemRectMin();
+        var max = ImGui.GetItemRectMax();
+        var center = (min + max) / 2f;
         Vector2 pos = new Vector2(
-            cursorScreenPos.X + (buttonWidth - glyphSize.X) / 2f + xOffset,
-            cursorScreenPos.Y + frameHeight / 2f - glyphSize.Y / 2f + yOffset);
+            center.X - glyphSize.X / 2f + xOffset,
+            center.Y - glyphSize.Y / 2f + yOffset);
+        ImDrawListPtr drawList = ImGui.GetWindowDrawList();
         using (IconFont.Push())
             drawList.AddText(pos, ImGui.GetColorU32(ImGuiCol.Text), text);
         ImGui.PopID();

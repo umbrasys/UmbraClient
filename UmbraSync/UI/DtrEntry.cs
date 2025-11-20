@@ -9,6 +9,7 @@ using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services.AutoDetect;
 using UmbraSync.Services.Mediator;
 using UmbraSync.WebAPI;
+using UmbraSync.Localization;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Runtime.InteropServices;
@@ -170,20 +171,20 @@ public sealed class DtrEntry : IDisposable, IHostedService
                         .Select(x => string.Format(CultureInfo.CurrentCulture, "{0}", _configService.Current.PreferNoteInDtrTooltip ? x.GetNoteOrName() : x.PlayerName));
                 }
 
-                tooltip = $"Umbra: Connected";
+                tooltip = Loc.Get("DtrEntry.Tooltip.Connected");
                 if (pendingNearby > 0)
                 {
-                    tooltip += $"{Environment.NewLine}Invitation en attente : {pendingNearby}";
+                    tooltip += $"{Environment.NewLine}{string.Format(CultureInfo.CurrentCulture, Loc.Get("DtrEntry.Tooltip.PendingInvites"), pendingNearby)}";
                 }
                 tooltip += $"{Environment.NewLine}----------{Environment.NewLine}{string.Join(Environment.NewLine, visiblePairs)}";
                 colors = _configService.Current.DtrColorsPairsInRange;
             }
             else
             {
-                tooltip = "Umbra: Connected";
+                tooltip = Loc.Get("DtrEntry.Tooltip.Connected");
                 if (pendingNearby > 0)
                 {
-                    tooltip += $"{Environment.NewLine}Invitation en attente : {pendingNearby}";
+                    tooltip += $"{Environment.NewLine}{string.Format(CultureInfo.CurrentCulture, Loc.Get("DtrEntry.Tooltip.PendingInvites"), pendingNearby)}";
                 }
                 colors = _configService.Current.DtrColorsDefault;
             }
@@ -191,7 +192,7 @@ public sealed class DtrEntry : IDisposable, IHostedService
         else
         {
             text = RenderDtrStyle(_configService.Current.DtrStyle, "\uE04C");
-            tooltip = "Umbra: Not Connected";
+            tooltip = Loc.Get("DtrEntry.Tooltip.Disconnected");
             colors = _configService.Current.DtrColorsNotConnected;
         }
 

@@ -217,13 +217,12 @@ public class SettingsUi : WindowMediatorSubscriberBase
         ImGui.TextUnformatted("0 = No limit/infinite");
 
         bool enableDownloadQueue = _configService.Current.EnableDownloadQueue;
-        if (ImGui.Checkbox("Activer la file de téléchargements", ref enableDownloadQueue))
+        if (ImGui.Checkbox(Loc.Get("Settings.DownloadQueue.Enable"), ref enableDownloadQueue))
         {
             _configService.Current.EnableDownloadQueue = enableDownloadQueue;
             _configService.Save();
         }
-        UiSharedService.AttachToolTip("Lance les téléchargements de personnages de manière séquentielle plutôt que tous en même temps. "
-            + "Quand l'option est activée, seul le nombre configuré de téléchargements fonctionne en parallèle.");
+        UiSharedService.AttachToolTip(Loc.Get("Settings.DownloadQueue.EnableTooltip"));
 
         ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
         if (ImGui.SliderInt("Maximum Parallel Downloads", ref maxParallelDownloads, 1, 10))
@@ -232,8 +231,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
             _configService.Save();
         }
         UiSharedService.AttachToolTip(enableDownloadQueue
-            ? "Nombre maximal de téléchargements de personnages autorisés simultanément lorsque la file est activée."
-            : "Nombre maximal de flux de fichiers lancés en parallèle pour chaque téléchargement.");
+            ? Loc.Get("Settings.DownloadQueue.MaxWhenEnabled")
+            : Loc.Get("Settings.DownloadQueue.MaxStreams"));
 
         ImGui.Separator();
         _uiShared.BigText("AutoDetect");
@@ -241,7 +240,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         bool enableDiscovery = _configService.Current.EnableAutoDetectDiscovery;
         using (ImRaii.Disabled(isAutoDetectSuppressed))
         {
-            if (ImGui.Checkbox("Activer l'AutoDetect", ref enableDiscovery))
+            if (ImGui.Checkbox(Loc.Get("Settings.AutoDetect.Enable"), ref enableDiscovery))
             {
                 _configService.Current.EnableAutoDetectDiscovery = enableDiscovery;
                 _configService.Save();
@@ -259,7 +258,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             }
             if (isAutoDetectSuppressed && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
             {
-                UiSharedService.AttachToolTip("AutoDetect est temporairement désactivé dans cette zone instanciée.");
+                UiSharedService.AttachToolTip(Loc.Get("Settings.AutoDetect.SuppressedTooltip"));
             }
         }
 
@@ -267,7 +266,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         using (ImRaii.Disabled(isAutoDetectSuppressed || !enableDiscovery))
         {
             bool allowRequests = _configService.Current.AllowAutoDetectPairRequests;
-            if (ImGui.Checkbox("Activer les invitations entrantes", ref allowRequests))
+            if (ImGui.Checkbox(Loc.Get("Settings.AutoDetect.AllowInvites"), ref allowRequests))
             {
                 _configService.Current.AllowAutoDetectPairRequests = allowRequests;
                 _configService.Save();
@@ -278,13 +277,13 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 // user-facing info toast
                 Mediator.Publish(new NotificationMessage(
                     "AutoDetect",
-                    allowRequests ? "Invitations entrantes autorisées : les autres peuvent vous inviter." : "Invitations entrantes désactivées : les autres ne peuvent pas vous inviter.",
+                    allowRequests ? Loc.Get("Settings.AutoDetect.InvitesEnabled") : Loc.Get("Settings.AutoDetect.InvitesDisabled"),
                     NotificationType.Info,
                     default));
             }
             if (isAutoDetectSuppressed && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
             {
-                UiSharedService.AttachToolTip("AutoDetect est temporairement désactivé dans cette zone instanciée.");
+                UiSharedService.AttachToolTip(Loc.Get("Settings.AutoDetect.SuppressedTooltip"));
             }
         }
 
@@ -294,7 +293,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             ImGui.Indent();
             int maxMeters = _configService.Current.AutoDetectMaxDistanceMeters;
             ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
-            if (ImGui.SliderInt("Distance max (en mètre)", ref maxMeters, 5, 100))
+            if (ImGui.SliderInt(Loc.Get("Settings.AutoDetect.MaxDistance"), ref maxMeters, 5, 100))
             {
                 _configService.Current.AutoDetectMaxDistanceMeters = maxMeters;
                 _configService.Save();
@@ -303,7 +302,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         }
         else if (isAutoDetectSuppressed)
         {
-            UiSharedService.ColorTextWrapped("AutoDetect est verrouillé tant que vous restez dans une zone instanciée.", ImGuiColors.DalamudYellow);
+            UiSharedService.ColorTextWrapped(Loc.Get("Settings.AutoDetect.LockedInInstance"), ImGuiColors.DalamudYellow);
         }
 
         ImGui.Separator();
@@ -483,7 +482,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private void DrawChatConfig()
     {
         _lastTab = "Chat";
-        _uiShared.BigText("Bulle d'écriture");
+        _uiShared.BigText(Loc.Get("Settings.Typing.BubbleHeader"));
         using (ImRaii.PushIndent())
         {
             DrawTypingSettings();
@@ -1183,7 +1182,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
             ImGui.SameLine();
 
-            if (InputDtrColors("Couleur des noms bloqués", ref autoPausedNameColors))
+            if (InputDtrColors(Loc.Get("Settings.Typing.BlockedNameColor"), ref autoPausedNameColors))
             {
                 _configService.Current.BlockedNameColors = autoPausedNameColors;
                 _configService.Save();
@@ -2092,35 +2091,35 @@ public class SettingsUi : WindowMediatorSubscriberBase
         var typingIndicatorPartyList = _configService.Current.TypingIndicatorShowOnPartyList;
         var typingShowSelf = _configService.Current.TypingIndicatorShowSelf;
 
-        if (ImGui.Checkbox("Activer le système d'indicateur de frappe", ref typingEnabled))
+        if (ImGui.Checkbox(Loc.Get("Settings.Typing.EnableSystem"), ref typingEnabled))
         {
             _configService.Current.TypingIndicatorEnabled = typingEnabled;
             _configService.Save();
             _chatTypingDetectionService.SoftRestart();
         }
-        _uiShared.DrawHelpText("Active ou désactive complètement l'envoi/la réception et l'affichage des bulles de frappe.");
+        _uiShared.DrawHelpText(Loc.Get("Settings.Typing.EnableSystemHelp"));
 
         if (typingEnabled)
         {
-            if (ImGui.Checkbox("Afficher la bulle de frappe sur les plaques", ref typingIndicatorNameplates))
+            if (ImGui.Checkbox(Loc.Get("Settings.Typing.ShowOnNameplates"), ref typingIndicatorNameplates))
             {
                 _configService.Current.TypingIndicatorShowOnNameplates = typingIndicatorNameplates;
                 _configService.Save();
             }
-            _uiShared.DrawHelpText("Ajoute une bulle '...' sur la plaque des paires en train d'écrire.");
+            _uiShared.DrawHelpText(Loc.Get("Settings.Typing.ShowOnNameplatesHelp"));
 
             if (typingIndicatorNameplates)
             {
                 using var indentTyping = ImRaii.PushIndent();
                 var bubbleSize = _configService.Current.TypingIndicatorBubbleSize;
                 ImGui.SetNextItemWidth(140 * ImGuiHelpers.GlobalScale);
-                TypingIndicatorBubbleSize? selectedBubbleSize = _uiShared.DrawCombo("Taille de la bulle de frappe##typingBubbleSize",
+                TypingIndicatorBubbleSize? selectedBubbleSize = _uiShared.DrawCombo($"{Loc.Get("Settings.Typing.BubbleSize")}##typingBubbleSize",
                     Enum.GetValues<TypingIndicatorBubbleSize>(),
                     size => size switch
                     {
-                        TypingIndicatorBubbleSize.Small => "Petite",
-                        TypingIndicatorBubbleSize.Medium => "Moyenne",
-                        TypingIndicatorBubbleSize.Large => "Grande",
+                        TypingIndicatorBubbleSize.Small => Loc.Get("Settings.Typing.BubbleSizeSmall"),
+                        TypingIndicatorBubbleSize.Medium => Loc.Get("Settings.Typing.BubbleSizeMedium"),
+                        TypingIndicatorBubbleSize.Large => Loc.Get("Settings.Typing.BubbleSizeLarge"),
                         _ => size.ToString()
                     },
                     null,
@@ -2132,19 +2131,19 @@ public class SettingsUi : WindowMediatorSubscriberBase
                     _configService.Save();
                 }
 
-                if (ImGui.Checkbox("Tracer la frappe dans la liste de groupe", ref typingIndicatorPartyList))
+                if (ImGui.Checkbox(Loc.Get("Settings.Typing.LogPartyList"), ref typingIndicatorPartyList))
                 {
                     _configService.Current.TypingIndicatorShowOnPartyList = typingIndicatorPartyList;
                     _configService.Save();
                 }
-                _uiShared.DrawHelpText("Consigne dans les journaux quand une paire du groupe est en train d'écrire (bulle visuelle ultérieure).");
+                _uiShared.DrawHelpText(Loc.Get("Settings.Typing.LogPartyListHelp"));
 
-                if (ImGui.Checkbox("Afficher ma propre bulle", ref typingShowSelf))
+                if (ImGui.Checkbox(Loc.Get("Settings.Typing.ShowSelf"), ref typingShowSelf))
                 {
                     _configService.Current.TypingIndicatorShowSelf = typingShowSelf;
                     _configService.Save();
                 }
-                _uiShared.DrawHelpText("Affiche votre propre bulle lorsque vous tapez (utile pour test/retour visuel).");
+                _uiShared.DrawHelpText(Loc.Get("Settings.Typing.ShowSelfHelp"));
             }
         }
     }

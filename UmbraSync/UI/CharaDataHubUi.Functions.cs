@@ -4,6 +4,7 @@ using UmbraSync.MareConfiguration.Models;
 using UmbraSync.Services.CharaData.Models;
 using System.Text;
 using System.Globalization;
+using UmbraSync.Localization;
 
 namespace UmbraSync.UI;
 
@@ -11,23 +12,23 @@ public sealed partial class CharaDataHubUi
 {
 	private static string GetAccessTypeString(AccessTypeDto dto) => dto switch
 	{
-		AccessTypeDto.AllPairs => "All Pairs",
-		AccessTypeDto.ClosePairs => "Direct Pairs",
-		AccessTypeDto.Individuals => "Specified",
-		AccessTypeDto.Public => "Everyone",
+		AccessTypeDto.AllPairs => Loc.Get("CharaDataHub.AccessType.AllPairs"),
+		AccessTypeDto.ClosePairs => Loc.Get("CharaDataHub.AccessType.DirectPairs"),
+		AccessTypeDto.Individuals => Loc.Get("CharaDataHub.AccessType.Specified"),
+		AccessTypeDto.Public => Loc.Get("CharaDataHub.AccessType.Everyone"),
         _ => ((int)dto).ToString(CultureInfo.InvariantCulture)
 	};
 
 	private static string GetShareTypeString(ShareTypeDto dto) => dto switch
     {
-        ShareTypeDto.Private => "Code Only",
-        ShareTypeDto.Shared => "Shared",
+        ShareTypeDto.Private => Loc.Get("CharaDataHub.ShareType.CodeOnly"),
+        ShareTypeDto.Shared => Loc.Get("CharaDataHub.ShareType.Shared"),
         _ => ((int)dto).ToString(CultureInfo.InvariantCulture)
     };
 
 	private static string GetWorldDataTooltipText(PoseEntryExtended poseEntry)
 	{
-		if (!poseEntry.HasWorldData) return "This Pose has no world data attached.";
+		if (!poseEntry.HasWorldData) return Loc.Get("CharaDataHub.WorldDataTooltip.None");
 		return poseEntry.WorldDataDescriptor;
 	}
 
@@ -42,37 +43,37 @@ public sealed partial class CharaDataHubUi
 		void AddErrorStart(StringBuilder sb)
 		{
 			sb.Append(UiSharedService.TooltipSeparator);
-			sb.AppendLine("Cannot execute:");
+			sb.AppendLine(Loc.Get("CharaDataHub.Gpose.ActionCannotExecute"));
 		}
 
 		if (dto == null)
 		{
 			if (!isDisabled) AddErrorStart(sb);
-			sb.AppendLine("- No metainfo present");
+			sb.AppendLine(Loc.Get("CharaDataHub.Gpose.Error.NoMetaInfo"));
 			isDisabled = true;
 		}
 		if (!dto?.CanBeDownloaded ?? false)
 		{
 			if (!isDisabled) AddErrorStart(sb);
-			sb.AppendLine("- Character is not downloadable");
+			sb.AppendLine(Loc.Get("CharaDataHub.Gpose.Error.NotDownloadable"));
 			isDisabled = true;
 		}
 		if (!_uiSharedService.IsInGpose)
 		{
 			if (!isDisabled) AddErrorStart(sb);
-			sb.AppendLine("- Requires to be in GPose");
+			sb.AppendLine(Loc.Get("CharaDataHub.Gpose.Error.RequiresGpose"));
 			isDisabled = true;
 		}
 		if (!hasValidGposeTarget && !isSpawning)
 		{
 			if (!isDisabled) AddErrorStart(sb);
-			sb.AppendLine("- Requires a valid GPose target");
+			sb.AppendLine(Loc.Get("CharaDataHub.Gpose.Error.RequiresTarget"));
 			isDisabled = true;
 		}
 		if (isSpawning && !_charaDataManager.BrioAvailable)
 		{
 			if (!isDisabled) AddErrorStart(sb);
-			sb.AppendLine("- Requires Brio to be installed.");
+			sb.AppendLine(Loc.Get("CharaDataHub.Gpose.Error.RequiresBrio"));
 			isDisabled = true;
 		}
 
@@ -97,25 +98,25 @@ public sealed partial class CharaDataHubUi
 		void AddErrorStart(StringBuilder sb)
 		{
 			sb.Append(UiSharedService.TooltipSeparator);
-			sb.AppendLine("Cannot execute:");
+			sb.AppendLine(Loc.Get("CharaDataHub.Gpose.ActionCannotExecute"));
 		}
 
 		if (!_uiSharedService.IsInGpose)
 		{
 			if (!isDisabled) AddErrorStart(sb);
-			sb.AppendLine("- Requires to be in GPose");
+			sb.AppendLine(Loc.Get("CharaDataHub.Gpose.Error.RequiresGpose"));
 			isDisabled = true;
 		}
 		if (!hasValidGposeTarget)
 		{
 			if (!isDisabled) AddErrorStart(sb);
-			sb.AppendLine("- Requires a valid GPose target");
+			sb.AppendLine(Loc.Get("CharaDataHub.Gpose.Error.RequiresTarget"));
 			isDisabled = true;
 		}
 		if (!_charaDataManager.BrioAvailable)
 		{
 			if (!isDisabled) AddErrorStart(sb);
-			sb.AppendLine("- Requires Brio to be installed.");
+			sb.AppendLine(Loc.Get("CharaDataHub.Gpose.Error.RequiresBrio"));
 			isDisabled = true;
 		}
 

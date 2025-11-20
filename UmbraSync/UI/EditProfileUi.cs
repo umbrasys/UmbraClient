@@ -11,8 +11,10 @@ using UmbraSync.Services.Mediator;
 using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.Utils;
 using UmbraSync.WebAPI;
+using UmbraSync.Localization;
 using Microsoft.Extensions.Logging;
 using System.Numerics;
+using System.Globalization;
 
 namespace UmbraSync.UI;
 
@@ -34,7 +36,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
     public EditProfileUi(ILogger<EditProfileUi> logger, MareMediator mediator,
         ApiController apiController, UiSharedService uiSharedService, FileDialogManager fileDialogManager,
         MareProfileManager mareProfileManager, PerformanceCollectorService performanceCollectorService)
-        : base(logger, mediator, "Umbra Edit Profile###UmbraSyncEditProfileUI", performanceCollectorService)
+        : base(logger, mediator, $"{Loc.Get("EditProfile.WindowTitle")}###UmbraSyncEditProfileUI", performanceCollectorService)
     {
         IsOpen = false;
         this.SizeConstraints = new()
@@ -72,7 +74,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
 
     private void DrawProfileContent()
     {
-        _uiSharedService.BigText("Current Profile (as saved on server)");
+        _uiSharedService.BigText(Loc.Get("EditProfile.CurrentProfile"));
         ImGuiHelpers.ScaledDummy(new Vector2(0f, ImGui.GetStyle().ItemSpacing.Y / 2));
 
         var profile = _mareProfileManager.GetMareProfile(new UserData(_apiController.UID));
@@ -127,15 +129,15 @@ public class EditProfileUi : WindowMediatorSubscriberBase
 
         var nsfw = profile.IsNSFW;
         ImGui.BeginDisabled();
-        ImGui.Checkbox("Is NSFW", ref nsfw);
+        ImGui.Checkbox(Loc.Get("EditProfile.IsNsfwLabel"), ref nsfw);
         ImGui.EndDisabled();
 
         ImGui.Separator();
-        _uiSharedService.BigText("Profile Settings");
+        _uiSharedService.BigText(Loc.Get("EditProfile.SettingsTitle"));
 
-        if (_uiSharedService.IconTextButton(FontAwesomeIcon.FileUpload, "Upload new profile picture"))
+        if (_uiSharedService.IconTextButton(FontAwesomeIcon.FileUpload, Loc.Get("EditProfile.UploadPicture")))
         {
-            _fileDialogManager.OpenFileDialog("Select new Profile picture", ".png", (success, file) =>
+            _fileDialogManager.OpenFileDialog(Loc.Get("EditProfile.UploadDialogTitle"), ".png", (success, file) =>
             {
                 if (!success) return;
                 _ = Task.Run(async () =>
@@ -156,29 +158,29 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                 });
             });
         }
-        UiSharedService.AttachToolTip("Select and upload a new profile picture");
+        UiSharedService.AttachToolTip(Loc.Get("EditProfile.UploadPictureTooltip"));
         ImGui.SameLine();
-        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Trash, "Clear uploaded profile picture"))
+        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Trash, Loc.Get("EditProfile.ClearPicture")))
         {
             _ = _apiController.UserSetProfile(new UserProfileDto(new UserData(_apiController.UID), Disabled: false, IsNSFW: null, "", Description: null));
         }
-        UiSharedService.AttachToolTip("Clear your currently uploaded profile picture");
+        UiSharedService.AttachToolTip(Loc.Get("EditProfile.ClearPictureTooltip"));
         if (_showFileDialogError)
         {
-            UiSharedService.ColorTextWrapped("The profile picture must be a PNG file with a maximum height and width of 256px and 250KiB size", UiSharedService.AccentColor);
+            UiSharedService.ColorTextWrapped(Loc.Get("EditProfile.UploadPictureError"), UiSharedService.AccentColor);
         }
         var isNsfw = profile.IsNSFW;
-        if (ImGui.Checkbox("Profile is NSFW", ref isNsfw))
+        if (ImGui.Checkbox(Loc.Get("EditProfile.ProfileIsNsfw"), ref isNsfw))
         {
             _ = _apiController.UserSetProfile(new UserProfileDto(new UserData(_apiController.UID), Disabled: false, isNsfw, ProfilePictureBase64: null, Description: null));
         }
-        _uiSharedService.DrawHelpText("If your profile description or image can be considered NSFW, toggle this to ON");
+        _uiSharedService.DrawHelpText(Loc.Get("EditProfile.ProfileIsNsfwHelp"));
         var widthTextBox = 400;
         var posX = ImGui.GetCursorPosX();
-        ImGui.TextUnformatted($"Description {_descriptionText.Length}/1500");
+        ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("EditProfile.DescriptionCounter"), _descriptionText.Length));
         ImGui.SetCursorPosX(posX);
         ImGuiHelpers.ScaledRelativeSameLine(widthTextBox, ImGui.GetStyle().ItemSpacing.X);
-        ImGui.TextUnformatted("Preview (approximate)");
+        ImGui.TextUnformatted(Loc.Get("EditProfile.DescriptionPreview"));
         using (_uiSharedService.GameFont.Push())
             ImGui.InputTextMultiline("##description", ref _descriptionText, 1500, ImGuiHelpers.ScaledVector2(widthTextBox, 200));
 
@@ -207,17 +209,17 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             ImGui.EndChildFrame();
         }
 
-        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Save, "Save Description"))
+        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Save, Loc.Get("EditProfile.SaveDescription")))
         {
             _ = _apiController.UserSetProfile(new UserProfileDto(new UserData(_apiController.UID), Disabled: false, IsNSFW: null, ProfilePictureBase64: null, _descriptionText));
         }
-        UiSharedService.AttachToolTip("Sets your profile description text");
+        UiSharedService.AttachToolTip(Loc.Get("EditProfile.SaveDescriptionTooltip"));
         ImGui.SameLine();
-        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Trash, "Clear Description"))
+        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Trash, Loc.Get("EditProfile.ClearDescription")))
         {
             _ = _apiController.UserSetProfile(new UserProfileDto(new UserData(_apiController.UID), Disabled: false, IsNSFW: null, ProfilePictureBase64: null, ""));
         }
-        UiSharedService.AttachToolTip("Clears your profile description text");
+        UiSharedService.AttachToolTip(Loc.Get("EditProfile.ClearDescriptionTooltip"));
     }
 
     protected override void Dispose(bool disposing)

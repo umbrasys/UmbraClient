@@ -7,6 +7,7 @@ using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Utils;
+using UmbraSync.Localization;
 using Microsoft.Extensions.Logging;
 using System.Numerics;
 using System.Globalization;
@@ -25,7 +26,7 @@ public class PlayerAnalysisUI : WindowMediatorSubscriberBase
 
     public PlayerAnalysisUI(ILogger<PlayerAnalysisUI> logger, Pair pair, MareMediator mediator, UiSharedService uiSharedService,
         PerformanceCollectorService performanceCollectorService)
-        : base(logger, mediator, "Character Data Analysis for " + pair.UserData.AliasOrUID + "###UmbraPairAnalysis" + pair.UserData.UID, performanceCollectorService)
+        : base(logger, mediator, $"{Loc.Get("PlayerAnalysis.WindowTitlePrefix")} {pair.UserData.AliasOrUID}###UmbraPairAnalysis{pair.UserData.UID}", performanceCollectorService)
     {
         Pair = pair;
         _uiSharedService = uiSharedService;
@@ -70,7 +71,7 @@ public class PlayerAnalysisUI : WindowMediatorSubscriberBase
             _sortDirty = true;
         }
 
-        UiSharedService.TextWrapped($"This window shows you all files and their sizes that are currently in use by {Pair.UserData.AliasOrUID} and associated entities");
+        UiSharedService.TextWrapped(string.Format(CultureInfo.CurrentCulture, Loc.Get("PlayerAnalysis.Intro"), Pair.UserData.AliasOrUID));
 
         var cachedAnalysis = _cachedAnalysis;
         if (cachedAnalysis == null || cachedAnalysis.Count == 0) return;
@@ -79,9 +80,9 @@ public class PlayerAnalysisUI : WindowMediatorSubscriberBase
         bool needAnalysis = cachedAnalysis.Any(c => c.Value.Any(f => !f.Value.IsComputed));
         if (isAnalyzing)
         {
-            UiSharedService.ColorTextWrapped($"Analyzing {analyzer.CurrentFile}/{analyzer.TotalFiles}",
+            UiSharedService.ColorTextWrapped(string.Format(CultureInfo.CurrentCulture, Loc.Get("PlayerAnalysis.Analyzing"), analyzer.CurrentFile, analyzer.TotalFiles),
                 ImGuiColors.DalamudYellow);
-            if (_uiSharedService.IconTextButton(FontAwesomeIcon.StopCircle, "Cancel analysis"))
+            if (_uiSharedService.IconTextButton(FontAwesomeIcon.StopCircle, Loc.Get("PlayerAnalysis.CancelAnalysis")))
             {
                 analyzer.CancelAnalyze();
             }
@@ -90,9 +91,9 @@ public class PlayerAnalysisUI : WindowMediatorSubscriberBase
         {
             if (needAnalysis)
             {
-                UiSharedService.ColorTextWrapped("Some entries in the analysis have file size not determined yet, press the button below to compute missing data",
+                UiSharedService.ColorTextWrapped(Loc.Get("PlayerAnalysis.MissingEntriesWarning"),
                     ImGuiColors.DalamudYellow);
-                if (_uiSharedService.IconTextButton(FontAwesomeIcon.PlayCircle, "Start analysis (missing entries)"))
+                if (_uiSharedService.IconTextButton(FontAwesomeIcon.PlayCircle, Loc.Get("PlayerAnalysis.StartMissing")))
                 {
                     _ = analyzer.ComputeAnalysis(print: false);
                 }
@@ -101,7 +102,7 @@ public class PlayerAnalysisUI : WindowMediatorSubscriberBase
 
         ImGui.Separator();
 
-        ImGui.TextUnformatted("Total files:");
+        ImGui.TextUnformatted(Loc.Get("PlayerAnalysis.TotalFiles"));
         ImGui.SameLine();
         ImGui.TextUnformatted(cachedAnalysis.Values.Sum(c => c.Values.Count).ToString(CultureInfo.CurrentCulture));
         ImGui.SameLine();
@@ -114,14 +115,14 @@ public class PlayerAnalysisUI : WindowMediatorSubscriberBase
             string text = "";
             var groupedfiles = cachedAnalysis.Values.SelectMany(f => f.Values).GroupBy(f => f.FileType, StringComparer.Ordinal);
             text = string.Join(Environment.NewLine, groupedfiles.OrderBy(f => f.Key, StringComparer.Ordinal)
-                .Select(f => f.Key + ": " + f.Count() + " files, size: " + UiSharedService.ByteToString(f.Sum(v => v.OriginalSize))
-                + ", compressed: " + UiSharedService.ByteToString(f.Sum(v => v.CompressedSize))));
+                .Select(f => string.Format(CultureInfo.CurrentCulture, Loc.Get("PlayerAnalysis.FileTypeSummary"), f.Key, f.Count(),
+                    UiSharedService.ByteToString(f.Sum(v => v.OriginalSize)), UiSharedService.ByteToString(f.Sum(v => v.CompressedSize)))));
             ImGui.SetTooltip(text);
         }
-        ImGui.TextUnformatted("Total size (actual):");
+        ImGui.TextUnformatted(Loc.Get("PlayerAnalysis.TotalSizeActual"));
         ImGui.SameLine();
         ImGui.TextUnformatted(UiSharedService.ByteToString(cachedAnalysis.Sum(c => c.Value.Sum(c => c.Value.OriginalSize))));
-        ImGui.TextUnformatted("Total size (compressed for up/download only):");
+        ImGui.TextUnformatted(Loc.Get("PlayerAnalysis.TotalSizeCompressed"));
         ImGui.SameLine();
         using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudYellow, needAnalysis))
         {
@@ -131,10 +132,10 @@ public class PlayerAnalysisUI : WindowMediatorSubscriberBase
                 ImGui.SameLine();
                 using (ImRaii.PushFont(UiBuilder.IconFont))
                     ImGui.TextUnformatted(FontAwesomeIcon.ExclamationCircle.ToIconString());
-                UiSharedService.AttachToolTip("Click \"Start analysis\" to calculate download size");
+                UiSharedService.AttachToolTip(Loc.Get("PlayerAnalysis.TotalSizeTooltip"));
             }
         }
-        ImGui.TextUnformatted($"Total modded model triangles: {UiSharedService.TrisToString(cachedAnalysis.Sum(c => c.Value.Sum(f => f.Value.Triangles)))}");
+        ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("PlayerAnalysis.TotalTriangles"), UiSharedService.TrisToString(cachedAnalysis.Sum(c => c.Value.Sum(f => f.Value.Triangles)))));
         ImGui.Separator();
 
         var playerName = analyzer.LastPlayerName;
@@ -156,7 +157,7 @@ public class PlayerAnalysisUI : WindowMediatorSubscriberBase
                 var groupedfiles = kvp.Value.Select(v => v.Value).GroupBy(f => f.FileType, StringComparer.Ordinal)
                     .OrderBy(k => k.Key, StringComparer.Ordinal).ToList();
 
-                ImGui.TextUnformatted($"Files for {tabText}");
+                ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("PlayerAnalysis.FilesFor"), tabText));
 
                 ImGui.SameLine();
                 ImGui.TextUnformatted(kvp.Value.Count.ToString());
@@ -174,10 +175,10 @@ public class PlayerAnalysisUI : WindowMediatorSubscriberBase
                         + ", compressed: " + UiSharedService.ByteToString(f.Sum(v => v.CompressedSize))));
                     ImGui.SetTooltip(text);
                 }
-                ImGui.TextUnformatted($"{kvp.Key} size (actual):");
+                ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("PlayerAnalysis.ObjectSizeActual"), kvp.Key));
                 ImGui.SameLine();
                 ImGui.TextUnformatted(UiSharedService.ByteToString(kvp.Value.Sum(c => c.Value.OriginalSize)));
-                ImGui.TextUnformatted($"{kvp.Key} size (download size):");
+                ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("PlayerAnalysis.ObjectSizeDownload"), kvp.Key));
                 ImGui.SameLine();
                 using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudYellow, needAnalysis))
                 {
@@ -187,17 +188,18 @@ public class PlayerAnalysisUI : WindowMediatorSubscriberBase
                         ImGui.SameLine();
                         using (ImRaii.PushFont(UiBuilder.IconFont))
                             ImGui.TextUnformatted(FontAwesomeIcon.ExclamationCircle.ToIconString());
-                        UiSharedService.AttachToolTip("Click \"Start analysis\" to calculate download size");
+                        UiSharedService.AttachToolTip(Loc.Get("PlayerAnalysis.StartAnalysisTooltip"));
                     }
                 }
-                ImGui.TextUnformatted($"{kvp.Key} VRAM usage:");
+                ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("PlayerAnalysis.VramUsage"), kvp.Key));
                 ImGui.SameLine();
                 var vramUsage = groupedfiles.SingleOrDefault(v => string.Equals(v.Key, "tex", StringComparison.Ordinal));
                 if (vramUsage != null)
                 {
                     ImGui.TextUnformatted(UiSharedService.ByteToString(vramUsage.Sum(f => f.OriginalSize)));
                 }
-                ImGui.TextUnformatted($"{kvp.Key} modded model triangles: {UiSharedService.TrisToString(kvp.Value.Sum(f => f.Value.Triangles))}");
+                ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("PlayerAnalysis.ModTriangles"), kvp.Key, UiSharedService.TrisToString(kvp.Value.Sum(f => f.Value.Triangles))));
+                ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("PlayerAnalysis.ObjectTriangles"), kvp.Key, UiSharedService.TrisToString(kvp.Value.Sum(f => f.Value.Triangles))));
 
                 ImGui.Separator();
                 if (_selectedObjectTab != kvp.Key)
@@ -229,15 +231,15 @@ public class PlayerAnalysisUI : WindowMediatorSubscriberBase
                         _selectedHash = string.Empty;
                     }
 
-                    ImGui.TextUnformatted($"{fileGroup.Key} files");
+                    ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("PlayerAnalysis.FileGroup.Files"), fileGroup.Key));
                     ImGui.SameLine();
                     ImGui.TextUnformatted(fileGroup.Count().ToString());
 
-                    ImGui.TextUnformatted($"{fileGroup.Key} files size (actual):");
+                    ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("PlayerAnalysis.FileGroup.SizeActual"), fileGroup.Key));
                     ImGui.SameLine();
                     ImGui.TextUnformatted(UiSharedService.ByteToString(fileGroup.Sum(c => c.OriginalSize)));
 
-                    ImGui.TextUnformatted($"{fileGroup.Key} files size (download size):");
+                    ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("PlayerAnalysis.FileGroup.SizeDownload"), fileGroup.Key));
                     ImGui.SameLine();
                     ImGui.TextUnformatted(UiSharedService.ByteToString(fileGroup.Sum(c => c.CompressedSize)));
 
@@ -251,20 +253,20 @@ public class PlayerAnalysisUI : WindowMediatorSubscriberBase
 
         ImGui.Separator();
 
-        ImGui.TextUnformatted("Selected file:");
+        ImGui.TextUnformatted(Loc.Get("PlayerAnalysis.SelectedFile"));
         ImGui.SameLine();
         UiSharedService.ColorText(_selectedHash, ImGuiColors.DalamudYellow);
 
         if (cachedAnalysis[_selectedObjectTab].TryGetValue(_selectedHash, out CharacterAnalyzer.FileDataEntry? item))
         {
             var gamepaths = item.GamePaths;
-            ImGui.TextUnformatted("Used by game path:");
+            ImGui.TextUnformatted(Loc.Get("PlayerAnalysis.GamePath"));
             ImGui.SameLine();
             UiSharedService.TextWrapped(gamepaths[0]);
             if (gamepaths.Count > 1)
             {
                 ImGui.SameLine();
-                ImGui.TextUnformatted($"(and {gamepaths.Count - 1} more)");
+                ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("PlayerAnalysis.AndMore"), gamepaths.Count - 1));
                 ImGui.SameLine();
                 _uiSharedService.IconText(FontAwesomeIcon.InfoCircle);
                 UiSharedService.AttachToolTip(string.Join(Environment.NewLine, gamepaths.Skip(1)));
@@ -280,17 +282,17 @@ public class PlayerAnalysisUI : WindowMediatorSubscriberBase
         using var table = ImRaii.Table("Analysis", tableColumns, ImGuiTableFlags.Sortable | ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY | ImGuiTableFlags.SizingFixedFit,
             new Vector2(0, 300));
         if (!table.Success) return;
-        ImGui.TableSetupColumn("Hash");
-        ImGui.TableSetupColumn("Gamepaths", ImGuiTableColumnFlags.PreferSortDescending);
-        ImGui.TableSetupColumn("File Size", ImGuiTableColumnFlags.DefaultSort | ImGuiTableColumnFlags.PreferSortDescending);
-        ImGui.TableSetupColumn("Download Size", ImGuiTableColumnFlags.PreferSortDescending);
+        ImGui.TableSetupColumn(Loc.Get("PlayerAnalysis.Table.Hash"));
+        ImGui.TableSetupColumn(Loc.Get("PlayerAnalysis.Table.Gamepaths"), ImGuiTableColumnFlags.PreferSortDescending);
+        ImGui.TableSetupColumn(Loc.Get("PlayerAnalysis.Table.FileSize"), ImGuiTableColumnFlags.DefaultSort | ImGuiTableColumnFlags.PreferSortDescending);
+        ImGui.TableSetupColumn(Loc.Get("PlayerAnalysis.Table.DownloadSize"), ImGuiTableColumnFlags.PreferSortDescending);
         if (string.Equals(fileGroup.Key, "tex", StringComparison.Ordinal))
         {
-            ImGui.TableSetupColumn("Format");
+            ImGui.TableSetupColumn(Loc.Get("PlayerAnalysis.Table.Format"));
         }
         if (string.Equals(fileGroup.Key, "mdl", StringComparison.Ordinal))
         {
-            ImGui.TableSetupColumn("Triangles", ImGuiTableColumnFlags.PreferSortDescending);
+            ImGui.TableSetupColumn(Loc.Get("PlayerAnalysis.Table.Triangles"), ImGuiTableColumnFlags.PreferSortDescending);
         }
         ImGui.TableSetupScrollFreeze(0, 1);
         ImGui.TableHeadersRow();

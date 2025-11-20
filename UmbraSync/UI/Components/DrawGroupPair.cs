@@ -3,6 +3,7 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using System.Globalization;
+using UmbraSync.Localization;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
@@ -114,20 +115,20 @@ public class DrawGroupPair : DrawPairBase
         var entryIsPinned = _fullInfoDto.GroupPairStatusInfo.IsPinned();
         var presenceIcon = _pair.IsVisible ? FontAwesomeIcon.Eye : FontAwesomeIcon.CloudMoon;
         var presenceColor = (_pair.IsOnline || _pair.IsVisible) ? new Vector4(0.63f, 0.25f, 1f, 1f) : ImGuiColors.DalamudGrey;
-        var presenceText = entryUID + " is offline";
+        var presenceText = string.Format(CultureInfo.CurrentCulture, Loc.Get("GroupPair.Offline"), entryUID);
 
         ImGui.SetCursorPosY(textPosY);
         bool drewPrefixIcon = false;
 
         if (_pair.IsPaused)
         {
-            presenceText = entryUID + " online status is unknown (paused)";
+            presenceText = string.Format(CultureInfo.CurrentCulture, Loc.Get("GroupPair.Unknown"), entryUID);
 
             ImGui.PushFont(UiBuilder.IconFont);
             UiSharedService.ColorText(FontAwesomeIcon.PauseCircle.ToIconString(), ImGuiColors.DalamudYellow);
             ImGui.PopFont();
 
-            UiSharedService.AttachToolTip("Pairing status with " + entryUID + " is paused");
+            UiSharedService.AttachToolTip(string.Format(CultureInfo.CurrentCulture, Loc.Get("GroupPair.Paused"), entryUID));
             drewPrefixIcon = true;
         }
         else
@@ -139,7 +140,7 @@ public class DrawGroupPair : DrawPairBase
                 ImGui.PushFont(UiBuilder.IconFont);
                 UiSharedService.ColorText(FontAwesomeIcon.Moon.ToIconString(), violet);
                 ImGui.PopFont();
-                UiSharedService.AttachToolTip("You are individually paired with " + entryUID);
+                UiSharedService.AttachToolTip(string.Format(CultureInfo.CurrentCulture, Loc.Get("GroupPair.IndividuallyPaired"), entryUID));
                 drewPrefixIcon = true;
             }
         }
@@ -151,8 +152,8 @@ public class DrawGroupPair : DrawPairBase
         UiSharedService.ColorText(presenceIcon.ToIconString(), presenceColor);
         ImGui.PopFont();
 
-        if (_pair.IsOnline && !_pair.IsVisible) presenceText = entryUID + " is online";
-        else if (_pair.IsOnline && _pair.IsVisible) presenceText = entryUID + " is visible: " + _pair.PlayerName + Environment.NewLine + "Click to target this player";
+        if (_pair.IsOnline && !_pair.IsVisible) presenceText = string.Format(CultureInfo.CurrentCulture, Loc.Get("GroupPair.Online"), entryUID);
+        else if (_pair.IsOnline && _pair.IsVisible) presenceText = string.Format(CultureInfo.CurrentCulture, Loc.Get("GroupPair.VisibleHeader"), entryUID, _pair.PlayerName) + Environment.NewLine + Loc.Get("GroupPair.VisibleTarget");
 
         if (_pair.IsVisible)
         {
@@ -163,16 +164,16 @@ public class DrawGroupPair : DrawPairBase
             if (_pair.LastAppliedDataBytes >= 0)
             {
                 presenceText += UiSharedService.TooltipSeparator;
-                presenceText += ((!_pair.IsVisible) ? "(Last) " : string.Empty) + "Mods Info" + Environment.NewLine;
-                presenceText += "Files Size: " + UiSharedService.ByteToString(_pair.LastAppliedDataBytes, true);
+                presenceText += ((!_pair.IsVisible) ? Loc.Get("GroupPair.VisibleLastPrefix") : string.Empty) + Loc.Get("GroupPair.VisibleMods") + Environment.NewLine;
+                presenceText += string.Format(CultureInfo.CurrentCulture, Loc.Get("GroupPair.VisibleFiles"), UiSharedService.ByteToString(_pair.LastAppliedDataBytes, true));
                 if (_pair.LastAppliedApproximateVRAMBytes >= 0)
                 {
-                    presenceText += Environment.NewLine + "Approx. VRAM Usage: " + UiSharedService.ByteToString(_pair.LastAppliedApproximateVRAMBytes, true);
+                    presenceText += Environment.NewLine + string.Format(CultureInfo.CurrentCulture, Loc.Get("GroupPair.VisibleVram"), UiSharedService.ByteToString(_pair.LastAppliedApproximateVRAMBytes, true));
                 }
                 if (_pair.LastAppliedDataTris >= 0)
                 {
-                    presenceText += Environment.NewLine + "Triangle Count (excl. Vanilla): "
-                        + (_pair.LastAppliedDataTris > 1000 ? (_pair.LastAppliedDataTris / 1000d).ToString("0.0'k'", CultureInfo.CurrentCulture) : _pair.LastAppliedDataTris.ToString(CultureInfo.CurrentCulture));
+                    presenceText += Environment.NewLine + string.Format(CultureInfo.CurrentCulture, Loc.Get("GroupPair.VisibleTris"),
+                        _pair.LastAppliedDataTris > 1000 ? (_pair.LastAppliedDataTris / 1000d).ToString("0.0'k'", CultureInfo.CurrentCulture) : _pair.LastAppliedDataTris.ToString(CultureInfo.CurrentCulture));
                 }
             }
         }
@@ -186,7 +187,7 @@ public class DrawGroupPair : DrawPairBase
             ImGui.PushFont(UiBuilder.IconFont);
             ImGui.TextUnformatted(FontAwesomeIcon.Crown.ToIconString());
             ImGui.PopFont();
-            UiSharedService.AttachToolTip("User is owner of this Syncshell");
+            UiSharedService.AttachToolTip(Loc.Get("GroupPair.Owner"));
         }
         else if (entryIsMod)
         {
@@ -195,7 +196,7 @@ public class DrawGroupPair : DrawPairBase
             ImGui.PushFont(UiBuilder.IconFont);
             ImGui.TextUnformatted(FontAwesomeIcon.UserShield.ToIconString());
             ImGui.PopFont();
-            UiSharedService.AttachToolTip("User is moderator of this Syncshell");
+            UiSharedService.AttachToolTip(Loc.Get("GroupPair.Moderator"));
         }
         else if (entryIsPinned)
         {
@@ -204,7 +205,7 @@ public class DrawGroupPair : DrawPairBase
             ImGui.PushFont(UiBuilder.IconFont);
             ImGui.TextUnformatted(FontAwesomeIcon.Thumbtack.ToIconString());
             ImGui.PopFont();
-            UiSharedService.AttachToolTip("User is pinned in this Syncshell");
+            UiSharedService.AttachToolTip(Loc.Get("GroupPair.Pinned"));
         }
     }
 
@@ -311,39 +312,45 @@ public class DrawGroupPair : DrawPairBase
                 {
                     ImGui.BeginTooltip();
 
-                    ImGui.TextUnformatted("Individual User permissions");
+                    ImGui.TextUnformatted(Loc.Get("GroupPair.Permissions.Header"));
 
                     if (individualSoundsDisabled)
                     {
-                        var userSoundsText = "Sound sync disabled with " + _pair.UserData.AliasOrUID;
+                        var userSoundsText = string.Format(CultureInfo.CurrentCulture, Loc.Get("GroupPair.Permissions.SoundDisabled"), _pair.UserData.AliasOrUID);
                         _uiSharedService.IconText(FontAwesomeIcon.VolumeMute);
                         ImGui.SameLine(40 * ImGuiHelpers.GlobalScale);
                         ImGui.TextUnformatted(userSoundsText);
                         ImGui.NewLine();
                         ImGui.SameLine(40 * ImGuiHelpers.GlobalScale);
-                        ImGui.TextUnformatted("You: " + (_pair.UserPair!.OwnPermissions.IsDisableSounds() ? "Disabled" : "Enabled") + ", They: " + (_pair.UserPair!.OtherPermissions.IsDisableSounds() ? "Disabled" : "Enabled"));
+                        ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("GroupPair.Permissions.StatusLine"),
+                            _pair.UserPair!.OwnPermissions.IsDisableSounds() ? Loc.Get("Common.Disabled") : Loc.Get("Common.Enabled"),
+                            _pair.UserPair!.OtherPermissions.IsDisableSounds() ? Loc.Get("Common.Disabled") : Loc.Get("Common.Enabled")));
                     }
 
                     if (individualAnimDisabled)
                     {
-                        var userAnimText = "Animation sync disabled with " + _pair.UserData.AliasOrUID;
+                        var userAnimText = string.Format(CultureInfo.CurrentCulture, Loc.Get("GroupPair.Permissions.AnimDisabled"), _pair.UserData.AliasOrUID);
                         _uiSharedService.IconText(FontAwesomeIcon.WindowClose);
                         ImGui.SameLine(40 * ImGuiHelpers.GlobalScale);
                         ImGui.TextUnformatted(userAnimText);
                         ImGui.NewLine();
                         ImGui.SameLine(40 * ImGuiHelpers.GlobalScale);
-                        ImGui.TextUnformatted("You: " + (_pair.UserPair!.OwnPermissions.IsDisableAnimations() ? "Disabled" : "Enabled") + ", They: " + (_pair.UserPair!.OtherPermissions.IsDisableAnimations() ? "Disabled" : "Enabled"));
+                        ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("GroupPair.Permissions.StatusLine"),
+                            _pair.UserPair!.OwnPermissions.IsDisableAnimations() ? Loc.Get("Common.Disabled") : Loc.Get("Common.Enabled"),
+                            _pair.UserPair!.OtherPermissions.IsDisableAnimations() ? Loc.Get("Common.Disabled") : Loc.Get("Common.Enabled")));
                     }
 
                     if (individualVFXDisabled)
                     {
-                        var userVFXText = "VFX sync disabled with " + _pair.UserData.AliasOrUID;
+                        var userVFXText = string.Format(CultureInfo.CurrentCulture, Loc.Get("GroupPair.Permissions.VfxDisabled"), _pair.UserData.AliasOrUID);
                         _uiSharedService.IconText(FontAwesomeIcon.TimesCircle);
                         ImGui.SameLine(40 * ImGuiHelpers.GlobalScale);
                         ImGui.TextUnformatted(userVFXText);
                         ImGui.NewLine();
                         ImGui.SameLine(40 * ImGuiHelpers.GlobalScale);
-                        ImGui.TextUnformatted("You: " + (_pair.UserPair!.OwnPermissions.IsDisableVFX() ? "Disabled" : "Enabled") + ", They: " + (_pair.UserPair!.OtherPermissions.IsDisableVFX() ? "Disabled" : "Enabled"));
+                        ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("GroupPair.Permissions.StatusLine"),
+                            _pair.UserPair!.OwnPermissions.IsDisableVFX() ? Loc.Get("Common.Disabled") : Loc.Get("Common.Enabled"),
+                            _pair.UserPair!.OtherPermissions.IsDisableVFX() ? Loc.Get("Common.Disabled") : Loc.Get("Common.Enabled")));
                     }
 
                     ImGui.EndTooltip();
@@ -356,11 +363,11 @@ public class DrawGroupPair : DrawPairBase
                 {
                     ImGui.BeginTooltip();
 
-                    ImGui.TextUnformatted("Syncshell User permissions");
+                    ImGui.TextUnformatted(Loc.Get("GroupPair.SyncshellPermissions.Header"));
 
                     if (soundsDisabled)
                     {
-                        var userSoundsText = "Sound sync disabled by " + _pair.UserData.AliasOrUID;
+                        var userSoundsText = string.Format(CultureInfo.CurrentCulture, Loc.Get("GroupPair.SyncshellPermissions.SoundDisabled"), _pair.UserData.AliasOrUID);
                         _uiSharedService.IconText(FontAwesomeIcon.VolumeMute);
                         ImGui.SameLine(40 * ImGuiHelpers.GlobalScale);
                         ImGui.TextUnformatted(userSoundsText);
@@ -368,7 +375,7 @@ public class DrawGroupPair : DrawPairBase
 
                     if (animDisabled)
                     {
-                        var userAnimText = "Animation sync disabled by " + _pair.UserData.AliasOrUID;
+                        var userAnimText = string.Format(CultureInfo.CurrentCulture, Loc.Get("GroupPair.SyncshellPermissions.AnimDisabled"), _pair.UserData.AliasOrUID);
                         _uiSharedService.IconText(FontAwesomeIcon.WindowClose);
                         ImGui.SameLine(40 * ImGuiHelpers.GlobalScale);
                         ImGui.TextUnformatted(userAnimText);
@@ -376,7 +383,7 @@ public class DrawGroupPair : DrawPairBase
 
                     if (vfxDisabled)
                     {
-                        var userVFXText = "VFX sync disabled by " + _pair.UserData.AliasOrUID;
+                        var userVFXText = string.Format(CultureInfo.CurrentCulture, Loc.Get("GroupPair.SyncshellPermissions.VfxDisabled"), _pair.UserData.AliasOrUID);
                         _uiSharedService.IconText(FontAwesomeIcon.TimesCircle);
                         ImGui.SameLine(40 * ImGuiHelpers.GlobalScale);
                         ImGui.TextUnformatted(userVFXText);

@@ -6,6 +6,8 @@ using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.UI.Components;
+using UmbraSync.Localization;
+using System.Globalization;
 
 namespace UmbraSync.UI.Handlers;
 
@@ -78,16 +80,14 @@ public class UidDisplayHandler
                 if (_popupTime > DateTime.UtcNow || !_mareConfigService.Current.ProfilesShow)
                 {
                     // Build tooltip; prepend last-seen when player is offline or not visible
-                    string tooltip = "Left click to switch between UID display and nick" + Environment.NewLine
-                        + "Right click to change nick for " + pair.UserData.AliasOrUID + Environment.NewLine
-                        + "Middle Mouse Button to open their profile in a separate window";
+                    string tooltip = string.Format(CultureInfo.CurrentCulture, Loc.Get("UidDisplay.Tooltip.Main"), pair.UserData.AliasOrUID);
 
                     if (!pair.IsOnline || !pair.IsVisible)
                     {
                         var lastSeen = _serverManager.GetNameForUid(pair.UserData.UID);
                         if (!string.IsNullOrEmpty(lastSeen))
                         {
-                            tooltip = "Vu sous : " + lastSeen + Environment.NewLine + tooltip;
+                            tooltip = string.Format(CultureInfo.CurrentCulture, Loc.Get("UidDisplay.Tooltip.LastSeenPrefix"), lastSeen) + Environment.NewLine + tooltip;
                         }
                     }
 
@@ -137,7 +137,7 @@ public class UidDisplayHandler
             ImGui.SetCursorPosY(originalY);
 
             ImGui.SetNextItemWidth(editBoxWidth.Invoke());
-            if (ImGui.InputTextWithHint("##" + pair.UserData.UID, "Nick/Notes", ref _editUserComment, 255, ImGuiInputTextFlags.EnterReturnsTrue))
+            if (ImGui.InputTextWithHint("##" + pair.UserData.UID, Loc.Get("UidDisplay.EditPlaceholder"), ref _editUserComment, 255, ImGuiInputTextFlags.EnterReturnsTrue))
             {
                 _serverManager.SetNoteForUid(pair.UserData.UID, _editUserComment);
                 _serverManager.SaveNotes();
@@ -148,7 +148,7 @@ public class UidDisplayHandler
             {
                 _editNickEntry = string.Empty;
             }
-            UiSharedService.AttachToolTip("Hit ENTER to save\nRight click to cancel");
+            UiSharedService.AttachToolTip(Loc.Get("UidDisplay.EditTooltip"));
         }
     }
 

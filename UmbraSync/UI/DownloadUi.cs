@@ -9,6 +9,8 @@ using UmbraSync.WebAPI.Files.Models;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Numerics;
+using UmbraSync.Localization;
+using System.Globalization;
 
 namespace UmbraSync.UI;
 
@@ -23,7 +25,7 @@ public class DownloadUi : WindowMediatorSubscriberBase
 
     public DownloadUi(ILogger<DownloadUi> logger, DalamudUtilService dalamudUtilService, MareConfigService configService,
         FileUploadManager fileTransferManager, MareMediator mediator, UiSharedService uiShared, PerformanceCollectorService performanceCollectorService)
-        : base(logger, mediator, "Umbra Downloads", performanceCollectorService)
+        : base(logger, mediator, Loc.Get("DownloadUi.WindowTitle"), performanceCollectorService)
     {
         _dalamudUtilService = dalamudUtilService;
         _configService = configService;
@@ -87,7 +89,7 @@ public class DownloadUi : WindowMediatorSubscriberBase
                     UiSharedService.DrawOutlinedFont($"▲", ImGuiColors.DalamudWhite, new Vector4(0, 0, 0, 255), 1);
                     ImGui.SameLine();
                     var xDistance = ImGui.GetCursorPosX();
-                    UiSharedService.DrawOutlinedFont($"Compressing+Uploading {doneUploads}/{totalUploads}",
+                    UiSharedService.DrawOutlinedFont(string.Format(CultureInfo.CurrentCulture, Loc.Get("DownloadUi.Uploads.Status"), doneUploads, totalUploads),
                         ImGuiColors.DalamudWhite, new Vector4(0, 0, 0, 255), 1);
                     ImGui.NewLine();
                     ImGui.SameLine(xDistance);
@@ -120,7 +122,7 @@ public class DownloadUi : WindowMediatorSubscriberBase
                     ImGui.SameLine();
                     var xDistance = ImGui.GetCursorPosX();
                     UiSharedService.DrawOutlinedFont(
-                        $"{item.Key.Name} [W:{dlSlot}/Q:{dlQueue}/P:{dlProg}/D:{dlDecomp}]",
+                        string.Format(CultureInfo.CurrentCulture, Loc.Get("DownloadUi.Downloads.Status"), item.Key.Name, dlSlot, dlQueue, dlProg, dlDecomp),
                         ImGuiColors.DalamudWhite, new Vector4(0, 0, 0, 255), 1);
                     ImGui.NewLine();
                     ImGui.SameLine(xDistance);
@@ -191,7 +193,7 @@ public class DownloadUi : WindowMediatorSubscriberBase
                     try
                     {
                         using var _ = _uiShared.UidFont.Push();
-                        var uploadText = "Uploading";
+                        var uploadText = Loc.Get("DownloadUi.UploadingLabel");
 
                         var textSize = ImGui.CalcTextSize(uploadText);
 

@@ -8,6 +8,7 @@ using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.ServerConfiguration;
+using UmbraSync.Localization;
 using Microsoft.Extensions.Logging;
 using System.Numerics;
 
@@ -25,7 +26,7 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
     public StandaloneProfileUi(ILogger<StandaloneProfileUi> logger, MareMediator mediator, UiSharedService uiBuilder,
         ServerConfigurationManager serverManager, MareProfileManager mareProfileManager, Pair pair,
         PerformanceCollectorService performanceCollector)
-        : base(logger, mediator, "Profile of " + pair.UserData.AliasOrUID + "##UmbraSyncStandaloneProfileUI" + pair.UserData.AliasOrUID, performanceCollector)
+        : base(logger, mediator, string.Format(System.Globalization.CultureInfo.CurrentCulture, Loc.Get("StandaloneProfile.WindowTitle"), pair.UserData.AliasOrUID) + "##UmbraSyncStandaloneProfileUI" + pair.UserData.AliasOrUID, performanceCollector)
     {
         _uiSharedService = uiBuilder;
         _serverManager = serverManager;
@@ -65,9 +66,9 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
             using (_uiSharedService.UidFont.Push())
                 UiSharedService.ColorText(Pair.UserData.AliasOrUID, UiSharedService.AccentColor);
 
-            var reportButtonSize = _uiSharedService.GetIconTextButtonSize(FontAwesomeIcon.ExclamationTriangle, "Report Profile");
+            var reportButtonSize = _uiSharedService.GetIconTextButtonSize(FontAwesomeIcon.ExclamationTriangle, Loc.Get("StandaloneProfile.ReportButton"));
             ImGui.SameLine(ImGui.GetWindowContentRegionMax().X - reportButtonSize);
-            if (_uiSharedService.IconTextButton(FontAwesomeIcon.ExclamationTriangle, "Report Profile"))
+            if (_uiSharedService.IconTextButton(FontAwesomeIcon.ExclamationTriangle, Loc.Get("StandaloneProfile.ReportButton")))
                 Mediator.Publish(new OpenReportPopupMessage(Pair));
 
             ImGuiHelpers.ScaledDummy(new Vector2(spacing.Y, spacing.Y));
@@ -107,7 +108,7 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
             {
                 UiSharedService.ColorText(note, ImGuiColors.DalamudGrey);
             }
-            string status = Pair.IsVisible ? "Visible" : (Pair.IsOnline ? "Online" : "Offline");
+            string status = Pair.IsVisible ? Loc.Get("StandaloneProfile.Status.Visible") : (Pair.IsOnline ? Loc.Get("StandaloneProfile.Status.Online") : Loc.Get("StandaloneProfile.Status.Offline"));
             UiSharedService.ColorText(status, (Pair.IsVisible || Pair.IsOnline) ? ImGuiColors.HealerGreen : UiSharedService.AccentColor);
             if (Pair.IsVisible)
             {
@@ -116,22 +117,22 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
             }
             if (Pair.UserPair != null)
             {
-                ImGui.TextUnformatted("Directly paired");
+                ImGui.TextUnformatted(Loc.Get("StandaloneProfile.PairStatus.Direct"));
                 if (Pair.UserPair.OwnPermissions.IsPaused())
                 {
                     ImGui.SameLine();
-                    UiSharedService.ColorText("You: paused", ImGuiColors.DalamudYellow);
+                    UiSharedService.ColorText(Loc.Get("StandaloneProfile.PairStatus.YouPaused"), ImGuiColors.DalamudYellow);
                 }
                 if (Pair.UserPair.OtherPermissions.IsPaused())
                 {
                     ImGui.SameLine();
-                    UiSharedService.ColorText("They: paused", ImGuiColors.DalamudYellow);
+                    UiSharedService.ColorText(Loc.Get("StandaloneProfile.PairStatus.TheyPaused"), ImGuiColors.DalamudYellow);
                 }
             }
 
             if (Pair.GroupPair.Any())
             {
-                ImGui.TextUnformatted("Paired through Syncshells:");
+                ImGui.TextUnformatted(Loc.Get("StandaloneProfile.PairStatus.SyncshellHeader"));
                 foreach (var groupPair in Pair.GroupPair.Select(k => k.Key))
                 {
                     var groupNote = _serverManager.GetNoteForGid(groupPair.GID);

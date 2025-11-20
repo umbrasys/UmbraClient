@@ -3,6 +3,8 @@ using Dalamud.Interface.Utility;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.UI.Handlers;
 using System.Numerics;
+using UmbraSync.Localization;
+using System.Globalization;
 
 namespace UmbraSync.UI.Components;
 
@@ -28,7 +30,7 @@ public class SelectPairForGroupUi
         var minSize = new Vector2(300, workHeight < 400 ? workHeight : 400) * ImGuiHelpers.GlobalScale;
         var maxSize = new Vector2(300, 1000) * ImGuiHelpers.GlobalScale;
 
-        var popupName = $"Choose Users for Group {_tag}";
+        var popupName = string.Format(CultureInfo.CurrentCulture, Loc.Get("SelectPairForGroup.Title"), _tag);
 
         if (!_show)
         {
@@ -46,9 +48,9 @@ public class SelectPairForGroupUi
         ImGui.SetNextWindowSizeConstraints(minSize, maxSize);
         if (ImGui.BeginPopupModal(popupName, ref _show, ImGuiWindowFlags.Popup | ImGuiWindowFlags.Modal))
         {
-            ImGui.TextUnformatted($"Select users for group {_tag}");
+            ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("SelectPairForGroup.Instruction"), _tag));
 
-            ImGui.InputTextWithHint("##filter", "Filter", ref _filter, 255, ImGuiInputTextFlags.None);
+            ImGui.InputTextWithHint("##filter", Loc.Get("SelectPairForGroup.FilterPlaceholder"), ref _filter, 255, ImGuiInputTextFlags.None);
             foreach (var item in pairs
                 .Where(p => string.IsNullOrEmpty(_filter) || PairName(p).Contains(_filter, StringComparison.OrdinalIgnoreCase))
                 .OrderBy(p => PairName(p), StringComparer.OrdinalIgnoreCase)

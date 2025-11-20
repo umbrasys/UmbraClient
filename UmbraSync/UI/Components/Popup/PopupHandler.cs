@@ -2,6 +2,7 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using UmbraSync.Localization;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Logging;
@@ -72,7 +73,7 @@ public class PopupHandler : WindowMediatorSubscriberBase
         if (_currentHandler.ShowClose)
         {
             ImGui.Separator();
-            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Times, "Close"))
+            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Times, Loc.Get("PopupHandler.CloseButton")))
             {
                 ImGui.CloseCurrentPopup();
             }

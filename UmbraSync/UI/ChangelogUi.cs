@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Numerics;
 using System.Reflection;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
+using UmbraSync.Localization;
 using UmbraSync.MareConfiguration;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
@@ -28,7 +30,7 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
 
     public ChangelogUi(ILogger<ChangelogUi> logger, UiSharedService uiShared, MareConfigService configService,
         MareMediator mediator, PerformanceCollectorService performanceCollectorService)
-        : base(logger, mediator, "Umbra Sync - Notes de version", performanceCollectorService)
+        : base(logger, mediator, Loc.Get("ChangelogUi.WindowTitle"), performanceCollectorService)
     {
         _uiShared = uiShared;
         _configService = configService;
@@ -71,10 +73,10 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
     {
         using (_uiShared.UidFont.Push())
         {
-            ImGui.TextUnformatted("Notes de version");
+            ImGui.TextUnformatted(Loc.Get("ChangelogUi.HeaderTitle"));
         }
 
-        ImGui.TextColored(ImGuiColors.DalamudGrey, $"Version chargée : {_currentVersionLabel}");
+        ImGui.TextColored(ImGuiColors.DalamudGrey, string.Format(CultureInfo.CurrentCulture, Loc.Get("ChangelogUi.LoadedVersion"), _currentVersionLabel));
         ImGui.Separator();
     }
 
@@ -88,7 +90,7 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
             {
                 if (!expandedOldVersions)
                 {
-                    expandedOldVersions = ImGui.CollapsingHeader("Historique complet");
+                    expandedOldVersions = ImGui.CollapsingHeader(Loc.Get("ChangelogUi.FullHistory"));
                 }
 
                 if (!expandedOldVersions)
@@ -140,7 +142,7 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
         ImGui.Spacing();
         if (!_showAllEntries && _entries.Count > AlwaysExpandedEntryCount)
         {
-            if (ImGui.Button("Tout afficher"))
+            if (ImGui.Button(Loc.Get("ChangelogUi.ShowAll")))
             {
                 _showAllEntries = true;
             }
@@ -148,7 +150,7 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
             ImGui.SameLine();
         }
 
-        if (ImGui.Button("Marquer comme lu"))
+        if (ImGui.Button(Loc.Get("ChangelogUi.MarkAsRead")))
         {
             MarkCurrentVersionAsReadIfNeeded();
             IsOpen = false;
@@ -171,70 +173,70 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
         {
             new(new Version(0, 1, 9, 5), "0.1.9.5", new List<ChangelogLine>
             {
-                new("Fix l'affichage de la bulle dans la liste du groupe."),
-                new("Amélioration de l'ajout des utilisateurs via le bouton +."),
-                new("Possibilité de mettre en pause individuellement des utilisateurs d'une syncshell."),
-                new("Amélioration de la stabilité du plugin en cas de petite connexion / petite configuration."),
-                new("Divers fix de l'interface."),
+                new(Loc.Get("ChangelogUi.0_1_9_5.Line1")),
+                new(Loc.Get("ChangelogUi.0_1_9_5.Line2")),
+                new(Loc.Get("ChangelogUi.0_1_9_5.Line3")),
+                new(Loc.Get("ChangelogUi.0_1_9_5.Line4")),
+                new(Loc.Get("ChangelogUi.0_1_9_5.Line5")),
             }),
             new(new Version(0, 1, 9, 4), "0.1.9.4", new List<ChangelogLine>
             {
-                new("Réécriture complète de la bulle de frappe avec la possibilité de choisir la taille de la bulle."),
-                new("Désactivation de l'AutoDetect en zone instanciée."),
-                new("Réécriture interface AutoDetect pour acceuillir les invitations en attente et préparer les synchsells publiques."),
-                new("Amélioration de la compréhension des activations / désactivations des préférences de synchronisation par défaut."),
-                new("Mise en avant du Self Analyse avec une alerte lorsqu'un seuil de donnée a été atteint."),
-                new("Ajout de l'alerte de la non-compatibilité du plugin Chat2."),
-                new("Divers fix de l'interface."),
+                new(Loc.Get("ChangelogUi.0_1_9_4.Line1")),
+                new(Loc.Get("ChangelogUi.0_1_9_4.Line2")),
+                new(Loc.Get("ChangelogUi.0_1_9_4.Line3")),
+                new(Loc.Get("ChangelogUi.0_1_9_4.Line4")),
+                new(Loc.Get("ChangelogUi.0_1_9_4.Line5")),
+                new(Loc.Get("ChangelogUi.0_1_9_4.Line6")),
+                new(Loc.Get("ChangelogUi.0_1_9_4.Line7")),
             }),
             new(new Version(0, 1, 9, 3), "0.1.9.3", new List<ChangelogLine>
             {
-                new("Correctif de l'affichage de la bulle de frappe quand l'interface est à + de 100%."),
+                new(Loc.Get("ChangelogUi.0_1_9_3.Line1")),
             }),
             new(new Version(0, 1, 9, 2), "0.1.9.2", new List<ChangelogLine>
             {
-                new("Correctif de l'affichage de la bulle de frappe."),
+                new(Loc.Get("ChangelogUi.0_1_9_2.Line1")),
             }),
             new(new Version(0, 1, 9, 1), "0.1.9.1", new List<ChangelogLine>
             {
-                new("Début correctif pour la bulle de frappe."),
-                new("Les bascules de synchronisation n'affichent plus qu'une seule notification résumée."),
+                new(Loc.Get("ChangelogUi.0_1_9_1.Line1")),
+                new(Loc.Get("ChangelogUi.0_1_9_1.Line2")),
 
             }),
             new(new Version(0, 1, 9, 0), "0.1.9.0", new List<ChangelogLine>
             {
-                new("Il est désormais possible de configurer par défaut nos choix de synchronisation (VFX, Music, Animation)."),
-                new("La catégorie 'En attente' ne s'affiche uniquement que si une invitation est en attente"),
-                new("(EN PRÉ VERSION) Il est désormais possible de voir quand une personne appairée est en train d'écrire avec une bulle qui s'affiche."),
-                new("(EN PRÉ VERSION) La bulle de frappe s'affiche également sur votre propre plaque de nom lorsque vous écrivez."),
-                new("Les bascules de synchronisation n'affichent plus qu'une seule notification résumée."),
-                new("Correctif : Désormais, les invitation entrantes ne s'affichent qu'une seule fois au lieu de deux."),
+                new(Loc.Get("ChangelogUi.0_1_9_0.Line1")),
+                new(Loc.Get("ChangelogUi.0_1_9_0.Line2")),
+                new(Loc.Get("ChangelogUi.0_1_9_0.Line3")),
+                new(Loc.Get("ChangelogUi.0_1_9_0.Line4")),
+                new(Loc.Get("ChangelogUi.0_1_9_0.Line5")),
+                new(Loc.Get("ChangelogUi.0_1_9_0.Line6")),
             }),
             new(new Version(0, 1, 8, 2), "0.1.8.2", new List<ChangelogLine>
             {
-                new("Détection Nearby : la liste rapide ne montre plus que les joueurs réellement invitables."),
-                new("Sont filtrés automatiquement les personnes refusées ou déjà appairées."),
-                new("Invitations Nearby : anti-spam de 5 minutes par personne, blocage 15 minutes après trois refus."),
-                new("Affichage : Correction de l'affichage des notes par défaut plutôt que de l'ID si disponible."),
-                new("Les notifications de blocage sont envoyées directement dans le tchat."),
-                new("Overlay DTR : affiche le nombre d'invitations Nearby disponibles dans le titre et l'infobulle."),
-                new("Poses Nearby : le filtre re-fonctionne avec vos notes locales pour retrouver les entrées correspondantes."),
+                new(Loc.Get("ChangelogUi.0_1_8_2.Line1")),
+                new(Loc.Get("ChangelogUi.0_1_8_2.Line2")),
+                new(Loc.Get("ChangelogUi.0_1_8_2.Line3")),
+                new(Loc.Get("ChangelogUi.0_1_8_2.Line4")),
+                new(Loc.Get("ChangelogUi.0_1_8_2.Line5")),
+                new(Loc.Get("ChangelogUi.0_1_8_2.Line6")),
+                new(Loc.Get("ChangelogUi.0_1_8_2.Line7")),
             }),
             new(new Version(0, 1, 8, 1), "0.1.8.1", new List<ChangelogLine>
             {
-                new("Correctif 'Vu sous' : l'infobulle affiche désormais le dernier personnage observé."),
-                new("Invitations AutoDetect : triées en tête de liste pour mieux les repérer."),
-                new("Invitations AutoDetect : conservées entre les redémarrages du plugin ou du jeu."),
-                new("Barre de statut serveur : couleur violette adoptée par défaut."),
+                new(Loc.Get("ChangelogUi.0_1_8_1.Line1")),
+                new(Loc.Get("ChangelogUi.0_1_8_1.Line2")),
+                new(Loc.Get("ChangelogUi.0_1_8_1.Line3")),
+                new(Loc.Get("ChangelogUi.0_1_8_1.Line4")),
             }),
             new(new Version(0, 1, 8, 0), "0.1.8.0", new List<ChangelogLine>
             {
-                new("AutoDetect : détection automatique des joueurs Umbra autour de vous et propositions d'appairage."),
-                new("AutoDetect : désactivé par défaut pour préserver la confidentialité.", 1, ImGuiColors.DalamudGrey),
-                new("AutoDetect : activez-le dans 'Transfers' avec les options Nearby detection et Allow pair requests.", 1, ImGuiColors.DalamudGrey),
-                new("Syncshell temporaire : durée configurable de 1 h à 7 jours, expiration automatique."),
-                new("Syncshell permanente : possibilité de nommer et d'organiser vos groupes sur la durée."),
-                new("Interface : palette UmbraSync harmonisée et menus allégés pour l'usage RP."),
+                new(Loc.Get("ChangelogUi.0_1_8_0.Line1")),
+                new(Loc.Get("ChangelogUi.0_1_8_0.Line2"), 1, ImGuiColors.DalamudGrey),
+                new(Loc.Get("ChangelogUi.0_1_8_0.Line3"), 1, ImGuiColors.DalamudGrey),
+                new(Loc.Get("ChangelogUi.0_1_8_0.Line4")),
+                new(Loc.Get("ChangelogUi.0_1_8_0.Line5")),
+                new(Loc.Get("ChangelogUi.0_1_8_0.Line6")),
             }),
         };
     }

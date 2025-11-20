@@ -21,6 +21,7 @@ using UmbraSync.WebAPI;
 using System;
 using System.Globalization;
 using System.Numerics;
+using UmbraSync.Localization;
 
 namespace UmbraSync.UI.Components;
 
@@ -99,10 +100,16 @@ internal sealed class GroupPanel
 
     private void DrawAddSyncshell()
     {
-        var buttonSize = _uiShared.GetIconButtonSize(FontAwesomeIcon.Plus);
-        ImGui.SetNextItemWidth(UiSharedService.GetWindowContentRegionWidth() - ImGui.GetWindowContentRegionMin().X - buttonSize.X);
-        ImGui.InputTextWithHint("##syncshellid", "Syncshell GID/Alias (leave empty to create)", ref _syncShellToJoin, 50);
-        ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - buttonSize.X);
+        var style = ImGui.GetStyle();
+        float buttonHeight = ImGui.GetFrameHeight() + style.FramePadding.Y * 0.5f;
+        float glyphWidth;
+        using (_uiShared.IconFont.Push())
+            glyphWidth = ImGui.CalcTextSize(FontAwesomeIcon.Plus.ToIconString()).X;
+        var buttonWidth = glyphWidth + style.FramePadding.X * 2f;
+
+        ImGui.SetNextItemWidth(UiSharedService.GetWindowContentRegionWidth() - ImGui.GetWindowContentRegionMin().X - buttonWidth - style.ItemSpacing.X);
+        ImGui.InputTextWithHint("##syncshellid", Loc.Get("Syncshell.Input.Placeholder"), ref _syncShellToJoin, 50);
+        ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - buttonWidth);
 
         bool userCanJoinMoreGroups = _pairManager.GroupPairs.Count < ApiController.ServerInfo.MaxGroupsJoinedByUser;
         bool userCanCreateMoreGroups = _pairManager.GroupPairs.Count(u => string.Equals(u.Key.Owner.UID, ApiController.UID, StringComparison.Ordinal)) < ApiController.ServerInfo.MaxGroupsCreatedByUser;
@@ -110,7 +117,7 @@ internal sealed class GroupPanel
             || string.Equals(p.Group.GID, _syncShellToJoin, StringComparison.Ordinal));
 
         if (alreadyInGroup) ImGui.BeginDisabled();
-        if (_uiShared.IconButton(FontAwesomeIcon.Plus))
+        if (_uiShared.IconPlusButtonCentered(height: buttonHeight))
         {
             if (!string.IsNullOrEmpty(_syncShellToJoin))
             {
@@ -136,26 +143,41 @@ internal sealed class GroupPanel
                 }
             }
         }
-        UiSharedService.AttachToolTip(_syncShellToJoin.IsNullOrEmpty()
-            ? (userCanCreateMoreGroups ? "Create Syncshell" : $"You cannot create more than {ApiController.ServerInfo.MaxGroupsCreatedByUser} Syncshells")
-            : (userCanJoinMoreGroups ? "Join Syncshell" + _syncShellToJoin : $"You cannot join more than {ApiController.ServerInfo.MaxGroupsJoinedByUser} Syncshells"));
+        if (_syncShellToJoin.IsNullOrEmpty())
+        {
+            var tooltip = userCanCreateMoreGroups
+                ? Loc.Get("Syncshell.Tooltip.CreateAllowed")
+                : string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Tooltip.CreateDenied"), ApiController.ServerInfo.MaxGroupsCreatedByUser);
+            UiSharedService.AttachToolTip(tooltip);
+        }
+        else
+        {
+            var tooltip = userCanJoinMoreGroups
+                ? string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Tooltip.JoinAllowed"), _syncShellToJoin)
+                : string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Tooltip.JoinDenied"), ApiController.ServerInfo.MaxGroupsJoinedByUser);
+            UiSharedService.AttachToolTip(tooltip);
+        }
 
         if (alreadyInGroup) ImGui.EndDisabled();
 
-        if (ImGui.BeginPopupModal("Enter Syncshell Password", ref _showModalEnterPassword, UiSharedService.PopupWindowFlags))
+        if (ImGui.BeginPopupModal(Loc.Get("Syncshell.Join.ModalTitle"), ref _showModalEnterPassword, UiSharedService.PopupWindowFlags))
         {
-            UiSharedService.TextWrapped("Before joining any Syncshells please be aware that you will be automatically paired with everyone in the Syncshell.");
+            UiSharedService.TextWrapped(Loc.Get("Syncshell.Join.Warning"));
             ImGui.Separator();
-            UiSharedService.TextWrapped("Enter the password for Syncshell " + _syncShellToJoin + ":");
+            UiSharedService.TextWrapped(string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Join.PasswordPrompt"), _syncShellToJoin));
             ImGui.SetNextItemWidth(-1);
-            ImGui.InputTextWithHint("##password", _syncShellToJoin + " Password", ref _syncShellPassword, 255, ImGuiInputTextFlags.Password);
+            ImGui.InputTextWithHint("##password", string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Join.PasswordPlaceholder"), _syncShellToJoin), ref _syncShellPassword, 255, ImGuiInputTextFlags.Password);
             if (_errorGroupJoin)
             {
-                UiSharedService.ColorTextWrapped($"An error occured during joining of this Syncshell: you either have joined the maximum amount of Syncshells ({ApiController.ServerInfo.MaxGroupsJoinedByUser}), " +
-                    $"it does not exist, the password you entered is wrong, you already joined the Syncshell, the Syncshell is full ({ApiController.ServerInfo.MaxGroupUserCount} users) or the Syncshell has closed invites.",
+                UiSharedService.ColorTextWrapped(
+                    string.Format(
+                        CultureInfo.CurrentCulture,
+                        Loc.Get("Syncshell.Join.Error"),
+                        ApiController.ServerInfo.MaxGroupsJoinedByUser,
+                        ApiController.ServerInfo.MaxGroupUserCount),
                     new Vector4(1, 0, 0, 1));
             }
-            if (ImGui.Button("Join " + _syncShellToJoin))
+            if (ImGui.Button(string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Join.Button"), _syncShellToJoin)))
             {
                 var shell = _syncShellToJoin;
                 var pw = _syncShellPassword;
@@ -171,16 +193,16 @@ internal sealed class GroupPanel
             ImGui.EndPopup();
         }
 
-        if (ImGui.BeginPopupModal("Create Syncshell", ref _showModalCreateGroup, UiSharedService.PopupWindowFlags))
+        if (ImGui.BeginPopupModal(Loc.Get("Syncshell.Create.ModalTitle"), ref _showModalCreateGroup, UiSharedService.PopupWindowFlags))
         {
-            UiSharedService.TextWrapped("Choisissez le type de Syncshell à créer.");
+            UiSharedService.TextWrapped(Loc.Get("Syncshell.Create.TypePrompt"));
             bool showPermanent = !_createIsTemporary;
-            if (ImGui.RadioButton("Permanente", showPermanent))
+            if (ImGui.RadioButton(Loc.Get("Syncshell.Create.TypePermanent"), showPermanent))
             {
                 _createIsTemporary = false;
             }
             ImGui.SameLine();
-            if (ImGui.RadioButton("Temporaire", _createIsTemporary))
+            if (ImGui.RadioButton(Loc.Get("Syncshell.Create.TypeTemporary"), _createIsTemporary))
             {
                 _createIsTemporary = true;
                 _newSyncShellAlias = string.Empty;
@@ -188,9 +210,9 @@ internal sealed class GroupPanel
 
         if (!_createIsTemporary)
         {
-            UiSharedService.TextWrapped("Donnez un nom à votre Syncshell (optionnel) puis créez-la.");
+            UiSharedService.TextWrapped(Loc.Get("Syncshell.Create.AliasPrompt"));
             ImGui.SetNextItemWidth(-1);
-            ImGui.InputTextWithHint("##syncshellalias", "Nom du Syncshell", ref _newSyncShellAlias, 50);
+            ImGui.InputTextWithHint("##syncshellalias", Loc.Get("Syncshell.Create.AliasPlaceholder"), ref _newSyncShellAlias, 50);
         }
         else
         {
@@ -199,7 +221,7 @@ internal sealed class GroupPanel
 
         if (_createIsTemporary)
         {
-            UiSharedService.TextWrapped("Durée maximale d'une Syncshell temporaire : 7 jours.");
+            UiSharedService.TextWrapped(Loc.Get("Syncshell.Create.TempMaxDuration"));
             if (_tempSyncshellDurationHours > 168) _tempSyncshellDurationHours = 168;
             for (int i = 0; i < _temporaryDurationOptions.Length; i++)
             {
@@ -207,8 +229,8 @@ internal sealed class GroupPanel
                 var isSelected = _tempSyncshellDurationHours == option;
                 string label = option switch
                 {
-                    >= 24 when option % 24 == 0 => option == 24 ? "24h" : $"{option / 24}j",
-                    _ => option + "h"
+                    >= 24 when option % 24 == 0 => option == 24 ? Loc.Get("Syncshell.Create.Duration24h") : string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Create.DurationDays"), option / 24),
+                    _ => string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Create.DurationHours"), option)
                 };
 
                 if (ImGui.RadioButton(label, isSelected))
@@ -228,12 +250,12 @@ internal sealed class GroupPanel
             }
 
             var expiresLocal = DateTime.Now.AddHours(_tempSyncshellDurationHours);
-            UiSharedService.TextWrapped($"Expiration le {expiresLocal:g} (heure locale).");
+            UiSharedService.TextWrapped(string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Create.ExpiresAt"), expiresLocal.ToString("g", CultureInfo.CurrentCulture)));
         }
 
-            UiSharedService.TextWrapped("Appuyez sur le bouton ci-dessous pour créer une nouvelle Syncshell.");
-            ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
-            if (ImGui.Button("Create Syncshell"))
+            UiSharedService.TextWrapped(Loc.Get("Syncshell.Create.ButtonPrompt"));
+            var createButtonHeight = ImGui.GetFrameHeight() * 1.1f;
+            if (_uiShared.IconPlusButtonCentered(height: createButtonHeight))
             {
                 try
                 {
@@ -258,7 +280,7 @@ internal sealed class GroupPanel
                     _errorGroupCreate = true;
                     if (ex.Message.Contains("name is already in use", StringComparison.OrdinalIgnoreCase))
                     {
-                        _errorGroupCreateMessage = "Le nom de la Syncshell est déjà utilisé.";
+                        _errorGroupCreateMessage = Loc.Get("Syncshell.Create.NameInUse");
                     }
                     else
                     {
@@ -266,6 +288,7 @@ internal sealed class GroupPanel
                     }
                 }
             }
+            UiSharedService.AttachToolTip(Loc.Get("Syncshell.Create.Tooltip"));
 
             if (_lastCreatedGroup != null)
             {
@@ -274,28 +297,28 @@ internal sealed class GroupPanel
                 _errorGroupCreateMessage = string.Empty;
                 if (!string.IsNullOrWhiteSpace(_lastCreatedGroup.Group.Alias))
                 {
-                    ImGui.TextUnformatted("Syncshell Name: " + _lastCreatedGroup.Group.Alias);
+                    ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Create.Result.Name"), _lastCreatedGroup.Group.Alias));
                 }
-                ImGui.TextUnformatted("Syncshell ID: " + _lastCreatedGroup.Group.GID);
+                ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Create.Result.Id"), _lastCreatedGroup.Group.GID));
                 ImGui.AlignTextToFramePadding();
-                ImGui.TextUnformatted("Syncshell Password: " + _lastCreatedGroup.Password);
+                ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Create.Result.Password"), _lastCreatedGroup.Password));
                 ImGui.SameLine();
                 if (_uiShared.IconButton(FontAwesomeIcon.Copy))
                 {
                     ImGui.SetClipboardText(_lastCreatedGroup.Password);
                 }
-                UiSharedService.TextWrapped("You can change the Syncshell password later at any time.");
+                UiSharedService.TextWrapped(Loc.Get("Syncshell.Create.Result.PasswordNote"));
                 if (_lastCreatedGroup.IsTemporary && _lastCreatedGroup.ExpiresAt != null)
                 {
                     var expiresLocal = _lastCreatedGroup.ExpiresAt.Value.ToLocalTime();
-                    UiSharedService.TextWrapped($"Cette Syncshell expirera le {expiresLocal:g} (heure locale).");
+                    UiSharedService.TextWrapped(string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Create.TempExpires"), expiresLocal.ToString("g", CultureInfo.CurrentCulture)));
                 }
             }
 
             if (_errorGroupCreate)
             {
                 var msg = string.IsNullOrWhiteSpace(_errorGroupCreateMessage)
-                    ? "You are already owner of the maximum amount of Syncshells (3) or joined the maximum amount of Syncshells (6). Relinquish ownership of your own Syncshells to someone else or leave existing Syncshells."
+                    ? Loc.Get("Syncshell.Create.Error.General")
                     : _errorGroupCreateMessage;
                 UiSharedService.ColorTextWrapped(msg, new Vector4(1, 0, 0, 1));
             }
@@ -335,7 +358,7 @@ internal sealed class GroupPanel
             ImGui.PushFont(UiBuilder.IconFont);
             ImGui.TextUnformatted(FontAwesomeIcon.Crown.ToIconString());
             ImGui.PopFont();
-            UiSharedService.AttachToolTip("You are the owner of Syncshell " + groupName);
+            UiSharedService.AttachToolTip(string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Card.Owner"), groupName));
             ImGui.SameLine(0f, ImGui.GetStyle().ItemSpacing.X * 1.2f);
         }
         else if (groupDto.GroupUserInfo.IsModerator())
@@ -343,7 +366,7 @@ internal sealed class GroupPanel
             ImGui.PushFont(UiBuilder.IconFont);
             ImGui.TextUnformatted(FontAwesomeIcon.UserShield.ToIconString());
             ImGui.PopFont();
-            UiSharedService.AttachToolTip("You are a moderator of Syncshell " + groupName);
+            UiSharedService.AttachToolTip(string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Card.Moderator"), groupName));
             ImGui.SameLine(0f, ImGui.GetStyle().ItemSpacing.X * 1.2f);
         }
 
@@ -361,28 +384,25 @@ internal sealed class GroupPanel
             var connectedMembers = pairsInGroup.Count(p => p.IsOnline) + 1;
             var maxCapacity = ApiController.ServerInfo.MaxGroupUserCount;
             ImGui.TextUnformatted($"{connectedMembers}/{totalMembers}");
-            UiSharedService.AttachToolTip("Membres connectés / membres totaux" + Environment.NewLine +
-                $"Capacité maximale : {maxCapacity}" + Environment.NewLine +
-                "Syncshell ID: " + groupDto.Group.GID);
+            UiSharedService.AttachToolTip(string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Card.ConnectedTooltip"),
+                connectedMembers, totalMembers, maxCapacity, groupDto.Group.GID));
             if (textIsGid) ImGui.PushFont(UiBuilder.MonoFont);
             ImGui.SameLine();
             ImGui.TextUnformatted(groupName);
             if (textIsGid) ImGui.PopFont();
-            UiSharedService.AttachToolTip("Left click to switch between GID display and comment" + Environment.NewLine +
-                          "Right click to change comment for " + groupName + Environment.NewLine + Environment.NewLine
-                          + "Users: " + (pairsInGroup.Count + 1) + ", Owner: " + groupDto.OwnerAliasOrUID);
+            UiSharedService.AttachToolTip(string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Card.SwitchTooltip"), groupName, pairsInGroup.Count + 1, groupDto.OwnerAliasOrUID));
             if (groupDto.IsTemporary)
             {
                 ImGui.SameLine();
-                UiSharedService.ColorText("(Temp)", ImGuiColors.DalamudOrange);
+                UiSharedService.ColorText(Loc.Get("Syncshell.Card.TempLabel"), ImGuiColors.DalamudOrange);
                 if (groupDto.ExpiresAt != null)
                 {
                     var tempExpireLocal = groupDto.ExpiresAt.Value.ToLocalTime();
-                    UiSharedService.AttachToolTip($"Expire le {tempExpireLocal:g}");
+                    UiSharedService.AttachToolTip(string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Card.TempExpire"), tempExpireLocal.ToString("g", CultureInfo.CurrentCulture)));
                 }
                 else
                 {
-                    UiSharedService.AttachToolTip("Syncshell temporaire");
+                    UiSharedService.AttachToolTip(Loc.Get("Syncshell.Card.TempTooltip"));
                 }
             }
             if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
@@ -408,7 +428,7 @@ internal sealed class GroupPanel
         {
             var buttonSizes = _uiShared.GetIconButtonSize(FontAwesomeIcon.Bars).X + _uiShared.GetIconButtonSize(FontAwesomeIcon.LockOpen).X;
             ImGui.SetNextItemWidth(UiSharedService.GetWindowContentRegionWidth() - ImGui.GetCursorPosX() - buttonSizes - ImGui.GetStyle().ItemSpacing.X * 2);
-            if (ImGui.InputTextWithHint("", "Comment/Notes", ref _editGroupComment, 255, ImGuiInputTextFlags.EnterReturnsTrue))
+            if (ImGui.InputTextWithHint("", Loc.Get("Syncshell.Card.CommentPlaceholder"), ref _editGroupComment, 255, ImGuiInputTextFlags.EnterReturnsTrue))
             {
                 _serverConfigurationManager.SetNoteForGid(groupDto.GID, _editGroupComment);
                 _editGroupEntry = string.Empty;
@@ -419,7 +439,7 @@ internal sealed class GroupPanel
             {
                 _editGroupEntry = string.Empty;
             }
-            UiSharedService.AttachToolTip("Hit ENTER to save\nRight click to cancel");
+            UiSharedService.AttachToolTip(Loc.Get("Syncshell.Card.CommentTooltip"));
         }
 
 
@@ -428,26 +448,26 @@ internal sealed class GroupPanel
         if (_showModalBanList && !_modalBanListOpened)
         {
             _modalBanListOpened = true;
-            ImGui.OpenPopup("Manage Banlist for " + groupDto.GID);
+            ImGui.OpenPopup(string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Banlist.ModalTitle"), groupDto.GID));
         }
 
         if (!_showModalBanList) _modalBanListOpened = false;
 
-        if (ImGui.BeginPopupModal("Manage Banlist for " + groupDto.GID, ref _showModalBanList, UiSharedService.PopupWindowFlags))
+        if (ImGui.BeginPopupModal(string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Banlist.ModalTitle"), groupDto.GID), ref _showModalBanList, UiSharedService.PopupWindowFlags))
         {
-            if (_uiShared.IconTextButton(FontAwesomeIcon.Retweet, "Refresh Banlist from Server"))
+            if (_uiShared.IconTextButton(FontAwesomeIcon.Retweet, Loc.Get("Syncshell.Banlist.Refresh")))
             {
                 _bannedUsers = ApiController.GroupGetBannedUsers(groupDto).Result;
             }
 
             if (ImGui.BeginTable("bannedusertable" + groupDto.GID, 6, ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.ScrollY))
             {
-                ImGui.TableSetupColumn("UID", ImGuiTableColumnFlags.None, 1);
-                ImGui.TableSetupColumn("Alias", ImGuiTableColumnFlags.None, 1);
-                ImGui.TableSetupColumn("By", ImGuiTableColumnFlags.None, 1);
-                ImGui.TableSetupColumn("Date", ImGuiTableColumnFlags.None, 2);
-                ImGui.TableSetupColumn("Reason", ImGuiTableColumnFlags.None, 3);
-                ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.None, 1);
+                ImGui.TableSetupColumn(Loc.Get("Syncshell.Banlist.Column.Uid"), ImGuiTableColumnFlags.None, 1);
+                ImGui.TableSetupColumn(Loc.Get("Syncshell.Banlist.Column.Alias"), ImGuiTableColumnFlags.None, 1);
+                ImGui.TableSetupColumn(Loc.Get("Syncshell.Banlist.Column.By"), ImGuiTableColumnFlags.None, 1);
+                ImGui.TableSetupColumn(Loc.Get("Syncshell.Banlist.Column.Date"), ImGuiTableColumnFlags.None, 2);
+                ImGui.TableSetupColumn(Loc.Get("Syncshell.Banlist.Column.Reason"), ImGuiTableColumnFlags.None, 3);
+                ImGui.TableSetupColumn(Loc.Get("Syncshell.Banlist.Column.Actions"), ImGuiTableColumnFlags.None, 1);
 
                 ImGui.TableHeadersRow();
 
@@ -464,7 +484,7 @@ internal sealed class GroupPanel
                     ImGui.TableNextColumn();
                     UiSharedService.TextWrapped(bannedUser.Reason);
                     ImGui.TableNextColumn();
-                    if (_uiShared.IconTextButton(FontAwesomeIcon.Check, "Unban#" + bannedUser.UID))
+                    if (_uiShared.IconTextButton(FontAwesomeIcon.Check, string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Banlist.Unban"), bannedUser.UID)))
                     {
                         _ = ApiController.GroupUnbanUser(bannedUser);
                         _bannedUsers.RemoveAll(b => string.Equals(b.UID, bannedUser.UID, StringComparison.Ordinal));
@@ -735,7 +755,10 @@ internal sealed class GroupPanel
             ImGui.SameLine();
         }
 
-        if (_uiShared.IconButton(pauseIcon))
+        bool clickedPause = pauseIcon == FontAwesomeIcon.Pause
+            ? _uiShared.IconPauseButtonCentered(pauseIconSize.Y)
+            : _uiShared.IconButtonCentered(pauseIcon, pauseIconSize.Y);
+        if (clickedPause)
         {
             var userPerm = groupDto.GroupUserPermissions ^ GroupUserPermissions.Paused;
             _ = ApiController.GroupChangeIndividualPermissionState(new GroupPairUserPermissionDto(groupDto.Group, new UserData(ApiController.UID), userPerm));

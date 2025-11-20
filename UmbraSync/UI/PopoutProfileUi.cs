@@ -8,6 +8,7 @@ using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.ServerConfiguration;
+using UmbraSync.Localization;
 using Microsoft.Extensions.Logging;
 using System.Numerics;
 
@@ -108,7 +109,7 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
             {
                 UiSharedService.ColorText(note, ImGuiColors.DalamudGrey);
             }
-            string status = _pair.IsVisible ? "Visible" : (_pair.IsOnline ? "Online" : "Offline");
+            string status = _pair.IsVisible ? Loc.Get("PopoutProfile.Status.Visible") : (_pair.IsOnline ? Loc.Get("PopoutProfile.Status.Online") : Loc.Get("PopoutProfile.Status.Offline"));
             UiSharedService.ColorText(status, (_pair.IsVisible || _pair.IsOnline) ? ImGuiColors.HealerGreen : UiSharedService.AccentColor);
             if (_pair.IsVisible)
             {
@@ -117,21 +118,21 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
             }
             if (_pair.UserPair != null)
             {
-                ImGui.TextUnformatted("Directly paired");
+                ImGui.TextUnformatted(Loc.Get("PopoutProfile.PairStatus.Direct"));
                 if (_pair.UserPair.OwnPermissions.IsPaused())
                 {
                     ImGui.SameLine();
-                    UiSharedService.ColorText("You: paused", ImGuiColors.DalamudYellow);
+                    UiSharedService.ColorText(Loc.Get("PopoutProfile.PairStatus.YouPaused"), ImGuiColors.DalamudYellow);
                 }
                 if (_pair.UserPair.OtherPermissions.IsPaused())
                 {
                     ImGui.SameLine();
-                    UiSharedService.ColorText("They: paused", ImGuiColors.DalamudYellow);
+                    UiSharedService.ColorText(Loc.Get("PopoutProfile.PairStatus.TheyPaused"), ImGuiColors.DalamudYellow);
                 }
             }
             if (_pair.GroupPair.Any())
             {
-                ImGui.TextUnformatted("Paired through Syncshells:");
+                ImGui.TextUnformatted(Loc.Get("PopoutProfile.PairStatus.SyncshellHeader"));
                 foreach (var groupPair in _pair.GroupPair.Select(k => k.Key))
                 {
                     var groupNote = _serverManager.GetNoteForGid(groupPair.GID);
@@ -150,9 +151,9 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
             while (textSize.Y > remaining && descText.Contains(' '))
             {
                 descText = descText[..descText.LastIndexOf(' ')].TrimEnd();
-                textSize = ImGui.CalcTextSize(descText + $"...{Environment.NewLine}[Open Full Profile for complete description]", hideTextAfterDoubleHash: false, 256f * ImGuiHelpers.GlobalScale);
+                textSize = ImGui.CalcTextSize(descText + $"...{Environment.NewLine}{Loc.Get("PopoutProfile.ReadMoreHint")}", hideTextAfterDoubleHash: false, 256f * ImGuiHelpers.GlobalScale);
             }
-            UiSharedService.TextWrapped(trimmed ? descText + $"...{Environment.NewLine}[Open Full Profile for complete description]" : mareProfile.Description);
+            UiSharedService.TextWrapped(trimmed ? descText + $"...{Environment.NewLine}{Loc.Get("PopoutProfile.ReadMoreHint")}" : mareProfile.Description);
 
             _uiSharedService.GameFont.Pop();
 

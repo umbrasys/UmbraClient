@@ -5,6 +5,7 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using System.Numerics;
 using System.Globalization;
+using UmbraSync.Localization;
 
 namespace UmbraSync.UI;
 
@@ -12,82 +13,76 @@ public sealed partial class CharaDataHubUi
 {
     private void DrawNearbyPoses()
     {
-        _uiSharedService.BigText("Poses Nearby");
+        _uiSharedService.BigText(Loc.Get("CharaDataHub.NearbyPoses.Title"));
 
-        DrawHelpFoldout("This tab will show you all Shared World Poses nearby you." + Environment.NewLine + Environment.NewLine
-                        + "Shared World Poses are poses in character data that have world data attached to them and are set to shared. "
-                        + "This means that all data that is in 'Shared with You' that has a pose with world data attached to it will be shown here if you are nearby." + Environment.NewLine
-                        + "By default all poses that are shared will be shown. Poses taken in housing areas will by default only be shown on the correct world and location." + Environment.NewLine + Environment.NewLine
-                        + "Shared World Poses will appear in the world as floating wisps, as well as in the list below. You can mouse over a Shared World Pose in the list for it to get highlighted in the world." + Environment.NewLine + Environment.NewLine
-                        + "You can apply Shared World Poses to yourself or spawn the associated character to pose with them." + Environment.NewLine + Environment.NewLine
-                        + "You can adjust the filter and change further settings in the 'Settings & Filter' foldout.");
+        DrawHelpFoldout(Loc.Get("CharaDataHub.NearbyPoses.Help"));
 
-        UiSharedService.DrawTree("Settings & Filters", () =>
+        UiSharedService.DrawTree(Loc.Get("CharaDataHub.NearbyPoses.SettingsTitle"), () =>
         {
             string filterByUser = _charaDataNearbyManager.UserNoteFilter;
-            if (ImGui.InputTextWithHint("##filterbyuser", "Filter by User", ref filterByUser, 50))
+            if (ImGui.InputTextWithHint("##filterbyuser", Loc.Get("CharaDataHub.NearbyPoses.FilterByUser"), ref filterByUser, 50))
             {
                 _charaDataNearbyManager.UserNoteFilter = filterByUser;
             }
             bool onlyCurrent = _configService.Current.NearbyOwnServerOnly;
-            if (ImGui.Checkbox("Only show Poses on current world", ref onlyCurrent))
+            if (ImGui.Checkbox(Loc.Get("CharaDataHub.NearbyPoses.OnlyCurrentWorld"), ref onlyCurrent))
             {
                 _configService.Current.NearbyOwnServerOnly = onlyCurrent;
                 _configService.Save();
             }
-            _uiSharedService.DrawHelpText("Show the location of shared Poses with World Data from current world only");
+            _uiSharedService.DrawHelpText(Loc.Get("CharaDataHub.NearbyPoses.OnlyCurrentWorldHelp"));
             bool showOwn = _configService.Current.NearbyShowOwnData;
-            if (ImGui.Checkbox("Also show your own data", ref showOwn))
+            if (ImGui.Checkbox(Loc.Get("CharaDataHub.NearbyPoses.ShowOwnData"), ref showOwn))
             {
                 _configService.Current.NearbyShowOwnData = showOwn;
                 _configService.Save();
             }
-            _uiSharedService.DrawHelpText("Show your own Poses as well");
+            _uiSharedService.DrawHelpText(Loc.Get("CharaDataHub.NearbyPoses.ShowOwnDataHelp"));
             bool ignoreHousing = _configService.Current.NearbyIgnoreHousingLimitations;
-            if (ImGui.Checkbox("Ignore Housing Limitations", ref ignoreHousing))
+            if (ImGui.Checkbox(Loc.Get("CharaDataHub.NearbyPoses.IgnoreHousing"), ref ignoreHousing))
             {
                 _configService.Current.NearbyIgnoreHousingLimitations = ignoreHousing;
                 _configService.Save();
             }
-            _uiSharedService.DrawHelpText("Display all poses in their location regardless of housing limitations. (Ignoring Ward, Plot, Room)" + UiSharedService.TooltipSeparator
-                + "Note: Poses that utilize housing props, furniture, etc. will not be displayed correctly if not spawned in the right location.");
+            _uiSharedService.DrawHelpText(Loc.Get("CharaDataHub.NearbyPoses.IgnoreHousingHelp") + UiSharedService.TooltipSeparator
+                + Loc.Get("CharaDataHub.NearbyPoses.IgnoreHousingNote"));
             bool showWisps = _configService.Current.NearbyDrawWisps;
-            if (ImGui.Checkbox("Show Pose Wisps in the overworld", ref showWisps))
+            if (ImGui.Checkbox(Loc.Get("CharaDataHub.NearbyPoses.ShowWisps"), ref showWisps))
             {
                 _configService.Current.NearbyDrawWisps = showWisps;
                 _configService.Save();
             }
-            _uiSharedService.DrawHelpText("Draw floating wisps where other's poses are in the world.");
+            _uiSharedService.DrawHelpText(Loc.Get("CharaDataHub.NearbyPoses.ShowWispsHelp"));
             int maxWisps = _configService.Current.NearbyMaxWisps;
             ImGui.SetNextItemWidth(140);
-            if (ImGui.SliderInt("Maximum wisps", ref maxWisps, 0, 200))
+            if (ImGui.SliderInt(Loc.Get("CharaDataHub.NearbyPoses.MaxWisps"), ref maxWisps, 0, 200))
             {
                 _configService.Current.NearbyMaxWisps = maxWisps;
                 _configService.Save();
             }
-            _uiSharedService.DrawHelpText("Limit how many wisps are active at once. Set to 0 to disable wisps even when enabled above.");
+            _uiSharedService.DrawHelpText(Loc.Get("CharaDataHub.NearbyPoses.MaxWispsHelp"));
             int poseDetectionDistance = _configService.Current.NearbyDistanceFilter;
             ImGui.SetNextItemWidth(100);
-            if (ImGui.SliderInt("Detection Distance", ref poseDetectionDistance, 5, 1000))
+            if (ImGui.SliderInt(Loc.Get("CharaDataHub.NearbyPoses.DetectionDistance"), ref poseDetectionDistance, 5, 1000))
             {
                 _configService.Current.NearbyDistanceFilter = poseDetectionDistance;
                 _configService.Save();
             }
-            _uiSharedService.DrawHelpText("Maximum distance in which poses will be shown. Set it to the maximum if you want to see all poses on the current map.");
+            _uiSharedService.DrawHelpText(Loc.Get("CharaDataHub.NearbyPoses.DetectionDistanceHelp"));
             bool alwaysShow = _configService.Current.NearbyShowAlways;
-            if (ImGui.Checkbox("Keep active outside Poses Nearby tab", ref alwaysShow))
+            if (ImGui.Checkbox(Loc.Get("CharaDataHub.NearbyPoses.ShowAlways"), ref alwaysShow))
             {
                 _configService.Current.NearbyShowAlways = alwaysShow;
                 _configService.Save();
             }
-            _uiSharedService.DrawHelpText("Continue the calculation of position of wisps etc. active outside of the 'Poses Nearby' tab." + UiSharedService.TooltipSeparator
-                + "Note: The wisps etc. will disappear during combat and performing.");
+            _uiSharedService.DrawHelpText(Loc.Get("CharaDataHub.NearbyPoses.ShowAlwaysHelp") + UiSharedService.TooltipSeparator
+                + Loc.Get("CharaDataHub.NearbyPoses.ShowAlwaysNote"));
         });
 
         if (!_uiSharedService.IsInGpose)
         {
             ImGuiHelpers.ScaledDummy(5);
-            UiSharedService.DrawGroupedCenteredColorText("Spawning and applying pose data is only available in GPose.", UiSharedService.AccentColor);
+            UiSharedService.DrawGroupedCenteredColorText(Loc.Get("CharaDataHub.NearbyPoses.GposeOnly"), UiSharedService.AccentColor);
             ImGuiHelpers.ScaledDummy(5);
         }
 
@@ -102,7 +97,7 @@ public sealed partial class CharaDataHubUi
         using var indent = ImRaii.PushIndent(5f);
         if (_charaDataNearbyManager.NearbyData.Count == 0)
         {
-            UiSharedService.DrawGroupedCenteredColorText("No Shared World Poses found nearby.", UiSharedService.AccentColor);
+            UiSharedService.DrawGroupedCenteredColorText(Loc.Get("CharaDataHub.NearbyPoses.NoneFound"), UiSharedService.AccentColor);
         }
 
         bool wasAnythingHovered = false;
@@ -118,27 +113,27 @@ public sealed partial class CharaDataHubUi
             UiSharedService.DrawGrouped(() =>
             {
                 string? userNote = _serverConfigurationManager.GetNoteForUid(pose.Key.MetaInfo.Uploader.UID);
-                var noteText = pose.Key.MetaInfo.IsOwnData ? "YOU" : (userNote == null ? pose.Key.MetaInfo.Uploader.AliasOrUID : $"{userNote} ({pose.Key.MetaInfo.Uploader.AliasOrUID})");
-                ImGui.TextUnformatted("Pose by");
+                var noteText = pose.Key.MetaInfo.IsOwnData ? Loc.Get("CharaDataHub.NearbyPoses.YouLabel") : (userNote == null ? pose.Key.MetaInfo.Uploader.AliasOrUID : $"{userNote} ({pose.Key.MetaInfo.Uploader.AliasOrUID})");
+                ImGui.TextUnformatted(Loc.Get("CharaDataHub.NearbyPoses.PoseBy"));
                 ImGui.SameLine();
                 UiSharedService.ColorText(noteText, ImGuiColors.ParsedGreen);
                 using (ImRaii.Group())
                 {
-                    UiSharedService.ColorText("Character Data Description", ImGuiColors.DalamudGrey);
+                    UiSharedService.ColorText(Loc.Get("CharaDataHub.NearbyPoses.CharaDescriptionLabel"), ImGuiColors.DalamudGrey);
                     ImGui.SameLine();
                     _uiSharedService.IconText(FontAwesomeIcon.ExternalLinkAlt, ImGuiColors.DalamudGrey);
                 }
                 UiSharedService.AttachToolTip(pose.Key.MetaInfo.Description);
-                UiSharedService.ColorText("Description", ImGuiColors.DalamudGrey);
+                UiSharedService.ColorText(Loc.Get("CharaDataHub.NearbyPoses.DescriptionLabel"), ImGuiColors.DalamudGrey);
                 ImGui.SameLine();
-                UiSharedService.TextWrapped(pose.Key.Description ?? "No Pose Description was set", circleOriginX);
+                UiSharedService.TextWrapped(pose.Key.Description ?? Loc.Get("CharaDataHub.NearbyPoses.NoDescription"), circleOriginX);
                 var posAfterGroup = ImGui.GetCursorPos();
                 var groupHeightCenter = (posAfterGroup.Y - pos.Y) / 2;
                 circleOffsetY = (groupHeightCenter - circleDiameter / 2);
                 if (circleOffsetY < 0) circleOffsetY = 0;
                 ImGui.SetCursorPos(new Vector2(circleOriginX, pos.Y));
                 ImGui.Dummy(new Vector2(circleDiameter, circleDiameter));
-                UiSharedService.AttachToolTip("Click to open corresponding map and set map marker" + UiSharedService.TooltipSeparator
+                UiSharedService.AttachToolTip(Loc.Get("CharaDataHub.NearbyPoses.MapTooltip") + UiSharedService.TooltipSeparator
                     + pose.Key.WorldDataDescriptor);
                 if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
                 {
@@ -150,21 +145,21 @@ public sealed partial class CharaDataHubUi
                     _ = GposePoseAction(currentStart =>
                     {
                         ImGui.SetCursorPosX(currentStart);
-                        if (_uiSharedService.IconTextButton(FontAwesomeIcon.ArrowRight, "Apply Pose"))
+                        if (_uiSharedService.IconTextButton(FontAwesomeIcon.ArrowRight, Loc.Get("CharaDataHub.NearbyPoses.ApplyPose")))
                         {
                             _charaDataManager.ApplyFullPoseDataToGposeTarget(pose.Key);
                         }
 
                         return ImGui.GetCursorPosX();
-                    }, $"Apply pose and position to {CharaName(_gposeTarget)}", _hasValidGposeTarget, ImGui.GetCursorPosX());
+                    }, string.Format(CultureInfo.CurrentCulture, Loc.Get("CharaDataHub.NearbyPoses.ApplyPoseTooltip"), CharaName(_gposeTarget)), _hasValidGposeTarget, ImGui.GetCursorPosX());
                     ImGui.SameLine();
                     GposeMetaInfoAction((_) =>
                     {
-                        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Plus, "Spawn and Pose"))
+                        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Plus, Loc.Get("CharaDataHub.NearbyPoses.SpawnAndPose")))
                         {
                             _charaDataManager.SpawnAndApplyWorldTransform(pose.Key.MetaInfo, pose.Key);
                         }
-                    }, "Spawn actor and apply pose and position", pose.Key.MetaInfo, _hasValidGposeTarget, true);
+                    }, Loc.Get("CharaDataHub.NearbyPoses.SpawnAndPoseTooltip"), pose.Key.MetaInfo, _hasValidGposeTarget, true);
                 }
             });
             if (ImGui.IsItemHovered())
@@ -206,7 +201,7 @@ public sealed partial class CharaDataHubUi
         using (ImRaii.Disabled(_charaDataManager.GetAllDataTask != null
             || (_charaDataManager.GetSharedWithYouTimeoutTask != null && !_charaDataManager.GetSharedWithYouTimeoutTask.IsCompleted)))
         {
-            if (_uiSharedService.IconTextButton(FontAwesomeIcon.ArrowCircleDown, "Update Data Shared With You"))
+            if (_uiSharedService.IconTextButton(FontAwesomeIcon.ArrowCircleDown, Loc.Get("CharaDataHub.NearbyPoses.UpdateShared")))
             {
                 var cts = EnsureFreshCts(ref _disposalCts);
                 _ = _charaDataManager.GetAllSharedData(cts.Token).ContinueWith(u => UpdateFilteredItems());
@@ -214,7 +209,7 @@ public sealed partial class CharaDataHubUi
         }
         if (_charaDataManager.GetSharedWithYouTimeoutTask != null && !_charaDataManager.GetSharedWithYouTimeoutTask.IsCompleted)
         {
-            UiSharedService.AttachToolTip("You can only refresh all character data from server every minute. Please wait.");
+            UiSharedService.AttachToolTip(Loc.Get("CharaDataHub.NearbyPoses.UpdateSharedCooldown"));
         }
     }
 }
