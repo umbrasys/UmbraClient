@@ -42,6 +42,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
     private readonly PairManager _pairManager;
     private readonly IPartyList _partyList;
     private readonly IObjectTable _objectTable;
+    private IPlayerCharacter? LocalPlayer => _clientState.LocalPlayer;
     private readonly DalamudUtilService _dalamudUtil;
     private readonly TypingIndicatorStateService _typingStateService;
     private readonly ApiController _apiController;
@@ -217,16 +218,17 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
             return;
 
         var showSelf = _configService.Current.TypingIndicatorShowSelf;
+        var selfPlayer = LocalPlayer;
         if (selfActive
             && showSelf
-            && _clientState.LocalPlayer != null
+            && selfPlayer != null
             && (now - selfStart) >= TypingDisplayDelay
             && (now - selfLast) <= TypingDisplayFade)
         {
-            var selfId = GetEntityId(_clientState.LocalPlayer.Address);
+            var selfId = GetEntityId(selfPlayer.Address);
             if (selfId != 0 && !TryDrawNameplateBubble(drawList, iconWrap, selfId))
             {
-                DrawWorldFallbackIcon(drawList, iconWrap, _clientState.LocalPlayer.Position);
+                DrawWorldFallbackIcon(drawList, iconWrap, selfPlayer.Position);
             }
         }
 
@@ -619,7 +621,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
 
     private bool IsFreeCompanyMember(uint objectId, string? playerName)
     {
-        var localPlayer = _clientState.LocalPlayer;
+        var localPlayer = LocalPlayer;
         if (localPlayer == null)
             return false;
 
@@ -714,10 +716,11 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
 
     private bool IsWithinRelevantDistance(Vector3 position)
     {
-        if (_clientState.LocalPlayer == null)
+        var localPlayer = LocalPlayer;
+        if (localPlayer == null)
             return false;
 
-        var distance = Vector3.Distance(_clientState.LocalPlayer.Position, position);
+        var distance = Vector3.Distance(localPlayer.Position, position);
         return distance <= 40f;
     }
 

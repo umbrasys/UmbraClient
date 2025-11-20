@@ -48,18 +48,17 @@ jobs:
           fi
 
       - name: Qodana Scan
-        uses: JetBrains/qodana-action@v2025.2
         env:
           QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
           QODANA_ENDPOINT: https://qodana.cloud
-        with:
-          pr-mode: ${{ github.event_name == 'pull_request' }}
-          use-caches: true
-          post-pr-comment: true
-          use-annotations: true
-          upload-result: false
-          push-fixes: 'none'
-          args: --baseline,baseline.sarif.json
+        run: |
+          curl -fsSL https://jb.gg/qodana-cli/install | bash
+          qodana scan \
+            --linter jetbrains/qodana-dotnet:2025.2 \
+            --baseline baseline.sarif.json \
+            --results-dir .qodana/results \
+            --cache-dir .qodana/cache \
+            --upload
 
       - name: Commit baseline if generated
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'

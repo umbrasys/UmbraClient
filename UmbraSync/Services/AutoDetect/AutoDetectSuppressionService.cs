@@ -79,7 +79,7 @@ public sealed class AutoDetectSuppressionService : IHostedService, IMediatorSubs
         {
             try
             {
-                if (!_clientState.IsLoggedIn || _clientState.LocalPlayer == null)
+                if (!_clientState.IsLoggedIn || _dalamudUtilService.GetPlayerCharacter() == null)
                 {
                     ClearSuppression();
                     return;
