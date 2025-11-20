@@ -578,6 +578,9 @@
   <data name="Syncshell.Create.TypeTemporary" xml:space="preserve">
     <value>Temporaire</value>
   </data>
+  <data name="Syncshell.Create.ButtonLabel" xml:space="preserve">
+    <value>Créer une Syncshell</value>
+  </data>
   <data name="Syncshell.Create.AliasPrompt" xml:space="preserve">
     <value>Donnez un nom à votre Syncshell (optionnel) puis créez-la.</value>
   </data>
@@ -2650,5 +2653,47 @@
   </data>
   <data name="ContextMenu.AutoDetect.AddPair" xml:space="preserve">
     <value>Ajouter comme paire Umbra [Umbra +]</value>
+  </data>
+  <data name="GroupPair.Unknown" xml:space="preserve">
+    <value>Inconnu : {0}</value>
+  </data>
+  <data name="GroupPair.Online" xml:space="preserve">
+    <value>En ligne : {0}</value>
+  </data>
+  <data name="GroupPair.Paused" xml:space="preserve">
+    <value>Sync en pause pour {0}</value>
+  </data>
+  <data name="GroupPair.IndividuallyPaired" xml:space="preserve">
+    <value>Paire individuelle avec {0}</value>
+  </data>
+  <data name="GroupPair.Owner" xml:space="preserve">
+    <value>Propriétaire</value>
+  </data>
+  <data name="GroupPair.Moderator" xml:space="preserve">
+    <value>Modérateur</value>
+  </data>
+  <data name="GroupPair.Pinned" xml:space="preserve">
+    <value>Épinglé</value>
+  </data>
+  <data name="GroupPair.VisibleHeader" xml:space="preserve">
+    <value>Visible : {0} ({1})</value>
+  </data>
+  <data name="GroupPair.VisibleTarget" xml:space="preserve">
+    <value>Cliquer pour cibler ce joueur.</value>
+  </data>
+  <data name="GroupPair.VisibleLastPrefix" xml:space="preserve">
+    <value>Dernières données : </value>
+  </data>
+  <data name="GroupPair.VisibleMods" xml:space="preserve">
+    <value>Mods appliqués</value>
+  </data>
+  <data name="GroupPair.VisibleFiles" xml:space="preserve">
+    <value>Fichiers transférés : {0}</value>
+  </data>
+  <data name="GroupPair.VisibleVram" xml:space="preserve">
+    <value>VRAM estimée : {0}</value>
+  </data>
+  <data name="GroupPair.VisibleTris" xml:space="preserve">
+    <value>Triangles : {0}</value>
   </data>
 </root>

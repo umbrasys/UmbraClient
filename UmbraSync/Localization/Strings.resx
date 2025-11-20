@@ -684,6 +684,9 @@ Please keep a copy of your secret key in case you need to reset your plugins, or
   <data name="Syncshell.Create.TypeTemporary" xml:space="preserve">
     <value>Temporary</value>
   </data>
+  <data name="Syncshell.Create.ButtonLabel" xml:space="preserve">
+    <value>Create Syncshell</value>
+  </data>
   <data name="Syncshell.Create.AliasPrompt" xml:space="preserve">
     <value>Give your Syncshell a name (optional) then create it.</value>
   </data>
@@ -2769,5 +2772,47 @@ Click to change.</value>
   </data>
   <data name="ContextMenu.AutoDetect.AddPair" xml:space="preserve">
     <value>Add as Umbra pair [Umbra +]</value>
+  </data>
+  <data name="GroupPair.Unknown" xml:space="preserve">
+    <value>Unknown: {0}</value>
+  </data>
+  <data name="GroupPair.Online" xml:space="preserve">
+    <value>Online: {0}</value>
+  </data>
+  <data name="GroupPair.Paused" xml:space="preserve">
+    <value>Sync paused for {0}</value>
+  </data>
+  <data name="GroupPair.IndividuallyPaired" xml:space="preserve">
+    <value>Individually paired with {0}</value>
+  </data>
+  <data name="GroupPair.Owner" xml:space="preserve">
+    <value>Owner</value>
+  </data>
+  <data name="GroupPair.Moderator" xml:space="preserve">
+    <value>Moderator</value>
+  </data>
+  <data name="GroupPair.Pinned" xml:space="preserve">
+    <value>Pinned</value>
+  </data>
+  <data name="GroupPair.VisibleHeader" xml:space="preserve">
+    <value>Visible: {0} ({1})</value>
+  </data>
+  <data name="GroupPair.VisibleTarget" xml:space="preserve">
+    <value>Click to target this player.</value>
+  </data>
+  <data name="GroupPair.VisibleLastPrefix" xml:space="preserve">
+    <value>Last known: </value>
+  </data>
+  <data name="GroupPair.VisibleMods" xml:space="preserve">
+    <value>Mods applied</value>
+  </data>
+  <data name="GroupPair.VisibleFiles" xml:space="preserve">
+    <value>Files transferred: {0}</value>
+  </data>
+  <data name="GroupPair.VisibleVram" xml:space="preserve">
+    <value>Approx. VRAM: {0}</value>
+  </data>
+  <data name="GroupPair.VisibleTris" xml:space="preserve">
+    <value>Triangles: {0}</value>
   </data>
 </root>
