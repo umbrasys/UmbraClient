@@ -1,0 +1,124 @@
+﻿using Dalamud.Bindings.ImGui;
+using Dalamud.Interface;
+using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
+using Dalamud.Utility;
+using UmbraSync.PlayerData.Pairs;
+using System.Numerics;
+using System.Globalization;
+using UmbraSync.UI.Handlers;
+using UmbraSync.Localization;
+
+namespace UmbraSync.UI.Components;
+
+public class SelectGroupForPairUi
+{
+    private readonly TagHandler _tagHandler;
+    private readonly UidDisplayHandler _uidDisplayHandler;
+    private readonly UiSharedService _uiSharedService;
+
+    private Pair? _pair;
+    private bool _show;
+    private string _tagNameToAdd = "";
+
+    public SelectGroupForPairUi(TagHandler tagHandler, UidDisplayHandler uidDisplayHandler, UiSharedService uiSharedService)
+    {
+        _show = false;
+        _pair = null;
+        _tagHandler = tagHandler;
+        _uidDisplayHandler = uidDisplayHandler;
+        _uiSharedService = uiSharedService;
+    }
+
+    public void Draw()
+    {
+        if (_pair == null)
+        {
+            return;
+        }
+
+        var name = PairName(_pair);
+        var popupName = string.Format(CultureInfo.CurrentCulture, Loc.Get("SelectGroupForPair.Title"), name);
+        if (_show)
+        {
+            ImGui.OpenPopup(popupName);
+            _show = false;
+        }
+
+        if (ImGui.BeginPopup(popupName))
+        {
+            var tags = _tagHandler.GetAllTagsSorted();
+            var childHeight = tags.Count != 0 ? tags.Count * 25 : 1;
+            var childSize = new Vector2(0, childHeight > 100 ? 100 : childHeight) * ImGuiHelpers.GlobalScale;
+
+            ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("SelectGroupForPair.Instruction"), name));
+            if (ImGui.BeginChild(name + "##listGroups", childSize))
+            {
+                foreach (var tag in tags)
+                {
+                    using (ImRaii.PushId($"groups-pair-{_pair.UserData.UID}-{tag}")) DrawGroupName(_pair, tag);
+                }
+                ImGui.EndChild();
+            }
+
+            ImGui.Separator();
+            ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("SelectGroupForPair.CreateInstruction"), name));
+            if (_uiSharedService.IconButton(FontAwesomeIcon.Plus))
+            {
+                HandleAddTag();
+            }
+            ImGui.SameLine();
+            ImGui.InputTextWithHint("##category_name", Loc.Get("SelectGroupForPair.NewGroupPlaceholder"), ref _tagNameToAdd, 40);
+            if (ImGui.IsKeyDown(ImGuiKey.Enter))
+            {
+                HandleAddTag();
+            }
+            ImGui.EndPopup();
+        }
+    }
+
+    public void Open(Pair pair)
+    {
+        _pair = pair;
+        _show = true;
+    }
+
+    private void DrawGroupName(Pair pair, string name)
+    {
+        var hasTagBefore = _tagHandler.HasTag(pair.UserData.UID, name);
+        var hasTag = hasTagBefore;
+        if (ImGui.Checkbox(name, ref hasTag))
+        {
+            if (hasTag)
+            {
+                _tagHandler.AddTagToPairedUid(pair.UserData.UID, name);
+            }
+            else
+            {
+                _tagHandler.RemoveTagFromPairedUid(pair.UserData.UID, name);
+            }
+        }
+    }
+
+    private void HandleAddTag()
+    {
+        if (!_tagNameToAdd.IsNullOrWhitespace() && _tagNameToAdd is not (TagHandler.CustomOfflineTag or TagHandler.CustomOnlineTag or TagHandler.CustomVisibleTag))
+        {
+            _tagHandler.AddTag(_tagNameToAdd);
+            if (_pair != null)
+            {
+                _tagHandler.AddTagToPairedUid(_pair.UserData.UID, _tagNameToAdd);
+            }
+            _tagNameToAdd = string.Empty;
+        }
+        else
+        {
+            _tagNameToAdd = string.Empty;
+        }
+    }
+
+    private string PairName(Pair pair)
+    {
+        return _uidDisplayHandler.GetPlayerText(pair).text;
+    }
+}

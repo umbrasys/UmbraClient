@@ -1,0 +1,12 @@
+version: "1.0"
+linter: jetbrains/qodana-dotnet:2025.2
+
+dotnet:
+  solution: UmbraSync.sln
+
+exclude:
+  - name: Exclude build artifacts
+    paths:
+      - bin
+      - obj
+      - libs

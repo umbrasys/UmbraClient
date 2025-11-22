@@ -3,6 +3,11 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 .idea
+# Qodana - résultats et cache
+.qodana/
+qodana.sarif.json
+qodana-report/
+results/
 # User-specific files
 *.rsuser
 *.suo
@@ -13,6 +18,8 @@
 MareSynchronos/.DS_Store
 *.zip
 UmbraServer_extracted/
+NuGet.config
+Directory.Build.props
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

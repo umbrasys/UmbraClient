@@ -1,0 +1,25 @@
+﻿using UmbraSync.API.Dto.Files;
+
+namespace UmbraSync.WebAPI.Files.Models;
+
+public class DownloadFileTransfer : FileTransfer
+{
+    public DownloadFileTransfer(DownloadFileDto dto) : base(dto)
+    {
+    }
+
+    public override bool CanBeTransferred => Dto.FileExists && !Dto.IsForbidden && Dto.Size > 0;
+    public Uri DownloadUri => new(Dto.Url);
+    public override long Total
+    {
+        set
+        {
+            // la valeur n'est pas applicable pour un téléchargement
+            _ = value;
+        }
+        get => Dto.Size;
+    }
+
+    public long TotalRaw => Dto.Size;
+    private DownloadFileDto Dto => (DownloadFileDto)TransferDto;
+}
