@@ -42,8 +42,6 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
     private readonly PairManager _pairManager;
     private readonly IPartyList _partyList;
     private readonly IObjectTable _objectTable;
-    // Prefer IObjectTable.LocalPlayer when available (newer Dalamud),
-    // otherwise fall back to obsolete IClientState.LocalPlayer (suppressed) for compatibility.
     private IPlayerCharacter? LocalPlayer
     {
         get
@@ -262,8 +260,6 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
             var isPartyMember = IsPartyMember(objectId, pairName);
             var isAllianceMember = IsAllianceMember(objectId, pairName, allianceMembers);
             var isFreeCompanyMember = IsFreeCompanyMember(objectId, pairName);
-
-            // Enforce party-only visibility when the scope is Party/CrossParty
             if (entry.Scope is TypingScope.Party or TypingScope.CrossParty && !isPartyMember)
             {
                 _typedLogger.LogTrace("TypingIndicator: suppressed non-party bubble for {uid} due to scope={scope}", uid, entry.Scope);
@@ -293,8 +289,6 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
 
             if (!isRelevantMember && !isNearby)
                 continue;
-
-            // For Party/CrossParty scope, do not draw fallback world icon for non-party even if nearby
             if (entry.Scope is TypingScope.Party or TypingScope.CrossParty && !isPartyMember)
                 continue;
             if (entry.Scope == TypingScope.FreeCompany && !isFreeCompanyMember)
@@ -368,11 +362,13 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
             if (objectInfo.Value->GameObject->EntityId != objectId)
                 continue;
 
-            if (objectInfo.Value->GameObject->YalmDistanceFromPlayerX > 35f)
+            var yalmDistance = objectInfo.Value->GameObject->YalmDistanceFromPlayerX;
+            const float MaxNameplateDistance = 30f;
+            if (yalmDistance > MaxNameplateDistance)
                 return false;
 
             namePlate = &addonNamePlate->NamePlateObjectArray[objectInfo.Value->NamePlateIndex];
-            distance = objectInfo.Value->GameObject->YalmDistanceFromPlayerX;
+            distance = yalmDistance;
             break;
         }
 
@@ -398,8 +394,6 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         var rootPosition = new Vector2(rootComponent->AtkResNode.X, rootComponent->AtkResNode.Y);
         var iconLocalPosition = new Vector2(iconNode->X, iconNode->Y) * scaleVector;
         var iconDimensions = new Vector2(iconNode->Width, iconNode->Height) * scaleVector;
-
-        // Decide style: if plate is hidden/masked, force Top; otherwise use configured style
         var style = _configService.Current.TypingIndicatorNameplateStyle;
         var useTop = !isNameplateVisible || style == TypingIndicatorNameplateStyle.Top;
 
@@ -409,18 +403,14 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
 
         if (useTop)
         {
-            // Top style placement above the nameplate area (centered horizontally)
-            // Compute bubble size first to properly center it.
             iconSize = GetConfiguredBubbleSize(scaleX, scaleY, true, TypingIndicatorBubbleSize.Large);
             var basePos = rootPosition + iconLocalPosition;
-            // Center X on the nameplate area, then apply vertical offset logic.
             iconPos = new Vector2(basePos.X + (iconDimensions.X * 0.5f) - (iconSize.X * 0.5f), basePos.Y);
             iconOffset = new Vector2(0f, (-24f + (distance / 1f)) * scaleY);
             if (iconNode->Height == 24)
             {
                 iconOffset.Y += 16f * scaleY;
             }
-            // When nameplate UI is hidden, push the bubble a bit further down to keep it readable
             if (!isNameplateVisible)
             {
                 iconOffset.Y += 48f * scaleY;
@@ -430,7 +420,6 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         }
         else
         {
-            // Side style placement next to the plate's name area (RTyping-like when plate is visible)
             iconPos = rootPosition + iconLocalPosition + new Vector2(iconDimensions.X, 0f);
             iconOffset = new Vector2(distance / 1.5f, distance / 3f) * scaleVector;
             if (iconNode->Height == 24)
@@ -736,7 +725,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
             return false;
 
         var distance = Vector3.Distance(localPlayer.Position, position);
-        return distance <= 40f;
+        return distance <= 30f;
     }
 
     private static unsafe uint GetEntityId(nint address)
