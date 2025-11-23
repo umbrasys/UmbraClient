@@ -4,6 +4,7 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using System;
+using System.Collections.Generic;
 using UmbraSync.API.Data.Enum;
 using UmbraSync.API.Data.Extensions;
 using UmbraSync.API.Dto.Group;
@@ -19,12 +20,14 @@ using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using UmbraSync.MareConfiguration.Models;
+using UmbraSync.MareConfiguration;
 
 namespace UmbraSync.UI;
 
 public class SyncshellAdminUI : WindowMediatorSubscriberBase
 {
     private readonly ApiController _apiController;
+    private readonly AutoDetectScheduleConfigService _autoDetectScheduleConfigService;
     private readonly bool _isModerator = false;
     private readonly bool _isOwner = false;
     private readonly List<string> _oneTimeInvites = [];
@@ -54,10 +57,11 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
     private int _adStartMinute = 0;
     private int _adEndHour = 23;
     private int _adEndMinute = 0;
-    private const string AutoDetectTimeZone = "Europe/Paris";
+    private string _adTimeZone = "Europe/Paris";
 
     public SyncshellAdminUI(ILogger<SyncshellAdminUI> logger, MareMediator mediator, ApiController apiController,
         UiSharedService uiSharedService, PairManager pairManager, SyncshellDiscoveryService syncshellDiscoveryService,
+        AutoDetectScheduleConfigService autoDetectScheduleConfigService,
         GroupFullInfoDto groupFullInfo, PerformanceCollectorService performanceCollectorService, NotificationTracker notificationTracker)
         : base(logger, mediator, string.Format(CultureInfo.CurrentCulture, Loc.Get("SyncshellAdmin.WindowTitle"), groupFullInfo.GroupAliasOrGID), performanceCollectorService)
     {
@@ -67,6 +71,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
         _pairManager = pairManager;
         _syncshellDiscoveryService = syncshellDiscoveryService;
         _notificationTracker = notificationTracker;
+        _autoDetectScheduleConfigService = autoDetectScheduleConfigService;
         _isOwner = string.Equals(GroupFullInfo.OwnerUID, _apiController.UID, StringComparison.Ordinal);
         _isModerator = GroupFullInfo.GroupUserInfo.IsModerator();
         _newPassword = string.Empty;
@@ -75,6 +80,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
         _autoDetectVisible = groupFullInfo.AutoDetectVisible;
         _autoDetectDesiredVisibility = _autoDetectVisible;
         _autoDetectPasswordDisabled = groupFullInfo.PasswordTemporarilyDisabled;
+        LoadCachedAutoDetectState(groupFullInfo.GID);
         Mediator.Subscribe<SyncshellAutoDetectStateChanged>(this, OnSyncshellAutoDetectStateChanged);
         IsOpen = true;
         SizeConstraints = new WindowSizeConstraints()
@@ -514,11 +520,14 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
             UiSharedService.ColorTextWrapped(_autoDetectMessage!, ImGuiColors.DalamudYellow);
         }
 
+        DrawAutoDetectStatus();
+
         using (ImRaii.Disabled(_autoDetectToggleInFlight || _autoDetectStateLoading))
         {
             if (ImGui.Checkbox(Loc.Get("SyncshellAdmin.AutoDetect.CheckboxLabel"), ref _autoDetectDesiredVisibility))
             {
                 // Only change local desired state; sending is done via the validate button
+                CacheAutoDetectState(GroupFullInfo.GID);
             }
         }
         _uiSharedService.DrawHelpText(Loc.Get("SyncshellAdmin.AutoDetect.CheckboxHelp"));
@@ -530,7 +539,10 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
             ImGui.Separator();
 
             // Recurring toggle first
-            ImGui.Checkbox(Loc.Get("SyncshellAdmin.AutoDetect.Recurring"), ref _adRecurring);
+            if (ImGui.Checkbox(Loc.Get("SyncshellAdmin.AutoDetect.Recurring"), ref _adRecurring))
+            {
+                CacheAutoDetectState(GroupFullInfo.GID);
+            }
             _uiSharedService.DrawHelpText(Loc.Get("SyncshellAdmin.AutoDetect.RecurringHelp"));
 
             // Duration in hours (only when NOT recurring)
@@ -542,6 +554,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                 if (ImGui.InputInt(Loc.Get("SyncshellAdmin.AutoDetect.DurationHours"), ref duration))
                 {
                     _adDurationHours = Math.Clamp(duration, 1, 240);
+                    CacheAutoDetectState(GroupFullInfo.GID);
                 }
                 ImGui.PopItemWidth();
                 _uiSharedService.DrawHelpText(Loc.Get("SyncshellAdmin.AutoDetect.DurationHelp"));
@@ -566,7 +579,11 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                 {
                     ImGui.SameLine(0);
                     bool v = _adWeekdays[i];
-                    if (ImGui.Checkbox($"##adwd{i}", ref v)) _adWeekdays[i] = v;
+                    if (ImGui.Checkbox($"##adwd{i}", ref v))
+                    {
+                        _adWeekdays[i] = v;
+                        CacheAutoDetectState(GroupFullInfo.GID);
+                    }
                     ImGui.SameLine();
                     ImGui.TextUnformatted(daysFr[i]);
                     if (i < 6) ImGui.SameLine();
@@ -577,16 +594,20 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                 ImGuiHelpers.ScaledDummy(4);
                 ImGui.TextUnformatted(Loc.Get("SyncshellAdmin.AutoDetect.TimeRangeLabel"));
                 ImGui.PushItemWidth(60 * ImGuiHelpers.GlobalScale);
-                ImGui.InputInt(Loc.Get("SyncshellAdmin.AutoDetect.StartHour"), ref _adStartHour); ImGui.SameLine();
-                ImGui.InputInt(Loc.Get("SyncshellAdmin.AutoDetect.StartMinute"), ref _adStartMinute);
+                bool startChanged = ImGui.InputInt($"{Loc.Get("SyncshellAdmin.AutoDetect.StartHour")}##adStartHour", ref _adStartHour); ImGui.SameLine();
+                bool startMinChanged = ImGui.InputInt($"{Loc.Get("SyncshellAdmin.AutoDetect.StartMinute")}##adStartMinute", ref _adStartMinute);
                 _adStartHour = Math.Clamp(_adStartHour, 0, 23);
                 _adStartMinute = Math.Clamp(_adStartMinute, 0, 59);
                 ImGui.SameLine();
                 ImGui.TextUnformatted("→"); ImGui.SameLine();
-                ImGui.InputInt(Loc.Get("SyncshellAdmin.AutoDetect.EndHour"), ref _adEndHour); ImGui.SameLine();
-                ImGui.InputInt(Loc.Get("SyncshellAdmin.AutoDetect.EndMinute"), ref _adEndMinute);
+                bool endChanged = ImGui.InputInt($"{Loc.Get("SyncshellAdmin.AutoDetect.EndHour")}##adEndHour", ref _adEndHour); ImGui.SameLine();
+                bool endMinChanged = ImGui.InputInt($"{Loc.Get("SyncshellAdmin.AutoDetect.EndMinute")}##adEndMinute", ref _adEndMinute);
                 _adEndHour = Math.Clamp(_adEndHour, 0, 23);
                 _adEndMinute = Math.Clamp(_adEndMinute, 0, 59);
+                if (startChanged || startMinChanged || endChanged || endMinChanged)
+                {
+                    CacheAutoDetectState(GroupFullInfo.GID);
+                }
                 ImGui.PopItemWidth();
                 _uiSharedService.DrawHelpText(Loc.Get("SyncshellAdmin.AutoDetect.TimeRangeHelp"));
             }
@@ -613,6 +634,115 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
         }
     }
 
+    private void DrawAutoDetectStatus()
+    {
+        var parts = new List<string>
+        {
+            _autoDetectVisible
+                ? Loc.Get("SyncshellAdmin.AutoDetect.Status.Active")
+                : Loc.Get("SyncshellAdmin.AutoDetect.Status.Inactive")
+        };
+
+        if (_autoDetectDesiredVisibility != _autoDetectVisible)
+        {
+            parts.Add(Loc.Get("SyncshellAdmin.AutoDetect.Status.Pending"));
+        }
+
+        if (_autoDetectDesiredVisibility)
+        {
+            if (_adRecurring)
+            {
+                var selectedDays = GetSelectedWeekdays();
+                if (selectedDays.Count > 0)
+                {
+                    var start = $"{_adStartHour:00}:{_adStartMinute:00}";
+                    var end = $"{_adEndHour:00}:{_adEndMinute:00}";
+                    parts.Add(string.Format(CultureInfo.CurrentCulture,
+                        Loc.Get("SyncshellAdmin.AutoDetect.Status.Recurring"),
+                        string.Join(", ", selectedDays),
+                        start,
+                        end,
+                        _adTimeZone));
+                }
+                else
+                {
+                    parts.Add(Loc.Get("SyncshellAdmin.AutoDetect.Status.NoWeekdays"));
+                }
+            }
+            else
+            {
+                parts.Add(string.Format(CultureInfo.CurrentCulture,
+                    Loc.Get("SyncshellAdmin.AutoDetect.Status.OneTime"),
+                    _adDurationHours));
+            }
+        }
+
+        var statusColor = _autoDetectVisible ? ImGuiColors.ParsedGreen : ImGuiColors.DalamudYellow;
+        UiSharedService.ColorTextWrapped(string.Join(" ", parts), statusColor);
+        ImGuiHelpers.ScaledDummy(3);
+    }
+
+    private List<string> GetSelectedWeekdays()
+    {
+        var labels = new List<string>(7);
+        string[] dayLabels =
+        {
+            Loc.Get("SyncshellAdmin.AutoDetect.Weekday.Mon"),
+            Loc.Get("SyncshellAdmin.AutoDetect.Weekday.Tue"),
+            Loc.Get("SyncshellAdmin.AutoDetect.Weekday.Wed"),
+            Loc.Get("SyncshellAdmin.AutoDetect.Weekday.Thu"),
+            Loc.Get("SyncshellAdmin.AutoDetect.Weekday.Fri"),
+            Loc.Get("SyncshellAdmin.AutoDetect.Weekday.Sat"),
+            Loc.Get("SyncshellAdmin.AutoDetect.Weekday.Sun"),
+        };
+
+        for (int i = 0; i < _adWeekdays.Length && i < dayLabels.Length; i++)
+        {
+            if (_adWeekdays[i]) labels.Add(dayLabels[i]);
+        }
+
+        return labels;
+    }
+
+    private void CacheAutoDetectState(string gid)
+    {
+        var weekdaysCopy = new bool[_adWeekdays.Length];
+        Array.Copy(_adWeekdays, weekdaysCopy, _adWeekdays.Length);
+        _autoDetectScheduleConfigService.Current.Schedules[gid] = new AutoDetectScheduleEntry
+        {
+            Recurring = _adRecurring,
+            DurationHours = _adDurationHours,
+            Weekdays = weekdaysCopy,
+            StartHour = _adStartHour,
+            StartMinute = _adStartMinute,
+            EndHour = _adEndHour,
+            EndMinute = _adEndMinute,
+            TimeZone = _adTimeZone
+        };
+        _autoDetectScheduleConfigService.Save();
+    }
+
+    private void LoadCachedAutoDetectState(string gid)
+    {
+        if (!_autoDetectScheduleConfigService.Current.Schedules.TryGetValue(gid, out var state)) return;
+
+        _adRecurring = state.Recurring;
+        _adDurationHours = Math.Clamp(state.DurationHours, 1, 240);
+        Array.Clear(_adWeekdays);
+        if (state.Weekdays.Length > 0)
+        {
+            Array.Copy(state.Weekdays, _adWeekdays, Math.Min(_adWeekdays.Length, state.Weekdays.Length));
+        }
+        _adStartHour = Math.Clamp(state.StartHour, 0, 23);
+        _adStartMinute = Math.Clamp(state.StartMinute, 0, 59);
+        _adEndHour = Math.Clamp(state.EndHour, 0, 23);
+        _adEndMinute = Math.Clamp(state.EndMinute, 0, 59);
+        if (!string.IsNullOrWhiteSpace(state.TimeZone))
+        {
+            _adTimeZone = state.TimeZone!;
+        }
+    }
+
     private async Task EnsureAutoDetectStateAsync(bool force = false)
     {
         try
@@ -621,6 +751,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
             if (state != null)
             {
                 ApplyAutoDetectState(state.AutoDetectVisible, state.PasswordTemporarilyDisabled, true);
+                ApplyAutoDetectSchedule(state);
                 _autoDetectMessage = null;
             }
             else if (force)
@@ -665,7 +796,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                 weekdaysArr = weekdays.Count > 0 ? weekdays.ToArray() : Array.Empty<int>();
                 start = new TimeSpan(_adStartHour, _adStartMinute, 0);
                 end = new TimeSpan(_adEndHour, _adEndMinute, 0);
-                tz = AutoDetectTimeZone;
+                tz = _adTimeZone;
             }
 
             var ok = await _syncshellDiscoveryService.SetVisibilityAsync(
@@ -685,6 +816,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
             }
 
             await EnsureAutoDetectStateAsync(true).ConfigureAwait(false);
+            CacheAutoDetectState(GroupFullInfo.GID);
             _autoDetectMessage = _autoDetectDesiredVisibility
                 ? Loc.Get("SyncshellAdmin.AutoDetect.VisibleOn")
                 : Loc.Get("SyncshellAdmin.AutoDetect.VisibleOff");
@@ -707,12 +839,61 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
     private void ApplyAutoDetectState(bool visible, bool passwordDisabled, bool fromServer)
     {
         _autoDetectVisible = visible;
+        _autoDetectDesiredVisibility = visible;
         _autoDetectPasswordDisabled = passwordDisabled;
         if (fromServer)
         {
             GroupFullInfo.AutoDetectVisible = visible;
             GroupFullInfo.PasswordTemporarilyDisabled = passwordDisabled;
         }
+        CacheAutoDetectState(GroupFullInfo.GID);
+    }
+
+    private void ApplyAutoDetectSchedule(SyncshellDiscoveryStateDto state)
+    {
+        var hasServerSchedule = state.DisplayDurationHours.HasValue
+            || (state.ActiveWeekdays != null && state.ActiveWeekdays.Length > 0)
+            || !string.IsNullOrWhiteSpace(state.TimeStartLocal)
+            || !string.IsNullOrWhiteSpace(state.TimeEndLocal)
+            || !string.IsNullOrWhiteSpace(state.TimeZone);
+
+        if (!hasServerSchedule)
+        {
+            LoadCachedAutoDetectState(GroupFullInfo.GID);
+            return;
+        }
+
+        if (state.DisplayDurationHours.HasValue)
+        {
+            _adDurationHours = Math.Clamp(state.DisplayDurationHours.Value, 1, 240);
+        }
+
+        _adRecurring = state.ActiveWeekdays != null && state.ActiveWeekdays.Length > 0;
+        Array.Clear(_adWeekdays);
+        if (state.ActiveWeekdays != null)
+        {
+            foreach (var day in state.ActiveWeekdays)
+            {
+                if (day >= 0 && day < _adWeekdays.Length) _adWeekdays[day] = true;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(state.TimeStartLocal) && TimeSpan.TryParse(state.TimeStartLocal, CultureInfo.InvariantCulture, out var start))
+        {
+            _adStartHour = Math.Clamp(start.Hours, 0, 23);
+            _adStartMinute = Math.Clamp(start.Minutes, 0, 59);
+        }
+        if (!string.IsNullOrWhiteSpace(state.TimeEndLocal) && TimeSpan.TryParse(state.TimeEndLocal, CultureInfo.InvariantCulture, out var end))
+        {
+            _adEndHour = Math.Clamp(end.Hours, 0, 23);
+            _adEndMinute = Math.Clamp(end.Minutes, 0, 59);
+        }
+        if (!string.IsNullOrWhiteSpace(state.TimeZone))
+        {
+            _adTimeZone = state.TimeZone!;
+        }
+
+        CacheAutoDetectState(GroupFullInfo.GID);
     }
 
     private void OnSyncshellAutoDetectStateChanged(SyncshellAutoDetectStateChanged msg)

@@ -22,6 +22,7 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
     private readonly ServerConfigurationManager _serverManager;
     private readonly ConcurrentDictionary<JwtIdentifier, string> _tokenCache = new();
     private readonly ConcurrentDictionary<string, string?> _wellKnownCache = new(StringComparer.Ordinal);
+    private bool _secretKeyWarned;
 
     public TokenProvider(ILogger<TokenProvider> logger, ServerConfigurationManager serverManager,
         DalamudUtilService dalamudUtil, MareMediator mareMediator)
@@ -43,12 +44,14 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
             _lastJwtIdentifier = null;
             _tokenCache.Clear();
             _wellKnownCache.Clear();
+            _secretKeyWarned = false;
         });
         Mediator.Subscribe<DalamudLoginMessage>(this, (_) =>
         {
             _lastJwtIdentifier = null;
             _tokenCache.Clear();
             _wellKnownCache.Clear();
+            _secretKeyWarned = false;
         });
         var versionString = ver is null ? "unknown" : $"{ver.Major}.{ver.Minor}.{ver.Build}";
         _httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("UmbraSync", versionString));
@@ -127,9 +130,20 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
                 return _lastJwtIdentifier;
             }
 
+            var secretKey = _serverManager.GetSecretKey(out var hasMultiple);
+            if (hasMultiple || string.IsNullOrWhiteSpace(secretKey))
+            {
+                if (!_secretKeyWarned)
+                {
+                    _logger.LogWarning("GetIdentifier: no usable secret key configured for current character, skipping token generation");
+                    _secretKeyWarned = true;
+                }
+                return null;
+            }
+
             jwtIdentifier = new(_serverManager.CurrentApiUrl,
                                 playerIdentifier,
-                                _serverManager.GetSecretKey(out _)!);
+                                secretKey);
             _lastJwtIdentifier = jwtIdentifier;
         }
         catch (Exception ex)

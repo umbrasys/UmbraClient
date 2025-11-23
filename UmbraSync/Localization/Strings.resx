@@ -2323,6 +2323,24 @@ Click to change.</value>
   <data name="SyncshellAdmin.AutoDetect.StateFetchFailed" xml:space="preserve">
     <value>Unable to retrieve AutoDetect state.</value>
   </data>
+  <data name="SyncshellAdmin.AutoDetect.Status.Active" xml:space="preserve">
+    <value>AutoDetect visibility is active.</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.Status.Inactive" xml:space="preserve">
+    <value>AutoDetect visibility is off.</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.Status.NoWeekdays" xml:space="preserve">
+    <value>No weekday selected; schedule will not run.</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.Status.OneTime" xml:space="preserve">
+    <value>One-time visibility for {0} hour(s) after validation.</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.Status.Pending" xml:space="preserve">
+    <value>Pending unsent changes.</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.Status.Recurring" xml:space="preserve">
+    <value>Recurring on {0} from {1} to {2} ({3}).</value>
+  </data>
   <data name="SyncshellAdmin.AutoDetect.StartHour" xml:space="preserve">
     <value>Start hour</value>
   </data>
@@ -2814,5 +2832,17 @@ Click to change.</value>
   </data>
   <data name="GroupPair.VisibleTris" xml:space="preserve">
     <value>Triangles: {0}</value>
+  </data>
+  <data name="Notification.McdfShare.Created.Title" xml:space="preserve">
+    <value>MCDF share created: {0}</value>
+  </data>
+  <data name="Notification.McdfShare.Created.Summary" xml:space="preserve">
+    <value>UID: {0}, Syncshells: {1}</value>
+  </data>
+  <data name="Notification.McdfShare.Created.ToastTitle" xml:space="preserve">
+    <value>MCDF share created</value>
+  </data>
+  <data name="Notification.McdfShare.Created.ToastBody" xml:space="preserve">
+    <value>"{0}" sent ({1})</value>
   </data>
 </root>

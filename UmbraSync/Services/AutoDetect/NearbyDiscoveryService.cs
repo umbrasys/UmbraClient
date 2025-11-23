@@ -527,7 +527,7 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                     entries[idx] = new NearbyEntry(existing.Name, existing.WorldId, existing.Distance, true, match.Token, match.DisplayName, match.Uid, acceptsRequests);
                 }
             }
-            _logger.LogInformation("Nearby: server returned {count} matches", allMatches.Count);
+            _logger.LogDebug("Nearby: server returned {count} matches", allMatches.Count);
         }
         else
         {

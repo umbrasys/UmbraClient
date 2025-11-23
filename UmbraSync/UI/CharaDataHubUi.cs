@@ -1352,7 +1352,7 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
             }
         }
 
-        return trimmed.ToUpperInvariant();
+        return trimmed;
     }
 
     private string NormalizeSyncshellCandidate(string candidate)
@@ -1379,7 +1379,7 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
             }
         }
 
-        return trimmed.ToUpperInvariant();
+        return trimmed;
     }
 
     private string FormatUidWithName(string uid)

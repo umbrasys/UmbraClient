@@ -2046,70 +2046,88 @@
     <value>Afficher cette Syncshell dans l'AutoDetect</value>
   </data>
   <data name="SyncshellAdmin.AutoDetect.Description" xml:space="preserve">
-    <value />
+    <value>Activer la visibilité AutoDetect rend la Syncshell visible dans l'onglet AutoDetect et désactive temporairement le mot de passe.</value>
   </data>
   <data name="SyncshellAdmin.AutoDetect.DurationHelp" xml:space="preserve">
-    <value />
+    <value>Durée pendant laquelle la Syncshell doit rester visible, en heures.</value>
   </data>
   <data name="SyncshellAdmin.AutoDetect.DurationHours" xml:space="preserve">
-    <value />
+    <value>Durée (heures)</value>
   </data>
   <data name="SyncshellAdmin.AutoDetect.Loading" xml:space="preserve">
     <value>Chargement de l'état en cours...</value>
   </data>
   <data name="SyncshellAdmin.AutoDetect.Options" xml:space="preserve">
-    <value />
+    <value>Options d'affichage AutoDetect</value>
   </data>
   <data name="SyncshellAdmin.AutoDetect.PasswordDisabled" xml:space="preserve">
-    <value />
+    <value>Le mot de passe est temporairement désactivé tant que la visibilité AutoDetect est active.</value>
   </data>
   <data name="SyncshellAdmin.AutoDetect.Recurring" xml:space="preserve">
-    <value />
+    <value>Affichage récurrent</value>
   </data>
   <data name="SyncshellAdmin.AutoDetect.RecurringHelp" xml:space="preserve">
-    <value />
+    <value>Si activé, choisissez des jours et une plage horaire. Sinon, seule la durée est appliquée.</value>
   </data>
   <data name="SyncshellAdmin.AutoDetect.Refresh" xml:space="preserve">
-    <value />
+    <value>Recharger l'état</value>
   </data>
   <data name="SyncshellAdmin.AutoDetect.RefreshError" xml:space="preserve">
-    <value />
+    <value>Erreur lors du rechargement : {0}</value>
   </data>
   <data name="SyncshellAdmin.AutoDetect.StateFetchFailed" xml:space="preserve">
-    <value />
+    <value>Impossible de récupérer l'état AutoDetect.</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.Status.Active" xml:space="preserve">
+    <value>La visibilité AutoDetect est active.</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.Status.Inactive" xml:space="preserve">
+    <value>La visibilité AutoDetect est désactivée.</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.Status.NoWeekdays" xml:space="preserve">
+    <value>Aucun jour de la semaine sélectionné ; l'affichage ne sera pas programmé.</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.Status.OneTime" xml:space="preserve">
+    <value>Visibilité ponctuelle pendant {0} heure(s) après validation.</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.Status.Pending" xml:space="preserve">
+    <value>Modifications en attente non envoyées.</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.Status.Recurring" xml:space="preserve">
+    <value>Récurrent les {0} de {1} à {2} ({3}).</value>
   </data>
   <data name="SyncshellAdmin.AutoDetect.StartHour" xml:space="preserve">
-    <value />
+    <value>Heure de début</value>
   </data>
   <data name="SyncshellAdmin.AutoDetect.StartMinute" xml:space="preserve">
-    <value />
+    <value>min</value>
   </data>
   <data name="SyncshellAdmin.AutoDetect.EndHour" xml:space="preserve">
-    <value />
+    <value>Heure de fin</value>
   </data>
   <data name="SyncshellAdmin.AutoDetect.EndMinute" xml:space="preserve">
-    <value />
+    <value>min</value>
   </data>
   <data name="SyncshellAdmin.AutoDetect.Submit" xml:space="preserve">
-    <value />
+    <value>Valider et envoyer</value>
   </data>
   <data name="SyncshellAdmin.AutoDetect.SubmitError" xml:space="preserve">
-    <value />
+    <value>Erreur lors de l'envoi des paramètres AutoDetect : {0}</value>
   </data>
   <data name="SyncshellAdmin.AutoDetect.SubmitFailed" xml:space="preserve">
-    <value />
+    <value>Impossible d'envoyer les paramètres AutoDetect.</value>
   </data>
   <data name="SyncshellAdmin.AutoDetect.TimeRangeHelp" xml:space="preserve">
-    <value />
+    <value>Exemple : 21:00 à 23:00. Fuseau horaire : Europe/Paris (avec heure d'été).</value>
   </data>
   <data name="SyncshellAdmin.AutoDetect.TimeRangeLabel" xml:space="preserve">
-    <value />
+    <value>Plage horaire (heure locale Europe/Paris) :</value>
   </data>
   <data name="SyncshellAdmin.AutoDetect.VisibleOff" xml:space="preserve">
-    <value />
+    <value>La Syncshell n'est plus visible dans AutoDetect.</value>
   </data>
   <data name="SyncshellAdmin.AutoDetect.VisibleOn" xml:space="preserve">
-    <value />
+    <value>Paramètres AutoDetect envoyés. La Syncshell sera visible selon le planning.</value>
   </data>
   <data name="SyncshellAdmin.AutoDetect.Weekday.Mon" xml:space="preserve">
     <value>Lun</value>
@@ -2133,16 +2151,16 @@
     <value>Dim</value>
   </data>
   <data name="SyncshellAdmin.AutoDetect.Weekdays" xml:space="preserve">
-    <value />
+    <value>Jours actifs :</value>
   </data>
   <data name="SyncshellAdmin.AutoDetect.WeekdaysHelp" xml:space="preserve">
-    <value />
+    <value>Sélectionnez les jours où l'affichage est autorisé (ex. Jeu et Dim).</value>
   </data>
   <data name="SyncshellAdmin.AutoDetect.NotificationTitle" xml:space="preserve">
-    <value />
+    <value>Syncshell publique : {0}</value>
   </data>
   <data name="SyncshellAdmin.AutoDetect.NotificationMessage" xml:space="preserve">
-    <value />
+    <value>La Syncshell est désormais visible via AutoDetect.</value>
   </data>
   <data name="SyncshellAdmin.Bans.ColActions" xml:space="preserve">
     <value />
@@ -2695,5 +2713,17 @@
   </data>
   <data name="GroupPair.VisibleTris" xml:space="preserve">
     <value>Triangles : {0}</value>
+  </data>
+  <data name="Notification.McdfShare.Created.Title" xml:space="preserve">
+    <value>Partage MCDF créé : {0}</value>
+  </data>
+  <data name="Notification.McdfShare.Created.Summary" xml:space="preserve">
+    <value>UID : {0}, Syncshells : {1}</value>
+  </data>
+  <data name="Notification.McdfShare.Created.ToastTitle" xml:space="preserve">
+    <value>Partage MCDF créé</value>
+  </data>
+  <data name="Notification.McdfShare.Created.ToastBody" xml:space="preserve">
+    <value>"{0}" envoyé ({1})</value>
   </data>
 </root>

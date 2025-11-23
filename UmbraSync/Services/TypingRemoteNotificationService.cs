@@ -33,7 +33,11 @@ public sealed class TypingRemoteNotificationService
             {
                 _ = Task.Run(async () =>
                 {
-                    try { await _apiController.UserSetTypingState(true, scope).ConfigureAwait(false); }
+                    try
+                    {
+                        _logger.LogDebug("TypingRemote: send typing=true scope={scope}", scope);
+                        await _apiController.UserSetTypingState(true).ConfigureAwait(false);
+                    }
                     catch (Exception ex) { _logger.LogDebug(ex, "TypingRemote: failed to send typing=true"); }
                 });
                 _isTypingAnnounced = true;
@@ -51,7 +55,8 @@ public sealed class TypingRemoteNotificationService
                 try
                 {
                     await Task.Delay(TypingIdle, token).ConfigureAwait(false);
-                    await _apiController.UserSetTypingState(false, _lastScope).ConfigureAwait(false);
+                    _logger.LogDebug("TypingRemote: send typing=false scope={scope}", _lastScope);
+                    await _apiController.UserSetTypingState(false).ConfigureAwait(false);
                 }
                 catch (TaskCanceledException)
                 {
@@ -85,7 +90,11 @@ public sealed class TypingRemoteNotificationService
             {
                 _ = Task.Run(async () =>
                 {
-                    try { await _apiController.UserSetTypingState(false, _lastScope).ConfigureAwait(false); }
+                    try
+                    {
+                        _logger.LogDebug("TypingRemote: clear typing state scope={scope}", _lastScope);
+                        await _apiController.UserSetTypingState(false).ConfigureAwait(false);
+                    }
                     catch (Exception ex) { _logger.LogDebug(ex, "TypingRemote: failed to clear typing state"); }
                 });
                 _isTypingAnnounced = false;

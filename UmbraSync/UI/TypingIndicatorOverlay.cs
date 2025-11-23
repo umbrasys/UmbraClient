@@ -1,28 +1,24 @@
 using System;
 using System.Collections.Generic;
-using System.Numerics;
 using System.Linq;
+using System.Numerics;
 using Dalamud.Bindings.ImGui;
-using Dalamud.Game.ClientState.Objects.SubKinds;
-using Dalamud.Game.ClientState.Party;
+using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Interface.Utility;
 using Dalamud.Plugin.Services;
+using FFXIVClientStructs.FFXIV.Client.System.Framework;
+using FFXIVClientStructs.FFXIV.Client.UI;
+using FFXIVClientStructs.FFXIV.Component.GUI;
+using FFXIVClientStructs.Interop;
 using UmbraSync.API.Data;
 using UmbraSync.API.Data.Extensions;
-using UmbraSync.API.Data.Enum;
 using UmbraSync.MareConfiguration;
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.WebAPI;
-using UmbraSync.Localization;
 using Microsoft.Extensions.Logging;
-using Dalamud.Interface.Textures.TextureWraps;
-using FFXIVClientStructs.Interop;
-using FFXIVClientStructs.FFXIV.Client.System.Framework;
-using FFXIVClientStructs.FFXIV.Client.UI;
-using FFXIVClientStructs.FFXIV.Component.GUI;
 
 namespace UmbraSync.UI;
 
@@ -32,7 +28,6 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
     private static readonly TimeSpan TypingDisplayTime = TimeSpan.FromSeconds(2);
     private static readonly TimeSpan TypingDisplayDelay = TimeSpan.FromMilliseconds(500);
     private static readonly TimeSpan TypingDisplayFade = TypingDisplayTime;
-    private const int AllianceMemberSlots = 24;
 
     private readonly ILogger<TypingIndicatorOverlay> _typedLogger;
     private readonly MareConfigService _configService;
@@ -42,30 +37,15 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
     private readonly PairManager _pairManager;
     private readonly IPartyList _partyList;
     private readonly IObjectTable _objectTable;
-    private IPlayerCharacter? LocalPlayer
-    {
-        get
-        {
-            var prop = _objectTable.GetType().GetProperty("LocalPlayer");
-            if (prop != null)
-            {
-                return prop.GetValue(_objectTable) as IPlayerCharacter;
-            }
-#pragma warning disable CS0618 // Type or member is obsolete
-            return _clientState.LocalPlayer;
-#pragma warning restore CS0618
-        }
-    }
     private readonly DalamudUtilService _dalamudUtil;
     private readonly TypingIndicatorStateService _typingStateService;
     private readonly ApiController _apiController;
-    private readonly List<(uint EntityId, string Name)> _allianceMembersCache = new(AllianceMemberSlots);
 
     public TypingIndicatorOverlay(ILogger<TypingIndicatorOverlay> logger, MareMediator mediator, PerformanceCollectorService performanceCollectorService,
         MareConfigService configService, IGameGui gameGui, ITextureProvider textureProvider, IClientState clientState,
         IPartyList partyList, IObjectTable objectTable, DalamudUtilService dalamudUtil, PairManager pairManager,
         TypingIndicatorStateService typingStateService, ApiController apiController)
-        : base(logger, mediator, Loc.Get("TypingOverlay.WindowTitle"), performanceCollectorService)
+        : base(logger, mediator, nameof(TypingIndicatorOverlay), performanceCollectorService)
     {
         _typedLogger = logger;
         _configService = configService;
@@ -95,10 +75,6 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         if (!_clientState.IsLoggedIn)
             return;
 
-        var typingEnabled = _configService.Current.TypingIndicatorEnabled;
-        if (!typingEnabled)
-            return;
-
         var showParty = _configService.Current.TypingIndicatorShowOnPartyList;
         var showNameplates = _configService.Current.TypingIndicatorShowOnNameplates;
 
@@ -109,21 +85,20 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         var activeTypers = _typingStateService.GetActiveTypers(TypingDisplayTime);
         var hasSelf = _typingStateService.TryGetSelfTyping(TypingDisplayTime, out var selfStart, out var selfLast);
         var now = DateTime.UtcNow;
-        var allianceMembers = GetAllianceMembersSnapshot();
 
         if (showParty)
         {
-            DrawPartyIndicators(overlayDrawList, activeTypers, hasSelf, now, selfStart, selfLast, allianceMembers);
+            DrawPartyIndicators(overlayDrawList, activeTypers, hasSelf, now, selfStart, selfLast);
         }
 
         if (showNameplates)
         {
-            DrawNameplateIndicators(ImGui.GetWindowDrawList(), activeTypers, hasSelf, now, selfStart, selfLast, allianceMembers);
+            DrawNameplateIndicators(ImGui.GetWindowDrawList(), activeTypers, hasSelf, now, selfStart, selfLast);
         }
     }
 
-    private unsafe void DrawPartyIndicators(ImDrawListPtr drawList, IReadOnlyDictionary<string, (UserData User, DateTime FirstSeen, DateTime LastUpdate, UmbraSync.API.Data.Enum.TypingScope Scope)> activeTypers,
-        bool selfActive, DateTime now, DateTime selfStart, DateTime selfLast, IReadOnlyList<(uint EntityId, string Name)> allianceMembers)
+    private unsafe void DrawPartyIndicators(ImDrawListPtr drawList, IReadOnlyDictionary<string, (UserData User, DateTime FirstSeen, DateTime LastUpdate)> activeTypers,
+        bool selfActive, DateTime now, DateTime selfStart, DateTime selfLast)
     {
         var partyAddon = (AtkUnitBase*)_gameGui.GetAddonByName("_PartyList", 1).Address;
         if (partyAddon == null || !partyAddon->IsVisible)
@@ -147,7 +122,6 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
             var targetIndex = -1;
             var playerName = pair?.PlayerName;
             var objectId = pair?.PlayerCharacterId ?? uint.MaxValue;
-            var resolvedName = !string.IsNullOrEmpty(playerName) ? playerName : entry.User.AliasOrUID;
 
             if (objectId != 0 && objectId != uint.MaxValue)
             {
@@ -155,10 +129,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
                 if (targetIndex >= 0 && !string.IsNullOrEmpty(playerName))
                 {
                     var member = _partyList[targetIndex];
-                    if (member == null)
-                        continue;
-
-                    var memberName = member.Name.TextValue;
+                    var memberName = member?.Name?.TextValue;
                     if (!string.IsNullOrEmpty(memberName) && !memberName.Equals(playerName, StringComparison.OrdinalIgnoreCase))
                     {
                         var nameIndex = GetPartyIndexForName(playerName);
@@ -174,18 +145,6 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
 
             if (targetIndex < 0)
                 continue;
-
-            if (entry.Scope == TypingScope.FreeCompany && !IsFreeCompanyMember(objectId, resolvedName))
-            {
-                _typedLogger.LogTrace("TypingIndicator: suppressed non-FC party bubble for {uid} due to scope={scope}", uid, entry.Scope);
-                continue;
-            }
-
-            if (entry.Scope == TypingScope.Alliance && !IsAllianceMember(objectId, resolvedName, allianceMembers))
-            {
-                _typedLogger.LogTrace("TypingIndicator: suppressed non-alliance party bubble for {uid} due to scope={scope}", uid, entry.Scope);
-                continue;
-            }
 
             DrawPartyMemberTyping(drawList, partyAddon, targetIndex);
         }
@@ -217,31 +176,30 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         iconPos += iconOffset;
 
         var texture = _textureProvider.GetFromGame("ui/uld/charamake_dataimport.tex").GetWrapOrEmpty();
-        if (texture.Handle == IntPtr.Zero) return;
+        if (texture == null) return;
 
         drawList.AddImage(texture.Handle, iconPos, iconPos + iconSize, Vector2.Zero, Vector2.One,
             ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0.9f)));
     }
 
-    private unsafe void DrawNameplateIndicators(ImDrawListPtr drawList, IReadOnlyDictionary<string, (UserData User, DateTime FirstSeen, DateTime LastUpdate, UmbraSync.API.Data.Enum.TypingScope Scope)> activeTypers,
-        bool selfActive, DateTime now, DateTime selfStart, DateTime selfLast, IReadOnlyList<(uint EntityId, string Name)> allianceMembers)
+    private unsafe void DrawNameplateIndicators(ImDrawListPtr drawList, IReadOnlyDictionary<string, (UserData User, DateTime FirstSeen, DateTime LastUpdate)> activeTypers,
+        bool selfActive, DateTime now, DateTime selfStart, DateTime selfLast)
     {
         var iconWrap = _textureProvider.GetFromGameIcon(NameplateIconId).GetWrapOrEmpty();
-        if (iconWrap.Handle == IntPtr.Zero)
+        if (iconWrap == null || iconWrap.Handle == IntPtr.Zero)
             return;
 
         var showSelf = _configService.Current.TypingIndicatorShowSelf;
-        var selfPlayer = LocalPlayer;
         if (selfActive
             && showSelf
-            && selfPlayer != null
+            && _clientState.LocalPlayer != null
             && (now - selfStart) >= TypingDisplayDelay
             && (now - selfLast) <= TypingDisplayFade)
         {
-            var selfId = GetEntityId(selfPlayer.Address);
+            var selfId = GetEntityId(_clientState.LocalPlayer.Address);
             if (selfId != 0 && !TryDrawNameplateBubble(drawList, iconWrap, selfId))
             {
-                DrawWorldFallbackIcon(drawList, iconWrap, selfPlayer.Position);
+                DrawWorldFallbackIcon(drawList, iconWrap, _clientState.LocalPlayer.Position);
             }
         }
 
@@ -258,29 +216,11 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
             var pairName = pair?.PlayerName ?? entry.User.AliasOrUID ?? string.Empty;
             var pairIdent = pair?.Ident ?? string.Empty;
             var isPartyMember = IsPartyMember(objectId, pairName);
-            var isAllianceMember = IsAllianceMember(objectId, pairName, allianceMembers);
-            var isFreeCompanyMember = IsFreeCompanyMember(objectId, pairName);
-            if (entry.Scope is TypingScope.Party or TypingScope.CrossParty && !isPartyMember)
-            {
-                _typedLogger.LogTrace("TypingIndicator: suppressed non-party bubble for {uid} due to scope={scope}", uid, entry.Scope);
-                continue;
-            }
-            if (entry.Scope == TypingScope.FreeCompany && !isFreeCompanyMember)
-            {
-                _typedLogger.LogTrace("TypingIndicator: suppressed non-FC bubble for {uid} due to scope={scope}", uid, entry.Scope);
-                continue;
-            }
-            if (entry.Scope == TypingScope.Alliance && !isAllianceMember)
-            {
-                _typedLogger.LogTrace("TypingIndicator: suppressed non-alliance bubble for {uid} due to scope={scope}", uid, entry.Scope);
-                continue;
-            }
-
             var isRelevantMember = IsPlayerRelevant(pair, isPartyMember);
 
             if (objectId != uint.MaxValue && objectId != 0 && TryDrawNameplateBubble(drawList, iconWrap, objectId))
             {
-                _typedLogger.LogTrace("TypingIndicator: drew nameplate bubble for {uid} (objectId={objectId}, scope={scope})", uid, objectId, entry.Scope);
+                _typedLogger.LogTrace("TypingIndicator: drew nameplate bubble for {uid} (objectId={objectId})", uid, objectId);
                 continue;
             }
 
@@ -289,20 +229,14 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
 
             if (!isRelevantMember && !isNearby)
                 continue;
-            if (entry.Scope is TypingScope.Party or TypingScope.CrossParty && !isPartyMember)
-                continue;
-            if (entry.Scope == TypingScope.FreeCompany && !isFreeCompanyMember)
-                continue;
-            if (entry.Scope == TypingScope.Alliance && !isAllianceMember)
-                continue;
 
             if (pair == null)
             {
                 _typedLogger.LogTrace("TypingIndicator: no pair found for {uid}, attempting fallback", uid);
             }
 
-            _typedLogger.LogTrace("TypingIndicator: fallback draw for {uid} (objectId={objectId}, name={name}, ident={ident}, scope={scope})",
-                uid, objectId, pairName, pairIdent, entry.Scope);
+            _typedLogger.LogTrace("TypingIndicator: fallback draw for {uid} (objectId={objectId}, name={name}, ident={ident})",
+                uid, objectId, pairName, pairIdent);
 
             if (hasWorldPosition)
             {
@@ -335,7 +269,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
 
     private unsafe bool TryDrawNameplateBubble(ImDrawListPtr drawList, IDalamudTextureWrap textureWrap, uint objectId)
     {
-        if (textureWrap.Handle == IntPtr.Zero)
+        if (textureWrap == null || textureWrap.Handle == IntPtr.Zero)
             return false;
 
         var framework = Framework.Instance();
@@ -362,78 +296,69 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
             if (objectInfo.Value->GameObject->EntityId != objectId)
                 continue;
 
-            var yalmDistance = objectInfo.Value->GameObject->YalmDistanceFromPlayerX;
-            const float MaxNameplateDistance = 30f;
-            if (yalmDistance > MaxNameplateDistance)
+            if (objectInfo.Value->GameObject->YalmDistanceFromPlayerX > 35f)
                 return false;
 
             namePlate = &addonNamePlate->NamePlateObjectArray[objectInfo.Value->NamePlateIndex];
-            distance = yalmDistance;
+            distance = objectInfo.Value->GameObject->YalmDistanceFromPlayerX;
             break;
         }
 
         if (namePlate == null || namePlate->RootComponentNode == null)
             return false;
 
-        var rootComponent = namePlate->RootComponentNode;
-        var component = rootComponent->Component;
-        if (component == null || component->UldManager.NodeListCount == 0)
-            return false;
-
-        var iconNode = component->UldManager.NodeList[0];
+        var iconNode = namePlate->RootComponentNode->Component->UldManager.NodeList[0];
         if (iconNode == null)
             return false;
 
-        var rootVisible = rootComponent->AtkResNode.IsVisible();
+        var scaleX = namePlate->RootComponentNode->AtkResNode.ScaleX;
+        var scaleY = namePlate->RootComponentNode->AtkResNode.ScaleY;
         var iconVisible = iconNode->IsVisible();
-        var isNameplateVisible = rootVisible && iconVisible;
-
-        var scaleX = rootComponent->AtkResNode.ScaleX;
-        var scaleY = rootComponent->AtkResNode.ScaleY;
+        var sizeScaleFactor = 1f;
         var scaleVector = new Vector2(scaleX, scaleY);
-        var rootPosition = new Vector2(rootComponent->AtkResNode.X, rootComponent->AtkResNode.Y);
+        var rootPosition = new Vector2(namePlate->RootComponentNode->AtkResNode.X, namePlate->RootComponentNode->AtkResNode.Y);
         var iconLocalPosition = new Vector2(iconNode->X, iconNode->Y) * scaleVector;
         var iconDimensions = new Vector2(iconNode->Width, iconNode->Height) * scaleVector;
-        var style = _configService.Current.TypingIndicatorNameplateStyle;
-        var useTop = !isNameplateVisible || style == TypingIndicatorNameplateStyle.Top;
 
-        Vector2 iconPos;
-        Vector2 iconOffset;
-        Vector2 iconSize;
-
-        if (useTop)
+        if (!iconVisible)
         {
-            iconSize = GetConfiguredBubbleSize(scaleX, scaleY, true, TypingIndicatorBubbleSize.Large);
-            var basePos = rootPosition + iconLocalPosition;
-            iconPos = new Vector2(basePos.X + (iconDimensions.X * 0.5f) - (iconSize.X * 0.5f), basePos.Y);
-            iconOffset = new Vector2(0f, (-24f + (distance / 1f)) * scaleY);
+            sizeScaleFactor = 2.5f;
+            var anchor = rootPosition + iconLocalPosition + new Vector2(iconDimensions.X * 0.5f, 0f);
+
+            var distanceOffset = new Vector2(0f, -16f + distance) * scaleVector;
             if (iconNode->Height == 24)
             {
-                iconOffset.Y += 16f * scaleY;
+                distanceOffset.Y += 16f * scaleY;
             }
-            if (!isNameplateVisible)
-            {
-                iconOffset.Y += 48f * scaleY;
-            }
+            distanceOffset.Y += 64f * scaleY;
 
-            iconPos += iconOffset;
+            var referenceSize = GetConfiguredBubbleSize(scaleX * sizeScaleFactor, scaleY * sizeScaleFactor, false, TypingIndicatorBubbleSize.Small);
+            var manualOffset = new Vector2(referenceSize.X * 2.00f, referenceSize.Y * 2.00f);
+
+            var iconSize = GetConfiguredBubbleSize(scaleX * sizeScaleFactor, scaleY * sizeScaleFactor, false);
+            var center = anchor + distanceOffset + manualOffset;
+            var topLeft = center - (iconSize / 2f);
+
+            drawList.AddImage(textureWrap.Handle, topLeft, topLeft + iconSize, Vector2.Zero, Vector2.One,
+                ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0.95f)));
+
+            return true;
         }
-        else
+
+        var iconPos = rootPosition + iconLocalPosition + new Vector2(iconDimensions.X, 0f);
+
+        var iconOffset = new Vector2(distance / 1.5f, distance / 3.5f) * scaleVector;
+        if (iconNode->Height == 24)
         {
-            iconPos = rootPosition + iconLocalPosition + new Vector2(iconDimensions.X, 0f);
-            iconOffset = new Vector2(distance / 1.5f, distance / 3f) * scaleVector;
-            if (iconNode->Height == 24)
-            {
-                iconOffset.Y -= 8f * scaleY;
-            }
-
-            iconPos += iconOffset;
-            iconSize = GetConfiguredBubbleSize(scaleX, scaleY, true);
+            iconOffset.Y -= 8f * scaleY;
         }
 
-        var nameplateOpacity = Math.Clamp(_configService.Current.TypingIndicatorNameplateOpacity, 0f, 1f);
-        drawList.AddImage(textureWrap.Handle, iconPos, iconPos + iconSize, Vector2.Zero, Vector2.One,
-            ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, nameplateOpacity)));
+        iconPos += iconOffset;
+
+        var bubbleSize = GetConfiguredBubbleSize(scaleX * sizeScaleFactor, scaleY * sizeScaleFactor, true);
+
+        drawList.AddImage(textureWrap.Handle, iconPos, iconPos + bubbleSize, Vector2.Zero, Vector2.One,
+            ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0.95f)));
 
         return true;
     }
@@ -581,121 +506,6 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         return false;
     }
 
-    private IReadOnlyList<(uint EntityId, string Name)> GetAllianceMembersSnapshot()
-    {
-        _allianceMembersCache.Clear();
-        if (!_partyList.IsAlliance)
-            return _allianceMembersCache;
-
-        for (var i = 0; i < AllianceMemberSlots; ++i)
-        {
-            var memberAddress = _partyList.GetAllianceMemberAddress(i);
-            if (memberAddress == nint.Zero)
-                continue;
-
-            var member = _partyList.CreateAllianceMemberReference(memberAddress);
-            if (member == null)
-                continue;
-
-            var name = member.Name?.TextValue ?? string.Empty;
-            var entityId = member.EntityId;
-            if (entityId == 0 && string.IsNullOrEmpty(name))
-                continue;
-
-            _allianceMembersCache.Add((entityId, name));
-        }
-
-        return _allianceMembersCache;
-    }
-
-    private static bool IsAllianceMember(uint objectId, string? playerName, IReadOnlyList<(uint EntityId, string Name)> allianceMembers)
-    {
-        if (allianceMembers.Count == 0)
-            return false;
-
-        if (objectId != 0 && objectId != uint.MaxValue && allianceMembers.Any(m => m.EntityId == objectId))
-            return true;
-
-        if (string.IsNullOrEmpty(playerName))
-            return false;
-
-        return allianceMembers.Any(m =>
-            !string.IsNullOrEmpty(m.Name) && m.Name.Equals(playerName, StringComparison.OrdinalIgnoreCase));
-    }
-
-    private bool IsFreeCompanyMember(uint objectId, string? playerName)
-    {
-        var localPlayer = LocalPlayer;
-        if (localPlayer == null)
-            return false;
-
-        var localTag = localPlayer.CompanyTag?.TextValue;
-        if (string.IsNullOrEmpty(localTag))
-            return false;
-
-        if (TryGetFreeCompanyTag(objectId, out var remoteTag))
-            return string.Equals(remoteTag, localTag, StringComparison.OrdinalIgnoreCase);
-
-        if (!string.IsNullOrEmpty(playerName)
-            && TryGetFreeCompanyTagByName(playerName, out remoteTag))
-        {
-            return string.Equals(remoteTag, localTag, StringComparison.OrdinalIgnoreCase);
-        }
-
-        return false;
-    }
-
-    private bool TryGetFreeCompanyTag(uint objectId, out string tag)
-    {
-        tag = string.Empty;
-        if (objectId == 0 || objectId == uint.MaxValue)
-            return false;
-
-        for (var i = 0; i < _objectTable.Length; ++i)
-        {
-            var obj = _objectTable[i];
-            if (obj == null || obj.EntityId != objectId)
-                continue;
-
-            if (obj is IPlayerCharacter player)
-            {
-                var remoteTag = player.CompanyTag?.TextValue;
-                if (!string.IsNullOrEmpty(remoteTag))
-                {
-                    tag = remoteTag;
-                    return true;
-                }
-            }
-
-            break;
-        }
-
-        return false;
-    }
-
-    private bool TryGetFreeCompanyTagByName(string name, out string tag)
-    {
-        tag = string.Empty;
-        if (string.IsNullOrEmpty(name))
-            return false;
-
-        for (var i = 0; i < _objectTable.Length; ++i)
-        {
-            if (_objectTable[i] is IPlayerCharacter player
-                && player.Name.TextValue.Equals(name, StringComparison.OrdinalIgnoreCase))
-            {
-                var remoteTag = player.CompanyTag?.TextValue;
-                if (!string.IsNullOrEmpty(remoteTag))
-                {
-                    tag = remoteTag;
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
     private static bool IsPlayerRelevant(Pair? pair, bool isPartyMember)
     {
         if (isPartyMember)
@@ -720,12 +530,11 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
 
     private bool IsWithinRelevantDistance(Vector3 position)
     {
-        var localPlayer = LocalPlayer;
-        if (localPlayer == null)
+        if (_clientState.LocalPlayer == null)
             return false;
 
-        var distance = Vector3.Distance(localPlayer.Position, position);
-        return distance <= 30f;
+        var distance = Vector3.Distance(_clientState.LocalPlayer.Position, position);
+        return distance <= 40f;
     }
 
     private static unsafe uint GetEntityId(nint address)

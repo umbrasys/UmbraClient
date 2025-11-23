@@ -7,9 +7,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using UmbraSync.API.Dto.McdfShare;
 using UmbraSync.MareConfiguration.Models;
+using UmbraSync.Localization;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Services.Notification;
 using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.WebAPI;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
 
 namespace UmbraSync.Services.CharaData;
 
@@ -20,6 +24,8 @@ public sealed class McdfShareManager
     private readonly CharaDataFileHandler _fileHandler;
     private readonly CharaDataManager _charaDataManager;
     private readonly ServerConfigurationManager _serverConfigurationManager;
+    private readonly MareMediator _mediator;
+    private readonly NotificationTracker _notificationTracker;
     private readonly SemaphoreSlim _operationSemaphore = new(1, 1);
     private readonly List<McdfShareEntryDto> _ownShares = new();
     private readonly List<McdfShareEntryDto> _sharedWithMe = new();
@@ -27,13 +33,15 @@ public sealed class McdfShareManager
 
     public McdfShareManager(ILogger<McdfShareManager> logger, ApiController apiController,
         CharaDataFileHandler fileHandler, CharaDataManager charaDataManager,
-        ServerConfigurationManager serverConfigurationManager)
+        ServerConfigurationManager serverConfigurationManager, MareMediator mediator, NotificationTracker notificationTracker)
     {
         _logger = logger;
         _apiController = apiController;
         _fileHandler = fileHandler;
         _charaDataManager = charaDataManager;
         _serverConfigurationManager = serverConfigurationManager;
+        _mediator = mediator;
+        _notificationTracker = notificationTracker;
     }
 
     public IReadOnlyList<McdfShareEntryDto> OwnShares => _ownShares;
@@ -102,6 +110,8 @@ public sealed class McdfShareManager
             await _apiController.McdfShareUpload(uploadDto).ConfigureAwait(false);
             await InternalRefreshAsync(token).ConfigureAwait(false);
             LastSuccess = "Partage MCDF créé.";
+            NotifyShareCreated(shareId, description, uploadDto.AllowedIndividuals.Count, uploadDto.AllowedSyncshells.Count);
+            _logger.LogInformation("MCDF share {ShareId} uploaded ({Individuals} UID / {Syncshells} syncshells). Description: {Description}", shareId, uploadDto.AllowedIndividuals.Count, uploadDto.AllowedSyncshells.Count, description);
         });
     }
 
@@ -305,5 +315,18 @@ public sealed class McdfShareManager
         Buffer.BlockCopy(shareBytes, 0, material, secretBytes.Length, shareBytes.Length);
         Buffer.BlockCopy(salt, 0, material, secretBytes.Length + shareBytes.Length, salt.Length);
         return SHA256.HashData(material);
+    }
+
+    private void NotifyShareCreated(Guid shareId, string description, int individualCount, int syncshellCount)
+    {
+        string safeDescription = string.IsNullOrWhiteSpace(description)
+            ? shareId.ToString("D", CultureInfo.InvariantCulture)
+            : description;
+        string targetSummary = string.Format(CultureInfo.CurrentCulture, Loc.Get("Notification.McdfShare.Created.Summary"), individualCount, syncshellCount);
+        string toastTitle = Loc.Get("Notification.McdfShare.Created.ToastTitle");
+        string toastBody = string.Format(CultureInfo.CurrentCulture, Loc.Get("Notification.McdfShare.Created.ToastBody"), safeDescription, targetSummary);
+
+        _mediator.Publish(new DualNotificationMessage(toastTitle, toastBody, NotificationType.Info, TimeSpan.FromSeconds(4)));
+        _notificationTracker.Upsert(NotificationEntry.McdfShareCreated(shareId, safeDescription, individualCount, syncshellCount));
     }
 }

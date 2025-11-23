@@ -59,6 +59,10 @@ public class DiscoveryApiClient
             var result = JsonSerializer.Deserialize<List<ServerMatch>>(json, JsonOpt) ?? [];
             return result;
         }
+        catch (OperationCanceledException oce) when (LogCancellation(oce, ct, "Discovery query"))
+        {
+            return [];
+        }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Discovery query failed");
@@ -109,6 +113,10 @@ public class DiscoveryApiClient
             }
             return true;
         }
+        catch (OperationCanceledException oce) when (LogCancellation(oce, ct, "Discovery send request"))
+        {
+            return false;
+        }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Discovery send request failed");
@@ -154,6 +162,10 @@ public class DiscoveryApiClient
             }
             return resp.IsSuccessStatusCode;
         }
+        catch (OperationCanceledException oce) when (LogCancellation(oce, ct, "Discovery publish"))
+        {
+            return false;
+        }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Discovery publish failed");
@@ -184,6 +196,10 @@ public class DiscoveryApiClient
                 resp = await _httpClient.SendAsync(req2, ct).ConfigureAwait(false);
             }
             return resp.IsSuccessStatusCode;
+        }
+        catch (OperationCanceledException oce) when (LogCancellation(oce, ct, "Discovery accept notify"))
+        {
+            return false;
         }
         catch (Exception ex)
         {
@@ -222,10 +238,31 @@ public class DiscoveryApiClient
                 _logger.LogWarning("Discovery disable failed: {code} {reason} {body}", (int)resp.StatusCode, resp.ReasonPhrase, txt);
             }
         }
+        catch (OperationCanceledException oce)
+        {
+            LogCancellation(oce, ct, "Discovery disable");
+        }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Discovery disable failed");
         }
+    }
+
+    private bool LogCancellation(OperationCanceledException ex, CancellationToken ct, string operation)
+    {
+        if (ct.IsCancellationRequested)
+        {
+            _logger.LogDebug("{operation} cancelled", operation);
+            return true;
+        }
+
+        if (ex is TaskCanceledException)
+        {
+            _logger.LogWarning(ex, "{operation} timed out after {timeoutSeconds}s", operation, _httpClient.Timeout.TotalSeconds);
+            return true;
+        }
+
+        return false;
     }
 }
 

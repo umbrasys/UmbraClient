@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Globalization;
+using UmbraSync.Localization;
 using UmbraSync.Services.Mediator;
 using UmbraSync.MareConfiguration;
 using UmbraSync.MareConfiguration.Configurations;
@@ -13,6 +15,7 @@ public enum NotificationCategory
 {
     AutoDetect,
     Syncshell,
+    McdfShare,
 }
 
 public sealed record NotificationEntry(NotificationCategory Category, string Id, string Title, string? Description, DateTime CreatedAt)
@@ -25,6 +28,16 @@ public sealed record NotificationEntry(NotificationCategory Category, string Id,
 
     public static NotificationEntry SyncshellNotPublic(string gid, string aliasOrGid)
         => new(NotificationCategory.Syncshell, gid, $"Syncshell non publique: {aliasOrGid}", "La Syncshell n'est plus visible via AutoDetect.", DateTime.UtcNow);
+
+    public static NotificationEntry McdfShareCreated(Guid shareId, string? description, int individualCount, int syncshellCount)
+    {
+        string safeDescription = string.IsNullOrEmpty(description)
+            ? shareId.ToString("D", CultureInfo.InvariantCulture)
+            : description;
+        string title = string.Format(CultureInfo.CurrentCulture, Loc.Get("Notification.McdfShare.Created.Title"), safeDescription);
+        string targetSummary = string.Format(CultureInfo.CurrentCulture, Loc.Get("Notification.McdfShare.Created.Summary"), individualCount, syncshellCount);
+        return new(NotificationCategory.McdfShare, shareId.ToString("D", CultureInfo.InvariantCulture), title, targetSummary, DateTime.UtcNow);
+    }
 }
 
 public sealed class NotificationTracker

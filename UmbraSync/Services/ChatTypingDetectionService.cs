@@ -37,6 +37,9 @@ public sealed class ChatTypingDetectionService : IDisposable
     private bool _subscribed;
     private const int AllianceMemberSlots = 24;
     private readonly List<(uint EntityId, string Name)> _allianceMemberBuffer = new(AllianceMemberSlots);
+    private string _lastSkipReason = string.Empty;
+    private DateTime _lastSkipLog = DateTime.MinValue;
+    private static readonly TimeSpan SkipLogThrottle = TimeSpan.FromSeconds(5);
 
     public ChatTypingDetectionService(ILogger<ChatTypingDetectionService> logger, IFramework framework,
         IClientState clientState, IGameGui gameGui, ChatService chatService, PairManager pairManager, IPartyList partyList,
@@ -101,12 +104,14 @@ public sealed class ChatTypingDetectionService : IDisposable
         {
             if (!_clientState.IsLoggedIn)
             {
+                LogSkip("not logged in");
                 ResetTypingState();
                 return;
             }
 
             if (!_configService.Current.TypingIndicatorEnabled)
             {
+                LogSkip("typing indicator disabled");
                 ResetTypingState();
                 _chatService.ClearTypingState();
                 return;
@@ -114,12 +119,14 @@ public sealed class ChatTypingDetectionService : IDisposable
 
             if (!TryGetChatInput(out var chatText) || string.IsNullOrEmpty(chatText))
             {
+                LogSkip("chat input unavailable/empty");
                 ResetTypingState();
                 return;
             }
 
             if (IsIgnoredCommand(chatText))
             {
+                LogSkip("ignored command");
                 ResetTypingState();
                 return;
             }
@@ -128,6 +135,7 @@ public sealed class ChatTypingDetectionService : IDisposable
             UpdateRemoteNotificationLogState(notifyRemote);
             if (!notifyRemote && _notifyingRemote)
             {
+                LogSkip("notifyRemote=false");
                 _chatService.ClearTypingState();
                 _notifyingRemote = false;
             }
@@ -137,6 +145,11 @@ public sealed class ChatTypingDetectionService : IDisposable
                 if (notifyRemote)
                 {
                     var scope = GetCurrentTypingScope();
+                    if (scope == TypingScope.Unknown)
+                    {
+                        scope = TypingScope.Proximity; // fallback when chat type cannot be resolved
+                    }
+                    _logger.LogDebug("TypingDetection: notify remote scope={scope} textLength={length}", scope, chatText.Length);
                     _chatService.NotifyTypingKeystroke(scope);
                     _notifyingRemote = true;
                 }
@@ -461,6 +474,18 @@ public sealed class ChatTypingDetectionService : IDisposable
         {
             _remoteNotificationsEnabled = false;
             _logger.LogInformation("TypingDetection: remote notifications disabled");
+        }
+    }
+
+    private void LogSkip(string reason)
+    {
+        var now = DateTime.UtcNow;
+        if (!string.Equals(reason, _lastSkipReason, StringComparison.OrdinalIgnoreCase)
+            || (now - _lastSkipLog) >= SkipLogThrottle)
+        {
+            _logger.LogDebug("TypingDetection: skipped ({reason})", reason);
+            _lastSkipReason = reason;
+            _lastSkipLog = now;
         }
     }
 }

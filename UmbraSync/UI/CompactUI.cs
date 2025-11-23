@@ -1210,6 +1210,9 @@ public class CompactUi : WindowMediatorSubscriberBase
                 case NotificationCategory.Syncshell:
                     DrawSyncshellNotification(notification);
                     break;
+                case NotificationCategory.McdfShare:
+                    DrawMcdfShareNotification(notification);
+                    break;
                 default:
                     UiSharedService.DrawCard($"notification-{notification.Category}-{notification.Id}", () =>
                     {
@@ -1311,6 +1314,34 @@ public class CompactUi : WindowMediatorSubscriberBase
                 if (ImGui.Button(Loc.Get("CompactUi.Notifications.Clear")))
                 {
                     _notificationTracker.Remove(NotificationCategory.Syncshell, notification.Id);
+                }
+            }
+        }, stretchWidth: true);
+    }
+
+    private void DrawMcdfShareNotification(NotificationEntry notification)
+    {
+        UiSharedService.DrawCard($"notification-mcdf-{notification.Id}", () =>
+        {
+            ImGui.TextUnformatted(notification.Title);
+            if (!string.IsNullOrEmpty(notification.Description))
+            {
+                ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudGrey3);
+                ImGui.TextUnformatted(notification.Description);
+                ImGui.PopStyleColor();
+            }
+
+            ImGuiHelpers.ScaledDummy(3f);
+            ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudGrey2);
+            ImGui.TextUnformatted(notification.CreatedAt.ToLocalTime().ToString("g", CultureInfo.CurrentCulture));
+            ImGui.PopStyleColor();
+
+            ImGuiHelpers.ScaledDummy(3f);
+            using (ImRaii.PushId($"mcdf-{notification.Id}"))
+            {
+                if (ImGui.Button(Loc.Get("CompactUi.Notifications.Clear")))
+                {
+                    _notificationTracker.Remove(NotificationCategory.McdfShare, notification.Id);
                 }
             }
         }, stretchWidth: true);

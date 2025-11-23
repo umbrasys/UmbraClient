@@ -8,6 +8,7 @@ using UmbraSync.UI;
 using UmbraSync.UI.Components.Popup;
 using UmbraSync.WebAPI;
 using Microsoft.Extensions.Logging;
+using UmbraSync.MareConfiguration;
 
 namespace UmbraSync.Services;
 
@@ -23,10 +24,12 @@ public class UiFactory
     private readonly PerformanceCollectorService _performanceCollectorService;
     private readonly SyncshellDiscoveryService _syncshellDiscoveryService;
     private readonly NotificationTracker _notificationTracker;
+    private readonly AutoDetectScheduleConfigService _autoDetectScheduleConfigService;
 
     public UiFactory(ILoggerFactory loggerFactory, MareMediator mareMediator, ApiController apiController,
         UiSharedService uiSharedService, PairManager pairManager, SyncshellDiscoveryService syncshellDiscoveryService, ServerConfigurationManager serverConfigManager,
-        MareProfileManager mareProfileManager, PerformanceCollectorService performanceCollectorService, NotificationTracker notificationTracker)
+        MareProfileManager mareProfileManager, PerformanceCollectorService performanceCollectorService, NotificationTracker notificationTracker,
+        AutoDetectScheduleConfigService autoDetectScheduleConfigService)
     {
         _loggerFactory = loggerFactory;
         _mareMediator = mareMediator;
@@ -38,12 +41,13 @@ public class UiFactory
         _mareProfileManager = mareProfileManager;
         _performanceCollectorService = performanceCollectorService;
         _notificationTracker = notificationTracker;
+        _autoDetectScheduleConfigService = autoDetectScheduleConfigService;
     }
 
     public SyncshellAdminUI CreateSyncshellAdminUi(GroupFullInfoDto dto)
     {
         return new SyncshellAdminUI(_loggerFactory.CreateLogger<SyncshellAdminUI>(), _mareMediator,
-            _apiController, _uiSharedService, _pairManager, _syncshellDiscoveryService, dto, _performanceCollectorService, _notificationTracker);
+            _apiController, _uiSharedService, _pairManager, _syncshellDiscoveryService, _autoDetectScheduleConfigService, dto, _performanceCollectorService, _notificationTracker);
     }
 
     public StandaloneProfileUi CreateStandaloneProfileUi(Pair pair)
