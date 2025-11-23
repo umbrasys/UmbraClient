@@ -685,7 +685,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         _uiShared.DrawHelpText("Enables handling of the Umbra Sync API. This currently includes:\n\n" +
             " - MCDF loading support for other plugins\n" +
             " - Blocking Moodles applications to paired users\n\n" +
-            "If the Umbra Sync plugin is loaded while this option is enabled, control of its API will be relinquished.");
+            "If another Umbra API provider is loaded while this option is enabled, control of its API will be relinquished.");
 
         using (_ = ImRaii.PushIndent())
         {
@@ -699,7 +699,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 if (!umbraApi)
                     UiSharedService.ColorTextWrapped("Umbra API inactive: Option is disabled", ImGuiColors.DalamudYellow);
                 else if (_ipcProvider.MarePluginEnabled)
-                    UiSharedService.ColorTextWrapped("Umbra API inactive: Umbra plugin is loaded", ImGuiColors.DalamudYellow);
+                    UiSharedService.ColorTextWrapped("Umbra API inactive: another Umbra API provider is loaded", ImGuiColors.DalamudYellow);
                 else
                     UiSharedService.ColorTextWrapped("Umbra API inactive: Unknown reason", UiSharedService.AccentColor);
             }

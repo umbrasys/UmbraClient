@@ -1,5 +1,6 @@
 ﻿using Dalamud.Game.ClientState.Objects.Types;
 using System;
+using System.Linq;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
 using UmbraSync.MareConfiguration;
@@ -14,6 +15,8 @@ namespace UmbraSync.Interop.Ipc;
 
 public class IpcProvider : IHostedService, IMediatorSubscriber
 {
+    private const string ExternalUmbraInternalName = "Umbra";
+
     private readonly ILogger<IpcProvider> _logger;
     private readonly IDalamudPluginInterface _pi;
     private readonly MareConfigService _mareConfig;
@@ -27,12 +30,11 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
     private ICallGateProvider<string, IGameObject, Task<bool>>? _loadFileAsyncProviderMare;
     private ICallGateProvider<List<nint>>? _handledGameAddressesMare;
 
-    private bool _marePluginEnabled = false;
     private bool _impersonating = false;
     private DateTime _unregisterTime = DateTime.UtcNow;
     private CancellationTokenSource? _registerDelayCts = new();
 
-    public bool MarePluginEnabled => _marePluginEnabled;
+    public bool MarePluginEnabled => IsExternalUmbraLoaded();
     public bool ImpersonationActive => _impersonating;
 
     public MareMediator Mediator { get; init; }
@@ -57,11 +59,7 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
             _activeGameObjectHandlers.Remove(msg.GameObjectHandler);
         });
 
-        _marePluginEnabled = PluginWatcherService.GetInitialPluginState(pi, "UmbraSync")?.IsLoaded ?? false;
-        Mediator.SubscribeKeyed<PluginChangeMessage>(this, "UmbraSync", p => {
-            _marePluginEnabled = p.IsLoaded;
-            HandleMareImpersonation(automatic: true);
-        });
+        Mediator.SubscribeKeyed<PluginChangeMessage>(this, ExternalUmbraInternalName, _ => HandleMareImpersonation(automatic: true));
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
@@ -74,9 +72,9 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
         _handledGameAddresses = _pi.GetIpcProvider<List<nint>>("UmbraSync.GetHandledAddresses");
         _handledGameAddresses.RegisterFunc(GetHandledAddresses);
 
-        _loadFileProviderMare = _pi.GetIpcProvider<string, IGameObject, bool>("UmbraSync.LoadMcdf");
-        _loadFileAsyncProviderMare = _pi.GetIpcProvider<string, IGameObject, Task<bool>>("UmbraSync.LoadMcdfAsync");
-        _handledGameAddressesMare = _pi.GetIpcProvider<List<nint>>("UmbraSync.GetHandledAddresses");
+        _loadFileProviderMare = _pi.GetIpcProvider<string, IGameObject, bool>($"{ExternalUmbraInternalName}.LoadMcdf");
+        _loadFileAsyncProviderMare = _pi.GetIpcProvider<string, IGameObject, Task<bool>>($"{ExternalUmbraInternalName}.LoadMcdfAsync");
+        _handledGameAddressesMare = _pi.GetIpcProvider<List<nint>>($"{ExternalUmbraInternalName}.GetHandledAddresses");
         HandleMareImpersonation(automatic: true);
 
         _logger.LogInformation("Started IpcProviderService");
@@ -85,7 +83,9 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
 
     public void HandleMareImpersonation(bool automatic = false)
     {
-        if (_marePluginEnabled)
+        var externalUmbraLoaded = IsExternalUmbraLoaded();
+
+        if (externalUmbraLoaded)
         {
             if (_impersonating)
             {
@@ -111,9 +111,9 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
                     if (cancelToken.IsCancellationRequested)
                         return;
 
-                    if (_marePluginEnabled)
+                    if (externalUmbraLoaded)
                     {
-                        _logger.LogDebug("Not registering Umbra Sync API: Mare plugin is loaded");
+                        _logger.LogDebug("Not registering Umbra Sync API: another Umbra API provider is loaded");
                         return;
                     }
 
@@ -179,6 +179,23 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
         _charaDataManager.LoadMcdf(path);
         await (_charaDataManager.LoadedMcdfHeader ?? Task.CompletedTask).ConfigureAwait(false);
         _charaDataManager.McdfApplyToTarget(target.Name.TextValue);
+    }
+
+    private bool IsExternalUmbraLoaded()
+    {
+        var plugin = _pi.InstalledPlugins.FirstOrDefault(p => p.InternalName.Equals(ExternalUmbraInternalName, StringComparison.Ordinal) && p.IsLoaded);
+        if (plugin == null) return false;
+
+        try
+        {
+            // If no handler is registered, this will throw and we treat it as not loaded.
+            _pi.GetIpcSubscriber<List<nint>>($"{ExternalUmbraInternalName}.GetHandledAddresses").InvokeFunc();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private List<nint> GetHandledAddresses()

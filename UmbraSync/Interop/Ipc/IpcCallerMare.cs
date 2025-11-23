@@ -1,6 +1,7 @@
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
 using System.Collections.Generic;
+using System.Linq;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Logging;
@@ -9,21 +10,18 @@ namespace UmbraSync.Interop.Ipc;
 
 public sealed class IpcCallerMare : DisposableMediatorSubscriberBase
 {
+    private const string ExternalUmbraInternalName = "Umbra";
+
+    private readonly IDalamudPluginInterface _pi;
     private readonly ICallGateSubscriber<List<nint>> _mareHandledGameAddresses;
     private static readonly IReadOnlyList<nint> EmptyAddresses = Array.Empty<nint>();
 
-    private bool _pluginLoaded;
-
     public IpcCallerMare(ILogger<IpcCallerMare> logger, IDalamudPluginInterface pi,  MareMediator mediator) : base(logger, mediator)
     {
-        _mareHandledGameAddresses = pi.GetIpcSubscriber<List<nint>>("UmbraSync.GetHandledAddresses");
+        _pi = pi;
+        _mareHandledGameAddresses = _pi.GetIpcSubscriber<List<nint>>($"{ExternalUmbraInternalName}.GetHandledAddresses");
 
-        _pluginLoaded = PluginWatcherService.GetInitialPluginState(pi, "UmbraSync")?.IsLoaded ?? false;
-
-        Mediator.SubscribeKeyed<PluginChangeMessage>(this, "UmbraSync", (msg) =>
-        {
-            _pluginLoaded = msg.IsLoaded;
-        });
+        Mediator.SubscribeKeyed<PluginChangeMessage>(this, ExternalUmbraInternalName, _ => { });
     }
 
     public bool APIAvailable { get; private set; } = false;
@@ -31,7 +29,7 @@ public sealed class IpcCallerMare : DisposableMediatorSubscriberBase
     // Must be called on framework thread
     public IReadOnlyList<nint> GetHandledGameAddresses()
     {
-        if (!_pluginLoaded) return EmptyAddresses;
+        if (!IsExternalUmbraLoaded()) return EmptyAddresses;
 
         try
         {
@@ -40,6 +38,22 @@ public sealed class IpcCallerMare : DisposableMediatorSubscriberBase
         catch
         {
             return EmptyAddresses;
+        }
+    }
+
+    private bool IsExternalUmbraLoaded()
+    {
+        var plugin = _pi.InstalledPlugins.FirstOrDefault(p => p.InternalName.Equals(ExternalUmbraInternalName, StringComparison.Ordinal) && p.IsLoaded);
+        if (plugin == null) return false;
+
+        try
+        {
+            _pi.GetIpcSubscriber<List<nint>>($"{ExternalUmbraInternalName}.GetHandledAddresses").InvokeFunc();
+            return true;
+        }
+        catch
+        {
+            return false;
         }
     }
 }
