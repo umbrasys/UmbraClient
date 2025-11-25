@@ -90,10 +90,12 @@ internal sealed class GroupPanel
 
     private ApiController ApiController => _uiShared.ApiController;
 
-    public void DrawSyncshells()
+    public void DrawSyncshells(Action? drawAfterAdd = null)
     {
         using var fontScale = UiSharedService.PushFontScale(UiSharedService.ContentFontScale);
         using (ImRaii.PushId("addsyncshell")) DrawAddSyncshell();
+        // Contenu optionnel à afficher juste sous le champ de recherche GID/Alias (ex: Nearby)
+        drawAfterAdd?.Invoke();
         using (ImRaii.PushId("syncshelllist")) DrawSyncshellList();
         _mainUi.TransferPartHeight = ImGui.GetCursorPosY();
     }
@@ -107,9 +109,10 @@ internal sealed class GroupPanel
             glyphWidth = ImGui.CalcTextSize(FontAwesomeIcon.Plus.ToIconString()).X;
         var buttonWidth = glyphWidth + style.FramePadding.X * 2f;
 
-        ImGui.SetNextItemWidth(UiSharedService.GetWindowContentRegionWidth() - ImGui.GetWindowContentRegionMin().X - buttonWidth - style.ItemSpacing.X);
+        var availWidth = ImGui.GetContentRegionAvail().X;
+        ImGui.SetNextItemWidth(MathF.Max(0, availWidth - buttonWidth - style.ItemSpacing.X));
         ImGui.InputTextWithHint("##syncshellid", Loc.Get("Syncshell.Input.Placeholder"), ref _syncShellToJoin, 50);
-        ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - buttonWidth);
+        ImGui.SameLine();
 
         var joinModalTitle = Loc.Get("Syncshell.Join.ModalTitle");
         var createModalTitle = Loc.Get("Syncshell.Create.ModalTitle");
@@ -345,9 +348,19 @@ internal sealed class GroupPanel
         {
             _expandedGroupState[groupDto.GID] = false;
         }
+        
+        var style = ImGui.GetStyle();
+        var compactPadding = new Vector2(
+            style.FramePadding.X + 4f * ImGuiHelpers.GlobalScale,
+            // small nudge accounts for card border thickness vs. list rows
+            style.FramePadding.Y + 0.5f * ImGuiHelpers.GlobalScale);
 
         UiSharedService.DrawCard($"syncshell-card-{groupDto.GID}", () =>
         {
+        // Ensure text/icon baseline alignment with frame padding like list rows
+        ImGui.AlignTextToFramePadding();
+        // Record start of content to enforce a minimum collapsed header height
+        float __contentStartY = ImGui.GetCursorPosY();
         bool expandedState = _expandedGroupState[groupDto.GID];
         UiSharedService.DrawArrowToggle(ref expandedState, $"##syncshell-toggle-{groupDto.GID}");
         if (expandedState != _expandedGroupState[groupDto.GID])
@@ -639,7 +652,25 @@ internal sealed class GroupPanel
             ImGui.Separator();
         }
         ImGui.Unindent(20);
-        }, stretchWidth: true);
+        
+        // Enforce minimum header height to visually match a single pair row when collapsed
+        // A card adds vertical padding (compactPadding.Y) on top and bottom. To match the
+        // list row height (fontSize + 2 * FramePadding.Y), we must ensure the CONTENT area
+        // inside the card is at least (rowHeight - 2 * compactPadding.Y).
+        float __contentEndY = ImGui.GetCursorPosY();
+        float __currentHeight = __contentEndY - __contentStartY; // content height inside DrawCard padding
+        float __rowHeight = ImGui.GetFontSize() + style.FramePadding.Y * 2f; // visual list row height
+        // Increase target height visibly as requested (+1.00 * GlobalScale)
+        float __delta = 1.00f * ImGuiHelpers.GlobalScale;
+        float __targetContentHeight = MathF.Max(0f, (__rowHeight - 2f * compactPadding.Y) + __delta);
+        if (__currentHeight < __targetContentHeight)
+        {
+            ImGui.Dummy(new Vector2(0, __targetContentHeight - __currentHeight));
+        }
+        }, padding: compactPadding, stretchWidth: true);
+
+        // Add a uniform gap between cards equivalent to standard ItemSpacing
+        ImGuiHelpers.ScaledDummy(style.ItemSpacing.Y);
     }
 
     private void DrawSyncShellButtons(GroupFullInfoDto groupDto, List<Pair> groupPairs)

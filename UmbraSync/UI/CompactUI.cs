@@ -66,6 +66,7 @@ public class CompactUi : WindowMediatorSubscriberBase
     private string _characterOrCommentFilter = string.Empty;
     private Pair? _lastAddedUser;
     private string _lastAddedUserComment = string.Empty;
+    private SocialSubSection _socialSubSection = SocialSubSection.IndividualPairs;
     private Vector2 _lastPosition = Vector2.One;
     private Vector2 _lastSize = Vector2.One;
     private string _pairToAdd = string.Empty;
@@ -79,7 +80,7 @@ public class CompactUi : WindowMediatorSubscriberBase
     private int _notificationCount;
     private const long SelfAnalysisSizeWarningThreshold = 300L * 1024 * 1024;
     private const long SelfAnalysisTriangleWarningThreshold = 150_000;
-    private CompactUiSection _activeSection = CompactUiSection.IndividualPairs;
+    private CompactUiSection _activeSection = CompactUiSection.Social;
     private const float SidebarWidth = 42f;
     private const float SidebarIconSize = 22f;
     private const float ContentFontScale = UiSharedService.ContentFontScale;
@@ -88,18 +89,26 @@ public class CompactUi : WindowMediatorSubscriberBase
     private static readonly Vector4 SidebarButtonActiveColor = new(0.16f, 0.16f, 0.22f, 0.95f);
     private static readonly Vector4 MutedCardBackground = new(0.10f, 0.10f, 0.13f, 0.78f);
     private static readonly Vector4 MutedCardBorder = new(0.55f, 0.55f, 0.62f, 0.82f);
+    private float _socialSwitchAnimT = 1f;
+    private float _socialSwitchAnimTargetT = 1f;
+    private readonly float _socialSwitchAnimSpeed = 8f; // Vitesse d’animation (unités de t par seconde). 8 → transition ~125ms–200ms selon framerate
 
     private enum CompactUiSection
     {
         VisiblePairs,
         Notifications,
-        IndividualPairs,
-        Syncshells,
+        Social,
         AutoDetect,
         CharacterAnalysis,
         CharacterDataHub,
         EditProfile,
         Settings
+    }
+
+    private enum SocialSubSection
+    {
+        IndividualPairs,
+        Syncshells
     }
 
     private enum PairContentMode
@@ -601,9 +610,10 @@ public class CompactUi : WindowMediatorSubscriberBase
             glyphWidth = ImGui.CalcTextSize(FontAwesomeIcon.Plus.ToIconString()).X;
         var buttonWidth = glyphWidth + style.FramePadding.X * 2f;
 
-        ImGui.SetNextItemWidth(UiSharedService.GetWindowContentRegionWidth() - ImGui.GetWindowContentRegionMin().X - buttonWidth - style.ItemSpacing.X);
+        var availWidth = ImGui.GetContentRegionAvail().X;
+        ImGui.SetNextItemWidth(MathF.Max(0, availWidth - buttonWidth - style.ItemSpacing.X));
         ImGui.InputTextWithHint("##otheruid", Loc.Get("CompactUi.AddPair.OtherUidPlaceholder"), ref _pairToAdd, 20);
-        ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - buttonWidth);
+        ImGui.SameLine();
         var canAdd = !_pairManager.DirectPairs.Any(p => string.Equals(p.UserData.UID, _pairToAdd, StringComparison.Ordinal) || string.Equals(p.UserData.Alias, _pairToAdd, StringComparison.Ordinal));
         using (ImRaii.Disabled(!canAdd))
         {
@@ -944,9 +954,8 @@ public class CompactUi : WindowMediatorSubscriberBase
             : Loc.Get("CompactUi.Sidebar.VisiblePairsEmpty");
         DrawSidebarButton(FontAwesomeIcon.Eye, visibleTooltip, CompactUiSection.VisiblePairs, isConnected && hasVisiblePairs);
         ImGuiHelpers.ScaledDummy(3f);
-        DrawSidebarButton(FontAwesomeIcon.User, Loc.Get("CompactUi.Sidebar.IndividualPairs"), CompactUiSection.IndividualPairs, isConnected);
+        DrawSidebarButton(FontAwesomeIcon.GlobeEurope, "Social", CompactUiSection.Social, isConnected);
         ImGuiHelpers.ScaledDummy(3f);
-        DrawSidebarButton(FontAwesomeIcon.UserFriends, Loc.Get("CompactUi.Sidebar.Syncshells"), CompactUiSection.Syncshells, isConnected);
         ImGuiHelpers.ScaledDummy(3f);
         int pendingInvites = _nearbyPending.Pending.Count;
         bool highlightAutoDetect = pendingInvites > 0;
@@ -1139,11 +1148,8 @@ public class CompactUi : WindowMediatorSubscriberBase
             case CompactUiSection.Notifications:
                 DrawNotificationsSection();
                 break;
-            case CompactUiSection.IndividualPairs:
-                DrawPairSection(PairContentMode.All);
-                break;
-            case CompactUiSection.Syncshells:
-                DrawSyncshellSection();
+            case CompactUiSection.Social:
+                DrawSocialSection();
                 break;
             case CompactUiSection.AutoDetect:
                 DrawAutoDetectSection();
@@ -1164,6 +1170,12 @@ public class CompactUi : WindowMediatorSubscriberBase
     private void DrawPairSection(PairContentMode mode)
     {
         DrawDefaultSyncSettings();
+        DrawPairSectionBody(mode);
+    }
+
+    private void DrawPairSectionBody(PairContentMode mode)
+    {
+        using var font = UiSharedService.PushFontScale(UiSharedService.ContentFontScale);
         using (ImRaii.PushId("pairlist")) DrawPairList(mode);
         ImGui.Separator();
         using (ImRaii.PushId("transfers")) DrawTransfers();
@@ -1174,13 +1186,218 @@ public class CompactUi : WindowMediatorSubscriberBase
 
     private void DrawSyncshellSection()
     {
-        using (ImRaii.PushId("syncshells")) _groupPanel.DrawSyncshells();
+        // Dessiner Nearby juste SOUS la recherche GID/Alias dans la section Syncshell
+        var nearbyEntriesForDisplay = _configService.Current.EnableAutoDetectDiscovery
+            ? GetNearbyEntriesForDisplay()
+            : new List<Services.Mediator.NearbyEntry>();
+
+        using (ImRaii.PushId("syncshells"))
+            _groupPanel.DrawSyncshells(drawAfterAdd: () =>
+            {
+                if (nearbyEntriesForDisplay.Count > 0)
+                {
+                    using (ImRaii.PushId("syncshell-nearby")) DrawNearbyCard(nearbyEntriesForDisplay);
+                }
+            });
         ImGui.Separator();
         using (ImRaii.PushId("transfers")) DrawTransfers();
         TransferPartHeight = ImGui.GetCursorPosY() - TransferPartHeight;
         using (ImRaii.PushId("group-user-popup")) _selectPairsForGroupUi.Draw(_pairManager.DirectPairs);
         using (ImRaii.PushId("grouping-popup")) _selectGroupForPairUi.Draw();
     }
+
+    private void DrawSocialSection()
+    {
+        DrawDefaultSyncSettings();
+        DrawSocialSwitchButtons();
+        using var socialBody = ImRaii.Child(
+            "social-body",
+            new Vector2(0, 0),
+            false,
+            ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
+        if (_socialSubSection == SocialSubSection.IndividualPairs)
+        {
+            DrawPairSectionBody(PairContentMode.All);
+        }
+        else
+        {
+            DrawSyncshellSection();
+        }
+    }
+
+    private void DrawSocialSwitchButtons()
+    {
+        var individualLabel = Loc.Get("CompactUi.Sidebar.IndividualPairs");
+        var syncshellLabel = Loc.Get("CompactUi.Sidebar.Syncshells");
+        float spacing = ImGui.GetStyle().ItemSpacing.X;
+        var regionMin = ImGui.GetWindowContentRegionMin();
+        var regionMax = ImGui.GetWindowContentRegionMax();
+        float available = Math.Max(0f, regionMax.X - regionMin.X);
+        float rightPad = MathF.Ceiling(ImGuiHelpers.GlobalScale);
+        available = MathF.Max(0f, available - rightPad);
+        var style = ImGui.GetStyle();
+        const float padYMultiplier = 2.4f;
+        const float fontScaleMul   = 1.3f;
+
+        using var padPush = ImRaii.PushStyle(ImGuiStyleVar.FramePadding,
+            new Vector2(style.FramePadding.X, style.FramePadding.Y * padYMultiplier));
+        using var biggerFont = UiSharedService.PushFontScale(ContentFontScale * fontScaleMul);
+
+        float buttonHeight = ImGui.GetFrameHeight();
+        float inactiveSize = (float)Math.Floor(buttonHeight);
+        float maxActiveWidth = (float)Math.Floor(available - spacing - inactiveSize);
+        if (maxActiveWidth < inactiveSize) // garde-fou si espace trop réduit
+        {
+            maxActiveWidth = (float)Math.Floor((available - spacing) * 0.65f);
+            inactiveSize = (float)Math.Max(10f, Math.Floor((available - spacing) - maxActiveWidth));
+        }
+
+        bool individualActive = _socialSubSection == SocialSubSection.IndividualPairs;
+        bool syncshellActive = _socialSubSection == SocialSubSection.Syncshells;
+        _socialSwitchAnimTargetT = individualActive ? 1f : 0f;
+        var dt = ImGui.GetIO().DeltaTime;
+        if (dt > 0)
+        {
+            var step = _socialSwitchAnimSpeed * dt;
+            if (_socialSwitchAnimT < _socialSwitchAnimTargetT)
+                _socialSwitchAnimT = MathF.Min(_socialSwitchAnimT + step, _socialSwitchAnimTargetT);
+            else if (_socialSwitchAnimT > _socialSwitchAnimTargetT)
+                _socialSwitchAnimT = MathF.Max(_socialSwitchAnimT - step, _socialSwitchAnimTargetT);
+        }
+        float EaseInOut(float x)
+        {
+            x = Math.Clamp(x, 0f, 1f);
+            return x * x * (3f - 2f * x); // SmoothStep
+        }
+        var t = EaseInOut(_socialSwitchAnimT);
+        float leftWidth = MathF.Floor(inactiveSize + (maxActiveWidth - inactiveSize) * t);
+        float rightWidth = MathF.Floor(maxActiveWidth + (inactiveSize - maxActiveWidth) * t);
+        float epsilon = MathF.Max(0.5f, buttonHeight * 0.02f);
+        bool leftSquare = leftWidth <= inactiveSize + epsilon;
+        bool rightSquare = rightWidth <= inactiveSize + epsilon;
+        if (leftSquare)
+        {
+            leftWidth = inactiveSize;
+            rightWidth = MathF.Max(inactiveSize, MathF.Floor(available - spacing - leftWidth));
+        }
+        else if (rightSquare)
+        {
+            rightWidth = inactiveSize;
+            leftWidth = MathF.Max(inactiveSize, MathF.Floor(available - spacing - rightWidth));
+        }
+
+        var accent = UiSharedService.AccentColor;
+        var accentHover = UiSharedService.AccentHoverColor;
+        var accentActive = UiSharedService.AccentActiveColor;
+        if (leftSquare)
+        {
+            if (individualActive)
+            {
+                using (ImRaii.PushColor(ImGuiCol.Button, accent))
+                using (ImRaii.PushColor(ImGuiCol.ButtonHovered, accentHover))
+                using (ImRaii.PushColor(ImGuiCol.ButtonActive, accentActive))
+                {
+                    if (_uiSharedService.IconButtonCentered(FontAwesomeIcon.User, buttonHeight, square: true))
+                    {
+                        _socialSubSection = SocialSubSection.IndividualPairs;
+                        _socialSwitchAnimTargetT = 1f;
+                    }
+                }
+            }
+            else
+            {
+                if (_uiSharedService.IconButtonCentered(FontAwesomeIcon.User, buttonHeight, square: true))
+                {
+                    _socialSubSection = SocialSubSection.IndividualPairs;
+                    _socialSwitchAnimTargetT = 1f;
+                }
+                UiSharedService.AttachToolTip(individualLabel);
+            }
+        }
+        else
+        {
+            if (individualActive)
+            {
+                using (ImRaii.PushColor(ImGuiCol.Button, accent))
+                using (ImRaii.PushColor(ImGuiCol.ButtonHovered, accentHover))
+                using (ImRaii.PushColor(ImGuiCol.ButtonActive, accentActive))
+                {
+                    if (_uiSharedService.IconTextButton(FontAwesomeIcon.User, individualLabel, leftWidth))
+                    {
+                        _socialSubSection = SocialSubSection.IndividualPairs;
+                        _socialSwitchAnimTargetT = 1f;
+                    }
+                }
+            }
+            else
+            {
+                if (_uiSharedService.IconTextButton(FontAwesomeIcon.User, individualLabel, leftWidth))
+                {
+                    _socialSubSection = SocialSubSection.IndividualPairs;
+                    _socialSwitchAnimTargetT = 1f;
+                }
+                UiSharedService.AttachToolTip(individualLabel);
+            }
+        }
+
+        ImGui.SameLine();
+
+        // Rendu du bouton de droite (Syncshell)
+        if (rightSquare)
+        {
+            if (syncshellActive)
+            {
+                using (ImRaii.PushColor(ImGuiCol.Button, accent))
+                using (ImRaii.PushColor(ImGuiCol.ButtonHovered, accentHover))
+                using (ImRaii.PushColor(ImGuiCol.ButtonActive, accentActive))
+                {
+                    if (_uiSharedService.IconButtonCentered(FontAwesomeIcon.UserFriends, buttonHeight, square: true))
+                    {
+                        _socialSubSection = SocialSubSection.Syncshells;
+                        _socialSwitchAnimTargetT = 0f;
+                    }
+                }
+            }
+            else
+            {
+                if (_uiSharedService.IconButtonCentered(FontAwesomeIcon.UserFriends, buttonHeight, square: true))
+                {
+                    _socialSubSection = SocialSubSection.Syncshells;
+                    _socialSwitchAnimTargetT = 0f;
+                }
+                UiSharedService.AttachToolTip(syncshellLabel);
+            }
+        }
+        else
+        {
+            if (syncshellActive)
+            {
+                using (ImRaii.PushColor(ImGuiCol.Button, accent))
+                using (ImRaii.PushColor(ImGuiCol.ButtonHovered, accentHover))
+                using (ImRaii.PushColor(ImGuiCol.ButtonActive, accentActive))
+                {
+                    if (_uiSharedService.IconTextButton(FontAwesomeIcon.UserFriends, syncshellLabel, rightWidth))
+                    {
+                        _socialSubSection = SocialSubSection.Syncshells;
+                        _socialSwitchAnimTargetT = 0f;
+                    }
+                }
+            }
+            else
+            {
+                if (_uiSharedService.IconTextButton(FontAwesomeIcon.UserFriends, syncshellLabel, rightWidth))
+                {
+                    _socialSubSection = SocialSubSection.Syncshells;
+                    _socialSwitchAnimTargetT = 0f;
+                }
+                UiSharedService.AttachToolTip(syncshellLabel);
+            }
+        }
+
+        ImGui.Separator();
+    }
+
+    // Note: ancienne méthode DrawToggleButton supprimée (plus utilisée)
 
     private void DrawAutoDetectSection()
     {
@@ -1399,8 +1616,7 @@ public class CompactUi : WindowMediatorSubscriberBase
     {
         return section is CompactUiSection.VisiblePairs
             or CompactUiSection.Notifications
-            or CompactUiSection.IndividualPairs
-            or CompactUiSection.Syncshells
+            or CompactUiSection.Social
             or CompactUiSection.AutoDetect
             or CompactUiSection.CharacterAnalysis
             or CompactUiSection.CharacterDataHub;

@@ -2631,34 +2631,34 @@
     <value />
   </data>
   <data name="CharaDataHub.Tab.Application" xml:space="preserve">
-    <value />
+     <value />
   </data>
   <data name="CharaDataHub.Tab.ApplyData" xml:space="preserve">
-    <value />
+     <value />
   </data>
   <data name="CharaDataHub.Tab.DataCreation" xml:space="preserve">
-    <value />
+     <value />
   </data>
   <data name="CharaDataHub.Tab.GposeActors" xml:space="preserve">
-    <value />
+     <value />
   </data>
   <data name="CharaDataHub.Tab.GposeTogether" xml:space="preserve">
-    <value />
+     <value />
   </data>
   <data name="CharaDataHub.Tab.McdfExport" xml:space="preserve">
-    <value />
+     <value />
   </data>
   <data name="CharaDataHub.Tab.McdfShare" xml:space="preserve">
-    <value />
+     <value />
   </data>
   <data name="CharaDataHub.Tab.OnlineData" xml:space="preserve">
-    <value />
+     <value />
   </data>
   <data name="CharaDataHub.Tab.PosesNearby" xml:space="preserve">
-    <value />
+     <value />
   </data>
   <data name="CharaDataHub.Tab.Settings" xml:space="preserve">
-    <value />
+     <value />
   </data>
   <data name="CharaDataHub.WorldDataTooltip.None" xml:space="preserve">
     <value />
@@ -2667,10 +2667,10 @@
     <value />
   </data>
   <data name="ContextMenu.AutoDetect.SendRequest" xml:space="preserve">
-    <value>Envoyer une demande d'appairage [Umbra U]</value>
+    <value>Envoyer une demande d'appairage</value>
   </data>
   <data name="ContextMenu.AutoDetect.AddPair" xml:space="preserve">
-    <value>Ajouter comme paire Umbra [Umbra +]</value>
+    <value>Ajouter comme paire Umbra</value>
   </data>
   <data name="GroupPair.Unknown" xml:space="preserve">
     <value>Inconnu : {0}</value>

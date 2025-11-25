@@ -164,11 +164,15 @@ public class DrawUserPair : DrawPairBase
         ImGui.SameLine(rightSidePos);
         ImGui.SetCursorPosY(originalY);
 
+        // Use a unique popup ID per user to avoid rendering the same popup twice
+        // when multiple list items call BeginPopup with the same name in the same frame.
+        var popupId = $"User Flyout Menu##{_pair.UserData.UID}";
+
         if (_uiSharedService.IconButton(FontAwesomeIcon.Bars))
         {
-            ImGui.OpenPopup("User Flyout Menu");
+            ImGui.OpenPopup(popupId);
         }
-        if (ImGui.BeginPopup("User Flyout Menu"))
+        if (ImGui.BeginPopup(popupId))
         {
             using (ImRaii.PushId($"buttons-{_pair.UserData.UID}")) DrawPairedClientMenu(_pair);
             ImGui.EndPopup();

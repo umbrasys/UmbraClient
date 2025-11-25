@@ -221,6 +221,9 @@ public class PairGroupsUi
                 using (ImRaii.PushId($"group-{tag}")) DrawCategory(tag, allUsers, allUsers, visibleUsersList);
             }
         }
+        // Afficher les contenus supplémentaires (ex: Nearby) AVANT les sections Online/Offline/Unpaired
+        // afin que "Nearby" soit au-dessus de "Online" au même niveau.
+        drawVisibleExtras?.Invoke();
         if (_mareConfig.Current.ShowOfflineUsersSeparately)
         {
             using (ImRaii.PushId($"group-OnlineCustomTag")) DrawCategory(TagHandler.CustomOnlineTag,
@@ -236,7 +239,6 @@ public class PairGroupsUi
         using (ImRaii.PushId($"group-UnpairedCustomTag")) DrawCategory(TagHandler.CustomUnpairedTag,
             offlineUsersList.Where(u => !u.UserPair.OtherPermissions.IsPaired()).ToList(), allUsers);
 
-        drawVisibleExtras?.Invoke();
     }
 
     private void PauseRemainingPairs(List<DrawUserPair> availablePairs)

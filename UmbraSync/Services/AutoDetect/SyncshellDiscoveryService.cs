@@ -11,6 +11,7 @@ using UmbraSync.Services.Mediator;
 using UmbraSync.WebAPI;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using UmbraSync.API.Data.Enum;
 
 namespace UmbraSync.Services.AutoDetect;
 
@@ -80,22 +81,78 @@ public sealed class SyncshellDiscoveryService : IHostedService, IMediatorSubscri
     {
         try
         {
-            var request = new SyncshellDiscoveryVisibilityRequestDto
+            // Pre‑serialize log of the intent (raw inputs from UI)
+            _logger.LogInformation(
+                "[AutoDetect][CLIENT] SetVisibility gid={gid} visible={visible} duration={duration} weekdays=[{weekdays}] start={start} end={end} tz={tz}",
+                gid,
+                visible,
+                displayDurationHours,
+                activeWeekdays == null ? string.Empty : string.Join(',', activeWeekdays),
+                timeStartLocal?.ToString(),
+                timeEndLocal?.ToString(),
+                timeZone ?? string.Empty);
+
+            // Traduire vers la nouvelle "policy" (Off / Duration / Recurring)
+            AutoDetectMode mode = visible ? AutoDetectMode.Duration : AutoDetectMode.Off;
+            int? duration = null;
+            string? startLocal = timeStartLocal.HasValue ? new DateTime(timeStartLocal.Value.Ticks, DateTimeKind.Unspecified).ToString("HH:mm", CultureInfo.InvariantCulture) : null;
+            string? endLocal = timeEndLocal.HasValue ? new DateTime(timeEndLocal.Value.Ticks, DateTimeKind.Unspecified).ToString("HH:mm", CultureInfo.InvariantCulture) : null;
+
+            // Récurrent valide seulement si: au moins un jour, start/end non vides et différents, tz non vide
+            bool canRecurring = visible
+                                && activeWeekdays != null && activeWeekdays.Length > 0
+                                && !string.IsNullOrWhiteSpace(startLocal)
+                                && !string.IsNullOrWhiteSpace(endLocal)
+                                && !string.Equals(startLocal, endLocal, StringComparison.Ordinal)
+                                && !string.IsNullOrWhiteSpace(timeZone);
+            if (canRecurring)
+            {
+                mode = AutoDetectMode.Recurring;
+            }
+            else if (visible && displayDurationHours.HasValue)
+            {
+                // Ponctuel
+                duration = Math.Clamp(displayDurationHours.Value, 1, 240);
+            }
+
+            var policy = new SyncshellDiscoverySetPolicyRequestDto
             {
                 GID = gid,
-                AutoDetectVisible = visible,
-                DisplayDurationHours = displayDurationHours,
-                ActiveWeekdays = activeWeekdays,
-                TimeStartLocal = timeStartLocal.HasValue ? new DateTime(timeStartLocal.Value.Ticks, DateTimeKind.Unspecified).ToString("HH:mm", CultureInfo.InvariantCulture) : null,
-                TimeEndLocal = timeEndLocal.HasValue ? new DateTime(timeEndLocal.Value.Ticks, DateTimeKind.Unspecified).ToString("HH:mm", CultureInfo.InvariantCulture) : null,
-                TimeZone = timeZone,
+                Mode = mode,
+                DisplayDurationHours = mode == AutoDetectMode.Duration ? duration : null,
+                ActiveWeekdays = mode == AutoDetectMode.Recurring ? activeWeekdays : null,
+                TimeStartLocal = mode == AutoDetectMode.Recurring ? startLocal : null,
+                TimeEndLocal = mode == AutoDetectMode.Recurring ? endLocal : null,
+                TimeZone = mode == AutoDetectMode.Recurring ? timeZone : null,
             };
-            var success = await _apiController.SyncshellDiscoverySetVisibility(request).ConfigureAwait(false);
+
+            // Log du payload effectivement envoyé au serveur (policy)
+            _logger.LogInformation(
+                "[AutoDetect][CLIENT] Payload(SetPolicy) gid={gid} mode={mode} duration={duration} weekdays=[{weekdays}] startLocal={start} endLocal={end} tz={tz}",
+                policy.GID,
+                policy.Mode,
+                policy.DisplayDurationHours,
+                policy.ActiveWeekdays == null ? string.Empty : string.Join(',', policy.ActiveWeekdays),
+                policy.TimeStartLocal ?? string.Empty,
+                policy.TimeEndLocal ?? string.Empty,
+                policy.TimeZone ?? string.Empty);
+
+            var success = await _apiController.SyncshellDiscoverySetPolicy(policy).ConfigureAwait(false);
             if (!success) return false;
 
             var state = await GetStateAsync(gid, ct).ConfigureAwait(false);
             if (state != null)
             {
+                _logger.LogInformation(
+                    "[AutoDetect][CLIENT] StateAfterSet gid={gid} visible={visible} pwdTmpDisabled={pwd} duration={duration} weekdays=[{weekdays}] startLocal={start} endLocal={end} tz={tz}",
+                    state.GID,
+                    state.AutoDetectVisible,
+                    state.PasswordTemporarilyDisabled,
+                    state.DisplayDurationHours,
+                    state.ActiveWeekdays == null ? string.Empty : string.Join(',', state.ActiveWeekdays),
+                    state.TimeStartLocal ?? string.Empty,
+                    state.TimeEndLocal ?? string.Empty,
+                    state.TimeZone ?? string.Empty);
                 _mediator.Publish(new SyncshellAutoDetectStateChanged(state.GID, state.AutoDetectVisible, state.PasswordTemporarilyDisabled));
             }
 

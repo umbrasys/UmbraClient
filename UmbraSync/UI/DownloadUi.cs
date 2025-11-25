@@ -161,21 +161,130 @@ public class DownloadUi : WindowMediatorSubscriberBase
                 var dlBarStart = new Vector2(screenPos.X - dlBarWidth / 2f, screenPos.Y - dlBarHeight / 2f);
                 var dlBarEnd = new Vector2(screenPos.X + dlBarWidth / 2f, screenPos.Y + dlBarHeight / 2f);
                 var drawList = ImGui.GetBackgroundDrawList();
+
+                // Make the bar pill-shaped by using large rounding (half the height)
+                var barRounding = dlBarHeight / 2f;
+
+                // Outer shadow
                 drawList.AddRectFilled(
                     dlBarStart with { X = dlBarStart.X - dlBarBorder - 1, Y = dlBarStart.Y - dlBarBorder - 1 },
                     dlBarEnd with { X = dlBarEnd.X + dlBarBorder + 1, Y = dlBarEnd.Y + dlBarBorder + 1 },
-                    UiSharedService.Color(0, 0, 0, transparency), 1);
-                drawList.AddRectFilled(dlBarStart with { X = dlBarStart.X - dlBarBorder, Y = dlBarStart.Y - dlBarBorder },
-                    dlBarEnd with { X = dlBarEnd.X + dlBarBorder, Y = dlBarEnd.Y + dlBarBorder },
-                    UiSharedService.Color(230, 200, 255, transparency), 1);
-                drawList.AddRectFilled(dlBarStart, dlBarEnd,
-                    UiSharedService.Color(0, 0, 0, transparency), 1);
+                    UiSharedService.Color(0, 0, 0, transparency), barRounding + dlBarBorder + 1);
+
+                // Border
+                drawList.AddRectFilled(
+                    dlBarStart with { X = dlBarStart.X - dlBarBorder, Y = dlBarStart.Y - dlBarBorder },
+                    dlBarEnd   with { X = dlBarEnd.X   + dlBarBorder, Y = dlBarEnd.Y   + dlBarBorder },
+                    UiSharedService.Color(60, 50, 70, transparency), barRounding + dlBarBorder);
+
+                // Track background
+                drawList.AddRectFilled(
+                    dlBarStart, dlBarEnd,
+                    UiSharedService.Color(25, 22, 28, transparency), barRounding);
                 var dlProgressPercent = displayTotalBytes == 0
                     ? 0
                     : Math.Min(transferredBytes / (double)displayTotalBytes, 1);
-                drawList.AddRectFilled(dlBarStart,
-                    dlBarEnd with { X = dlBarStart.X + (float)(dlProgressPercent * dlBarWidth) },
-                    UiSharedService.Color(160, 64, 255, transparency), 1);
+                // Filled progress with a left-to-right purple gradient
+                var progressEndX = dlBarStart.X + (float)(dlProgressPercent * dlBarWidth);
+                var progressEnd = dlBarEnd with { X = progressEndX };
+
+                // Clamp rounding for very small widths to keep a proper capsule look
+                var progressWidth = Math.Max(0.001f, progressEndX - dlBarStart.X);
+                var progressRounding = Math.Min(barRounding, progressWidth / 2f);
+
+                // Gradient colors inspired by the mockup
+                // Dynamic tint based on a gentle breathing, to add life without distraction
+                var t = (float)(Math.Sin(ImGui.GetTime() * 0.8f) * 0.5 + 0.5); // 0..1
+                byte Lerp(byte a, byte b, float tt) => (byte)(a + (b - a) * tt);
+                var leftColor  = UiSharedService.Color(Lerp(88, 96, t),  Lerp(66, 74, t),  Lerp(124, 130, t), transparency);   // dark purple (breathing)
+                var rightColor = UiSharedService.Color(Lerp(168, 186, t), Lerp(120, 130, t), Lerp(210, 220, t), transparency);  // light purple (breathing)
+
+                // If API supports multi-color fill, use it; otherwise fall back to solid fill on the leftColor
+                try
+                {
+                    // ImDrawList.AddRectFilledMultiColor exists in ImGui.NET/Dalamud (no rounding overload)
+                    drawList.AddRectFilledMultiColor(
+                        dlBarStart,
+                        progressEnd,
+                        leftColor,  // top-left
+                        rightColor, // top-right
+                        rightColor, // bottom-right
+                        leftColor   // bottom-left
+                    );
+                }
+                catch
+                {
+                    drawList.AddRectFilled(dlBarStart, progressEnd, leftColor, progressRounding);
+                }
+
+                // Subtle top gloss over the entire bar (very low alpha)
+                // We draw it after the fill so it overlays both unfilled track and filled part.
+                var glossTop    = dlBarStart;
+                var glossBottom = dlBarStart with { Y = dlBarStart.Y + dlBarHeight * 0.55f };
+                var glossAlphaTop = 22;   // faint white
+                var glossAlphaMid = 8;
+                var glossAlphaBot = 0;
+                try
+                {
+                    drawList.AddRectFilledMultiColor(
+                        glossTop,
+                        glossBottom,
+                        UiSharedService.Color(255, 255, 255, (byte)glossAlphaTop),
+                        UiSharedService.Color(255, 255, 255, (byte)glossAlphaTop),
+                        UiSharedService.Color(255, 255, 255, (byte)glossAlphaBot),
+                        UiSharedService.Color(255, 255, 255, (byte)glossAlphaBot)
+                    );
+                }
+                catch
+                {
+                    // Fallback: simple translucent strip
+                    drawList.AddRectFilled(glossTop, glossBottom, UiSharedService.Color(255, 255, 255, (byte)glossAlphaMid), barRounding);
+                }
+
+                // Light shimmer sweep across the filled portion
+                if (progressWidth > 6f)
+                {
+                    var time = (float)ImGui.GetTime();
+                    var sweepWidth = Math.Max(12f, dlBarWidth * 0.15f);
+                    var sweepSpeed = Math.Max(30f, dlBarWidth * 0.8f); // px per second
+                    var sweepOffset = (time * sweepSpeed) % (progressWidth + sweepWidth);
+                    var sweepStartX = dlBarStart.X + sweepOffset - sweepWidth;
+                    var sweepEndX = sweepStartX + sweepWidth;
+
+                    // Clamp sweep within the filled region
+                    sweepStartX = MathF.Max(sweepStartX, dlBarStart.X);
+                    sweepEndX   = MathF.Min(sweepEndX, progressEndX);
+                    if (sweepEndX > sweepStartX + 2f)
+                    {
+                        var sweepStart = new Vector2(sweepStartX, dlBarStart.Y + 1);
+                        var sweepEnd   = new Vector2(sweepEndX,   dlBarEnd.Y   - 1);
+                        var edge = UiSharedService.Color(255, 255, 255, 18);
+                        var mid  = UiSharedService.Color(255, 255, 255, 38);
+                        // draw: edge -> mid -> edge by using two quads
+                        var midX = (sweepStartX + sweepEndX) / 2f;
+                        try
+                        {
+                            // left half
+                            drawList.AddRectFilledMultiColor(
+                                sweepStart,
+                                new Vector2(midX, sweepEnd.Y),
+                                edge, edge, // TL, TR
+                                mid,  mid   // BR, BL
+                            );
+                            // right half
+                            drawList.AddRectFilledMultiColor(
+                                new Vector2(midX, sweepStart.Y),
+                                sweepEnd,
+                                mid,  mid, // TL, TR
+                                edge, edge // BR, BL
+                            );
+                        }
+                        catch
+                        {
+                            drawList.AddRectFilled(sweepStart, sweepEnd, UiSharedService.Color(255, 255, 255, 24), progressRounding);
+                        }
+                    }
+                }
 
                 if (_configService.Current.TransferBarsShowText)
                 {
@@ -184,6 +293,24 @@ public class DownloadUi : WindowMediatorSubscriberBase
                         screenPos with { X = screenPos.X - textSize.X / 2f - 1, Y = screenPos.Y - textSize.Y / 2f - 1 },
                         UiSharedService.Color(255, 255, 255, transparency),
                         UiSharedService.Color(0, 0, 0, transparency), 1);
+                }
+
+                // Small celebratory spark when the bar reaches full
+                if (dlProgressPercent >= 1.0 - double.Epsilon)
+                {
+                    var time = (float)ImGui.GetTime();
+                    // two tiny orbs orbiting the right cap for a brief moment
+                    var centerX = progressEndX - 2f;
+                    var centerY = (dlBarStart.Y + dlBarEnd.Y) / 2f;
+                    var radius = Math.Min(5f, dlBarHeight * 0.25f);
+                    var orbR = Math.Min(3f, dlBarHeight * 0.18f);
+                    var a = time * 6.0f;
+                    var off1 = new Vector2(MathF.Cos(a) * radius, MathF.Sin(a) * (radius * 0.5f));
+                    var off2 = new Vector2(MathF.Cos(a + 2.1f) * (radius * 0.6f), MathF.Sin(a + 2.1f) * (radius * 0.3f));
+                    var glow1 = UiSharedService.Color(255, 240, 200, 120);
+                    var glow2 = UiSharedService.Color(255, 220, 255, 95);
+                    drawList.AddCircleFilled(new Vector2(centerX, centerY) + off1, orbR, glow1);
+                    drawList.AddCircleFilled(new Vector2(centerX, centerY) + off2, orbR * 0.85f, glow2);
                 }
             }
 

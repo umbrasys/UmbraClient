@@ -380,22 +380,26 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
                     }
                 }
             }
+            var settingsTabLabel = Loc.Get("CharaDataHub.Tab.Settings");
+            if (string.IsNullOrWhiteSpace(settingsTabLabel))
+            {
+                settingsTabLabel = "Settings";
+            }
+
+            using (var settingsTabItem = ImRaii.TabItem(settingsTabLabel))
+            {
+                if (settingsTabItem)
+                {
+                    using var id = ImRaii.PushId("settings");
+                    DrawSettings();
+                }
+            }
         }
 
         if (_isHandlingSelf)
         {
             UiSharedService.AttachToolTip(Loc.Get("CharaDataHub.CreationDisabledTooltip"));
         }
-
-        using (var settingsTabItem = ImRaii.TabItem(Loc.Get("CharaDataHub.Tab.Settings")))
-        {
-            if (settingsTabItem)
-            {
-                using var id = ImRaii.PushId("settings");
-                DrawSettings();
-            }
-        }
-
 
         SetWindowSizeConstraints(smallUi);
     }
