@@ -227,6 +227,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddHostedService(p => p.GetRequiredService<MareMediator>());
             collection.AddHostedService(p => p.GetRequiredService<NotificationService>());
             collection.AddHostedService(p => p.GetRequiredService<TemporarySyncshellNotificationService>());
+            collection.AddSingleton<UmbraSync.Services.AutoDetect.PermanentSyncshellAutoDetectMonitor>();
             collection.AddHostedService(p => p.GetRequiredService<FileCacheManager>());
             collection.AddHostedService(p => p.GetRequiredService<ConfigurationMigrator>());
             collection.AddHostedService(p => p.GetRequiredService<DalamudUtilService>());
@@ -237,6 +238,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddHostedService(p => p.GetRequiredService<IpcProvider>());
             collection.AddHostedService(p => p.GetRequiredService<UmbraSync.Services.AutoDetect.NearbyDiscoveryService>());
             collection.AddHostedService(p => p.GetRequiredService<UmbraSync.Services.AutoDetect.SyncshellDiscoveryService>());
+            collection.AddHostedService(p => p.GetRequiredService<UmbraSync.Services.AutoDetect.PermanentSyncshellAutoDetectMonitor>());
             collection.AddHostedService(p => p.GetRequiredService<ChatTwoCompatibilityService>());
             collection.AddHostedService(p => p.GetRequiredService<UmbraSync.Services.AutoDetect.AutoDetectSuppressionService>());
         })

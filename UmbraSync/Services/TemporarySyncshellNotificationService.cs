@@ -128,6 +128,16 @@ public sealed class TemporarySyncshellNotificationService : MediatorSubscriberBa
 
                 if (remaining <= TimeSpan.Zero)
                 {
+                    // Expiration reached: notify that the syncshell is no longer publicly visible
+                    try
+                    {
+                        Mediator.Publish(new SyncshellAutoDetectStateChanged(gid, false, false));
+                    }
+                    catch
+                    {
+                        // ignore publish failures
+                    }
+
                     _trackedGroups.Remove(gid);
                     expiredGroups.Add(group);
                     continue;

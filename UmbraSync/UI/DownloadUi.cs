@@ -185,7 +185,9 @@ public class DownloadUi : WindowMediatorSubscriberBase
                     ? 0
                     : Math.Min(transferredBytes / (double)displayTotalBytes, 1);
                 // Filled progress with a left-to-right purple gradient
-                var progressEndX = dlBarStart.X + (float)(dlProgressPercent * dlBarWidth);
+                var progressEndXRaw = dlBarStart.X + (float)(dlProgressPercent * dlBarWidth);
+                static float SnapPx(float x) => MathF.Floor(x) + 0.5f; // align on pixel grid to avoid seams
+                var progressEndX = SnapPx(MathF.Min(progressEndXRaw, dlBarEnd.X));
                 var progressEnd = dlBarEnd with { X = progressEndX };
 
                 // Clamp rounding for very small widths to keep a proper capsule look
@@ -194,27 +196,65 @@ public class DownloadUi : WindowMediatorSubscriberBase
 
                 // Gradient colors inspired by the mockup
                 // Dynamic tint based on a gentle breathing, to add life without distraction
-                var t = (float)(Math.Sin(ImGui.GetTime() * 0.8f) * 0.5 + 0.5); // 0..1
+                // Réduction de l'animation « breathing » pour stabiliser la perception du dégradé
+                var t = (float)(Math.Sin(ImGui.GetTime() * 0.8f) * 0.1 + 0.5); // amplitude ±0.1 autour de 0.5
                 byte Lerp(byte a, byte b, float tt) => (byte)(a + (b - a) * tt);
                 var leftColor  = UiSharedService.Color(Lerp(88, 96, t),  Lerp(66, 74, t),  Lerp(124, 130, t), transparency);   // dark purple (breathing)
                 var rightColor = UiSharedService.Color(Lerp(168, 186, t), Lerp(120, 130, t), Lerp(210, 220, t), transparency);  // light purple (breathing)
-
-                // If API supports multi-color fill, use it; otherwise fall back to solid fill on the leftColor
-                try
-                {
-                    // ImDrawList.AddRectFilledMultiColor exists in ImGui.NET/Dalamud (no rounding overload)
-                    drawList.AddRectFilledMultiColor(
-                        dlBarStart,
-                        progressEnd,
-                        leftColor,  // top-left
-                        rightColor, // top-right
-                        rightColor, // bottom-right
-                        leftColor   // bottom-left
-                    );
-                }
-                catch
+                if (progressWidth <= 1.5f)
                 {
                     drawList.AddRectFilled(dlBarStart, progressEnd, leftColor, progressRounding);
+                }
+                else
+                {
+
+                    drawList.AddRectFilled(dlBarStart, progressEnd, leftColor, progressRounding);
+
+                    var inset = 0.6f; // léger retrait pour éviter tout liseré; ajusté pour réduire les artefacts
+                    var insetStart = new Vector2(SnapPx(dlBarStart.X + inset), dlBarStart.Y + inset);
+                    var insetEnd   = new Vector2(SnapPx(progressEndX - inset), dlBarEnd.Y - inset);
+
+                    if (insetEnd.X > insetStart.X + 0.5f && insetEnd.Y > insetStart.Y + 0.5f)
+                    {
+                        drawList.PushClipRect(dlBarStart, progressEnd, true);
+                        try
+                        {
+                            drawList.AddRectFilledMultiColor(
+                                insetStart,
+                                insetEnd,
+                                leftColor, 
+                                rightColor,
+                                rightColor, 
+                                leftColor  
+                            );
+                        }
+                        catch
+                        {
+                            // Fallback ultra-simple: bandeau vertical en 1 px aligné sur la grille
+                            // (au cas où l'API n'existerait pas sur un runtime spécifique)
+                            static float Snap(float x) => MathF.Floor(x) + 0.5f;
+                            var width = insetEnd.X - insetStart.X;
+                            var x = insetStart.X;
+                            while (x < insetEnd.X)
+                            {
+                                var next = MathF.Min(x + 1f, insetEnd.X);
+                                var mx = (Snap(x) + Snap(next)) * 0.5f;
+                                var k = Math.Clamp((mx - insetStart.X) / Math.Max(1e-3f, width), 0f, 1f);
+                                byte L(byte a, byte b, float kk) => (byte)(a + (b - a) * kk);
+                                var col = UiSharedService.Color(
+                                    L((byte)((leftColor >> 0) & 0xFF),  (byte)((rightColor >> 0) & 0xFF),  k),
+                                    L((byte)((leftColor >> 8) & 0xFF),  (byte)((rightColor >> 8) & 0xFF),  k),
+                                    L((byte)((leftColor >> 16) & 0xFF), (byte)((rightColor >> 16) & 0xFF), k),
+                                    (byte)transparency);
+                                drawList.AddRectFilled(new Vector2(x, insetStart.Y), new Vector2(next, insetEnd.Y), col);
+                                x = next;
+                            }
+                        }
+                        finally
+                        {
+                            drawList.PopClipRect();
+                        }
+                    }
                 }
 
                 // Subtle top gloss over the entire bar (very low alpha)
@@ -262,31 +302,47 @@ public class DownloadUi : WindowMediatorSubscriberBase
                         var mid  = UiSharedService.Color(255, 255, 255, 38);
                         // draw: edge -> mid -> edge by using two quads
                         var midX = (sweepStartX + sweepEndX) / 2f;
+                        // Clip le shimmer à la zone de progression
+                        drawList.PushClipRect(dlBarStart, progressEnd, true);
                         try
                         {
-                            // left half
-                            drawList.AddRectFilledMultiColor(
-                                sweepStart,
-                                new Vector2(midX, sweepEnd.Y),
-                                edge, edge, // TL, TR
-                                mid,  mid   // BR, BL
-                            );
-                            // right half
-                            drawList.AddRectFilledMultiColor(
-                                new Vector2(midX, sweepStart.Y),
-                                sweepEnd,
-                                mid,  mid, // TL, TR
-                                edge, edge // BR, BL
-                            );
+                            // Nouveau shimmer sans couture: superposition de 3 bandes centrées, aux alphas progressifs
+                            // 1) Base douce sur toute la largeur
+                            drawList.AddRectFilled(sweepStart, sweepEnd, UiSharedService.Color(255, 255, 255, 16), 0f);
+
+                            // 2) Bande médiane (50% de la largeur), un peu plus opaque
+                            var midWidth = (sweepEndX - sweepStartX) * 0.5f;
+                            var midStartX = SnapPx(((sweepStartX + sweepEndX) * 0.5f) - midWidth * 0.5f);
+                            var midEndX   = SnapPx(midStartX + midWidth);
+                            if (midEndX > midStartX + 1f)
+                            {
+                                drawList.AddRectFilled(new Vector2(midStartX, sweepStart.Y), new Vector2(midEndX, sweepEnd.Y), UiSharedService.Color(255, 255, 255, 28), 0f);
+                            }
+
+                            // 3) Cœur fin (20% de la largeur), le plus lumineux
+                            var coreWidth = (sweepEndX - sweepStartX) * 0.2f;
+                            var coreStartX = SnapPx(((sweepStartX + sweepEndX) * 0.5f) - coreWidth * 0.5f);
+                            var coreEndX   = SnapPx(coreStartX + coreWidth);
+                            if (coreEndX > coreStartX + 1f)
+                            {
+                                drawList.AddRectFilled(new Vector2(coreStartX, sweepStart.Y), new Vector2(coreEndX, sweepEnd.Y), UiSharedService.Color(255, 255, 255, 44), 0f);
+                            }
                         }
                         catch
                         {
-                            drawList.AddRectFilled(sweepStart, sweepEnd, UiSharedService.Color(255, 255, 255, 24), progressRounding);
+                            // Fallback simple: bande unique si MultiColor indisponible (peu probable)
+                            drawList.AddRectFilled(sweepStart, sweepEnd, UiSharedService.Color(255, 255, 255, 22), 0f);
+                        }
+                        finally
+                        {
+                            drawList.PopClipRect();
                         }
                     }
                 }
 
-                if (_configService.Current.TransferBarsShowText)
+                // Affichage du texte seulement avant 100 %. À 100 %, on affiche un "spark" centré et on masque le texte.
+                var showProgressText = _configService.Current.TransferBarsShowText && dlProgressPercent < 1.0 - double.Epsilon;
+                if (showProgressText)
                 {
                     var downloadText = $"{UiSharedService.ByteToString(transferredBytes, addSuffix: false)}/{UiSharedService.ByteToString(displayTotalBytes)}";
                     UiSharedService.DrawOutlinedFont(drawList, downloadText,
@@ -295,22 +351,19 @@ public class DownloadUi : WindowMediatorSubscriberBase
                         UiSharedService.Color(0, 0, 0, transparency), 1);
                 }
 
-                // Small celebratory spark when the bar reaches full
+                // Spark centré lorsque la barre atteint 100 % (texte masqué à ce moment-là)
                 if (dlProgressPercent >= 1.0 - double.Epsilon)
                 {
                     var time = (float)ImGui.GetTime();
-                    // two tiny orbs orbiting the right cap for a brief moment
-                    var centerX = progressEndX - 2f;
-                    var centerY = (dlBarStart.Y + dlBarEnd.Y) / 2f;
-                    var radius = Math.Min(5f, dlBarHeight * 0.25f);
-                    var orbR = Math.Min(3f, dlBarHeight * 0.18f);
-                    var a = time * 6.0f;
-                    var off1 = new Vector2(MathF.Cos(a) * radius, MathF.Sin(a) * (radius * 0.5f));
-                    var off2 = new Vector2(MathF.Cos(a + 2.1f) * (radius * 0.6f), MathF.Sin(a + 2.1f) * (radius * 0.3f));
-                    var glow1 = UiSharedService.Color(255, 240, 200, 120);
-                    var glow2 = UiSharedService.Color(255, 220, 255, 95);
-                    drawList.AddCircleFilled(new Vector2(centerX, centerY) + off1, orbR, glow1);
-                    drawList.AddCircleFilled(new Vector2(centerX, centerY) + off2, orbR * 0.85f, glow2);
+                    // Spark doux et centré (pulse) pendant un court instant
+                    var center = new Vector2((dlBarStart.X + dlBarEnd.X) / 2f, (dlBarStart.Y + dlBarEnd.Y) / 2f);
+                    var pulse = (MathF.Sin(time * 6.0f) * 0.5f + 0.5f); // 0..1
+                    var baseR = Math.Min(4f, dlBarHeight * 0.22f);
+                    var outerR = baseR + 2f + pulse * 2f;
+                    var colInner = UiSharedService.Color(255, 245, 220, 170);
+                    var colOuter = UiSharedService.Color(200, 160, 255, 75);
+                    drawList.AddCircleFilled(center, baseR + pulse, colInner);
+                    drawList.AddCircle(center, outerR, colOuter, 48, 2f);
                 }
             }
 

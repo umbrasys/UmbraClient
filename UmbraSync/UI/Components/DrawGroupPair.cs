@@ -435,12 +435,14 @@ public class DrawGroupPair : DrawPairBase
             ImGui.SetCursorPosY(originalY);
             if (_uiSharedService.IconButtonCentered(FontAwesomeIcon.Bars))
             {
+                // Use a consistent popup ID between OpenPopup and BeginPopup
                 ImGui.OpenPopup("Syncshell Flyout Menu");
             }
             currentX += barButtonWidth;
             ImGui.SetCursorPosX(currentX);
         }
-        if (ImGui.BeginPopup("Popup"))
+        // Must match the ID used in OpenPopup above
+        if (ImGui.BeginPopup("Syncshell Flyout Menu"))
         {
             if ((userIsModerator || userIsOwner) && !(entryIsMod || entryIsOwner))
             {

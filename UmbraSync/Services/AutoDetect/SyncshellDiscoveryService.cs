@@ -137,7 +137,46 @@ public sealed class SyncshellDiscoveryService : IHostedService, IMediatorSubscri
                 policy.TimeEndLocal ?? string.Empty,
                 policy.TimeZone ?? string.Empty);
 
-            var success = await _apiController.SyncshellDiscoverySetPolicy(policy).ConfigureAwait(false);
+            bool success;
+            try
+            {
+                success = await _apiController.SyncshellDiscoverySetPolicy(policy).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                var isMissing = ex.Message?.IndexOf("Method does not exist", StringComparison.OrdinalIgnoreCase) >= 0
+                                || ex.GetType().Name.IndexOf("HubException", StringComparison.OrdinalIgnoreCase) >= 0;
+                if (!isMissing)
+                {
+                    _logger.LogWarning(ex, "[AutoDetect][CLIENT] SetPolicy failed for {gid}", gid);
+                    return false;
+                }
+
+                _logger.LogWarning(ex, "[AutoDetect][CLIENT] SetPolicy unavailable on server, falling back to legacy SetVisibility");
+
+                var legacyRequest = new SyncshellDiscoveryVisibilityRequestDto
+                {
+                    GID = gid,
+                    AutoDetectVisible = visible,
+                    DisplayDurationHours = mode == AutoDetectMode.Duration ? duration : displayDurationHours,
+                    ActiveWeekdays = mode == AutoDetectMode.Recurring ? activeWeekdays : null,
+                    TimeStartLocal = mode == AutoDetectMode.Recurring ? startLocal : null,
+                    TimeEndLocal = mode == AutoDetectMode.Recurring ? endLocal : null,
+                    TimeZone = mode == AutoDetectMode.Recurring ? timeZone : null,
+                };
+
+                _logger.LogInformation(
+                    "[AutoDetect][CLIENT] Payload(SetVisibility-compat) gid={gid} visible={visible} duration={duration} weekdays=[{weekdays}] startLocal={start} endLocal={end} tz={tz}",
+                    legacyRequest.GID,
+                    legacyRequest.AutoDetectVisible,
+                    legacyRequest.DisplayDurationHours,
+                    legacyRequest.ActiveWeekdays == null ? string.Empty : string.Join(',', legacyRequest.ActiveWeekdays),
+                    legacyRequest.TimeStartLocal ?? string.Empty,
+                    legacyRequest.TimeEndLocal ?? string.Empty,
+                    legacyRequest.TimeZone ?? string.Empty);
+
+                success = await _apiController.SyncshellDiscoverySetVisibility(legacyRequest).ConfigureAwait(false);
+            }
             if (!success) return false;
 
             var state = await GetStateAsync(gid, ct).ConfigureAwait(false);
