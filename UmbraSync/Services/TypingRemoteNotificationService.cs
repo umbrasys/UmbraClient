@@ -36,7 +36,8 @@ public sealed class TypingRemoteNotificationService
                     try
                     {
                         _logger.LogDebug("TypingRemote: send typing=true scope={scope}", scope);
-                        await _apiController.UserSetTypingState(true).ConfigureAwait(false);
+                        // Prefer scoped API; ApiController will fall back to legacy if server doesn't support scope
+                        await _apiController.UserSetTypingState(true, scope).ConfigureAwait(false);
                     }
                     catch (Exception ex) { _logger.LogDebug(ex, "TypingRemote: failed to send typing=true"); }
                 });
@@ -56,7 +57,7 @@ public sealed class TypingRemoteNotificationService
                 {
                     await Task.Delay(TypingIdle, token).ConfigureAwait(false);
                     _logger.LogDebug("TypingRemote: send typing=false scope={scope}", _lastScope);
-                    await _apiController.UserSetTypingState(false).ConfigureAwait(false);
+                    await _apiController.UserSetTypingState(false, _lastScope).ConfigureAwait(false);
                 }
                 catch (TaskCanceledException)
                 {
@@ -93,7 +94,8 @@ public sealed class TypingRemoteNotificationService
                     try
                     {
                         _logger.LogDebug("TypingRemote: clear typing state scope={scope}", _lastScope);
-                        await _apiController.UserSetTypingState(false).ConfigureAwait(false);
+                        // Prefer scoped API; ApiController will fall back to legacy if server doesn't support scope
+                        await _apiController.UserSetTypingState(false, _lastScope).ConfigureAwait(false);
                     }
                     catch (Exception ex) { _logger.LogDebug(ex, "TypingRemote: failed to clear typing state"); }
                 });
