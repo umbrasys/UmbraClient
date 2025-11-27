@@ -16,7 +16,6 @@ namespace UmbraSync.Services;
 public sealed class CommandManagerService : IDisposable
 {
     private const string _commandName = "/usync";
-    private const string _autoDetectCommand = "/autodetect";
     private const string _ssCommandPrefix = "/ums";
 
     private readonly ApiController _apiController;
@@ -44,12 +43,6 @@ public sealed class CommandManagerService : IDisposable
         {
             HelpMessage = "Opens the UmbraSync UI"
         });
-
-        _commandManager.AddHandler(_autoDetectCommand, new CommandInfo(OnAutoDetectCommand)
-        {
-            HelpMessage = "Opens the AutoDetect window"
-        });
-
         // Lazy registration of all possible /ss# commands which tbf is what the game does for linkshells anyway
         for (int i = 1; i <= ChatService.CommandMaxNumber; ++i)
         {
@@ -63,18 +56,9 @@ public sealed class CommandManagerService : IDisposable
     public void Dispose()
     {
         _commandManager.RemoveHandler(_commandName);
-        _commandManager.RemoveHandler(_autoDetectCommand);
 
         for (int i = 1; i <= ChatService.CommandMaxNumber; ++i)
             _commandManager.RemoveHandler($"{_ssCommandPrefix}{i}");
-    }
-
-    private void OnAutoDetectCommand(string command, string args)
-    {
-        UiSharedService.AccentColor = new Vector4(0x8D / 255f, 0x37 / 255f, 0xC0 / 255f, 1f);
-        UiSharedService.AccentHoverColor = new Vector4(0x3A / 255f, 0x15 / 255f, 0x50 / 255f, 1f);
-        UiSharedService.AccentActiveColor = UiSharedService.AccentHoverColor;
-        _mediator.Publish(new UiToggleMessage(typeof(AutoDetectUi)));
     }
 
 

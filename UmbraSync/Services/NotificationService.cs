@@ -191,14 +191,7 @@ public class NotificationService : DisposableMediatorSubscriberBase, IHostedServ
 
     private static string AppendAutoDetectInstruction(string? message)
     {
-        const string suffix = " | Ouvrez /autodetect pour gérer l'invitation.";
-        if (string.IsNullOrWhiteSpace(message))
-            return suffix.TrimStart(' ', '|');
-
-        if (message.Contains("/autodetect", StringComparison.OrdinalIgnoreCase))
-            return message;
-
-        return message.TrimEnd() + suffix;
+        return message ?? string.Empty;
     }
 
     private void ShowNotificationLocationBased(NotificationMessage msg, NotificationLocation location, bool forceChat)

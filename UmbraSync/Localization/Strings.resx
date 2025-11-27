@@ -56,6 +56,36 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <!-- Permissions tooltips for group pairs (missing previously, caused raw key display) -->
+  <data name="GroupPair.Permissions.Header" xml:space="preserve">
+    <value>Per-pair restrictions</value>
+  </data>
+  <data name="GroupPair.Permissions.SoundDisabled" xml:space="preserve">
+    <value>{0} disabled sounds for this pair.</value>
+  </data>
+  <data name="GroupPair.Permissions.AnimDisabled" xml:space="preserve">
+    <value>{0} disabled animations for this pair.</value>
+  </data>
+  <data name="GroupPair.Permissions.VfxDisabled" xml:space="preserve">
+    <value>{0} disabled visual effects for this pair.</value>
+  </data>
+  <data name="GroupPair.Permissions.StatusLine" xml:space="preserve">
+    <value>You: {0} • Them: {1}</value>
+  </data>
+
+  <!-- Permissions tooltips for syncshell-level restrictions -->
+  <data name="GroupPair.SyncshellPermissions.Header" xml:space="preserve">
+    <value>Syncshell restrictions</value>
+  </data>
+  <data name="GroupPair.SyncshellPermissions.SoundDisabled" xml:space="preserve">
+    <value>The syncshell disabled sounds for everyone.</value>
+  </data>
+  <data name="GroupPair.SyncshellPermissions.AnimDisabled" xml:space="preserve">
+    <value>The syncshell disabled animations for everyone.</value>
+  </data>
+  <data name="GroupPair.SyncshellPermissions.VfxDisabled" xml:space="preserve">
+    <value>The syncshell disabled visual effects for everyone.</value>
+  </data>
   <data name="CompactUi.AddCharacter.AddCurrentWithKey" xml:space="preserve">
     <value>Add current character with secret key</value>
   </data>
@@ -2793,6 +2823,9 @@ Click to change.</value>
   </data>
   <data name="GroupPair.Unknown" xml:space="preserve">
     <value>Unknown: {0}</value>
+  </data>
+  <data name="GroupPair.Offline" xml:space="preserve">
+    <value>Offline: {0}</value>
   </data>
   <data name="GroupPair.Online" xml:space="preserve">
     <value>Online: {0}</value>

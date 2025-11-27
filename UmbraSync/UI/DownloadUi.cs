@@ -175,7 +175,7 @@ public class DownloadUi : WindowMediatorSubscriberBase
                 drawList.AddRectFilled(
                     dlBarStart with { X = dlBarStart.X - dlBarBorder, Y = dlBarStart.Y - dlBarBorder },
                     dlBarEnd   with { X = dlBarEnd.X   + dlBarBorder, Y = dlBarEnd.Y   + dlBarBorder },
-                    UiSharedService.Color(60, 50, 70, transparency), barRounding + dlBarBorder);
+                    UiSharedService.Color(40, 30, 50, transparency), barRounding + dlBarBorder);
 
                 // Track background
                 drawList.AddRectFilled(
@@ -184,81 +184,22 @@ public class DownloadUi : WindowMediatorSubscriberBase
                 var dlProgressPercent = displayTotalBytes == 0
                     ? 0
                     : Math.Min(transferredBytes / (double)displayTotalBytes, 1);
-                // Filled progress with a left-to-right purple gradient
                 var progressEndXRaw = dlBarStart.X + (float)(dlProgressPercent * dlBarWidth);
                 static float SnapPx(float x) => MathF.Floor(x) + 0.5f; // align on pixel grid to avoid seams
                 var progressEndX = SnapPx(MathF.Min(progressEndXRaw, dlBarEnd.X));
-                var progressEnd = dlBarEnd with { X = progressEndX };
-
-                // Clamp rounding for very small widths to keep a proper capsule look
                 var progressWidth = Math.Max(0.001f, progressEndX - dlBarStart.X);
-                var progressRounding = Math.Min(barRounding, progressWidth / 2f);
 
-                // Gradient colors inspired by the mockup
-                // Dynamic tint based on a gentle breathing, to add life without distraction
-                // Réduction de l'animation « breathing » pour stabiliser la perception du dégradé
-                var t = (float)(Math.Sin(ImGui.GetTime() * 0.8f) * 0.1 + 0.5); // amplitude ±0.1 autour de 0.5
-                byte Lerp(byte a, byte b, float tt) => (byte)(a + (b - a) * tt);
-                var leftColor  = UiSharedService.Color(Lerp(88, 96, t),  Lerp(66, 74, t),  Lerp(124, 130, t), transparency);   // dark purple (breathing)
-                var rightColor = UiSharedService.Color(Lerp(168, 186, t), Lerp(120, 130, t), Lerp(210, 220, t), transparency);  // light purple (breathing)
-                if (progressWidth <= 1.5f)
+                var fillColor = UiSharedService.Color(96, 74, 128, transparency); // violet foncé uni
+                if (progressWidth > 0.5f)
                 {
-                    drawList.AddRectFilled(dlBarStart, progressEnd, leftColor, progressRounding);
+                    drawList.AddRectFilled(
+                        dlBarStart,
+                        new Vector2(progressEndX, dlBarEnd.Y),
+                        fillColor,
+                        barRounding,
+                        ImDrawFlags.RoundCornersAll);
                 }
-                else
-                {
-
-                    drawList.AddRectFilled(dlBarStart, progressEnd, leftColor, progressRounding);
-
-                    var inset = 0.6f; // léger retrait pour éviter tout liseré; ajusté pour réduire les artefacts
-                    var insetStart = new Vector2(SnapPx(dlBarStart.X + inset), dlBarStart.Y + inset);
-                    var insetEnd   = new Vector2(SnapPx(progressEndX - inset), dlBarEnd.Y - inset);
-
-                    if (insetEnd.X > insetStart.X + 0.5f && insetEnd.Y > insetStart.Y + 0.5f)
-                    {
-                        drawList.PushClipRect(dlBarStart, progressEnd, true);
-                        try
-                        {
-                            drawList.AddRectFilledMultiColor(
-                                insetStart,
-                                insetEnd,
-                                leftColor, 
-                                rightColor,
-                                rightColor, 
-                                leftColor  
-                            );
-                        }
-                        catch
-                        {
-                            // Fallback ultra-simple: bandeau vertical en 1 px aligné sur la grille
-                            // (au cas où l'API n'existerait pas sur un runtime spécifique)
-                            static float Snap(float x) => MathF.Floor(x) + 0.5f;
-                            var width = insetEnd.X - insetStart.X;
-                            var x = insetStart.X;
-                            while (x < insetEnd.X)
-                            {
-                                var next = MathF.Min(x + 1f, insetEnd.X);
-                                var mx = (Snap(x) + Snap(next)) * 0.5f;
-                                var k = Math.Clamp((mx - insetStart.X) / Math.Max(1e-3f, width), 0f, 1f);
-                                byte L(byte a, byte b, float kk) => (byte)(a + (b - a) * kk);
-                                var col = UiSharedService.Color(
-                                    L((byte)((leftColor >> 0) & 0xFF),  (byte)((rightColor >> 0) & 0xFF),  k),
-                                    L((byte)((leftColor >> 8) & 0xFF),  (byte)((rightColor >> 8) & 0xFF),  k),
-                                    L((byte)((leftColor >> 16) & 0xFF), (byte)((rightColor >> 16) & 0xFF), k),
-                                    (byte)transparency);
-                                drawList.AddRectFilled(new Vector2(x, insetStart.Y), new Vector2(next, insetEnd.Y), col);
-                                x = next;
-                            }
-                        }
-                        finally
-                        {
-                            drawList.PopClipRect();
-                        }
-                    }
-                }
-
-                // Subtle top gloss over the entire bar (very low alpha)
-                // We draw it after the fill so it overlays both unfilled track and filled part.
+                
                 var glossTop    = dlBarStart;
                 var glossBottom = dlBarStart with { Y = dlBarStart.Y + dlBarHeight * 0.55f };
                 var glossAlphaTop = 22;   // faint white
@@ -277,70 +218,9 @@ public class DownloadUi : WindowMediatorSubscriberBase
                 }
                 catch
                 {
-                    // Fallback: simple translucent strip
                     drawList.AddRectFilled(glossTop, glossBottom, UiSharedService.Color(255, 255, 255, (byte)glossAlphaMid), barRounding);
                 }
 
-                // Light shimmer sweep across the filled portion
-                if (progressWidth > 6f)
-                {
-                    var time = (float)ImGui.GetTime();
-                    var sweepWidth = Math.Max(12f, dlBarWidth * 0.15f);
-                    var sweepSpeed = Math.Max(30f, dlBarWidth * 0.8f); // px per second
-                    var sweepOffset = (time * sweepSpeed) % (progressWidth + sweepWidth);
-                    var sweepStartX = dlBarStart.X + sweepOffset - sweepWidth;
-                    var sweepEndX = sweepStartX + sweepWidth;
-
-                    // Clamp sweep within the filled region
-                    sweepStartX = MathF.Max(sweepStartX, dlBarStart.X);
-                    sweepEndX   = MathF.Min(sweepEndX, progressEndX);
-                    if (sweepEndX > sweepStartX + 2f)
-                    {
-                        var sweepStart = new Vector2(sweepStartX, dlBarStart.Y + 1);
-                        var sweepEnd   = new Vector2(sweepEndX,   dlBarEnd.Y   - 1);
-                        var edge = UiSharedService.Color(255, 255, 255, 18);
-                        var mid  = UiSharedService.Color(255, 255, 255, 38);
-                        // draw: edge -> mid -> edge by using two quads
-                        var midX = (sweepStartX + sweepEndX) / 2f;
-                        // Clip le shimmer à la zone de progression
-                        drawList.PushClipRect(dlBarStart, progressEnd, true);
-                        try
-                        {
-                            // Nouveau shimmer sans couture: superposition de 3 bandes centrées, aux alphas progressifs
-                            // 1) Base douce sur toute la largeur
-                            drawList.AddRectFilled(sweepStart, sweepEnd, UiSharedService.Color(255, 255, 255, 16), 0f);
-
-                            // 2) Bande médiane (50% de la largeur), un peu plus opaque
-                            var midWidth = (sweepEndX - sweepStartX) * 0.5f;
-                            var midStartX = SnapPx(((sweepStartX + sweepEndX) * 0.5f) - midWidth * 0.5f);
-                            var midEndX   = SnapPx(midStartX + midWidth);
-                            if (midEndX > midStartX + 1f)
-                            {
-                                drawList.AddRectFilled(new Vector2(midStartX, sweepStart.Y), new Vector2(midEndX, sweepEnd.Y), UiSharedService.Color(255, 255, 255, 28), 0f);
-                            }
-
-                            // 3) Cœur fin (20% de la largeur), le plus lumineux
-                            var coreWidth = (sweepEndX - sweepStartX) * 0.2f;
-                            var coreStartX = SnapPx(((sweepStartX + sweepEndX) * 0.5f) - coreWidth * 0.5f);
-                            var coreEndX   = SnapPx(coreStartX + coreWidth);
-                            if (coreEndX > coreStartX + 1f)
-                            {
-                                drawList.AddRectFilled(new Vector2(coreStartX, sweepStart.Y), new Vector2(coreEndX, sweepEnd.Y), UiSharedService.Color(255, 255, 255, 44), 0f);
-                            }
-                        }
-                        catch
-                        {
-                            // Fallback simple: bande unique si MultiColor indisponible (peu probable)
-                            drawList.AddRectFilled(sweepStart, sweepEnd, UiSharedService.Color(255, 255, 255, 22), 0f);
-                        }
-                        finally
-                        {
-                            drawList.PopClipRect();
-                        }
-                    }
-                }
-
-                // Affichage du texte seulement avant 100 %. À 100 %, on affiche un "spark" centré et on masque le texte.
                 var showProgressText = _configService.Current.TransferBarsShowText && dlProgressPercent < 1.0 - double.Epsilon;
                 if (showProgressText)
                 {
@@ -351,11 +231,9 @@ public class DownloadUi : WindowMediatorSubscriberBase
                         UiSharedService.Color(0, 0, 0, transparency), 1);
                 }
 
-                // Spark centré lorsque la barre atteint 100 % (texte masqué à ce moment-là)
                 if (dlProgressPercent >= 1.0 - double.Epsilon)
                 {
                     var time = (float)ImGui.GetTime();
-                    // Spark doux et centré (pulse) pendant un court instant
                     var center = new Vector2((dlBarStart.X + dlBarEnd.X) / 2f, (dlBarStart.Y + dlBarEnd.Y) / 2f);
                     var pulse = (MathF.Sin(time * 6.0f) * 0.5f + 0.5f); // 0..1
                     var baseR = Math.Min(4f, dlBarHeight * 0.22f);

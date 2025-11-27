@@ -171,7 +171,18 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
     {
         return new List<ChangelogEntry>
         {
-                new(new Version(0, 1, 9, 6), "0.1.9.6", new List<ChangelogLine>
+            new(new Version(2, 0, 0, 0), "2.0.0.0", new List<ChangelogLine>
+            {
+                new("Nouvelle interface graphique, plus moderne et plus lisible."),
+                new("Partage MCDF : Il vous est désormais possible de partager le MCDF de votre personnage avec d'autres utilisateurs. (Hub de données... > Data Hub > MCDF Share)"),
+                new("Il vous est maintenant possible de rendre publique votre Syncshell depuis l'interface administrateur de celle-ci."),
+                new("Optimisation du téléchargement et de la compression des données téléchargée."),
+                new ("Continuité de la traduction en français"),
+                new("Compatibilité de la bulle d'écriture avec le plugin ChatTwo"),
+                new("D'autres ajustement visuel, modérnisation du code source"),
+            }),
+            
+            new(new Version(0, 1, 9, 6), "0.1.9.6", new List<ChangelogLine>
             {
                 new("Possibilité de désactiver l'alerte self-analysis (Settings => Performance)."),
             }),

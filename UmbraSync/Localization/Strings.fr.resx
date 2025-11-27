@@ -56,6 +56,36 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <!-- Infobulles des permissions (manquantes auparavant) -->
+  <data name="GroupPair.Permissions.Header" xml:space="preserve">
+    <value>Restrictions par paire</value>
+  </data>
+  <data name="GroupPair.Permissions.SoundDisabled" xml:space="preserve">
+    <value>{0} a désactivé les sons pour cette paire.</value>
+  </data>
+  <data name="GroupPair.Permissions.AnimDisabled" xml:space="preserve">
+    <value>{0} a désactivé les animations pour cette paire.</value>
+  </data>
+  <data name="GroupPair.Permissions.VfxDisabled" xml:space="preserve">
+    <value>{0} a désactivé les effets visuels pour cette paire.</value>
+  </data>
+  <data name="GroupPair.Permissions.StatusLine" xml:space="preserve">
+    <value>Vous : {0} • Lui/Elle : {1}</value>
+  </data>
+
+  <!-- Restrictions au niveau de la Syncshell -->
+  <data name="GroupPair.SyncshellPermissions.Header" xml:space="preserve">
+    <value>Restrictions de la Syncshell</value>
+  </data>
+  <data name="GroupPair.SyncshellPermissions.SoundDisabled" xml:space="preserve">
+    <value>La Syncshell a désactivé les sons pour tout le monde.</value>
+  </data>
+  <data name="GroupPair.SyncshellPermissions.AnimDisabled" xml:space="preserve">
+    <value>La Syncshell a désactivé les animations pour tout le monde.</value>
+  </data>
+  <data name="GroupPair.SyncshellPermissions.VfxDisabled" xml:space="preserve">
+    <value>La Syncshell a désactivé les effets visuels pour tout le monde.</value>
+  </data>
   <data name="CompactUi.AddCharacter.AddCurrentWithKey" xml:space="preserve">
     <value />
   </data>
@@ -2674,6 +2704,9 @@
   </data>
   <data name="GroupPair.Unknown" xml:space="preserve">
     <value>Inconnu : {0}</value>
+  </data>
+  <data name="GroupPair.Offline" xml:space="preserve">
+    <value>Hors ligne : {0}</value>
   </data>
   <data name="GroupPair.Online" xml:space="preserve">
     <value>En ligne : {0}</value>

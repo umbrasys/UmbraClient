@@ -52,58 +52,61 @@ public class DrawGroupPair : DrawPairBase
         float width = 0f;
         float spacing = ImGui.GetStyle().ItemSpacing.X;
 
+        bool showShared = _charaDataManager.SharedWithYouData.TryGetValue(_pair.UserData, out _);
+
         var soundsDisabled = _fullInfoDto.GroupUserPermissions.IsDisableSounds();
         var animDisabled = _fullInfoDto.GroupUserPermissions.IsDisableAnimations();
         var vfxDisabled = _fullInfoDto.GroupUserPermissions.IsDisableVFX();
         var individualSoundsDisabled = (_pair.UserPair?.OwnPermissions.IsDisableSounds() ?? false) || (_pair.UserPair?.OtherPermissions.IsDisableSounds() ?? false);
         var individualAnimDisabled = (_pair.UserPair?.OwnPermissions.IsDisableAnimations() ?? false) || (_pair.UserPair?.OtherPermissions.IsDisableAnimations() ?? false);
         var individualVFXDisabled = (_pair.UserPair?.OwnPermissions.IsDisableVFX() ?? false) || (_pair.UserPair?.OtherPermissions.IsDisableVFX() ?? false);
-
         bool showInfo = individualAnimDisabled || individualSoundsDisabled || individualVFXDisabled || animDisabled || soundsDisabled || vfxDisabled;
-        bool showShared = _charaDataManager.SharedWithYouData.TryGetValue(_pair.UserData, out _);
         bool showPlus = _pair.UserPair == null && _pair.IsOnline;
 
         if (showShared)
+            width += _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Running).X + spacing * 0.5f;
+        if (showPlus)
         {
-            width += _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Running).X + spacing;
+            width += _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Plus).X + spacing * 0.5f;
         }
-
-        if (showInfo)
+        else if (showInfo)
         {
             var icon = (individualAnimDisabled || individualSoundsDisabled || individualVFXDisabled)
                 ? FontAwesomeIcon.ExclamationTriangle
                 : FontAwesomeIcon.InfoCircle;
-            width += UiSharedService.GetIconSize(icon).X + spacing;
+            width += UiSharedService.GetIconSize(icon).X + spacing * 0.5f;
         }
 
-        if (showPlus)
-        {
-            width += _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Plus).X + spacing;
-        }
-
+        // petit coussin côté droit identique à l'individuel
         width += spacing * 1.2f;
-
         return width;
     }
 
     protected override float GetLeftSideReservedWidth()
     {
+
         float spacing = ImGui.GetStyle().ItemSpacing.X;
-        float iconWidth = UiSharedService.GetIconSize(FontAwesomeIcon.Moon).X; // representative FA icon width
+        float prefixMax = MathF.Max(
+            UiSharedService.GetIconSize(FontAwesomeIcon.PauseCircle).X,
+            UiSharedService.GetIconSize(FontAwesomeIcon.Moon).X
+        );
+        float presenceMax = MathF.Max(
+            UiSharedService.GetIconSize(FontAwesomeIcon.Eye).X,
+            UiSharedService.GetIconSize(FontAwesomeIcon.CloudMoon).X
+        );
+        float roleMax = MathF.Max(
+            UiSharedService.GetIconSize(FontAwesomeIcon.Crown).X,
+            MathF.Max(
+                UiSharedService.GetIconSize(FontAwesomeIcon.UserShield).X,
+                UiSharedService.GetIconSize(FontAwesomeIcon.Thumbtack).X
+            )
+        );
+        
+        float spacePrefixPresence = spacing * 1.2f;
+        float spacePresenceRole = spacing;
+        float gapBeforeText = spacing * 0.6f;
 
-        int iconCount = 1; // presence icon (eye/moon) is always shown
-
-        bool hasPrefixIcon = _pair.IsPaused || (_pair.UserPair != null && (_pair.IsOnline || _pair.IsVisible));
-        if (hasPrefixIcon) iconCount++;
-
-        bool entryIsOwner = string.Equals(_pair.UserData.UID, _group.OwnerUID, StringComparison.Ordinal);
-        bool entryIsMod = _fullInfoDto.GroupPairStatusInfo.IsModerator();
-        bool entryIsPinned = _fullInfoDto.GroupPairStatusInfo.IsPinned();
-        bool hasRoleIcon = entryIsOwner || entryIsMod || entryIsPinned;
-        if (hasRoleIcon) iconCount++;
-
-        // total icon widths + spacing between them + a small extra gap before the text
-        float total = iconWidth * iconCount + spacing * (iconCount + 0.5f);
+        float total = prefixMax + spacePrefixPresence + presenceMax + spacePresenceRole + roleMax + gapBeforeText;
         return total;
     }
 
@@ -232,77 +235,66 @@ public class DrawGroupPair : DrawPairBase
         bool showPause = true;
 
         var spacing = ImGui.GetStyle().ItemSpacing.X;
-        var permIcon = (individualAnimDisabled || individualSoundsDisabled || individualVFXDisabled) ? FontAwesomeIcon.ExclamationTriangle
+        var permIcon = (individualAnimDisabled || individualSoundsDisabled || individualVFXDisabled)
+            ? FontAwesomeIcon.ExclamationTriangle
             : ((soundsDisabled || animDisabled || vfxDisabled) ? FontAwesomeIcon.InfoCircle : FontAwesomeIcon.None);
-        var runningIconWidth = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Running).X;
-        var infoIconWidth = showInfo && permIcon != FontAwesomeIcon.None ? UiSharedService.GetIconSize(permIcon).X : 0f;
-        var plusButtonWidth = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Plus).X;
+        float runningW = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Running).X;
+        float infoMaxW = MathF.Max(
+            UiSharedService.GetIconSize(FontAwesomeIcon.ExclamationTriangle).X,
+            UiSharedService.GetIconSize(FontAwesomeIcon.InfoCircle).X
+        );
+        float plusW = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Plus).X;
+        float combinedW = MathF.Max(plusW, infoMaxW); // Même colonne pour Plus OU Info
         var pauseIcon = _fullInfoDto.GroupUserPermissions.IsPaused() ? FontAwesomeIcon.Play : FontAwesomeIcon.Pause;
-        var pauseButtonWidth = _uiSharedService.GetIconButtonSize(pauseIcon).X;
-        var barButtonWidth = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Bars).X;
-        var rightEdgeGap = spacing * 1.2f;
-
-        float totalWidth = 0f;
-        void Accumulate(bool condition, float width)
-        {
-            if (!condition || width <= 0f) return;
-            if (totalWidth > 0f) totalWidth += spacing;
-            totalWidth += width;
-        }
-
-        Accumulate(showShared, runningIconWidth);
-        Accumulate(showInfo && infoIconWidth > 0f, infoIconWidth);
-        Accumulate(showPlus, plusButtonWidth);
-        Accumulate(showPause, pauseButtonWidth);
-        if (showBars)
-        {
-            if (totalWidth > 0f) totalWidth += spacing;
-            totalWidth += barButtonWidth;
-        }
-        if (showPause && showBars)
-        {
-            totalWidth -= spacing * 0.5f;
-            if (totalWidth < 0f) totalWidth = 0f;
-        }
+        float pauseMaxW = MathF.Max(
+            _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Pause).X,
+            _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Play).X
+        );
+        float barsW = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Bars).X;
+        float rightEdgeGap = spacing * 1.2f;
+        float totalWidth = runningW + combinedW + pauseMaxW + barsW + spacing * 3f;
 
         float cardPaddingX = UiSharedService.GetCardContentPaddingX();
         float rightMargin = cardPaddingX + 6f * ImGuiHelpers.GlobalScale;
-        float baseX = MathF.Max(ImGui.GetCursorPosX(),
-            ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - rightMargin - rightEdgeGap - totalWidth);
+        float baseX = MathF.Max(
+            ImGui.GetCursorPosX(),
+            ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - rightMargin - rightEdgeGap - totalWidth
+        );
         float currentX = baseX;
 
         ImGui.SameLine();
         ImGui.SetCursorPosX(baseX);
-
+        ImGui.SetCursorPosY(textPosY);
         if (showShared)
         {
-            ImGui.SetCursorPosY(textPosY);
             _uiSharedService.IconText(FontAwesomeIcon.Running);
-
             UiSharedService.AttachToolTip($"This user has shared {sharedData!.Count} Character Data Sets with you." + UiSharedService.TooltipSeparator
                 + "Click to open the Character Data Hub and show the entries.");
-
             if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
             {
                 _mediator.Publish(new OpenCharaDataHubWithFilterMessage(_pair.UserData));
             }
-            currentX += runningIconWidth + spacing;
-            ImGui.SetCursorPosX(currentX);
         }
-
-        if (showInfo && infoIconWidth > 0f)
+        currentX += runningW + spacing;
+        ImGui.SetCursorPosX(currentX);
+        ImGui.SetCursorPosY(originalY);
+        if (showPlus)
         {
-            bool centerWarning = permIcon == FontAwesomeIcon.ExclamationTriangle && showPause && showBars && !showShared && !showPlus;
-            if (centerWarning)
+            if (_uiSharedService.IconPlusButtonCentered())
             {
-                float barsClusterWidth = showBars ? (barButtonWidth + spacing * 0.5f) : 0f;
-                float leftAreaWidth = MathF.Max(totalWidth - pauseButtonWidth - barsClusterWidth, 0f);
-                float warningX = baseX + MathF.Max((leftAreaWidth - infoIconWidth) / 2f, 0f);
-                currentX = warningX;
-                ImGui.SetCursorPosX(currentX);
+                var targetUid = _pair.UserData.UID;
+                if (!string.IsNullOrEmpty(targetUid))
+                {
+                    _ = SendGroupPairInviteAsync(targetUid, entryUID);
+                }
             }
-
+            UiSharedService.AttachToolTip(AppendSeenInfo("Send pairing invite to " + entryUID));
+        }
+        else if (showInfo && permIcon != FontAwesomeIcon.None)
+        {
             ImGui.SetCursorPosY(textPosY);
+            float infoActualW = UiSharedService.GetIconSize(permIcon).X;
+            ImGui.SetCursorPosX(currentX + (combinedW - infoActualW));
             if (individualAnimDisabled || individualSoundsDisabled || individualVFXDisabled)
             {
                 ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudYellow);
@@ -392,55 +384,34 @@ public class DrawGroupPair : DrawPairBase
                     ImGui.EndTooltip();
                 }
             }
-
-            currentX += infoIconWidth + spacing;
-            ImGui.SetCursorPosX(currentX);
         }
+        currentX += combinedW + spacing;
+        ImGui.SetCursorPosX(currentX);
 
-        if (showPlus)
-        {
-            ImGui.SetCursorPosY(originalY);
-
-            if (_uiSharedService.IconPlusButtonCentered())
-            {
-                var targetUid = _pair.UserData.UID;
-                if (!string.IsNullOrEmpty(targetUid))
-                {
-                    _ = SendGroupPairInviteAsync(targetUid, entryUID);
-                }
-            }
-            UiSharedService.AttachToolTip(AppendSeenInfo("Send pairing invite to " + entryUID));
-            currentX += plusButtonWidth + spacing;
-            ImGui.SetCursorPosX(currentX);
-        }
-
+        // Slot 4: Pause/Play
+        ImGui.SetCursorPosY(originalY);
         if (showPause)
         {
-            float gapToBars = showBars ? spacing * 0.5f : spacing;
-            ImGui.SetCursorPosY(originalY);
             if (pauseIcon == FontAwesomeIcon.Pause ? _uiSharedService.IconPauseButtonCentered() : _uiSharedService.IconButtonCentered(pauseIcon))
             {
                 var newPermissions = _fullInfoDto.GroupUserPermissions ^ GroupUserPermissions.Paused;
                 _fullInfoDto.GroupUserPermissions = newPermissions;
                 _ = _apiController.GroupChangeIndividualPermissionState(new GroupPairUserPermissionDto(_group.Group, _pair.UserData, newPermissions));
             }
-
             UiSharedService.AttachToolTip(AppendSeenInfo((_fullInfoDto.GroupUserPermissions.IsPaused() ? "Resume" : "Pause") + " syncing with " + entryUID));
-            currentX += pauseButtonWidth + gapToBars;
-            ImGui.SetCursorPosX(currentX);
         }
-
+        currentX += pauseMaxW + spacing;
+        ImGui.SetCursorPosX(currentX);
         if (showBars)
         {
             ImGui.SetCursorPosY(originalY);
             if (_uiSharedService.IconButtonCentered(FontAwesomeIcon.Bars))
             {
-                // Use a consistent popup ID between OpenPopup and BeginPopup
                 ImGui.OpenPopup("Syncshell Flyout Menu");
             }
-            currentX += barButtonWidth;
-            ImGui.SetCursorPosX(currentX);
         }
+        currentX += barsW; // avance quand même pour cohérence interne
+        ImGui.SetCursorPosX(currentX);
         // Must match the ID used in OpenPopup above
         if (ImGui.BeginPopup("Syncshell Flyout Menu"))
         {
