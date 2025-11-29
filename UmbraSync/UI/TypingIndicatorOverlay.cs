@@ -192,14 +192,14 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         var showSelf = _configService.Current.TypingIndicatorShowSelf;
         if (selfActive
             && showSelf
-            && _clientState.LocalPlayer != null
+            && _objectTable.LocalPlayer != null
             && (now - selfStart) >= TypingDisplayDelay
             && (now - selfLast) <= TypingDisplayFade)
         {
-            var selfId = GetEntityId(_clientState.LocalPlayer.Address);
+            var selfId = GetEntityId(_objectTable.LocalPlayer.Address);
             if (selfId != 0 && !TryDrawNameplateBubble(drawList, iconWrap, selfId))
             {
-                DrawWorldFallbackIcon(drawList, iconWrap, _clientState.LocalPlayer.Position);
+                DrawWorldFallbackIcon(drawList, iconWrap, _objectTable.LocalPlayer.Position);
             }
         }
 
@@ -530,10 +530,10 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
 
     private bool IsWithinRelevantDistance(Vector3 position)
     {
-        if (_clientState.LocalPlayer == null)
+        if (_objectTable.LocalPlayer == null)
             return false;
 
-        var distance = Vector3.Distance(_clientState.LocalPlayer.Position, position);
+        var distance = Vector3.Distance(_objectTable.LocalPlayer.Position, position);
         return distance <= 40f;
     }
 

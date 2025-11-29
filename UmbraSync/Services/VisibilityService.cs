@@ -70,35 +70,61 @@ public class VisibilityService : DisposableMediatorSubscriberBase
             string ident = player.Key;
             var findResult = _dalamudUtil.FindPlayerByNameHash(ident);
             var isMareHandled = cachedMareAddresses.Contains(findResult.Address);
-            var isVisible = findResult.ObjectId != 0 && !isMareHandled;
+            var isPresent = findResult.ObjectId != 0; // presence in object table
 
-            if (player.Value == TrackedPlayerStatus.MareHandled && !isMareHandled)
-                _trackedPlayerVisibility.TryUpdate(ident, newValue: TrackedPlayerStatus.NotVisible, comparisonValue: TrackedPlayerStatus.MareHandled);
-
-            if (player.Value == TrackedPlayerStatus.NotVisible && isVisible)
+            // Transitions
+            switch (player.Value)
             {
-                if (_makeVisibleNextFrame.Contains(ident))
-                {
-                    if (_trackedPlayerVisibility.TryUpdate(ident, newValue: TrackedPlayerStatus.Visible, comparisonValue: TrackedPlayerStatus.NotVisible))
+                case TrackedPlayerStatus.NotVisible:
+                    if (isPresent)
+                    {
+                        if (_makeVisibleNextFrame.Contains(ident))
+                        {
+                            if (isMareHandled)
+                            {
+                                if (_trackedPlayerVisibility.TryUpdate(ident, TrackedPlayerStatus.MareHandled, TrackedPlayerStatus.NotVisible))
+                                    Mediator.Publish<PlayerVisibilityMessage>(new(ident, IsVisible: true, Invalidate: true));
+                            }
+                            else
+                            {
+                                if (_trackedPlayerVisibility.TryUpdate(ident, TrackedPlayerStatus.Visible, TrackedPlayerStatus.NotVisible))
+                                    Mediator.Publish<PlayerVisibilityMessage>(new(ident, IsVisible: true));
+                            }
+                        }
+                        else
+                        {
+                            _makeVisibleNextFrame.Add(ident);
+                        }
+                    }
+                    break;
+                case TrackedPlayerStatus.Visible:
+                    if (!isPresent &&
+                        _trackedPlayerVisibility.TryUpdate(ident, TrackedPlayerStatus.NotVisible, TrackedPlayerStatus.Visible))
+                    {
+                        Mediator.Publish<PlayerVisibilityMessage>(new(ident, IsVisible: false));
+                    }
+                    else if (isMareHandled &&
+                             _trackedPlayerVisibility.TryUpdate(ident, TrackedPlayerStatus.MareHandled, TrackedPlayerStatus.Visible))
+                    {
+                        Mediator.Publish<PlayerVisibilityMessage>(new(ident, IsVisible: true, Invalidate: true));
+                    }
+                    break;
+                case TrackedPlayerStatus.MareHandled:
+                    if (!isPresent &&
+                        _trackedPlayerVisibility.TryUpdate(ident, TrackedPlayerStatus.NotVisible, TrackedPlayerStatus.MareHandled))
+                    {
+                        Mediator.Publish<PlayerVisibilityMessage>(new(ident, IsVisible: false));
+                    }
+                    else if (!isMareHandled &&
+                             _trackedPlayerVisibility.TryUpdate(ident, TrackedPlayerStatus.Visible, TrackedPlayerStatus.MareHandled))
+                    {
+                        // Became unhandled by Mare while still present -> visible to us
                         Mediator.Publish<PlayerVisibilityMessage>(new(ident, IsVisible: true));
-                }
-                else
-                    _makeVisibleNextFrame.Add(ident);
-            }
-            else if (player.Value == TrackedPlayerStatus.NotVisible && isMareHandled)
-            {
-                // Send a technically redundant visibility update with the added intent of triggering PairHandler to undo the application by name
-                if (_trackedPlayerVisibility.TryUpdate(ident, newValue: TrackedPlayerStatus.MareHandled, comparisonValue: TrackedPlayerStatus.NotVisible))
-                    Mediator.Publish<PlayerVisibilityMessage>(new(ident, IsVisible: false, Invalidate: true));
-            }
-            else if (player.Value == TrackedPlayerStatus.Visible && !isVisible)
-            {
-                var newTrackedStatus = isMareHandled ? TrackedPlayerStatus.MareHandled : TrackedPlayerStatus.NotVisible;
-                if (_trackedPlayerVisibility.TryUpdate(ident, newValue: newTrackedStatus, comparisonValue: TrackedPlayerStatus.Visible))
-                    Mediator.Publish<PlayerVisibilityMessage>(new(ident, IsVisible: false, Invalidate: isMareHandled));
+                    }
+                    break;
             }
 
-            if (!isVisible)
+            if (!isPresent)
                 _makeVisibleNextFrame.Remove(ident);
         }
     }

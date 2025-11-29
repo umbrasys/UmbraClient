@@ -129,7 +129,7 @@
     <value>Pour utiliser les services UmbraSync, vous devez être âgé de plus de 18 ans, où plus de 21 ans dans certaines juridictions.</value>
   </data>
   <data name="CompactUi.IntroUi.Agreement.AgreeButton" xml:space="preserve">
-    <value />
+    <value>J’accepte</value>
   </data>
   <data name="CompactUi.IntroUi.Agreement.Bandwidth" xml:space="preserve">
     <value>Si vous disposez d'une connexion Internet limitée, des frais supplémentaires peuvent s'appliquer en fonction du nombre de fichiers envoyés et reçus. Les fichiers seront compressés afin d'économiser la bande passante. En raison des variations de vitesse de débit, les sychronisations peuvent ne pas être visible immédiatement.</value>
@@ -141,7 +141,7 @@
     <value>Vous pouvez supprimer votre compte à tout moment. Votre compte et toutes les données associées seront supprimés dans un délai de 14 jours.</value>
   </data>
   <data name="CompactUi.IntroUi.Agreement.Disclaimer" xml:space="preserve">
-    <value />
+    <value>Ce service est fourni tel quel.</value>
   </data>
   <data name="CompactUi.IntroUi.Agreement.Inactivity" xml:space="preserve">
     <value>Après une periode d'inactivité, les mods enregistrés sur le serveur UmbraSync seront automatiquement supprimés.</value>
@@ -159,136 +159,137 @@
     <value>MERCI DE ME LIRE ATTENTIVEMENT</value>
   </data>
   <data name="CompactUi.IntroUi.Agreement.TimeoutLabel" xml:space="preserve">
-    <value />
+    <value>Le bouton « J’accepte » sera disponible dans {0}s</value>
   </data>
   <data name="CompactUi.IntroUi.Agreement.Title" xml:space="preserve">
-    <value />
+    <value>Conditions d’utilisation</value>
   </data>
   <data name="CompactUi.IntroUi.ConnectionStatus.Connected" xml:space="preserve">
-    <value />
+    <value>Connecté</value>
   </data>
   <data name="CompactUi.IntroUi.ConnectionStatus.Connecting" xml:space="preserve">
-    <value />
+    <value>Connexion en cours</value>
   </data>
   <data name="CompactUi.IntroUi.ConnectionStatus.Disconnected" xml:space="preserve">
-    <value />
+    <value>Déconnecté</value>
   </data>
   <data name="CompactUi.IntroUi.ConnectionStatus.Disconnecting" xml:space="preserve">
-    <value />
+    <value>Déconnexion en cours</value>
   </data>
   <data name="CompactUi.IntroUi.ConnectionStatus.MultiChara" xml:space="preserve">
-    <value />
+    <value>Personnages en doublon</value>
   </data>
   <data name="CompactUi.IntroUi.ConnectionStatus.NoSecretKey" xml:space="preserve">
-    <value />
+    <value>Aucune clé secrète</value>
   </data>
   <data name="CompactUi.IntroUi.ConnectionStatus.Offline" xml:space="preserve">
-    <value />
+    <value>Indisponible</value>
   </data>
   <data name="CompactUi.IntroUi.ConnectionStatus.RateLimited" xml:space="preserve">
-    <value />
+    <value>Limitation de débit</value>
   </data>
   <data name="CompactUi.IntroUi.ConnectionStatus.Reconnecting" xml:space="preserve">
-    <value />
+    <value>Reconnexion en cours</value>
   </data>
   <data name="CompactUi.IntroUi.ConnectionStatus.Unauthorized" xml:space="preserve">
-    <value />
+    <value>Non autorisé</value>
   </data>
   <data name="CompactUi.IntroUi.ConnectionStatus.VersionMismatch" xml:space="preserve">
-    <value />
+    <value>Incompatibilité de version</value>
   </data>
   <data name="CompactUi.IntroUi.SecretKey.DisplayLabel" xml:space="preserve">
-    <value />
+    <value>Clé secrète</value>
   </data>
   <data name="CompactUi.IntroUi.SecretKey.EnterLabel" xml:space="preserve">
-    <value />
+    <value>Saisir la clé secrète</value>
   </data>
   <data name="CompactUi.IntroUi.SecretKey.ExistingAccountInfo" xml:space="preserve">
-    <value />
+    <value>Si vous avez déjà un compte enregistré, saisissez sa clé secrète ci‑dessous pour l’utiliser.</value>
   </data>
   <data name="CompactUi.IntroUi.SecretKey.FormatError" xml:space="preserve">
-    <value />
+    <value>Votre clé secrète ne peut contenir que ABCDEF et les chiffres 0–9.</value>
   </data>
   <data name="CompactUi.IntroUi.SecretKey.FriendlyNameDefault" xml:space="preserve">
-    <value />
+    <value>Clé secrète ajoutée lors de l’installation ({0:yyyy-MM-dd})</value>
   </data>
   <data name="CompactUi.IntroUi.SecretKey.FriendlyNameRegistered" xml:space="preserve">
-    <value />
+    <value>{0} (enregistrée le {1:yyyy-MM-dd})</value>
   </data>
   <data name="CompactUi.IntroUi.SecretKey.LengthError" xml:space="preserve">
-    <value />
+    <value>Votre clé secrète doit comporter exactement 64 caractères.</value>
   </data>
   <data name="CompactUi.IntroUi.SecretKey.SaveConnectButton" xml:space="preserve">
-    <value />
+    <value>Enregistrer et se connecter</value>
   </data>
   <data name="CompactUi.IntroUi.Service.RegisterButton" xml:space="preserve">
-    <value />
+    <value>Enregistrer un nouveau compte Umbra</value>
   </data>
   <data name="CompactUi.IntroUi.Service.RegisterErrorUnknown" xml:space="preserve">
-    <value />
+    <value>Une erreur inconnue est survenue. Veuillez réessayer plus tard.</value>
   </data>
   <data name="CompactUi.IntroUi.Service.RegisterInfo" xml:space="preserve">
-    <value />
+    <value>Si vous n’avez jamais utilisé Umbra, cliquez ci‑dessous pour créer un nouveau compte.</value>
   </data>
   <data name="CompactUi.IntroUi.Service.RegisterIntro" xml:space="preserve">
-    <value />
+    <value>Pour utiliser Umbra, vous devez créer un compte.</value>
   </data>
   <data name="CompactUi.IntroUi.Service.RegisterSending" xml:space="preserve">
-    <value />
+    <value>Envoi de la demande…</value>
   </data>
   <data name="CompactUi.IntroUi.Service.RegisterSuccess" xml:space="preserve">
-    <value />
+    <value>Nouveau compte enregistré.
+Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoin de réinitialiser vos plugins ou de l’utiliser sur un autre PC.</value>
   </data>
   <data name="CompactUi.IntroUi.Service.RegisterSupport" xml:space="preserve">
-    <value />
+    <value>Reportez‑vous aux instructions à l’endroit où vous avez obtenu ce plugin pour plus d’informations ou de support.</value>
   </data>
   <data name="CompactUi.IntroUi.Service.Title" xml:space="preserve">
-    <value />
+    <value>Inscription au service</value>
   </data>
   <data name="CompactUi.IntroUi.Storage.Description" xml:space="preserve">
-    <value />
+    <value>Pour éviter de retélécharger inutilement des fichiers déjà présents sur votre ordinateur, Umbra doit analyser votre dossier de mods Penumbra. Vous devez également définir un dossier de stockage local où Umbra téléchargera les fichiers des autres personnages. Une fois le dossier de stockage défini et l’analyse terminée, cette page passera automatiquement à l’inscription à un service.</value>
   </data>
   <data name="CompactUi.IntroUi.Storage.InvalidPenumbraPath" xml:space="preserve">
-    <value />
+    <value>Vous n’avez pas défini de chemin Penumbra valide. Ouvrez Penumbra et configurez un chemin valide pour le dossier des mods.</value>
   </data>
   <data name="CompactUi.IntroUi.Storage.Note" xml:space="preserve">
-    <value />
+    <value>Remarque : l’analyse initiale peut prendre un certain temps selon la quantité de mods. Veuillez patienter jusqu’à sa fin.</value>
   </data>
   <data name="CompactUi.IntroUi.Storage.StartScanButton" xml:space="preserve">
-    <value />
+    <value>Lancer l’analyse</value>
   </data>
   <data name="CompactUi.IntroUi.Storage.Title" xml:space="preserve">
-    <value />
+    <value>Configuration du stockage des fichiers</value>
   </data>
   <data name="CompactUi.IntroUi.Storage.UseCompactorDescription" xml:space="preserve">
-    <value />
+    <value>Le compacteur de fichiers peut économiser une quantité considérable d’espace disque pour les téléchargements via Umbra. Il entraîne une légère charge CPU lors du téléchargement mais peut accélérer le chargement des autres personnages. Il est recommandé de le laisser activé. Vous pourrez modifier ce réglage plus tard dans les paramètres d’Umbra.</value>
   </data>
   <data name="CompactUi.IntroUi.Storage.UseCompactorLabel" xml:space="preserve">
-    <value />
+    <value>Utiliser le compacteur de fichiers</value>
   </data>
   <data name="CompactUi.IntroUi.Storage.WarningFileCache" xml:space="preserve">
-    <value />
+    <value>Avertissement : une fois cette étape franchie, n’effacez pas le fichier FileCache.csv d’Umbra dans le dossier Plugin Configurations de Dalamud. Sinon, au prochain lancement, une ré‑analyse complète de la base de données de cache sera effectuée.</value>
   </data>
   <data name="CompactUi.IntroUi.Storage.WarningScan" xml:space="preserve">
-    <value />
+    <value>Avertissement : si l’analyse semble bloquée longtemps, il est probable que votre dossier Penumbra ne soit pas correctement configuré.</value>
   </data>
   <data name="CompactUi.IntroUi.Welcome.Description" xml:space="preserve">
-    <value />
+    <value>Umbra est un plugin qui réplique votre état de personnage actuel, y compris tous les mods Penumbra, auprès des utilisateurs appairés. Notez que vous devez avoir Penumbra ainsi que Glamourer installés pour utiliser ce plugin.</value>
   </data>
   <data name="CompactUi.IntroUi.Welcome.ModNote" xml:space="preserve">
-    <value />
+    <value>Remarque : toute modification appliquée autrement que via Penumbra ne peut pas être partagée et l’apparence de votre personnage chez les autres peut être altérée, ou bien les mods des autres peuvent ne pas s’appliquer chez vous. Si vous souhaitez utiliser ce plugin, déplacez vos mods vers Penumbra.</value>
   </data>
   <data name="CompactUi.IntroUi.Welcome.NextButton" xml:space="preserve">
-    <value />
+    <value>Suivant</value>
   </data>
   <data name="CompactUi.IntroUi.Welcome.SetupInfo" xml:space="preserve">
-    <value />
+    <value>Nous devons d’abord configurer quelques éléments avant de pouvoir utiliser ce plugin. Cliquez sur Suivant pour continuer.</value>
   </data>
   <data name="CompactUi.IntroUi.Welcome.Title" xml:space="preserve">
-    <value />
+    <value>Bienvenue dans Umbra</value>
   </data>
   <data name="CompactUi.IntroUi.WindowTitle" xml:space="preserve">
-    <value />
+    <value>Configuration d’Umbra</value>
   </data>
   <data name="CompactUi.Nearby.Header" xml:space="preserve">
     <value />

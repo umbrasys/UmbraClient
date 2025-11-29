@@ -171,6 +171,16 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
     {
         return new List<ChangelogEntry>
         {
+            new(new Version(2, 0, 0, 2), "2.0.0.2", new List<ChangelogLine>
+            {
+                new("Mise à niveau de Dalamud."),
+                new("Mise à niveau API Penumbra & Glamourer"),
+                new("Correction traduction dans l'introduction."),
+            }),
+            new(new Version(2, 0, 0, 1), "2.0.0.1", new List<ChangelogLine>
+            {
+                new("Rétablissement de la visibilité de la bulle d'écriture sous certaines conditions."),
+            }),
             new(new Version(2, 0, 0, 0), "2.0.0.0", new List<ChangelogLine>
             {
                 new("Nouvelle interface graphique, plus moderne et plus lisible."),

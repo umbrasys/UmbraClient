@@ -40,7 +40,7 @@ public partial class IntroUi : WindowMediatorSubscriberBase
 
     public IntroUi(ILogger<IntroUi> logger, UiSharedService uiShared, MareConfigService configService,
         CacheMonitor fileCacheManager, ServerConfigurationManager serverConfigurationManager, MareMediator mareMediator,
-        PerformanceCollectorService performanceCollectorService, DalamudUtilService dalamudUtilService, AccountRegistrationService registerService) : base(logger, mareMediator, Loc.Get("IntroUi.WindowTitle"), performanceCollectorService)
+        PerformanceCollectorService performanceCollectorService, DalamudUtilService dalamudUtilService, AccountRegistrationService registerService) : base(logger, mareMediator, Loc.Get("CompactUi.IntroUi.WindowTitle"), performanceCollectorService)
     {
         _uiShared = uiShared;
         _configService = configService;
@@ -89,17 +89,17 @@ public partial class IntroUi : WindowMediatorSubscriberBase
     {
         return _uiShared.ApiController.ServerState switch
         {
-            ServerState.Reconnecting => Loc.Get("IntroUi.ConnectionStatus.Reconnecting"),
-            ServerState.Connecting => Loc.Get("IntroUi.ConnectionStatus.Connecting"),
-            ServerState.Disconnected => Loc.Get("IntroUi.ConnectionStatus.Disconnected"),
-            ServerState.Disconnecting => Loc.Get("IntroUi.ConnectionStatus.Disconnecting"),
-            ServerState.Unauthorized => Loc.Get("IntroUi.ConnectionStatus.Unauthorized"),
-            ServerState.VersionMisMatch => Loc.Get("IntroUi.ConnectionStatus.VersionMismatch"),
-            ServerState.Offline => Loc.Get("IntroUi.ConnectionStatus.Offline"),
-            ServerState.RateLimited => Loc.Get("IntroUi.ConnectionStatus.RateLimited"),
-            ServerState.NoSecretKey => Loc.Get("IntroUi.ConnectionStatus.NoSecretKey"),
-            ServerState.MultiChara => Loc.Get("IntroUi.ConnectionStatus.MultiChara"),
-            ServerState.Connected => Loc.Get("IntroUi.ConnectionStatus.Connected"),
+            ServerState.Reconnecting => Loc.Get("CompactUi.IntroUi.ConnectionStatus.Reconnecting"),
+            ServerState.Connecting => Loc.Get("CompactUi.IntroUi.ConnectionStatus.Connecting"),
+            ServerState.Disconnected => Loc.Get("CompactUi.IntroUi.ConnectionStatus.Disconnected"),
+            ServerState.Disconnecting => Loc.Get("CompactUi.IntroUi.ConnectionStatus.Disconnecting"),
+            ServerState.Unauthorized => Loc.Get("CompactUi.IntroUi.ConnectionStatus.Unauthorized"),
+            ServerState.VersionMisMatch => Loc.Get("CompactUi.IntroUi.ConnectionStatus.VersionMismatch"),
+            ServerState.Offline => Loc.Get("CompactUi.IntroUi.ConnectionStatus.Offline"),
+            ServerState.RateLimited => Loc.Get("CompactUi.IntroUi.ConnectionStatus.RateLimited"),
+            ServerState.NoSecretKey => Loc.Get("CompactUi.IntroUi.ConnectionStatus.NoSecretKey"),
+            ServerState.MultiChara => Loc.Get("CompactUi.IntroUi.ConnectionStatus.MultiChara"),
+            ServerState.Connected => Loc.Get("CompactUi.IntroUi.ConnectionStatus.Connected"),
             _ => string.Empty
         };
     }
@@ -110,15 +110,15 @@ public partial class IntroUi : WindowMediatorSubscriberBase
 
         if (!_configService.Current.AcceptedAgreement && !_readFirstPage)
         {
-            _uiShared.BigText(Loc.Get("IntroUi.Welcome.Title"));
+            _uiShared.BigText(Loc.Get("CompactUi.IntroUi.Welcome.Title"));
             ImGui.Separator();
-            UiSharedService.TextWrapped(Loc.Get("IntroUi.Welcome.Description"));
-            UiSharedService.TextWrapped(Loc.Get("IntroUi.Welcome.SetupInfo"));
+            UiSharedService.TextWrapped(Loc.Get("CompactUi.IntroUi.Welcome.Description"));
+            UiSharedService.TextWrapped(Loc.Get("CompactUi.IntroUi.Welcome.SetupInfo"));
 
-            UiSharedService.ColorTextWrapped(Loc.Get("IntroUi.Welcome.ModNote"), ImGuiColors.DalamudYellow);
+            UiSharedService.ColorTextWrapped(Loc.Get("CompactUi.IntroUi.Welcome.ModNote"), ImGuiColors.DalamudYellow);
             if (!_uiShared.DrawOtherPluginState(intro: true)) return;
             ImGui.Separator();
-            var nextLabel = $"{Loc.Get("IntroUi.Welcome.NextButton")}##toAgreement";
+            var nextLabel = $"{Loc.Get("CompactUi.IntroUi.Welcome.NextButton")}##toAgreement";
             if (ImGui.Button(nextLabel))
             {
                 _readFirstPage = true;
@@ -127,7 +127,7 @@ public partial class IntroUi : WindowMediatorSubscriberBase
                 {
                     for (int i = 10; i >= 0; i--)
                     {
-                        _timeoutLabel = string.Format(CultureInfo.CurrentCulture, Loc.Get("IntroUi.Agreement.TimeoutLabel"), i);
+                        _timeoutLabel = string.Format(CultureInfo.CurrentCulture, Loc.Get("CompactUi.IntroUi.Agreement.TimeoutLabel"), i);
                         await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
                     }
                 });
@@ -140,32 +140,32 @@ public partial class IntroUi : WindowMediatorSubscriberBase
         {
             using (_uiShared.UidFont.Push())
             {
-                ImGui.TextUnformatted(Loc.Get("IntroUi.Agreement.Title"));
+                ImGui.TextUnformatted(Loc.Get("CompactUi.IntroUi.Agreement.Title"));
             }
 
             ImGui.Separator();
             UiSharedService.SetFontScale(1.5f);
-            string readThis = Loc.Get("IntroUi.Agreement.ReadHeader");
+            string readThis = Loc.Get("CompactUi.IntroUi.Agreement.ReadHeader");
             Vector2 textSize = ImGui.CalcTextSize(readThis);
             ImGui.SetCursorPosX(ImGui.GetWindowSize().X / 2 - textSize.X / 2);
             UiSharedService.ColorText(readThis, UiSharedService.AccentColor);
             UiSharedService.SetFontScale(1.0f);
             ImGui.Separator();
-            UiSharedService.TextWrapped(Loc.Get("IntroUi.Agreement.AgeRequirement"));
-            UiSharedService.TextWrapped(Loc.Get("IntroUi.Agreement.ModUpload"));
-            UiSharedService.TextWrapped(Loc.Get("IntroUi.Agreement.Bandwidth"));
-            UiSharedService.TextWrapped(Loc.Get("IntroUi.Agreement.Privacy"));
-            UiSharedService.TextWrapped(Loc.Get("IntroUi.Agreement.Caution"));
-            UiSharedService.TextWrapped(Loc.Get("IntroUi.Agreement.Inactivity"));
-            UiSharedService.TextWrapped(Loc.Get("IntroUi.Agreement.AccountRemoval"));
-            UiSharedService.TextWrapped(Loc.Get("IntroUi.Agreement.Infrastructure"));
-            UiSharedService.TextWrapped(Loc.Get("IntroUi.Agreement.Deletion"));
-            UiSharedService.TextWrapped(Loc.Get("IntroUi.Agreement.Disclaimer"));
+            UiSharedService.TextWrapped(Loc.Get("CompactUi.IntroUi.Agreement.AgeRequirement"));
+            UiSharedService.TextWrapped(Loc.Get("CompactUi.IntroUi.Agreement.ModUpload"));
+            UiSharedService.TextWrapped(Loc.Get("CompactUi.IntroUi.Agreement.Bandwidth"));
+            UiSharedService.TextWrapped(Loc.Get("CompactUi.IntroUi.Agreement.Privacy"));
+            UiSharedService.TextWrapped(Loc.Get("CompactUi.IntroUi.Agreement.Caution"));
+            UiSharedService.TextWrapped(Loc.Get("CompactUi.IntroUi.Agreement.Inactivity"));
+            UiSharedService.TextWrapped(Loc.Get("CompactUi.IntroUi.Agreement.AccountRemoval"));
+            UiSharedService.TextWrapped(Loc.Get("CompactUi.IntroUi.Agreement.Infrastructure"));
+            UiSharedService.TextWrapped(Loc.Get("CompactUi.IntroUi.Agreement.Deletion"));
+            UiSharedService.TextWrapped(Loc.Get("CompactUi.IntroUi.Agreement.Disclaimer"));
 
             ImGui.Separator();
             if (_timeoutTask?.IsCompleted ?? true)
             {
-                var agreeLabel = $"{Loc.Get("IntroUi.Agreement.AgreeButton")}##toSetup";
+                var agreeLabel = $"{Loc.Get("CompactUi.IntroUi.Agreement.AgreeButton")}##toSetup";
                 if (ImGui.Button(agreeLabel))
                 {
                     _configService.Current.AcceptedAgreement = true;
@@ -183,26 +183,26 @@ public partial class IntroUi : WindowMediatorSubscriberBase
                      || !Directory.Exists(_configService.Current.CacheFolder)))
         {
             using (_uiShared.UidFont.Push())
-                ImGui.TextUnformatted(Loc.Get("IntroUi.Storage.Title"));
+                ImGui.TextUnformatted(Loc.Get("CompactUi.IntroUi.Storage.Title"));
 
             ImGui.Separator();
 
             if (!_uiShared.HasValidPenumbraModPath)
             {
-                UiSharedService.ColorTextWrapped(Loc.Get("IntroUi.Storage.InvalidPenumbraPath"), UiSharedService.AccentColor);
+                UiSharedService.ColorTextWrapped(Loc.Get("CompactUi.IntroUi.Storage.InvalidPenumbraPath"), UiSharedService.AccentColor);
             }
             else
             {
-                UiSharedService.TextWrapped(Loc.Get("IntroUi.Storage.Description"));
-                UiSharedService.TextWrapped(Loc.Get("IntroUi.Storage.Note"));
-                UiSharedService.ColorTextWrapped(Loc.Get("IntroUi.Storage.WarningFileCache"), ImGuiColors.DalamudYellow);
-                UiSharedService.ColorTextWrapped(Loc.Get("IntroUi.Storage.WarningScan"), ImGuiColors.DalamudYellow);
+                UiSharedService.TextWrapped(Loc.Get("CompactUi.IntroUi.Storage.Description"));
+                UiSharedService.TextWrapped(Loc.Get("CompactUi.IntroUi.Storage.Note"));
+                UiSharedService.ColorTextWrapped(Loc.Get("CompactUi.IntroUi.Storage.WarningFileCache"), ImGuiColors.DalamudYellow);
+                UiSharedService.ColorTextWrapped(Loc.Get("CompactUi.IntroUi.Storage.WarningScan"), ImGuiColors.DalamudYellow);
                 _uiShared.DrawCacheDirectorySetting();
             }
 
             if (!_cacheMonitor.IsScanRunning && !string.IsNullOrEmpty(_configService.Current.CacheFolder) && _uiShared.HasValidPenumbraModPath && Directory.Exists(_configService.Current.CacheFolder))
             {
-                var startScanLabel = $"{Loc.Get("IntroUi.Storage.StartScanButton")}##startScan";
+                var startScanLabel = $"{Loc.Get("CompactUi.IntroUi.Storage.StartScanButton")}##startScan";
                 if (ImGui.Button(startScanLabel))
                 {
                     _cacheMonitor.InvokeScan();
@@ -215,21 +215,21 @@ public partial class IntroUi : WindowMediatorSubscriberBase
             if (!_dalamudUtilService.IsWine)
             {
                 var useFileCompactor = _configService.Current.UseCompactor;
-                if (ImGui.Checkbox(Loc.Get("IntroUi.Storage.UseCompactorLabel"), ref useFileCompactor))
+                if (ImGui.Checkbox(Loc.Get("CompactUi.IntroUi.Storage.UseCompactorLabel"), ref useFileCompactor))
                 {
                     _configService.Current.UseCompactor = useFileCompactor;
                     _configService.Save();
                 }
-                UiSharedService.ColorTextWrapped(Loc.Get("IntroUi.Storage.UseCompactorDescription"), ImGuiColors.DalamudYellow);
+                UiSharedService.ColorTextWrapped(Loc.Get("CompactUi.IntroUi.Storage.UseCompactorDescription"), ImGuiColors.DalamudYellow);
             }
         }
         else if (!_uiShared.ApiController.IsConnected)
         {
             using (_uiShared.UidFont.Push())
-                ImGui.TextUnformatted(Loc.Get("IntroUi.Service.Title"));
+                ImGui.TextUnformatted(Loc.Get("CompactUi.IntroUi.Service.Title"));
             ImGui.Separator();
-            UiSharedService.TextWrapped(Loc.Get("IntroUi.Service.RegisterIntro"));
-            UiSharedService.TextWrapped(Loc.Get("IntroUi.Service.RegisterSupport"));
+            UiSharedService.TextWrapped(Loc.Get("CompactUi.IntroUi.Service.RegisterIntro"));
+            UiSharedService.TextWrapped(Loc.Get("CompactUi.IntroUi.Service.RegisterSupport"));
 
             ImGui.Separator();
 
@@ -240,8 +240,8 @@ public partial class IntroUi : WindowMediatorSubscriberBase
             {
                 ImGui.BeginDisabled(_registrationInProgress || _registrationSuccess || _secretKey.Length > 0);
                 ImGui.Separator();
-                ImGui.TextUnformatted(Loc.Get("IntroUi.Service.RegisterInfo"));
-                if (_uiShared.IconTextButton(FontAwesomeIcon.Plus, Loc.Get("IntroUi.Service.RegisterButton")))
+                ImGui.TextUnformatted(Loc.Get("CompactUi.IntroUi.Service.RegisterInfo"));
+                if (_uiShared.IconTextButton(FontAwesomeIcon.Plus, Loc.Get("CompactUi.IntroUi.Service.RegisterButton")))
                 {
                     _registrationInProgress = true;
                     _ = Task.Run(async () => {
@@ -253,10 +253,10 @@ public partial class IntroUi : WindowMediatorSubscriberBase
                                 _logger.LogWarning("Registration failed: {err}", reply.ErrorMessage);
                                 _registrationMessage = reply.ErrorMessage;
                                 if (_registrationMessage.IsNullOrEmpty())
-                                    _registrationMessage = Loc.Get("IntroUi.Service.RegisterErrorUnknown");
+                                    _registrationMessage = Loc.Get("CompactUi.IntroUi.Service.RegisterErrorUnknown");
                                 return;
                             }
-                            _registrationMessage = Loc.Get("IntroUi.Service.RegisterSuccess");
+                            _registrationMessage = Loc.Get("CompactUi.IntroUi.Service.RegisterSuccess");
                             _secretKey = reply.SecretKey ?? "";
                             _registrationReply = reply;
                             _registrationSuccess = true;
@@ -265,7 +265,7 @@ public partial class IntroUi : WindowMediatorSubscriberBase
                         {
                             _logger.LogWarning(ex, "Registration failed");
                             _registrationSuccess = false;
-                            _registrationMessage = Loc.Get("IntroUi.Service.RegisterErrorUnknown");
+                            _registrationMessage = Loc.Get("CompactUi.IntroUi.Service.RegisterErrorUnknown");
                         }
                         finally
                         {
@@ -276,7 +276,7 @@ public partial class IntroUi : WindowMediatorSubscriberBase
                 ImGui.EndDisabled(); // _registrationInProgress || _registrationSuccess
                 if (_registrationInProgress)
                 {
-                    ImGui.TextUnformatted(Loc.Get("IntroUi.Service.RegisterSending"));
+                    ImGui.TextUnformatted(Loc.Get("CompactUi.IntroUi.Service.RegisterSending"));
                 }
                 else if (!_registrationMessage.IsNullOrEmpty())
                 {
@@ -289,15 +289,15 @@ public partial class IntroUi : WindowMediatorSubscriberBase
 
             ImGui.Separator();
 
-            var text = Loc.Get("IntroUi.SecretKey.EnterLabel");
+            var text = Loc.Get("CompactUi.IntroUi.SecretKey.EnterLabel");
 
             if (_registrationSuccess)
             {
-                text = Loc.Get("IntroUi.SecretKey.DisplayLabel");
+                text = Loc.Get("CompactUi.IntroUi.SecretKey.DisplayLabel");
             }
             else
             {
-                ImGui.TextUnformatted(Loc.Get("IntroUi.SecretKey.ExistingAccountInfo"));
+                ImGui.TextUnformatted(Loc.Get("CompactUi.IntroUi.SecretKey.ExistingAccountInfo"));
             }
 
             var textSize = ImGui.CalcTextSize(text);
@@ -308,23 +308,23 @@ public partial class IntroUi : WindowMediatorSubscriberBase
             ImGui.InputText("", ref _secretKey, 64);
             if (_secretKey.Length > 0 && _secretKey.Length != 64)
             {
-                UiSharedService.ColorTextWrapped(Loc.Get("IntroUi.SecretKey.LengthError"), UiSharedService.AccentColor);
+                UiSharedService.ColorTextWrapped(Loc.Get("CompactUi.IntroUi.SecretKey.LengthError"), UiSharedService.AccentColor);
             }
             else if (_secretKey.Length == 64 && !HexRegex().IsMatch(_secretKey))
             {
-                UiSharedService.ColorTextWrapped(Loc.Get("IntroUi.SecretKey.FormatError"), UiSharedService.AccentColor);
+                UiSharedService.ColorTextWrapped(Loc.Get("CompactUi.IntroUi.SecretKey.FormatError"), UiSharedService.AccentColor);
             }
             else if (_secretKey.Length == 64)
             {
                 using var saveDisabled = ImRaii.Disabled(_uiShared.ApiController.ServerState == ServerState.Connecting || _uiShared.ApiController.ServerState == ServerState.Reconnecting);
-                if (ImGui.Button(Loc.Get("IntroUi.SecretKey.SaveConnectButton")))
+                if (ImGui.Button(Loc.Get("CompactUi.IntroUi.SecretKey.SaveConnectButton")))
                 {
                     string keyName;
                     if (!_serverConfigurationManager.HasServers) _serverConfigurationManager.SelectServer(0);
                     if (_registrationReply != null && _secretKey.Equals(_registrationReply.SecretKey, StringComparison.Ordinal))
-                        keyName = string.Format(CultureInfo.CurrentCulture, Loc.Get("IntroUi.SecretKey.FriendlyNameRegistered"), _registrationReply.UID, DateTime.Now);
+                        keyName = string.Format(CultureInfo.CurrentCulture, Loc.Get("CompactUi.IntroUi.SecretKey.FriendlyNameRegistered"), _registrationReply.UID, DateTime.Now);
                     else
-                        keyName = string.Format(CultureInfo.CurrentCulture, Loc.Get("IntroUi.SecretKey.FriendlyNameDefault"), DateTime.Now);
+                        keyName = string.Format(CultureInfo.CurrentCulture, Loc.Get("CompactUi.IntroUi.SecretKey.FriendlyNameDefault"), DateTime.Now);
                     _serverConfigurationManager.CurrentServer!.SecretKeys.Add(_serverConfigurationManager.CurrentServer.SecretKeys.Select(k => k.Key).LastOrDefault() + 1, new SecretKey()
                     {
                         FriendlyName = keyName,
