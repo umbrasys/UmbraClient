@@ -6,7 +6,6 @@ using UmbraSync.Utils;
 using UmbraSync.WebAPI.SignalR;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Reflection;
 using System.Security.Cryptography;
 
 namespace UmbraSync.WebAPI;
@@ -31,9 +30,7 @@ public sealed class AccountRegistrationService : IDisposable
                 MaxAutomaticRedirections = 5
             }
         );
-        var ver = Assembly.GetExecutingAssembly().GetName().Version;
-        var versionString = ver is null ? "unknown" : $"{ver.Major}.{ver.Minor}.{ver.Build}";
-        _httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("UmbraSync", versionString));
+        _httpClient.DefaultRequestHeaders.UserAgent.Add(VersionHelper.GetUserAgentHeader());
     }
 
     public void Dispose()

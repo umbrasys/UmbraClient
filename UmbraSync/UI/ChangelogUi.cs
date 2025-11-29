@@ -171,6 +171,10 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
     {
         return new List<ChangelogEntry>
         {
+            new(new Version(2, 0, 0, 3), "2.0.0.3", new List<ChangelogLine>
+            {
+                new("Correction du problème de création de nouveaux compte UmbraSync."),
+            }),
             new(new Version(2, 0, 0, 2), "2.0.0.2", new List<ChangelogLine>
             {
                 new("Mise à niveau de Dalamud."),

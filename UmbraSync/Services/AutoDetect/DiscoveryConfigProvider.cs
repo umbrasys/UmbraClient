@@ -6,8 +6,8 @@ using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.WebAPI.SignalR;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Reflection;
 using System.Globalization;
+using UmbraSync.Utils;
 
 namespace UmbraSync.Services.AutoDetect;
 
@@ -78,8 +78,7 @@ public class DiscoveryConfigProvider
             using var http = new HttpClient();
             try
             {
-                var ver = Assembly.GetExecutingAssembly().GetName().Version!;
-                http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("UmbraSync", $"{ver.Major}.{ver.Minor}.{ver.Build}"));
+                http.DefaultRequestHeaders.UserAgent.Add(VersionHelper.GetUserAgentHeader());
             }
             catch (Exception ex)
             {

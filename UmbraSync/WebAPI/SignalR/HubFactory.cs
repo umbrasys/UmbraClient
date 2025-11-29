@@ -2,13 +2,13 @@
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.ServerConfiguration;
+using UmbraSync.Utils;
 using UmbraSync.WebAPI.SignalR.Utils;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Headers;
-using System.Reflection;
 using System.Text.Json;
 
 namespace UmbraSync.WebAPI.SignalR;
@@ -112,9 +112,7 @@ public class HubFactory : MediatorSubscriberBase
                     }
                 );
 
-                var ver = Assembly.GetExecutingAssembly().GetName().Version;
-                var versionString = ver is null ? "unknown" : $"{ver.Major}.{ver.Minor}.{ver.Build}";
-                httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("UmbraSync", versionString));
+                httpClient.DefaultRequestHeaders.UserAgent.Add(VersionHelper.GetUserAgentHeader());
 
                 var response = await httpClient.GetAsync(wellKnownUrl).ConfigureAwait(false);
 
