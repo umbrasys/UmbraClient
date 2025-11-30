@@ -12,9 +12,11 @@ using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.Utils;
 using UmbraSync.WebAPI;
 using UmbraSync.Localization;
+using UmbraSync.Services.Notification;
 using Microsoft.Extensions.Logging;
 using System.Numerics;
 using System.Globalization;
+using NotificationType = UmbraSync.MareConfiguration.Models.NotificationType;
 
 namespace UmbraSync.UI;
 
@@ -32,6 +34,8 @@ public class EditProfileUi : WindowMediatorSubscriberBase
     private byte[] _profileImage = [];
     private bool _showFileDialogError = false;
     private bool _wasOpen;
+    private bool _vanityModalOpen = false;
+    private string _vanityInput = string.Empty;
 
     public EditProfileUi(ILogger<EditProfileUi> logger, MareMediator mediator,
         ApiController apiController, UiSharedService uiSharedService, FileDialogManager fileDialogManager,
@@ -165,6 +169,14 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             _ = _apiController.UserSetProfile(new UserProfileDto(new UserData(_apiController.UID), Disabled: false, IsNSFW: null, "", Description: null));
         }
         UiSharedService.AttachToolTip(Loc.Get("EditProfile.ClearPictureTooltip"));
+        ImGui.SameLine();
+        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Tag, Loc.Get("EditProfile.SetCustomId.Button")))
+        {
+            _vanityInput = string.Empty;
+            _vanityModalOpen = true;
+            ImGui.OpenPopup("SetCustomIdModal");
+        }
+        UiSharedService.AttachToolTip(Loc.Get("EditProfile.SetCustomId.Tooltip"));
         if (_showFileDialogError)
         {
             UiSharedService.ColorTextWrapped(Loc.Get("EditProfile.UploadPictureError"), UiSharedService.AccentColor);
@@ -220,11 +232,50 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             _ = _apiController.UserSetProfile(new UserProfileDto(new UserData(_apiController.UID), Disabled: false, IsNSFW: null, ProfilePictureBase64: null, ""));
         }
         UiSharedService.AttachToolTip(Loc.Get("EditProfile.ClearDescriptionTooltip"));
+        
+        if (_vanityModalOpen && ImGui.BeginPopupModal("SetCustomIdModal", ref _vanityModalOpen, ImGuiWindowFlags.AlwaysAutoResize))
+        {
+            ImGui.TextUnformatted(Loc.Get("EditProfile.SetCustomId.Title"));
+            ImGuiHelpers.ScaledDummy(new Vector2(0f, ImGui.GetStyle().ItemSpacing.Y / 2));
+            ImGui.InputTextWithHint("##customId", Loc.Get("EditProfile.SetCustomId.Placeholder"), ref _vanityInput, 64);
+            UiSharedService.AttachToolTip(Loc.Get("EditProfile.SetCustomId.FormatHint"));
+
+            ImGuiHelpers.ScaledDummy(new Vector2(0f, ImGui.GetStyle().ItemSpacing.Y));
+            if (ImGui.Button(Loc.Get("EditProfile.SetCustomId.Confirm")))
+            {
+                _ = SubmitVanityAsync(_vanityInput);
+            }
+            ImGui.SameLine();
+            if (ImGui.Button(Loc.Get("Common.Cancel")))
+            {
+                _vanityModalOpen = false;
+                ImGui.CloseCurrentPopup();
+            }
+
+            ImGui.EndPopup();
+        }
     }
 
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
         _pfpTextureWrap?.Dispose();
+    }
+
+    private async Task SubmitVanityAsync(string input)
+    {
+        try
+        {
+            await _apiController.UserSetAlias(string.IsNullOrWhiteSpace(input) ? null : input).ConfigureAwait(false);
+            Mediator.Publish(new NotificationMessage(Loc.Get("EditProfile.SetCustomId.SentTitle"), Loc.Get("EditProfile.SetCustomId.SentBody"), NotificationType.Info));
+        }
+        catch
+        {
+            Mediator.Publish(new NotificationMessage(Loc.Get("EditProfile.SetCustomId.ErrorTitle"), Loc.Get("EditProfile.SetCustomId.ErrorBody"), NotificationType.Error));
+        }
+        finally
+        {
+            _vanityModalOpen = false;
+        }
     }
 }

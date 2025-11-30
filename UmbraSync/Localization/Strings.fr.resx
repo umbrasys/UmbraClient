@@ -110,6 +110,55 @@
   <data name="CompactUi.Connection.ConnectTooltip" xml:space="preserve">
     <value>Se connecter à {0}</value>
   </data>
+  
+  <!-- Vanity / Custom ID in Edit Profile (FR) -->
+  <data name="EditProfile.SetCustomId.Button" xml:space="preserve">
+    <value>Définir l'ID personnalisé</value>
+  </data>
+  <data name="EditProfile.SetCustomId.Tooltip" xml:space="preserve">
+    <value>Choisissez un ID personnalisé public (alias) que les autres peuvent utiliser pour vous trouver. Laissez vide pour effacer.</value>
+  </data>
+  <data name="EditProfile.SetCustomId.Title" xml:space="preserve">
+    <value>Définir votre ID personnalisé</value>
+  </data>
+  <data name="EditProfile.SetCustomId.Placeholder" xml:space="preserve">
+    <value>3–32 caractères : lettres, chiffres, _ ou - (laisser vide pour effacer)</value>
+  </data>
+  <data name="EditProfile.SetCustomId.FormatHint" xml:space="preserve">
+    <value>Autorisé : A–Z, a–z, 0–9, souligné (_) et tiret (-). Longueur 3–32.</value>
+  </data>
+  <data name="EditProfile.SetCustomId.Confirm" xml:space="preserve">
+    <value>Confirmer</value>
+  </data>
+  <data name="EditProfile.SetCustomId.SentTitle" xml:space="preserve">
+    <value>Mise à jour de l'ID personnalisé</value>
+  </data>
+  <data name="EditProfile.SetCustomId.SentBody" xml:space="preserve">
+    <value>Votre demande de mise à jour de l'ID personnalisé a été envoyée.</value>
+  </data>
+  <data name="EditProfile.SetCustomId.ErrorTitle" xml:space="preserve">
+    <value>Échec de la mise à jour de l'ID personnalisé</value>
+  </data>
+  <data name="EditProfile.SetCustomId.ErrorBody" xml:space="preserve">
+    <value>Impossible de mettre à jour votre ID personnalisé. Veuillez réessayer.</value>
+  </data>
+  <data name="Common.Cancel" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  
+  <!-- Notifications AutoDetect -->
+  <data name="AutoDetect.Notification.IncomingTitle" xml:space="preserve">
+    <value>Nouvelle invitation</value>
+  </data>
+  <data name="AutoDetect.Notification.IncomingBody" xml:space="preserve">
+    <value>{0} ({1}) vous a envoyé une invitation de pair.</value>
+  </data>
+  <data name="AutoDetect.Notification.AcceptedTitle" xml:space="preserve">
+    <value>Invitation acceptée</value>
+  </data>
+  <data name="AutoDetect.Notification.AcceptedBody" xml:space="preserve">
+    <value>Le jumelage avec {0} est maintenant actif.</value>
+  </data>
   <data name="CompactUi.Connection.DisconnectTooltip" xml:space="preserve">
     <value>Se déconnecter de {0}</value>
   </data>
@@ -859,7 +908,10 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value />
   </data>
   <data name="AutoDetectUi.Nearby.Reason.Paired" xml:space="preserve">
-    <value />
+    <value>Déjà appairé</value>
+  </data>
+  <data name="AutoDetectUi.Nearby.Reason.AlreadyInvited" xml:space="preserve">
+    <value>Invitation déjà envoyée</value>
   </data>
   <data name="AutoDetectUi.Nearby.Reason.Unavailable" xml:space="preserve">
     <value />
@@ -874,7 +926,10 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value />
   </data>
   <data name="AutoDetectUi.Nearby.Status.Paired" xml:space="preserve">
-    <value />
+    <value>Déjà appairé</value>
+  </data>
+  <data name="AutoDetectUi.Nearby.Status.Invited" xml:space="preserve">
+    <value>Invitation envoyée</value>
   </data>
   <data name="AutoDetectUi.Nearby.Status.Unavailable" xml:space="preserve">
     <value />
@@ -960,6 +1015,9 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="AutoDetectUi.Syncshell.Table.Owner" xml:space="preserve">
     <value />
   </data>
+  <data name="AutoDetectUi.Syncshell.Table.Capacity" xml:space="preserve">
+    <value>Capacité</value>
+  </data>
   <data name="AutoDetectUi.Tab.Invitations" xml:space="preserve">
     <value />
   </data>
@@ -968,6 +1026,9 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   </data>
   <data name="AutoDetectUi.Tab.Syncshell" xml:space="preserve">
     <value />
+  </data>
+  <data name="AutoDetectUi.Tab.SyncFinder" xml:space="preserve">
+    <value>SyncFinder</value>
   </data>
   <data name="ChangelogUi.0_1_8_0.Line1" xml:space="preserve">
     <value />
@@ -2175,6 +2236,30 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="SyncshellAdmin.AutoDetect.Weekday.Fri" xml:space="preserve">
     <value>Ven</value>
   </data>
+  <data name="SyncshellAdmin.Tab.Capacity" xml:space="preserve">
+    <value>Capacité</value>
+  </data>
+  <data name="SyncshellAdmin.Capacity.Label" xml:space="preserve">
+    <value>Nombre max. de membres</value>
+  </data>
+  <data name="SyncshellAdmin.Capacity.Help" xml:space="preserve">
+    <value>Définit le nombre maximum de membres autorisés dans cette Syncshell. Min : {0}, Max : {1}.</value>
+  </data>
+  <data name="SyncshellAdmin.Capacity.Apply" xml:space="preserve">
+    <value>Appliquer</value>
+  </data>
+  <data name="SyncshellAdmin.Capacity.BlockLowerThanMembers" xml:space="preserve">
+    <value>Impossible de définir une capacité inférieure au nombre de membres actuel ({0}).</value>
+  </data>
+  <data name="SyncshellAdmin.Capacity.Changed" xml:space="preserve">
+    <value>Capacité mise à jour.</value>
+  </data>
+  <data name="SyncshellAdmin.Capacity.ChangeFailed" xml:space="preserve">
+    <value>Échec de la modification de la capacité.</value>
+  </data>
+  <data name="SyncshellAdmin.Capacity.Busy" xml:space="preserve">
+    <value>Application…</value>
+  </data>
   <data name="SyncshellAdmin.AutoDetect.Weekday.Sat" xml:space="preserve">
     <value>Sam</value>
   </data>
@@ -2759,5 +2844,26 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   </data>
   <data name="Notification.McdfShare.Created.ToastBody" xml:space="preserve">
     <value>"{0}" envoyé ({1})</value>
+  </data>
+  <!-- Notifications d'état de Syncshell (public / non public) -->
+  <data name="Notification.Syncshell.Public.Title" xml:space="preserve">
+    <value>{0} est désormais public</value>
+  </data>
+  <data name="Notification.Syncshell.Public.Body" xml:space="preserve">
+    <value>Tout le monde peut rejoindre votre syncshell.</value>
+  </data>
+  <data name="Notification.Syncshell.NotPublic.Title" xml:space="preserve">
+    <value>{0} n'est plus public</value>
+  </data>
+  <data name="Notification.Syncshell.NotPublic.Body" xml:space="preserve">
+    <value>Rejoindre nécessite désormais une invitation.</value>
+  </data>
+
+  <!-- Notifications de demande AutoDetect -->
+  <data name="Notification.AutoDetect.RequestTitle" xml:space="preserve">
+    <value>Demande AutoDetect de {0}</value>
+  </data>
+  <data name="Notification.AutoDetect.RequestBody" xml:space="preserve">
+    <value>{0} a demandé un appairage avec vous. UID : {1}</value>
   </data>
 </root>

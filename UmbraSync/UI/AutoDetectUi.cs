@@ -92,7 +92,9 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
         });
 
         DrawStyledTab(Loc.Get("AutoDetectUi.Tab.Nearby"), accent, inactiveTab, hoverTab, DrawNearbyTab);
-        DrawStyledTab(Loc.Get("AutoDetectUi.Tab.Syncshell"), accent, inactiveTab, hoverTab, DrawSyncshellTab);
+        var syncCount = _syncshellEntries.Count > 0 ? _syncshellEntries.Count : _syncshellDiscoveryService.Entries.Count;
+        var syncTabLabel = string.Create(CultureInfo.CurrentCulture, $"{Loc.Get("AutoDetectUi.Tab.SyncFinder")} ({syncCount})");
+        DrawStyledTab(syncTabLabel, accent, inactiveTab, hoverTab, DrawSyncshellTab);
     }
 
     public void DrawInline()
@@ -225,6 +227,10 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
         ImGuiHelpers.ScaledDummy(6);
 
         var sourceEntries = _entries.Count > 0 ? _entries : _discoveryService.SnapshotEntries();
+        // Build snapshot of pending invites to gray-out buttons
+        var pendingInvites = _requestService.GetPendingRequestsSnapshot();
+        var pendingUids = new HashSet<string>(pendingInvites.Select(p => p.Uid!).Where(s => !string.IsNullOrEmpty(s)), StringComparer.Ordinal);
+        var pendingTokens = new HashSet<string>(pendingInvites.Select(p => p.Token!).Where(s => !string.IsNullOrEmpty(s)), StringComparer.Ordinal);
         var orderedEntries = sourceEntries
             .Where(e => e.IsMatch)
             .OrderBy(e => float.IsNaN(e.Distance) ? float.MaxValue : e.Distance)
@@ -253,7 +259,9 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
             var entry = orderedEntries[i];
             bool alreadyPaired = IsAlreadyPairedByUidOrAlias(entry);
             bool overDistance = !float.IsNaN(entry.Distance) && entry.Distance > maxDist;
-            bool canRequest = entry.AcceptPairRequests && !string.IsNullOrEmpty(entry.Token) && !alreadyPaired;
+            bool alreadyInvited = (!string.IsNullOrEmpty(entry.Uid) && pendingUids.Contains(entry.Uid))
+                                  || (!string.IsNullOrEmpty(entry.Token) && pendingTokens.Contains(entry.Token));
+            bool canRequest = entry.AcceptPairRequests && !string.IsNullOrEmpty(entry.Token) && !alreadyPaired && !alreadyInvited;
 
             string displayName = entry.DisplayName ?? entry.Name;
             string worldName = entry.WorldId == 0
@@ -263,6 +271,8 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
 
             string status = alreadyPaired
                 ? Loc.Get("AutoDetectUi.Nearby.Status.Paired")
+                : alreadyInvited
+                    ? Loc.Get("AutoDetectUi.Nearby.Status.Invited")
                 : overDistance
                     ? string.Format(CultureInfo.CurrentCulture, Loc.Get("AutoDetectUi.Nearby.Status.OutOfRange"), maxDist)
                     : !entry.AcceptPairRequests
@@ -298,6 +308,8 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
                 {
                     string reason = alreadyPaired
                         ? Loc.Get("AutoDetectUi.Nearby.Reason.Paired")
+                        : alreadyInvited
+                            ? Loc.Get("AutoDetectUi.Nearby.Reason.AlreadyInvited")
                         : overDistance
                             ? string.Format(CultureInfo.CurrentCulture, Loc.Get("AutoDetectUi.Nearby.Reason.OutOfRange"), maxDist)
                             : !entry.AcceptPairRequests
@@ -401,7 +413,7 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
         ImGui.TableSetupColumn(Loc.Get("AutoDetectUi.Syncshell.Table.Name"));
         ImGui.TableSetupColumn(Loc.Get("AutoDetectUi.Syncshell.Table.Owner"));
         ImGui.TableSetupColumn(Loc.Get("AutoDetectUi.Syncshell.Table.Members"));
-        ImGui.TableSetupColumn(Loc.Get("AutoDetectUi.Syncshell.Table.Invites"));
+        ImGui.TableSetupColumn(Loc.Get("AutoDetectUi.Syncshell.Table.Capacity"));
         ImGui.TableSetupColumn(Loc.Get("AutoDetectUi.Syncshell.Table.Action"));
         ImGui.TableHeadersRow();
 
@@ -411,21 +423,18 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
             bool joining = _syncshellJoinInFlight.Contains(entry.GID);
 
             ImGui.TableNextColumn();
-            ImGui.TextUnformatted(string.IsNullOrEmpty(entry.Alias) ? entry.GID : $"{entry.Alias} ({entry.GID})");
+            // If a custom alias exists, show only the alias and omit the ID in parentheses
+            ImGui.TextUnformatted(string.IsNullOrEmpty(entry.Alias) ? entry.GID : entry.Alias);
 
             ImGui.TableNextColumn();
-            ImGui.TextUnformatted(string.IsNullOrEmpty(entry.OwnerAlias) ? entry.OwnerUID : $"{entry.OwnerAlias} ({entry.OwnerUID})");
+            ImGui.TextUnformatted(string.IsNullOrEmpty(entry.OwnerAlias) ? entry.OwnerUID : entry.OwnerAlias);
 
             ImGui.TableNextColumn();
             ImGui.TextUnformatted(entry.MemberCount.ToString(CultureInfo.InvariantCulture));
 
             ImGui.TableNextColumn();
-            string inviteMode = entry.AutoAcceptPairs ? Loc.Get("AutoDetectUi.Syncshell.InviteMode.Auto") : Loc.Get("AutoDetectUi.Syncshell.InviteMode.Manual");
-            ImGui.TextUnformatted(inviteMode);
-            if (!entry.AutoAcceptPairs)
-            {
-                UiSharedService.AttachToolTip(Loc.Get("AutoDetectUi.Syncshell.InviteMode.ManualTooltip"));
-            }
+            var cap = entry.MaxUserCount > 0 ? entry.MaxUserCount.ToString(CultureInfo.InvariantCulture) : "-";
+            ImGui.TextUnformatted(cap);
 
             ImGui.TableNextColumn();
             using (ImRaii.Disabled(alreadyMember || joining))

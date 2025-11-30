@@ -79,7 +79,8 @@ public abstract class DrawPairBase
         drawList.AddRect(panelMin, panelMax, ImGui.ColorConvertFloat4ToU32(borderColor), rounding);
 
         float iconTop = rowStartCursor.Y + (rowHeight - iconHeight) / 2f;
-        float textTop = rowStartCursor.Y + (rowHeight - textHeight) / 2f - padding.Y * 0.6f;
+        // Keep text vertically aligned with the left-side icons for clearer grouping rows
+        float textTop = iconTop;
         float buttonTop = rowStartCursor.Y + (rowHeight - pauseClusterHeight) / 2f;
 
         ImGui.SetCursorPos(new Vector2(rowStartCursor.X + padding.X, iconTop));
@@ -92,7 +93,8 @@ public abstract class DrawPairBase
 
         ImGui.SameLine(nameStartX);
         ImGui.SetCursorPosY(textTop);
-        DrawName(textTop + padding.Y * 0.15f, nameStartX, rightSide);
+        // Draw the name/UID on the same vertical line as the icons
+        DrawName(textTop, nameStartX, rightSide);
 
         ImGui.SetCursorPos(new Vector2(rowStartCursor.X, rowStartCursor.Y + totalHeight));
         ImGui.SetCursorPosX(rowStartCursor.X);

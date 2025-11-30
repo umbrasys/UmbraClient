@@ -10,6 +10,7 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Reflection;
 
 namespace UmbraSync.WebAPI.SignalR;
 
@@ -36,6 +37,7 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
                 MaxAutomaticRedirections = 5
             }
         );
+        var ver = Assembly.GetExecutingAssembly().GetName().Version;
         Mediator = mareMediator;
         Mediator.Subscribe<DalamudLogoutMessage>(this, (_) =>
         {
@@ -51,7 +53,8 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
             _wellKnownCache.Clear();
             _secretKeyWarned = false;
         });
-        _httpClient.DefaultRequestHeaders.UserAgent.Add(VersionHelper.GetUserAgentHeader());
+        var versionString = ver is null ? "unknown" : $"{ver.Major}.{ver.Minor}.{ver.Build}";
+        _httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("UmbraSync", versionString));
     }
 
     public MareMediator Mediator { get; }

@@ -2,10 +2,12 @@ using System;
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 using UmbraSync.MareConfiguration.Models;
+using UmbraSync.Localization;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.Notification;
 using UmbraSync.WebAPI;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
 
 namespace UmbraSync.Services.AutoDetect;
 
@@ -51,6 +53,10 @@ public sealed class NearbyPendingService : IMediatorSubscriber
                 _requestService.RemovePendingRequestByUid(uidA);
                 _notificationTracker.Remove(NotificationCategory.AutoDetect, uidA);
                 _logger.LogInformation("NearbyPending: auto-accepted pairing with {uid}", uidA);
+                Mediator.Publish(new NotificationMessage(
+                    Loc.Get("AutoDetect.Notification.AcceptedTitle"),
+                    string.Format(CultureInfo.CurrentCulture, Loc.Get("AutoDetect.Notification.AcceptedBody"), uidA),
+                    NotificationType.Info, TimeSpan.FromSeconds(5)));
             }
             return;
         }
@@ -76,6 +82,10 @@ public sealed class NearbyPendingService : IMediatorSubscriber
         _pending[uid] = name;
         _logger.LogInformation("NearbyPending: received request from {uid} ({name})", uid, name);
         _notificationTracker.Upsert(NotificationEntry.AutoDetect(uid, name));
+        Mediator.Publish(new NotificationMessage(
+            Loc.Get("AutoDetect.Notification.IncomingTitle"),
+            string.Format(CultureInfo.CurrentCulture, Loc.Get("AutoDetect.Notification.IncomingBody"), name, uid),
+            NotificationType.Info, TimeSpan.FromSeconds(5)));
     }
 
     private void OnManualPairInvite(ManualPairInviteMessage msg)
@@ -89,7 +99,10 @@ public sealed class NearbyPendingService : IMediatorSubscriber
 
         _pending[msg.SourceUid] = display;
         _logger.LogInformation("NearbyPending: received manual invite from {uid} ({name})", msg.SourceUid, display);
-        _mediator.Publish(new NotificationMessage("Nearby request", $"{display} vous a envoyé une invitation de pair.", NotificationType.Info, TimeSpan.FromSeconds(5)));
+        _mediator.Publish(new NotificationMessage(
+            Loc.Get("AutoDetect.Notification.IncomingTitle"),
+            string.Format(CultureInfo.CurrentCulture, Loc.Get("AutoDetect.Notification.IncomingBody"), display, msg.SourceUid),
+            NotificationType.Info, TimeSpan.FromSeconds(5)));
         _notificationTracker.Upsert(NotificationEntry.AutoDetect(msg.SourceUid, display));
     }
 

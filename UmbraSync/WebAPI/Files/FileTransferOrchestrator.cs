@@ -2,11 +2,11 @@
 using UmbraSync.Services.Mediator;
 using UmbraSync.WebAPI.Files.Models;
 using UmbraSync.WebAPI.SignalR;
-using UmbraSync.Utils;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Reflection;
 
 namespace UmbraSync.WebAPI.Files;
 
@@ -30,7 +30,8 @@ public class FileTransferOrchestrator : DisposableMediatorSubscriberBase
         {
             Timeout = TimeSpan.FromSeconds(3000)
         };
-        _httpClient.DefaultRequestHeaders.UserAgent.Add(VersionHelper.GetUserAgentHeader());
+        var ver = Assembly.GetExecutingAssembly().GetName().Version;
+        _httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("UmbraSync", ver!.Major + "." + ver!.Minor + "." + ver!.Build));
 
         _availableDownloadSlots = mareConfig.Current.ParallelDownloads;
         _downloadSemaphore = new(_availableDownloadSlots, _availableDownloadSlots);

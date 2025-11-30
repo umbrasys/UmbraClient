@@ -464,8 +464,155 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
     private async Task<List<DownloadFileDto>> FilesGetSizes(List<string> hashes, CancellationToken ct)
     {
         if (!_orchestrator.IsInitialized) throw new InvalidOperationException("FileTransferManager is not initialized");
-        var response = await _orchestrator.SendRequestAsync(HttpMethod.Get, MareFiles.ServerFilesGetSizesFullPath(_orchestrator.FilesCdnUri!), hashes, ct).ConfigureAwait(false);
-        return await response.Content.ReadFromJsonAsync<List<DownloadFileDto>>(cancellationToken: ct).ConfigureAwait(false) ?? [];
+        // Prefer POST with JSON body (new server behavior). Add robust diagnostics and fallbacks for older deployments.
+        var uri = MareFiles.ServerFilesGetSizesFullPath(_orchestrator.FilesCdnUri!);
+
+        // Try POST first
+        HttpResponseMessage? postResponse = null;
+        try
+        {
+            postResponse = await _orchestrator
+                .SendRequestAsync(HttpMethod.Post, uri, hashes, ct)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "getFileSizes POST threw before response");
+        }
+
+        if (postResponse == null || !postResponse.IsSuccessStatusCode)
+        {
+            // If server hasn't been updated yet, it may reject POST. Retry with GET once.
+            var postStatus = postResponse?.StatusCode;
+            if (postStatus == HttpStatusCode.NotFound || postStatus == HttpStatusCode.MethodNotAllowed)
+            {
+                try
+                {
+                    var getFallback = await _orchestrator
+                        .SendRequestAsync(HttpMethod.Get, uri, hashes, ct)
+                        .ConfigureAwait(false);
+
+                    getFallback.EnsureSuccessStatusCode();
+
+                    // Old servers might return text/plain with a double-serialized JSON string
+                    var body = await getFallback.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+                    return ParseDownloadFileDtoList(body);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "getFileSizes GET fallback failed");
+                }
+            }
+
+            // For 5xx or other errors, try a permissive GET retry too (some proxies mis-handle POST)
+            try
+            {
+                var getRetry = await _orchestrator
+                    .SendRequestAsync(HttpMethod.Get, uri, hashes, ct)
+                    .ConfigureAwait(false);
+                if (getRetry.IsSuccessStatusCode)
+                {
+                    var body = await getRetry.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+                    return ParseDownloadFileDtoList(body);
+                }
+                else
+                {
+                    var getBody = await SafeReadBodySnippetAsync(getRetry, ct).ConfigureAwait(false);
+                    Logger.LogWarning("getFileSizes GET retry failed: {code} {reason}. Headers: {headers}. Body: {body}",
+                        (int)getRetry.StatusCode, getRetry.ReasonPhrase ?? string.Empty,
+                        string.Join("; ", getRetry.Headers.Select(h => h.Key + ":" + string.Join(",", h.Value))),
+                        getBody);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "getFileSizes GET retry threw");
+            }
+
+            // As a last resort, log and return a conservative list with FileExists=false to avoid crashing the flow
+            if (postResponse != null)
+            {
+                var bodySnippet = await SafeReadBodySnippetAsync(postResponse, ct).ConfigureAwait(false);
+                var reason = postResponse.ReasonPhrase ?? string.Empty;
+                Logger.LogWarning("getFileSizes POST failed: {code} {reason}. Headers: {headers}. Body: {body}",
+                    (int)postResponse.StatusCode, reason,
+                    string.Join("; ", postResponse.Headers.Select(h => h.Key + ":" + string.Join(",", h.Value))),
+                    bodySnippet);
+            }
+
+            return hashes.Select(h => new DownloadFileDto
+            {
+                Hash = h,
+                FileExists = false,
+                Url = string.Empty,
+                Size = 0,
+                IsForbidden = false,
+                ForbiddenBy = string.Empty
+            }).ToList();
+        }
+
+        try
+        {
+            var opts = new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+            return await postResponse.Content
+                .ReadFromJsonAsync<List<DownloadFileDto>>(options: opts, cancellationToken: ct)
+                .ConfigureAwait(false) ?? [];
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            // Try to read as string and handle possible double-serialization or text/plain
+            var body = await postResponse.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            try
+            {
+                return ParseDownloadFileDtoList(body);
+            }
+            catch (Exception ex)
+            {
+                var snippet = body?.Length > 2048 ? body[..2048] + "…" : body ?? string.Empty;
+                // Re-throw with context to satisfy analyzers and aid diagnostics
+                throw new System.Text.Json.JsonException($"Failed to parse getFileSizes response. Snippet: {snippet}", ex);
+            }
+        }
+    }
+
+    private static List<DownloadFileDto> ParseDownloadFileDtoList(string body)
+    {
+        // If the server returned a quoted JSON string, unwrap it first
+        string json = body;
+        try
+        {
+            // Detect a pure JSON string value (starts and ends with quotes) and small chance of double-encoding
+            if (!string.IsNullOrEmpty(body) && body.Length >= 2 && body[0] == '"' && body[^1] == '"')
+            {
+                var inner = System.Text.Json.JsonSerializer.Deserialize<string>(body);
+                if (!string.IsNullOrEmpty(inner)) json = inner;
+            }
+        }
+        catch
+        {
+            // ignore, fall back to using original body
+        }
+
+        var opts = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        var list = System.Text.Json.JsonSerializer.Deserialize<List<DownloadFileDto>>(json, opts);
+        return list ?? [];
+    }
+
+    private static async Task<string> SafeReadBodySnippetAsync(HttpResponseMessage response, CancellationToken ct)
+    {
+        try
+        {
+            var body = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            if (string.IsNullOrEmpty(body)) return string.Empty;
+            return body.Length > 2048 ? body[..2048] + "…" : body;
+        }
+        catch
+        {
+            return string.Empty;
+        }
     }
 
     private void PersistFileToStorage(string fileHash, string filePath, long? compressedSize = null)

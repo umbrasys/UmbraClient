@@ -780,6 +780,11 @@ public class CompactUi : WindowMediatorSubscriberBase
         }
         else
         {
+            // Build lists for Visible, Online and Offline (Individual Pairs view)
+            var visibleUsers = visibleUsersSource
+                .Select(c => new DrawUserPair("Visible" + c.UserData.UID, c, _uidDisplayHandler, _apiController, Mediator, _selectGroupForPairUi, _uiSharedService, _charaDataManager, _serverManager))
+                .ToList();
+
             var onlineUsers = nonVisibleUsers.Where(u => u.UserPair!.OtherPermissions.IsPaired() && (u.IsOnline || u.UserPair!.OwnPermissions.IsPaused()))
                 .Select(c => new DrawUserPair("Online" + c.UserData.UID, c, _uidDisplayHandler, _apiController, Mediator, _selectGroupForPairUi, _uiSharedService, _charaDataManager, _serverManager))
                 .ToList();
@@ -794,7 +799,8 @@ public class CompactUi : WindowMediatorSubscriberBase
                 drawVisibleExtras = () => DrawNearbyCard(entriesForExtras);
             }
 
-            _pairGroupsUi.Draw(Array.Empty<DrawUserPair>().ToList(), onlineUsers, offlineUsers, drawVisibleExtras);
+            // Pass visible users to the groups UI so group headers can reflect visible counts
+            _pairGroupsUi.Draw(visibleUsers, onlineUsers, offlineUsers, drawVisibleExtras);
         }
 
         ImGui.EndChild();
@@ -889,6 +895,11 @@ public class CompactUi : WindowMediatorSubscriberBase
                 var indent = 18f * ImGuiHelpers.GlobalScale;
                 ImGui.Indent(indent);
 
+                // Snapshot pending invites to gray-out buttons if already invited
+                var pending = _autoDetectRequestService.GetPendingRequestsSnapshot();
+                var pendingUids = new HashSet<string>(pending.Select(p => p.Uid!).Where(s => !string.IsNullOrEmpty(s)), StringComparer.Ordinal);
+                var pendingTokens = new HashSet<string>(pending.Select(p => p.Token!).Where(s => !string.IsNullOrEmpty(s)), StringComparer.Ordinal);
+
                 // Use a table to guarantee right-aligned action within the card content area
                 var actionButtonSize = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.UserPlus);
                 if (ImGui.BeginTable("nearby-table", 2, ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX | ImGuiTableFlags.BordersInnerV))
@@ -902,6 +913,14 @@ public class CompactUi : WindowMediatorSubscriberBase
                         {
                             continue;
                         }
+
+                        bool alreadyPaired = false;
+                        if (!string.IsNullOrEmpty(e.Uid))
+                        {
+                            alreadyPaired = _pairManager.DirectPairs.Any(p => string.Equals(p.UserData.UID, e.Uid, StringComparison.Ordinal));
+                        }
+                        bool alreadyInvited = (!string.IsNullOrEmpty(e.Uid) && pendingUids.Contains(e.Uid))
+                                              || (!string.IsNullOrEmpty(e.Token) && pendingTokens.Contains(e.Token));
 
                         ImGui.TableNextRow();
 
@@ -918,7 +937,23 @@ public class CompactUi : WindowMediatorSubscriberBase
 
                         using (ImRaii.PushId(e.Token ?? e.Uid ?? e.Name ?? string.Empty))
                         {
-                            if (_uiSharedService.IconButton(FontAwesomeIcon.UserPlus))
+                            if (alreadyPaired)
+                            {
+                                using (ImRaii.Disabled())
+                                {
+                                    _uiSharedService.IconButton(FontAwesomeIcon.UserPlus);
+                                }
+                                UiSharedService.AttachToolTip(Loc.Get("AutoDetectUi.Nearby.Reason.Paired"));
+                            }
+                            else if (alreadyInvited)
+                            {
+                                using (ImRaii.Disabled())
+                                {
+                                    _uiSharedService.IconButton(FontAwesomeIcon.UserPlus);
+                                }
+                                UiSharedService.AttachToolTip(Loc.Get("AutoDetectUi.Nearby.Reason.AlreadyInvited"));
+                            }
+                            else if (_uiSharedService.IconButton(FontAwesomeIcon.UserPlus))
                             {
                                 _ = _autoDetectRequestService.SendRequestAsync(e.Token!, e.Uid, e.DisplayName);
                             }

@@ -98,6 +98,20 @@ public partial class ApiController
         await _mareHub!.InvokeAsync(nameof(UserSetProfile), userDescription).ConfigureAwait(false);
     }
 
+    public async Task UserSetAlias(string? alias)
+    {
+        if (!IsConnected) return;
+        try
+        {
+            await _mareHub!.InvokeAsync(nameof(UserSetAlias), alias).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to set custom ID");
+            throw new InvalidOperationException("Failed to set custom ID via SignalR call to UserSetAlias", ex);
+        }
+    }
+
     public async Task UserSetTypingState(bool isTyping)
     {
         CheckConnection();

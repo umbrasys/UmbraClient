@@ -21,13 +21,21 @@ public enum NotificationCategory
 public sealed record NotificationEntry(NotificationCategory Category, string Id, string Title, string? Description, DateTime CreatedAt)
 {
     public static NotificationEntry AutoDetect(string uid, string displayName)
-        => new(NotificationCategory.AutoDetect, uid, displayName, "Nouvelle demande d'appairage via AutoDetect.", DateTime.UtcNow);
+    {
+        var title = string.Format(CultureInfo.CurrentCulture, Loc.Get("Notification.AutoDetect.RequestTitle"), displayName);
+        var desc = string.Format(CultureInfo.CurrentCulture, Loc.Get("Notification.AutoDetect.RequestBody"), displayName, uid);
+        return new(NotificationCategory.AutoDetect, uid, title, desc, DateTime.UtcNow);
+    }
 
     public static NotificationEntry SyncshellPublic(string gid, string aliasOrGid)
-        => new(NotificationCategory.Syncshell, gid, $"Syncshell publique: {aliasOrGid}", "La Syncshell est désormais visible via AutoDetect.", DateTime.UtcNow);
+        => new(NotificationCategory.Syncshell, gid,
+            string.Format(CultureInfo.CurrentCulture, Loc.Get("Notification.Syncshell.Public.Title"), aliasOrGid),
+            Loc.Get("Notification.Syncshell.Public.Body"), DateTime.UtcNow);
 
     public static NotificationEntry SyncshellNotPublic(string gid, string aliasOrGid)
-        => new(NotificationCategory.Syncshell, gid, $"Syncshell non publique: {aliasOrGid}", "La Syncshell n'est plus visible via AutoDetect.", DateTime.UtcNow);
+        => new(NotificationCategory.Syncshell, gid,
+            string.Format(CultureInfo.CurrentCulture, Loc.Get("Notification.Syncshell.NotPublic.Title"), aliasOrGid),
+            Loc.Get("Notification.Syncshell.NotPublic.Body"), DateTime.UtcNow);
 
     public static NotificationEntry McdfShareCreated(Guid shareId, string? description, int individualCount, int syncshellCount)
     {

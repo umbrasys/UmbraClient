@@ -46,7 +46,9 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
     private bool _autoDetectVisible;
     private bool _autoDetectPasswordDisabled;
     private string? _autoDetectMessage;
-    
+    private int _desiredCapacity;
+    private bool _capacityApplyInFlight;
+    private string? _capacityMessage;
     private bool _autoDetectDesiredVisibility;
     private int _adDurationHours = 2;
     private bool _adRecurring = false;
@@ -76,6 +78,9 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
         _autoDetectVisible = groupFullInfo.AutoDetectVisible;
         _autoDetectDesiredVisibility = _autoDetectVisible;
         _autoDetectPasswordDisabled = groupFullInfo.PasswordTemporarilyDisabled;
+        _desiredCapacity = groupFullInfo.MaxUserCount;
+        _capacityApplyInFlight = false;
+        _capacityMessage = null;
         Mediator.Subscribe<SyncshellAutoDetectStateChanged>(this, OnSyncshellAutoDetectStateChanged);
         IsOpen = true;
         SizeConstraints = new WindowSizeConstraints()
@@ -449,6 +454,71 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                 }
             }
             permissionTab.Dispose();
+            var capacityTab = ImRaii.TabItem(Loc.Get("SyncshellAdmin.Tab.Capacity"));
+            if (capacityTab)
+            {
+                if (!_capacityApplyInFlight 
+                    && _desiredCapacity != GroupFullInfo.MaxUserCount 
+                    && (_desiredCapacity < 1 || _desiredCapacity > _apiController.ServerInfo.MaxGroupUserCount))
+                {
+                    _desiredCapacity = GroupFullInfo.MaxUserCount;
+                }
+
+                // Use the greater of ServerInfo cap and the group's current MaxUserCount.
+                // This avoids clamping down to an outdated server cap (e.g., 100)
+                // when the server already accepted and persisted a higher value (e.g., 200).
+                int serverCap = Math.Max(_apiController.ServerInfo.MaxGroupUserCount, GroupFullInfo.MaxUserCount);
+                int currentMembers = 1;
+                if (_pairManager.GroupPairs.TryGetValue(GroupFullInfo, out var pairsInGroup))
+                    currentMembers += pairsInGroup.Count;
+                int minCap = Math.Max(1, currentMembers);
+                _desiredCapacity = Math.Clamp(_desiredCapacity, minCap, serverCap);
+
+                ImGui.AlignTextToFramePadding();
+                ImGui.TextUnformatted(Loc.Get("SyncshellAdmin.Capacity.Label"));
+                _uiSharedService.DrawHelpText(string.Format(CultureInfo.CurrentCulture, Loc.Get("SyncshellAdmin.Capacity.Help"), minCap, serverCap));
+                ImGui.InputInt("##capacity_input", ref _desiredCapacity);
+                if (_desiredCapacity < minCap) _desiredCapacity = minCap;
+                if (_desiredCapacity > serverCap) _desiredCapacity = serverCap;
+                // Removed capacity slider: keep only direct numeric input per request
+
+                if (!string.IsNullOrEmpty(_capacityMessage))
+                {
+                    UiSharedService.ColorTextWrapped(_capacityMessage!, ImGuiColors.DalamudYellow);
+                }
+
+                bool changed = _desiredCapacity != GroupFullInfo.MaxUserCount;
+                using (ImRaii.Disabled(_capacityApplyInFlight || !changed))
+                {
+                    if (_uiSharedService.IconTextButton(FontAwesomeIcon.Save, Loc.Get("SyncshellAdmin.Capacity.Apply")))
+                    {
+                        _capacityApplyInFlight = true;
+                        try
+                        {
+                            if (_desiredCapacity < currentMembers)
+                            {
+                                _capacityMessage = string.Format(CultureInfo.CurrentCulture, Loc.Get("SyncshellAdmin.Capacity.BlockLowerThanMembers"), currentMembers);
+                            }
+                            else
+                            {
+                                var ok = _apiController.GroupSetMaxUserCount(new(GroupFullInfo.Group), _desiredCapacity).Result;
+                                _capacityMessage = ok ? Loc.Get("SyncshellAdmin.Capacity.Changed") : Loc.Get("SyncshellAdmin.Capacity.ChangeFailed");
+                            }
+                        }
+                        finally
+                        {
+                            _capacityApplyInFlight = false;
+                        }
+                    }
+                }
+
+                if (_capacityApplyInFlight)
+                {
+                    ImGui.SameLine();
+                    UiSharedService.ColorText(Loc.Get("SyncshellAdmin.Capacity.Busy"), ImGuiColors.DalamudYellow);
+                }
+            }
+            capacityTab.Dispose();
 
             if (_isOwner)
             {

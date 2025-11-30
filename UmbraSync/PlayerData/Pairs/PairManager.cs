@@ -128,7 +128,10 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         RecreateLazy();
     }
 
-    public List<Pair> GetOnlineUserPairs() => _allClientPairs.Where(p => !string.IsNullOrEmpty(p.Value.GetPlayerNameHash())).Select(p => p.Value).ToList();
+    public List<Pair> GetOnlineUserPairs() => _allClientPairs
+        .Where(p => p.Value.IsOnline)
+        .Select(p => p.Value)
+        .ToList();
 
     public int GetVisibleUserCount() => _allClientPairs.Count(p => p.Value.IsVisible);
 
@@ -247,6 +250,9 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         groupInfo.Group = dto.Group;
         groupInfo.Owner = dto.Owner;
         groupInfo.GroupPermissions = dto.GroupPermissions;
+        groupInfo.MaxUserCount = dto.MaxUserCount;
+        groupInfo.AutoDetectVisible = dto.AutoDetectVisible;
+        groupInfo.PasswordTemporarilyDisabled = dto.PasswordTemporarilyDisabled;
         groupInfo.IsTemporary = dto.IsTemporary;
         groupInfo.ExpiresAt = dto.ExpiresAt;
 

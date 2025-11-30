@@ -22,6 +22,17 @@ public class DiscoveryApiClient
         _tokenProvider = tokenProvider;
         _configProvider = configProvider;
         _httpClient.Timeout = TimeSpan.FromSeconds(30);
+        try
+        {
+            if (_httpClient.DefaultRequestHeaders.UserAgent.Count == 0)
+            {
+                _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("UmbraSync/AutoDetect");
+            }
+        }
+        catch
+        {
+            // ignore header parse errors
+        }
     }
 
     public async Task<List<ServerMatch>> QueryAsync(string endpoint, IEnumerable<string> hashes, CancellationToken ct)
