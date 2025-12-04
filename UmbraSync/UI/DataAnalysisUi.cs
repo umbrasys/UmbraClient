@@ -35,6 +35,9 @@ public class DataAnalysisUi : WindowMediatorSubscriberBase
     private string _selectedHash = string.Empty;
     private ObjectKind _selectedObjectTab;
     private bool _showModal = false;
+    private int _lastSortColumnIdx = -1;
+    private ImGuiSortDirection _lastSortDirection = ImGuiSortDirection.None;
+    private string _lastSortedFileGroupKey = string.Empty;
 
     public DataAnalysisUi(ILogger<DataAnalysisUi> logger, MareMediator mediator,
         CharacterAnalyzer characterAnalyzer, IpcManager ipcManager,
@@ -422,38 +425,45 @@ public class DataAnalysisUi : WindowMediatorSubscriberBase
         ImGui.TableHeadersRow();
 
         var sortSpecs = ImGui.TableGetSortSpecs();
-        if (sortSpecs.SpecsDirty || _sortDirty)
+        if ((sortSpecs.SpecsDirty || _sortDirty) && sortSpecs.SpecsCount > 0)
         {
             var idx = sortSpecs.Specs.ColumnIndex;
+            var dir = sortSpecs.Specs.SortDirection;
+            if (_sortDirty || idx != _lastSortColumnIdx || dir != _lastSortDirection || !string.Equals(_lastSortedFileGroupKey, fileGroup.Key, StringComparison.Ordinal))
+            {
+                if (idx == 0 && dir == ImGuiSortDirection.Ascending)
+                    _cachedAnalysis![_selectedObjectTab] = _cachedAnalysis[_selectedObjectTab].OrderBy(k => k.Key, StringComparer.Ordinal).ToDictionary(d => d.Key, d => d.Value, StringComparer.Ordinal);
+                if (idx == 0 && dir == ImGuiSortDirection.Descending)
+                    _cachedAnalysis![_selectedObjectTab] = _cachedAnalysis[_selectedObjectTab].OrderByDescending(k => k.Key, StringComparer.Ordinal).ToDictionary(d => d.Key, d => d.Value, StringComparer.Ordinal);
+                if (idx == 1 && dir == ImGuiSortDirection.Ascending)
+                    _cachedAnalysis![_selectedObjectTab] = _cachedAnalysis[_selectedObjectTab].OrderBy(k => k.Value.FilePaths.Count).ToDictionary(d => d.Key, d => d.Value, StringComparer.Ordinal);
+                if (idx == 1 && dir == ImGuiSortDirection.Descending)
+                    _cachedAnalysis![_selectedObjectTab] = _cachedAnalysis[_selectedObjectTab].OrderByDescending(k => k.Value.FilePaths.Count).ToDictionary(d => d.Key, d => d.Value, StringComparer.Ordinal);
+                if (idx == 2 && dir == ImGuiSortDirection.Ascending)
+                    _cachedAnalysis![_selectedObjectTab] = _cachedAnalysis[_selectedObjectTab].OrderBy(k => k.Value.GamePaths.Count).ToDictionary(d => d.Key, d => d.Value, StringComparer.Ordinal);
+                if (idx == 2 && dir == ImGuiSortDirection.Descending)
+                    _cachedAnalysis![_selectedObjectTab] = _cachedAnalysis[_selectedObjectTab].OrderByDescending(k => k.Value.GamePaths.Count).ToDictionary(d => d.Key, d => d.Value, StringComparer.Ordinal);
+                if (idx == 3 && dir == ImGuiSortDirection.Ascending)
+                    _cachedAnalysis![_selectedObjectTab] = _cachedAnalysis[_selectedObjectTab].OrderBy(k => k.Value.OriginalSize).ToDictionary(d => d.Key, d => d.Value, StringComparer.Ordinal);
+                if (idx == 3 && dir == ImGuiSortDirection.Descending)
+                    _cachedAnalysis![_selectedObjectTab] = _cachedAnalysis[_selectedObjectTab].OrderByDescending(k => k.Value.OriginalSize).ToDictionary(d => d.Key, d => d.Value, StringComparer.Ordinal);
+                if (idx == 4 && dir == ImGuiSortDirection.Ascending)
+                    _cachedAnalysis![_selectedObjectTab] = _cachedAnalysis[_selectedObjectTab].OrderBy(k => k.Value.CompressedSize).ToDictionary(d => d.Key, d => d.Value, StringComparer.Ordinal);
+                if (idx == 4 && dir == ImGuiSortDirection.Descending)
+                    _cachedAnalysis![_selectedObjectTab] = _cachedAnalysis[_selectedObjectTab].OrderByDescending(k => k.Value.CompressedSize).ToDictionary(d => d.Key, d => d.Value, StringComparer.Ordinal);
+                if (string.Equals(fileGroup.Key, "mdl", StringComparison.Ordinal) && idx == 5 && dir == ImGuiSortDirection.Ascending)
+                    _cachedAnalysis![_selectedObjectTab] = _cachedAnalysis[_selectedObjectTab].OrderBy(k => k.Value.Triangles).ToDictionary(d => d.Key, d => d.Value, StringComparer.Ordinal);
+                if (string.Equals(fileGroup.Key, "mdl", StringComparison.Ordinal) && idx == 5 && dir == ImGuiSortDirection.Descending)
+                    _cachedAnalysis![_selectedObjectTab] = _cachedAnalysis[_selectedObjectTab].OrderByDescending(k => k.Value.Triangles).ToDictionary(d => d.Key, d => d.Value, StringComparer.Ordinal);
+                if (string.Equals(fileGroup.Key, "tex", StringComparison.Ordinal) && idx == 5 && dir == ImGuiSortDirection.Ascending)
+                    _cachedAnalysis![_selectedObjectTab] = _cachedAnalysis[_selectedObjectTab].OrderBy(k => k.Value.Format.Value, StringComparer.Ordinal).ToDictionary(d => d.Key, d => d.Value, StringComparer.Ordinal);
+                if (string.Equals(fileGroup.Key, "tex", StringComparison.Ordinal) && idx == 5 && dir == ImGuiSortDirection.Descending)
+                    _cachedAnalysis![_selectedObjectTab] = _cachedAnalysis[_selectedObjectTab].OrderByDescending(k => k.Value.Format.Value, StringComparer.Ordinal).ToDictionary(d => d.Key, d => d.Value, StringComparer.Ordinal);
 
-            if (idx == 0 && sortSpecs.Specs.SortDirection == ImGuiSortDirection.Ascending)
-                _cachedAnalysis![_selectedObjectTab] = _cachedAnalysis[_selectedObjectTab].OrderBy(k => k.Key, StringComparer.Ordinal).ToDictionary(d => d.Key, d => d.Value, StringComparer.Ordinal);
-            if (idx == 0 && sortSpecs.Specs.SortDirection == ImGuiSortDirection.Descending)
-                _cachedAnalysis![_selectedObjectTab] = _cachedAnalysis[_selectedObjectTab].OrderByDescending(k => k.Key, StringComparer.Ordinal).ToDictionary(d => d.Key, d => d.Value, StringComparer.Ordinal);
-            if (idx == 1 && sortSpecs.Specs.SortDirection == ImGuiSortDirection.Ascending)
-                _cachedAnalysis![_selectedObjectTab] = _cachedAnalysis[_selectedObjectTab].OrderBy(k => k.Value.FilePaths.Count).ToDictionary(d => d.Key, d => d.Value, StringComparer.Ordinal);
-            if (idx == 1 && sortSpecs.Specs.SortDirection == ImGuiSortDirection.Descending)
-                _cachedAnalysis![_selectedObjectTab] = _cachedAnalysis[_selectedObjectTab].OrderByDescending(k => k.Value.FilePaths.Count).ToDictionary(d => d.Key, d => d.Value, StringComparer.Ordinal);
-            if (idx == 2 && sortSpecs.Specs.SortDirection == ImGuiSortDirection.Ascending)
-                _cachedAnalysis![_selectedObjectTab] = _cachedAnalysis[_selectedObjectTab].OrderBy(k => k.Value.GamePaths.Count).ToDictionary(d => d.Key, d => d.Value, StringComparer.Ordinal);
-            if (idx == 2 && sortSpecs.Specs.SortDirection == ImGuiSortDirection.Descending)
-                _cachedAnalysis![_selectedObjectTab] = _cachedAnalysis[_selectedObjectTab].OrderByDescending(k => k.Value.GamePaths.Count).ToDictionary(d => d.Key, d => d.Value, StringComparer.Ordinal);
-            if (idx == 3 && sortSpecs.Specs.SortDirection == ImGuiSortDirection.Ascending)
-                _cachedAnalysis![_selectedObjectTab] = _cachedAnalysis[_selectedObjectTab].OrderBy(k => k.Value.OriginalSize).ToDictionary(d => d.Key, d => d.Value, StringComparer.Ordinal);
-            if (idx == 3 && sortSpecs.Specs.SortDirection == ImGuiSortDirection.Descending)
-                _cachedAnalysis![_selectedObjectTab] = _cachedAnalysis[_selectedObjectTab].OrderByDescending(k => k.Value.OriginalSize).ToDictionary(d => d.Key, d => d.Value, StringComparer.Ordinal);
-            if (idx == 4 && sortSpecs.Specs.SortDirection == ImGuiSortDirection.Ascending)
-                _cachedAnalysis![_selectedObjectTab] = _cachedAnalysis[_selectedObjectTab].OrderBy(k => k.Value.CompressedSize).ToDictionary(d => d.Key, d => d.Value, StringComparer.Ordinal);
-            if (idx == 4 && sortSpecs.Specs.SortDirection == ImGuiSortDirection.Descending)
-                _cachedAnalysis![_selectedObjectTab] = _cachedAnalysis[_selectedObjectTab].OrderByDescending(k => k.Value.CompressedSize).ToDictionary(d => d.Key, d => d.Value, StringComparer.Ordinal);
-            if (string.Equals(fileGroup.Key, "mdl", StringComparison.Ordinal) && idx == 5 && sortSpecs.Specs.SortDirection == ImGuiSortDirection.Ascending)
-                _cachedAnalysis![_selectedObjectTab] = _cachedAnalysis[_selectedObjectTab].OrderBy(k => k.Value.Triangles).ToDictionary(d => d.Key, d => d.Value, StringComparer.Ordinal);
-            if (string.Equals(fileGroup.Key, "mdl", StringComparison.Ordinal) && idx == 5 && sortSpecs.Specs.SortDirection == ImGuiSortDirection.Descending)
-                _cachedAnalysis![_selectedObjectTab] = _cachedAnalysis[_selectedObjectTab].OrderByDescending(k => k.Value.Triangles).ToDictionary(d => d.Key, d => d.Value, StringComparer.Ordinal);
-            if (string.Equals(fileGroup.Key, "tex", StringComparison.Ordinal) && idx == 5 && sortSpecs.Specs.SortDirection == ImGuiSortDirection.Ascending)
-                _cachedAnalysis![_selectedObjectTab] = _cachedAnalysis[_selectedObjectTab].OrderBy(k => k.Value.Format.Value, StringComparer.Ordinal).ToDictionary(d => d.Key, d => d.Value, StringComparer.Ordinal);
-            if (string.Equals(fileGroup.Key, "tex", StringComparison.Ordinal) && idx == 5 && sortSpecs.Specs.SortDirection == ImGuiSortDirection.Descending)
-                _cachedAnalysis![_selectedObjectTab] = _cachedAnalysis[_selectedObjectTab].OrderByDescending(k => k.Value.Format.Value, StringComparer.Ordinal).ToDictionary(d => d.Key, d => d.Value, StringComparer.Ordinal);
+                _lastSortColumnIdx = idx;
+                _lastSortDirection = dir;
+                _lastSortedFileGroupKey = fileGroup.Key;
+            }
 
             sortSpecs.SpecsDirty = false;
             _sortDirty = false;

@@ -110,6 +110,73 @@
   <data name="CompactUi.Connection.ConnectTooltip" xml:space="preserve">
     <value>Connect to {0}</value>
   </data>
+  <!-- Settings: Transfer - Penumbra Pre-cache toggle -->
+  <data name="Settings.Transfer.Title" xml:space="preserve">
+    <value>Transfer Settings</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Enable" xml:space="preserve">
+    <value>Pre-cache Penumbra mods to server</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Enable.Help" xml:space="preserve">
+    <value>Uploads eligible Penumbra files to the server in the background to speed up future switches. Not recommended on slow or limited connections.</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Status" xml:space="preserve">
+    <value>Pre-cache status: {0}</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Status.WithBytes" xml:space="preserve">
+    <value>Pre-cache status: {0} ({1} sent)</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Status.Running" xml:space="preserve">
+    <value>Uploading in background</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Status.Idle" xml:space="preserve">
+    <value>Idle</value>
+  </data>
+  <data name="Settings.Transfer.Precache.LastRun" xml:space="preserve">
+    <value>Last run: {0}</value>
+  </data>
+  <data name="Settings.Transfer.Precache.RunNow" xml:space="preserve">
+    <value>Run pre-cache now</value>
+  </data>
+  <data name="Settings.Transfer.Precache.RunNow.Help" xml:space="preserve">
+    <value>Scan Penumbra mods and upload missing files to the server immediately.</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Progress.Starting" xml:space="preserve">
+    <value>Starting upload for {0} files</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Progress.Uploading" xml:space="preserve">
+    <value>Uploading file {0}/{1}. Please wait until the upload is completed.</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Status.DeltaPreparing" xml:space="preserve">
+    <value>Delta: preparing upload for {0} files</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Status.DeltaDoneUpToDate" xml:space="preserve">
+    <value>Delta completed: all up-to-date</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Status.DeltaDoneSkipped" xml:space="preserve">
+    <value>Delta completed with {0} skipped</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Status.DirUnavailable" xml:space="preserve">
+    <value>Penumbra directory unavailable</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Status.FailedEnumerate" xml:space="preserve">
+    <value>Failed to enumerate files</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Status.NoEligible" xml:space="preserve">
+    <value>No eligible files</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Status.NoHashes" xml:space="preserve">
+    <value>No hashes resolved</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Status.Preparing" xml:space="preserve">
+    <value>Preparing upload for {0} files</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Status.CompletedAllUpToDate" xml:space="preserve">
+    <value>Completed: all files up-to-date</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Status.CompletedSkipped" xml:space="preserve">
+    <value>Completed with {0} skipped</value>
+  </data>
   
   <!-- AutoDetect notifications -->
   <data name="AutoDetect.Notification.IncomingTitle" xml:space="preserve">

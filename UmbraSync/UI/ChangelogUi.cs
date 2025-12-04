@@ -171,6 +171,14 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
     {
         return new List<ChangelogEntry>
         {
+            new(new Version(2, 0, 2, 0), "2.0.2.0", new List<ChangelogLine>
+            {
+                new("Pré-Cache : Permet d'envoyer tout vos mods sur le serveur UmbraSync pour faciliter les téléchargements / changements."),
+                new("Correction du problème de freeze quand l'on redimensionne trop vite la fenêtre UmbraSync"),
+                new("Correction de l'affichage pré-maturé des états Glamourer empêchant Glamourer de fonctionner correctement."),
+                new("Correction de l'affichage des animations/compagnons/montures moddé avec un squelette spécifique."),
+                
+            }),
             new(new Version(2, 0, 1, 0), "2.0.1.0", new List<ChangelogLine>
             {
                 new("Réécriture de l'AutoDetect pour de meilleurs performances"),

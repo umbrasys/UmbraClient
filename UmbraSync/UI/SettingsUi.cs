@@ -68,6 +68,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private bool _registrationInProgress = false;
     private bool _registrationSuccess = false;
     private string? _registrationMessage;
+    private readonly PenumbraPrecacheService _precacheService;
 
     public SettingsUi(ILogger<SettingsUi> logger,
         UiSharedService uiShared, MareConfigService configService,
@@ -82,6 +83,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         IpcManager ipcManager, IpcProvider ipcProvider, CacheMonitor cacheMonitor,
         DalamudUtilService dalamudUtilService, AccountRegistrationService registerService,
         AutoDetectSuppressionService autoDetectSuppressionService,
+        PenumbraPrecacheService precacheService,
         ChatTypingDetectionService chatTypingDetectionService) : base(logger, mediator, "Umbra Settings", performanceCollector)
     {
         _configService = configService;
@@ -103,6 +105,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         _autoDetectSuppressionService = autoDetectSuppressionService;
         _fileCompactor = fileCompactor;
         _uiShared = uiShared;
+        _precacheService = precacheService;
         _chatTypingDetectionService = chatTypingDetectionService;
         AllowClickthrough = false;
         AllowPinning = false;
@@ -182,7 +185,51 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private void DrawCurrentTransfers()
     {
         _lastTab = "Transfers";
-        _uiShared.BigText("Transfer Settings");
+        _uiShared.BigText(Loc.Get("Settings.Transfer.Title"));
+        
+        bool enablePenumbraPrecache = _configService.Current.EnablePenumbraPrecache;
+        if (ImGui.Checkbox(Loc.Get("Settings.Transfer.Precache.Enable"), ref enablePenumbraPrecache))
+        {
+            _configService.Current.EnablePenumbraPrecache = enablePenumbraPrecache;
+            _configService.Save();
+        }
+        _uiShared.DrawHelpText(Loc.Get("Settings.Transfer.Precache.Enable.Help"));
+
+        using (ImRaii.Disabled(!enablePenumbraPrecache))
+        {
+            // Etat du pré-cache
+            var runningText = _precacheService.IsUploading
+                ? Loc.Get("Settings.Transfer.Precache.Status.Running")
+                : Loc.Get("Settings.Transfer.Precache.Status.Idle");
+            var bytesSoFar = _precacheService.BytesUploadedThisRun;
+            if (bytesSoFar > 0)
+            {
+                ImGui.TextUnformatted(string.Format(Loc.Get("Settings.Transfer.Precache.Status.WithBytes"), runningText, UiSharedService.ByteToString(bytesSoFar)));
+            }
+            else
+            {
+                ImGui.TextUnformatted(string.Format(Loc.Get("Settings.Transfer.Precache.Status"), runningText));
+            }
+
+            // Dernier lancement
+            if (_precacheService.LastRunEndUtc.HasValue || _precacheService.LastRunStartUtc.HasValue)
+            {
+                var last = (_precacheService.LastRunEndUtc ?? _precacheService.LastRunStartUtc)!.Value.ToLocalTime();
+                ImGui.TextUnformatted(string.Format(Loc.Get("Settings.Transfer.Precache.LastRun"), last.ToString("g", CultureInfo.CurrentCulture)));
+            }
+
+            // El famoso in progress
+            if (_precacheService.IsUploading && !string.IsNullOrEmpty(_precacheService.StatusText))
+            {
+                UiSharedService.ColorTextWrapped(_precacheService.StatusText, ImGuiColors.DalamudGrey);
+            }
+            
+            if (ImGui.Button(Loc.Get("Settings.Transfer.Precache.RunNow")))
+            {
+                _precacheService.TriggerManualPrecache();
+            }
+            UiSharedService.AttachToolTip(Loc.Get("Settings.Transfer.Precache.RunNow.Help"));
+        }
 
         int maxParallelDownloads = _configService.Current.ParallelDownloads;
         int downloadSpeedLimit = _configService.Current.DownloadSpeedLimitInBytes;

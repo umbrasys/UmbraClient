@@ -157,6 +157,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton<TypingRemoteNotificationService>();
             collection.AddSingleton<ChatTwoCompatibilityService>();
             collection.AddSingleton<NotificationTracker>();
+            collection.AddSingleton<PenumbraPrecacheService>();
 
             collection.AddSingleton((s) => new MareConfigService(pluginInterface.ConfigDirectory.FullName));
             collection.AddSingleton((s) => new ServerConfigService(pluginInterface.ConfigDirectory.FullName));
@@ -241,6 +242,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddHostedService(p => p.GetRequiredService<UmbraSync.Services.AutoDetect.PermanentSyncshellAutoDetectMonitor>());
             collection.AddHostedService(p => p.GetRequiredService<ChatTwoCompatibilityService>());
             collection.AddHostedService(p => p.GetRequiredService<UmbraSync.Services.AutoDetect.AutoDetectSuppressionService>());
+            collection.AddHostedService(p => p.GetRequiredService<PenumbraPrecacheService>());
         })
         .Build();
 

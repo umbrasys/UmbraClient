@@ -62,7 +62,7 @@ public sealed class FileUploadManager : DisposableMediatorSubscriberBase
         await _orchestrator.SendRequestAsync(HttpMethod.Post, MareFiles.ServerFilesDeleteAllFullPath(_orchestrator.FilesCdnUri!)).ConfigureAwait(false);
     }
 
-    public async Task<List<string>> UploadFiles(List<string> hashesToUpload, IProgress<string> progress, CancellationToken? ct = null)
+    public async Task<List<string>> UploadFiles(List<string> hashesToUpload, IProgress<string> progress, CancellationToken? ct = null, IProgress<long>? uploadedBytesProgress = null)
     {
         Logger.LogDebug("Trying to upload files");
         var filesPresentLocally = hashesToUpload.Where(h => _fileDbManager.GetFileCacheByHash(h) != null).ToHashSet(StringComparer.Ordinal);
@@ -83,18 +83,33 @@ public sealed class FileUploadManager : DisposableMediatorSubscriberBase
 
         Task uploadTask = Task.CompletedTask;
         int i = 1;
+        long uploadedTotal = 0;
+        long lastSize = 0;
         foreach (var file in filesToUpload)
         {
+            // wait for previous upload to finish and report its bytes
+            await uploadTask.ConfigureAwait(false);
+            if (lastSize > 0)
+            {
+                uploadedTotal += lastSize;
+                uploadedBytesProgress?.Report(uploadedTotal);
+            }
+
             progress.Report($"Uploading file {i++}/{filesToUpload.Count}. Please wait until the upload is completed.");
             Logger.LogDebug("[{hash}] Compressing", file);
             var data = await _fileDbManager.GetCompressedFileData(file.Hash, ct ?? CancellationToken.None).ConfigureAwait(false);
+            lastSize = data.Item2.LongLength;
             Logger.LogDebug("[{hash}] Starting upload for {filePath}", data.Item1, _fileDbManager.GetFileCacheByHash(data.Item1)!.ResolvedFilepath);
-            await uploadTask.ConfigureAwait(false);
             uploadTask = UploadFile(data.Item2, file.Hash, false, ct ?? CancellationToken.None);
             (ct ?? CancellationToken.None).ThrowIfCancellationRequested();
         }
 
         await uploadTask.ConfigureAwait(false);
+        if (lastSize > 0)
+        {
+            uploadedTotal += lastSize;
+            uploadedBytesProgress?.Report(uploadedTotal);
+        }
 
         return [];
     }

@@ -87,6 +87,9 @@ public class MareConfig : IMareConfiguration
     public int TransferBarsWidth { get; set; } = 250;
     public bool UseAlternativeFileUpload { get; set; } = false;
     public bool UseCompactor { get; set; } = false;
+    public bool EnablePenumbraPrecache { get; set; } = false;
+    public int PrecacheSpeedLimitInBytes { get; set; } = 0;
+    public List<string> PrecacheExcludePatterns { get; set; } = new();
     public int Version { get; set; } = 1;
     public NotificationLocation WarningNotification { get; set; } = NotificationLocation.Both;
 

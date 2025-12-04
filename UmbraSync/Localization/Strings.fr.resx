@@ -110,6 +110,73 @@
   <data name="CompactUi.Connection.ConnectTooltip" xml:space="preserve">
     <value>Se connecter à {0}</value>
   </data>
+  <!-- Paramètres : Transfert - Bascule de pré‑cache Penumbra -->
+  <data name="Settings.Transfer.Title" xml:space="preserve">
+    <value>Paramètres de transfert</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Enable" xml:space="preserve">
+    <value>Pré‑charger les mods Penumbra vers le serveur</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Enable.Help" xml:space="preserve">
+    <value>Envoie en arrière‑plan les fichiers Penumbra éligibles vers le serveur pour accélérer les futurs changements. Non recommandé pour les connexions lentes ou limitées.</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Status" xml:space="preserve">
+    <value>État du pré‑cache : {0}</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Status.WithBytes" xml:space="preserve">
+    <value>État du pré‑cache : {0} ({1} envoyés)</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Status.Running" xml:space="preserve">
+    <value>Envoi en cours en arrière‑plan</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Status.Idle" xml:space="preserve">
+    <value>Au repos</value>
+  </data>
+  <data name="Settings.Transfer.Precache.LastRun" xml:space="preserve">
+    <value>Dernière exécution : {0}</value>
+  </data>
+  <data name="Settings.Transfer.Precache.RunNow" xml:space="preserve">
+    <value>Lancer le pré‑cache maintenant</value>
+  </data>
+  <data name="Settings.Transfer.Precache.RunNow.Help" xml:space="preserve">
+    <value>Scanner les mods Penumbra et téléverser immédiatement les fichiers manquants vers le serveur.</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Progress.Starting" xml:space="preserve">
+    <value>Démarrage de l’envoi pour {0} fichiers</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Progress.Uploading" xml:space="preserve">
+    <value>Envoi du fichier {0}/{1}. Merci de patienter jusqu’à la fin.</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Status.DeltaPreparing" xml:space="preserve">
+    <value>Delta : préparation de l’envoi pour {0} fichiers</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Status.DeltaDoneUpToDate" xml:space="preserve">
+    <value>Delta terminé : tout est à jour</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Status.DeltaDoneSkipped" xml:space="preserve">
+    <value>Delta terminé avec {0} ignoré(s)</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Status.DirUnavailable" xml:space="preserve">
+    <value>Répertoire Penumbra indisponible</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Status.FailedEnumerate" xml:space="preserve">
+    <value>Échec lors de l’énumération des fichiers</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Status.NoEligible" xml:space="preserve">
+    <value>Aucun fichier éligible</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Status.NoHashes" xml:space="preserve">
+    <value>Aucun hash résolu</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Status.Preparing" xml:space="preserve">
+    <value>Préparation de l’envoi pour {0} fichiers</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Status.CompletedAllUpToDate" xml:space="preserve">
+    <value>Terminé : tous les fichiers sont à jour</value>
+  </data>
+  <data name="Settings.Transfer.Precache.Status.CompletedSkipped" xml:space="preserve">
+    <value>Terminé avec {0} ignoré(s)</value>
+  </data>
   
   <!-- Vanity / Custom ID in Edit Profile (FR) -->
   <data name="EditProfile.SetCustomId.Button" xml:space="preserve">

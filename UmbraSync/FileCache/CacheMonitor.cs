@@ -478,6 +478,25 @@ public sealed class CacheMonitor : DisposableMediatorSubscriberBase
             _ = _fileDbManager.GetFileCachesByPaths(allChanges.ToArray());
 
             _fileDbManager.WriteOutFullCsv();
+
+            try
+            {
+                var addedOrChanged = new List<string>(remainingEntries.Length + renamedEntries.Length);
+                addedOrChanged.AddRange(remainingEntries);
+                addedOrChanged.AddRange(renamedEntries.Select(r => r.Key));
+                var deleted = new List<string>(deletedEntries.Length + renamedEntries.Length);
+                deleted.AddRange(deletedEntries);
+                deleted.AddRange(renamedEntries.Where(r => !string.IsNullOrEmpty(r.Value.OldPath)).Select(r => r.Value.OldPath!));
+
+                if (addedOrChanged.Count > 0 || deleted.Count > 0)
+                {
+                    Mediator.Publish(new PenumbraFilesChangedMessage(addedOrChanged, deleted));
+                }
+            }
+            catch
+            {
+                // ignore publish failures
+            }
         }
     }
 

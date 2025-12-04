@@ -90,6 +90,7 @@ public record CombatOrPerformanceEndMessage : MessageBase;
 public record EventMessage(Event Event) : MessageBase;
 public record PenumbraDirectoryChangedMessage(string? ModDirectory) : MessageBase;
 public record PenumbraRedrawCharacterMessage(ICharacter Character) : SameThreadMessage;
+public record PenumbraFilesChangedMessage(List<string> AddedOrChanged, List<string> Deleted) : MessageBase;
 public record UserChatMsgMessage(SignedChatMessage ChatMsg) : MessageBase;
 public record GroupChatMsgMessage(GroupDto GroupInfo, SignedChatMessage ChatMsg) : MessageBase;
 public record UserTypingStateMessage(TypingStateDto Typing) : MessageBase;

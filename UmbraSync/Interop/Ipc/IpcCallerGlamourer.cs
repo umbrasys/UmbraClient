@@ -119,18 +119,6 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     {
         if (!APIAvailable || string.IsNullOrEmpty(customization) || _dalamudUtil.IsZoning) return;
 
-        // Call immediately if possible
-        if (allowImmediate && _dalamudUtil.IsOnFrameworkThread && !await handler.IsBeingDrawnRunOnFrameworkAsync().ConfigureAwait(false))
-        {
-            var gameObj = await _dalamudUtil.CreateGameObjectAsync(handler.Address).ConfigureAwait(false);
-            if (gameObj is ICharacter chara)
-            {
-                logger.LogDebug("[{appid}] Calling on IPC: GlamourerApplyAll", applicationId);
-                _glamourerApplyAll!.Invoke(customization, chara.ObjectIndex, LockCode);
-                return;
-            }
-        }
-
         await _redrawManager.RedrawSemaphore.WaitAsync(token).ConfigureAwait(false);
 
         try
@@ -141,6 +129,8 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
                 {
                     logger.LogDebug("[{appid}] Calling on IPC: GlamourerApplyAll", applicationId);
                     _glamourerApplyAll!.Invoke(customization, chara.ObjectIndex, LockCode);
+                    logger.LogDebug("[{appid}] Calling On IPC: PenumbraRedraw (post-apply)", applicationId);
+                    _mareMediator.Publish(new PenumbraRedrawCharacterMessage(chara));
                 }
                 catch (Exception ex)
                 {
