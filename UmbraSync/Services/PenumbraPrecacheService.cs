@@ -56,6 +56,7 @@ public sealed class PenumbraPrecacheService : DisposableMediatorSubscriberBase, 
         Mediator.Subscribe<PenumbraInitializedMessage>(this, _ => TriggerScan("PenumbraInitialized"));
         Mediator.Subscribe<DalamudLoginMessage>(this, _ => TriggerScan("DalamudLogin"));
         Mediator.Subscribe<PenumbraDirectoryChangedMessage>(this, _ => TriggerScan("PenumbraDirChanged"));
+        Mediator.Subscribe<PenumbraModSettingChangedMessage>(this, _ => TriggerScan("PenumbraModSettingChanged"));
         Mediator.Subscribe<PenumbraFilesChangedMessage>(this, msg => OnPenumbraFilesChanged(msg));
     }
 
@@ -192,9 +193,18 @@ public sealed class PenumbraPrecacheService : DisposableMediatorSubscriberBase, 
             return;
         }
 
-        // Snapshot and clear queue
         var paths = _pendingDeltaPaths.Keys.ToArray();
         _pendingDeltaPaths.Clear();
+
+        var enabledRoots = await _ipcManager.Penumbra.GetEnabledModRootsAsync().ConfigureAwait(false);
+        if (enabledRoots is { Count: > 0 })
+        {
+            paths = paths.Where(p => enabledRoots.Any(r => p.StartsWith(r, StringComparison.OrdinalIgnoreCase))).ToArray();
+        }
+        else
+        {
+            paths = Array.Empty<string>();
+        }
 
         var dict = _fileCacheManager.GetFileCachesByPaths(paths);
         var hashes = dict.Values
@@ -268,7 +278,17 @@ public sealed class PenumbraPrecacheService : DisposableMediatorSubscriberBase, 
         List<string> files;
         try
         {
-            files = EnumerateEligibleFiles(penDir).ToList();
+            // Enumerate only inside enabled mod roots
+            var enabledRoots = await _ipcManager.Penumbra.GetEnabledModRootsAsync().ConfigureAwait(false);
+            if (enabledRoots is { Count: > 0 })
+            {
+                files = enabledRoots.SelectMany(r => EnumerateEligibleFiles(r)).ToList();
+            }
+            else
+            {
+                // If we cannot determine enabled roots, do not upload anything (respect "only active mods")
+                files = new List<string>();
+            }
         }
         catch (Exception ex)
         {

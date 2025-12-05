@@ -870,10 +870,10 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value />
   </data>
   <data name="CompactUi.UnsupportedVersion.Message" xml:space="preserve">
-    <value />
+    <value>Votre installation d'UmbraSync n'est pas à jour, la version actuelle est {0}. Il est recommandé de maintenir UmbraSync à jour. Ouvrez /xlplugins et mettez à jour le plugin.</value>
   </data>
   <data name="CompactUi.UnsupportedVersion.Title" xml:space="preserve">
-    <value />
+    <value>VERSION NON SUPPORTÉE</value>
   </data>
   <data name="BanUserPopup.BanNotice" xml:space="preserve">
     <value />

@@ -1151,8 +1151,9 @@ public class CompactUi : WindowMediatorSubscriberBase
             ImGui.AlignTextToFramePadding();
             ImGui.TextColored(UiSharedService.AccentColor, unsupported);
         }
-
-        var version = $"{ver.Major}.{ver.Minor}.{ver.Build}";
+        
+        var revision = ver.Revision >= 0 ? ver.Revision : 0;
+        var version = $"{ver.Major}.{ver.Minor}.{ver.Build}.{revision}";
         UiSharedService.ColorTextWrapped(
             string.Format(CultureInfo.CurrentCulture, Loc.Get("CompactUi.UnsupportedVersion.Message"), version),
             UiSharedService.AccentColor);

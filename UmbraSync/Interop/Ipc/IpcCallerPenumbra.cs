@@ -44,6 +44,8 @@ public sealed class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
     private readonly ConvertTextureFile _penumbraConvertTextureFile;
     private readonly CreateTemporaryCollection _penumbraCreateNamedTemporaryCollection;
     private readonly GetEnabledState _penumbraEnabled;
+    private readonly GetCollection _penumbraGetCollection;
+    private readonly GetAllModSettings _penumbraGetAllModSettings;
     private readonly GetPlayerMetaManipulations _penumbraGetMetaManipulations;
     private readonly RedrawObject _penumbraRedraw;
     private readonly DeleteTemporaryCollection _penumbraRemoveTemporaryCollection;
@@ -74,6 +76,8 @@ public sealed class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
         _penumbraAssignTemporaryCollection = new AssignTemporaryCollection(pi);
         _penumbraResolvePaths = new ResolvePlayerPathsAsync(pi);
         _penumbraEnabled = new GetEnabledState(pi);
+        _penumbraGetCollection = new GetCollection(pi);
+        _penumbraGetAllModSettings = new GetAllModSettings(pi);
         _penumbraModSettingChanged = ModSettingChanged.Subscriber(pi, (change, arg1, arg, b) =>
         {
             if (change == ModSettingChange.EnableState)
@@ -298,6 +302,41 @@ public sealed class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
     public async Task<(string[] forward, string[][] reverse)> ResolvePathsAsync(string[] forward, string[] reverse)
     {
         return await _penumbraResolvePaths.Invoke(forward, reverse).ConfigureAwait(false);
+    }
+    
+    public Task<HashSet<string>?> GetEnabledModRootsAsync()
+    {
+        if (!APIAvailable || string.IsNullOrEmpty(ModDirectory)) return Task.FromResult<HashSet<string>?>(null);
+
+        try
+        {
+            var coll = _penumbraGetCollection.Invoke(ApiCollectionType.Current);
+            if (coll == null) return Task.FromResult<HashSet<string>?>(null);
+            var collId = coll.Value.Id;
+
+            var (ec, all) = _penumbraGetAllModSettings.Invoke(collId, ignoreInheritance: false, ignoreTemporary: true, key: 0);
+            if (ec != Penumbra.Api.Enums.PenumbraApiEc.Success || all == null || all.Count == 0)
+                return Task.FromResult<HashSet<string>?>(null);
+
+            HashSet<string> result = new(StringComparer.OrdinalIgnoreCase);
+            foreach (var kv in all)
+            {
+                var modDirName = kv.Key; // Penumbra mod directory name (folder under ModDirectory)
+                var settings = kv.Value; // (enabled, priority, options, inherited, temporary)
+                var isEnabled = settings.Item1;
+                if (!isEnabled) continue;
+
+                var abs = System.IO.Path.Combine(ModDirectory!, modDirName);
+                if (Directory.Exists(abs))
+                    result.Add(abs);
+            }
+
+            return Task.FromResult<HashSet<string>?>(result);
+        }
+        catch
+        {
+            return Task.FromResult<HashSet<string>?>(null);
+        }
     }
 
     public async Task SetManipulationDataAsync(ILogger logger, Guid applicationId, Guid collId, string manipulationData)
