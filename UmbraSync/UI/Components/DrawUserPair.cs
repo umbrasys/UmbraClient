@@ -320,7 +320,9 @@ public class DrawUserPair : DrawPairBase
 
         if (_uiSharedService.IconTextButton(FontAwesomeIcon.PlayCircle, Loc.Get("DrawUserPair.Menu.CyclePause")))
         {
-            _ = _apiController.CyclePause(entry.UserData);
+            // Ancien comportement: CyclePause entraînait un délai (timer) avant application.
+            // On remplace par une pause immédiate pour supprimer toute attente perçue.
+            _ = _apiController.Pause(entry.UserData);
             ImGui.CloseCurrentPopup();
         }
         var entryUID = entry.UserData.AliasOrUID;

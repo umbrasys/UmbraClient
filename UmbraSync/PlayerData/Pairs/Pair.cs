@@ -132,7 +132,7 @@ public class Pair : DisposableMediatorSubscriberBase
         if (UserPair != null)
         {
             Add("Change Permissions", _ => Mediator.Publish(new OpenPermissionWindow(this)));
-            Add("Cycle pause state", _ => Mediator.Publish(new CyclePauseMessage(UserData)));
+            Add("Pause immediately", _ => Mediator.Publish(new PauseMessage(UserData)));
         }
     }
 

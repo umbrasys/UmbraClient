@@ -240,8 +240,17 @@ public sealed class FileCacheManager : IHostedService
 
             Dictionary<string, FileCacheEntity?> result = new(StringComparer.OrdinalIgnoreCase);
 
-            var dict = _fileCaches.SelectMany(f => f.Value)
-                .ToDictionary(d => d.PrefixedFilePath, d => d, StringComparer.OrdinalIgnoreCase);
+            // Build a lookup of prefixed file path -> last seen FileCacheEntity in a safe way.
+            // Using ToDictionary here can throw when duplicate keys are encountered due to transient
+            // race conditions or inconsistent state during updates. Prefer a manual fill with
+            // overwrite semantics to avoid AggregateException(ArgumentException: same key added).
+            var dict = new Dictionary<string, FileCacheEntity>(StringComparer.OrdinalIgnoreCase);
+            foreach (var d in _fileCaches.SelectMany(f => f.Value))
+            {
+                // Overwrite semantics: the latest entry wins for identical prefixed paths.
+                // This mirrors how the cache treats updates and prevents duplicate-key crashes.
+                dict[d.PrefixedFilePath] = d;
+            }
 
             foreach (var entry in cleanedPaths)
             {

@@ -262,6 +262,8 @@ public class DrawGroupPair : DrawPairBase
         );
         float currentX = baseX;
 
+        ImGui.PushID($"grpPair-{_group.Group}-{_pair.UserData.UID}");
+
         ImGui.SameLine();
         ImGui.SetCursorPosX(baseX);
         ImGui.SetCursorPosY(textPosY);
@@ -491,6 +493,8 @@ public class DrawGroupPair : DrawPairBase
             }
             ImGui.EndPopup();
         }
+
+        ImGui.PopID();
 
         return baseX - spacing;
     }

@@ -56,7 +56,8 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         Mediator.Subscribe<HubClosedMessage>(this, (msg) => MareHubOnClosed(msg.Exception));
         Mediator.Subscribe<HubReconnectedMessage>(this, (msg) => _ = MareHubOnReconnected());
         Mediator.Subscribe<HubReconnectingMessage>(this, (msg) => MareHubOnReconnecting(msg.Exception));
-        Mediator.Subscribe<CyclePauseMessage>(this, (msg) => _ = CyclePause(msg.UserData));
+        // Rediriger CyclePauseMessage vers une pause immédiate afin d'éviter le délai perçu
+        Mediator.Subscribe<CyclePauseMessage>(this, (msg) => _ = Pause(msg.UserData));
         Mediator.Subscribe<CensusUpdateMessage>(this, (msg) => _lastCensus = msg);
         Mediator.Subscribe<PauseMessage>(this, (msg) => _ = Pause(msg.UserData));
 
@@ -260,32 +261,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         }
     }
 
-    public Task CyclePause(UserData userData)
-    {
-        CancellationTokenSource cts = new();
-        cts.CancelAfter(TimeSpan.FromSeconds(5));
-        _ = Task.Run(async () =>
-        {
-            var pair = _pairManager.GetPairByUID(userData.UID);
-            if (pair == null || pair.UserPair == null)
-            {
-                Logger.LogWarning("CyclePause: Pair not found or not paired for UID {uid}", userData.UID);
-                return;
-            }
-            var perm = pair.UserPair.OwnPermissions;
-            perm.SetPaused(paused: true);
-            await UserSetPairPermissions(new UserPermissionsDto(userData, perm)).ConfigureAwait(false);
-            while (pair.UserPair!.OwnPermissions != perm)
-            {
-                await Task.Delay(250, cts.Token).ConfigureAwait(false);
-                Logger.LogTrace("Waiting for permissions change for {data}", userData);
-            }
-            perm.SetPaused(paused: false);
-            await UserSetPairPermissions(new UserPermissionsDto(userData, perm)).ConfigureAwait(false);
-        }, cts.Token).ContinueWith((t) => cts.Dispose());
-
-        return Task.CompletedTask;
-    }
+    // CyclePause supprimé: entraînait un délai perceptible. Utiliser Pause(UserData) pour une action immédiate.
 
     public async Task Pause(UserData userData)
     {
@@ -294,6 +270,23 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         {
             Logger.LogWarning("Pause: Pair not found or not paired for UID {uid}", userData.UID);
             return;
+        }
+        // Effet local immédiat: bloquer l'application et masquer visuellement le pair
+        try
+        {
+            // Empêche toute application supplémentaire locale côté client
+            Mediator.Publish(new HoldPairApplicationMessage(userData.UID, "Pause"));
+
+            // Forcer la visibilité à false immédiatement (sans attendre l'écho serveur)
+            var ident = pair.Ident;
+            if (!string.IsNullOrEmpty(ident))
+            {
+                Mediator.Publish(new PlayerVisibilityMessage(ident, IsVisible: false, Invalidate: true));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogDebug(ex, "Pause local-optimistic update failed for UID {uid}", userData.UID);
         }
         var perm = pair.UserPair.OwnPermissions;
         perm.SetPaused(paused: true);
