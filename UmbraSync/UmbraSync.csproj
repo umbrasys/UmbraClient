@@ -3,7 +3,7 @@
     <PropertyGroup>
         <AssemblyName>UmbraSync</AssemblyName>
         <RootNamespace>UmbraSync</RootNamespace>
-        <Version>2.0.2.4</Version>
+        <Version>2.0.3.0</Version>
         <DALAMUD_DIR>/Volumes/Ext/dev/ressources/dalamud/Hooks/dev</DALAMUD_DIR>
     </PropertyGroup>
 

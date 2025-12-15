@@ -171,7 +171,7 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
     {
         return new List<ChangelogEntry>
         {
-            new(new Version(2, 0, 2, 3), "2.0.2.3", new List<ChangelogLine>
+            new(new Version(2, 0, 3, 0), "2.0.3.0", new List<ChangelogLine>
             {
                 new("Correction d'un problème en mettant un joueur en pause pouvant affecter d'autres utilisateurs."),
                 new("Correction de l'affichage de la bulle en fonction du canal utilisé.")
