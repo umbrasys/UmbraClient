@@ -1673,7 +1673,7 @@ public class CompactUi : WindowMediatorSubscriberBase
 
             return _pairManager.DirectPairs.Any(p => string.Equals(p.UserData.AliasOrUID, key, StringComparison.OrdinalIgnoreCase));
         }
-        catch
+        catch (Exception)
         {
             return false;
         }

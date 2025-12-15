@@ -266,11 +266,15 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         cts.CancelAfter(TimeSpan.FromSeconds(5));
         _ = Task.Run(async () =>
         {
-            var pair = _pairManager.GetOnlineUserPairs().Single(p => p.UserPair != null && p.UserData == userData);
-            var perm = pair.UserPair!.OwnPermissions;
+            var pair = _pairManager.GetPairByUID(userData.UID);
+            if (pair == null || pair.UserPair == null)
+            {
+                Logger.LogWarning("CyclePause: Pair not found or not paired for UID {uid}", userData.UID);
+                return;
+            }
+            var perm = pair.UserPair.OwnPermissions;
             perm.SetPaused(paused: true);
             await UserSetPairPermissions(new UserPermissionsDto(userData, perm)).ConfigureAwait(false);
-            // wait until it's changed
             while (pair.UserPair!.OwnPermissions != perm)
             {
                 await Task.Delay(250, cts.Token).ConfigureAwait(false);
@@ -285,8 +289,13 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
 
     public async Task Pause(UserData userData)
     {
-        var pair = _pairManager.GetOnlineUserPairs().Single(p => p.UserPair != null && p.UserData == userData);
-        var perm = pair.UserPair!.OwnPermissions;
+        var pair = _pairManager.GetPairByUID(userData.UID);
+        if (pair == null || pair.UserPair == null)
+        {
+            Logger.LogWarning("Pause: Pair not found or not paired for UID {uid}", userData.UID);
+            return;
+        }
+        var perm = pair.UserPair.OwnPermissions;
         perm.SetPaused(paused: true);
         await UserSetPairPermissions(new UserPermissionsDto(userData, perm)).ConfigureAwait(false);
     }

@@ -75,6 +75,11 @@ public class ChatService : DisposableMediatorSubscriberBase
     {
         _typingNotifier.NotifyTypingKeystroke(scope);
     }
+
+    public void NotifyTypingKeystroke(TypingScope scope, string? channelId, string? targetUid)
+    {
+        _typingNotifier.NotifyTypingKeystroke(scope, channelId, targetUid);
+    }
     public void ClearTypingState()
     {
         _typingNotifier.ClearTypingState();

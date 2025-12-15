@@ -12,7 +12,9 @@ using UmbraSync.PlayerData.Pairs;
 using UmbraSync.WebAPI;
 using UmbraSync.MareConfiguration;
 using UmbraSync.API.Data.Enum;
+using UmbraSync.API.Dto.User;
 using Dalamud.Game.ClientState.Party;
+using System.Globalization;
 
 namespace UmbraSync.Services;
 
@@ -40,6 +42,10 @@ public sealed class ChatTypingDetectionService : IDisposable
     private string _lastSkipReason = string.Empty;
     private DateTime _lastSkipLog = DateTime.MinValue;
     private static readonly TimeSpan SkipLogThrottle = TimeSpan.FromSeconds(5);
+
+    // Track current typing channels and last published snapshot
+    private TypingChannelsDto _currentChannels = new();
+    private TypingChannelsDto _lastPublishedChannels = new();
 
     public ChatTypingDetectionService(ILogger<ChatTypingDetectionService> logger, IFramework framework,
         IClientState clientState, IGameGui gameGui, ChatService chatService, PairManager pairManager, IPartyList partyList,
@@ -142,6 +148,9 @@ public sealed class ChatTypingDetectionService : IDisposable
 
             if (!_isTyping || !string.Equals(chatText, _lastChatText, StringComparison.Ordinal))
             {
+                // Keep server channel memberships up to date (party/alliance/etc.)
+                RefreshTypingChannelsIfChanged();
+
                 if (notifyRemote)
                 {
                     var scope = GetCurrentTypingScope();
@@ -149,8 +158,17 @@ public sealed class ChatTypingDetectionService : IDisposable
                     {
                         scope = TypingScope.Proximity; // fallback when chat type cannot be resolved
                     }
-                    _logger.LogDebug("TypingDetection: notify remote scope={scope} textLength={length}", scope, chatText.Length);
-                    _chatService.NotifyTypingKeystroke(scope);
+                    // Resolve channelId for scoped routing when available
+                    string? channelId = ResolveChannelIdForScope(scope);
+                    _logger.LogDebug("TypingDetection: notify remote scope={scope} channelId={channel} textLength={length}", scope, channelId, chatText.Length);
+                    if (!string.IsNullOrEmpty(channelId))
+                    {
+                        _chatService.NotifyTypingKeystroke(scope, channelId, targetUid: null);
+                    }
+                    else
+                    {
+                        _chatService.NotifyTypingKeystroke(scope);
+                    }
                     _notifyingRemote = true;
                 }
 
@@ -204,6 +222,7 @@ public sealed class ChatTypingDetectionService : IDisposable
                     return TypingScope.Alliance;
                 case XivChatType.FreeCompany:
                     return TypingScope.FreeCompany;
+                // Note: whisper (tell) target resolution requires mapping to Umbra UID; not handled here
                 default:
                     return TypingScope.Unknown;
             }
@@ -212,6 +231,139 @@ public sealed class ChatTypingDetectionService : IDisposable
         {
             return TypingScope.Unknown;
         }
+    }
+
+    private string? ResolveChannelIdForScope(TypingScope scope)
+    {
+        return scope switch
+        {
+            TypingScope.Party => _currentChannels.PartyId,
+            TypingScope.Alliance => _currentChannels.AllianceId,
+            TypingScope.FreeCompany => _currentChannels.FreeCompanyId,
+            TypingScope.CrossParty => _currentChannels.CrossPartyIds != null && _currentChannels.CrossPartyIds.Length > 0 ? _currentChannels.CrossPartyIds[0] : null,
+            // For Proximity/Unknown, server fallback uses paired users; no channel id
+            _ => null,
+        };
+    }
+
+    private void RefreshTypingChannelsIfChanged()
+    {
+        // Build current channels from available Dalamud services. For now, we reliably support Party via IPartyList.
+        var channels = new TypingChannelsDto();
+
+        try
+        {
+            var party = _partyList;
+            if (party != null && party.Length > 0)
+            {
+                // Build a stable party ID based on the smallest non-zero ContentId among party members
+                // This avoids relying on a Leader property that may not exist across platforms/APIs
+                ulong leaderCid = 0UL;
+                try
+                {
+                    for (int i = 0; i < party.Length; i++)
+                    {
+                        var member = party[i];
+                        if (member == null) continue;
+
+                        // Some platforms expose ContentId as long? and others as ulong.
+                        // Use Convert.ToUInt64 via dynamic to normalize without compile-time type conflicts.
+                        ulong cid = 0UL;
+                        try
+                        {
+                            dynamic dm = member;
+                            var rawCid = dm.ContentId; // could be long?, ulong, or null
+                            if (rawCid != null)
+                            {
+                                cid = Convert.ToUInt64(rawCid);
+                            }
+                        }
+                        catch
+                        {
+                            cid = 0UL;
+                        }
+
+                        if (cid != 0UL && (leaderCid == 0UL || cid < leaderCid))
+                            leaderCid = cid;
+                    }
+                }
+                catch
+                {
+                    leaderCid = 0UL;
+                }
+
+                if (leaderCid != 0UL)
+                {
+                    channels.PartyId = "party:" + leaderCid.ToString(CultureInfo.InvariantCulture);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogTrace(ex, "TypingDetection: failed to build party channel");
+        }
+
+        // Compare with last snapshot
+        if (!ChannelsEqual(_currentChannels, channels))
+        {
+            _currentChannels = channels;
+        }
+
+        if (!ChannelsEqual(_lastPublishedChannels, _currentChannels))
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    _logger.LogDebug("TypingDetection: publishing typing channels (party={party}, alliance={alliance}, fc={fc})",
+                        _currentChannels.PartyId, _currentChannels.AllianceId, _currentChannels.FreeCompanyId);
+                    await _apiController.UserUpdateTypingChannels(_currentChannels).ConfigureAwait(false);
+                    _lastPublishedChannels = CloneChannels(_currentChannels);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogTrace(ex, "TypingDetection: failed to publish typing channels");
+                }
+            });
+        }
+    }
+
+    private static bool ChannelsEqual(TypingChannelsDto a, TypingChannelsDto b)
+    {
+        if (!string.Equals(a.PartyId, b.PartyId, StringComparison.Ordinal)) return false;
+        if (!string.Equals(a.AllianceId, b.AllianceId, StringComparison.Ordinal)) return false;
+        if (!string.Equals(a.FreeCompanyId, b.FreeCompanyId, StringComparison.Ordinal)) return false;
+        if (a.ProximityEnabled != b.ProximityEnabled) return false;
+        if ((a.CrossPartyIds?.Length ?? 0) != (b.CrossPartyIds?.Length ?? 0)) return false;
+        if ((a.CustomGroupIds?.Length ?? 0) != (b.CustomGroupIds?.Length ?? 0)) return false;
+        if (a.CrossPartyIds != null && b.CrossPartyIds != null)
+        {
+            for (int i = 0; i < a.CrossPartyIds.Length; i++)
+            {
+                if (!string.Equals(a.CrossPartyIds[i], b.CrossPartyIds[i], StringComparison.Ordinal)) return false;
+            }
+        }
+        if (a.CustomGroupIds != null && b.CustomGroupIds != null)
+        {
+            for (int i = 0; i < a.CustomGroupIds.Length; i++)
+            {
+                if (!string.Equals(a.CustomGroupIds[i], b.CustomGroupIds[i], StringComparison.Ordinal)) return false;
+            }
+        }
+        return true;
+    }
+
+    private static TypingChannelsDto CloneChannels(TypingChannelsDto src)
+    {
+        return new TypingChannelsDto
+        {
+            PartyId = src.PartyId,
+            AllianceId = src.AllianceId,
+            FreeCompanyId = src.FreeCompanyId,
+            CrossPartyIds = src.CrossPartyIds != null ? (string[])src.CrossPartyIds.Clone() : null,
+            CustomGroupIds = src.CustomGroupIds != null ? (string[])src.CustomGroupIds.Clone() : null,
+            ProximityEnabled = src.ProximityEnabled,
+        };
     }
 
     private static bool IsIgnoredCommand(string chatText)
@@ -456,7 +608,7 @@ public sealed class ChatTypingDetectionService : IDisposable
             return false;
 
         var rawText = textNode->GetText();
-        if (rawText == null)
+        if (rawText == (byte*)0)
             return false;
 
         chatText = rawText.AsDalamudSeString().ToString();

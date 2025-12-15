@@ -27,6 +27,12 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
 {
     private readonly ConcurrentDictionary<UserData, Pair> _allClientPairs = new(UserDataComparer.Instance);
     private readonly ConcurrentDictionary<GroupData, GroupFullInfoDto> _allGroups = new(GroupDataComparer.Instance);
+    private readonly ConcurrentDictionary<string, CancellationTokenSource> _pendingOffline = new(StringComparer.Ordinal);
+    private static readonly TimeSpan OfflineDebounce = TimeSpan.FromSeconds(6);
+    private readonly ConcurrentQueue<DateTime> _offlineBurstEvents = new();
+    private static readonly TimeSpan OfflineBurstWindow = TimeSpan.FromSeconds(1);
+    private const int OfflineBurstThreshold = 5;
+    private DateTime _burstSuppressUntil = DateTime.MinValue;
     private readonly MareConfigService _configurationService;
     private readonly IContextMenu _dalamudContextMenu;
     private readonly NearbyDiscoveryService _nearbyDiscoveryService;
@@ -139,17 +145,91 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
 
     public void MarkPairOffline(UserData user)
     {
-        if (_allClientPairs.TryGetValue(user, out var pair))
+        // Debounce offline to prevent brief server-side offline bursts from causing UI disconnect flicker
+        var uid = user.UID;
+        if (string.IsNullOrEmpty(uid)) return;
+
+        // Track burst of offlines to coalesce visual updates on mass refresh
+        var now = DateTime.UtcNow;
+        _offlineBurstEvents.Enqueue(now);
+        while (_offlineBurstEvents.TryPeek(out var ts) && (now - ts) > OfflineBurstWindow)
         {
-            Mediator.Publish(new ClearProfileDataMessage(pair.UserData));
-            pair.MarkOffline();
+            _ = _offlineBurstEvents.TryDequeue(out _);
+        }
+        if (_offlineBurstEvents.Count >= OfflineBurstThreshold)
+        {
+            var until = now.Add(OfflineDebounce);
+            if (until > _burstSuppressUntil)
+            {
+                _burstSuppressUntil = until;
+            }
         }
 
-        RecreateLazy();
+        // Cancel any existing pending offline for this UID
+        if (_pendingOffline.TryRemove(uid, out var existingCts))
+        {
+            try
+            {
+                existingCts.Cancel();
+                existingCts.Dispose();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Intentionally ignored: CTS may already be disposed due to a concurrent race
+            }
+        }
+
+        var cts = new CancellationTokenSource();
+        _pendingOffline[uid] = cts;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                // Extend delay if we are currently within a detected burst window
+                var delayUntil = _burstSuppressUntil;
+                var extraDelay = delayUntil > DateTime.UtcNow ? delayUntil - DateTime.UtcNow : TimeSpan.Zero;
+                var finalDelay = extraDelay > OfflineDebounce ? extraDelay : OfflineDebounce;
+                await Task.Delay(finalDelay, cts.Token).ConfigureAwait(false);
+
+                // After debounce, if still pending and pair exists, mark truly offline
+                if (!_allClientPairs.TryGetValue(user, out var pair)) return;
+
+                Mediator.Publish(new ClearProfileDataMessage(pair.UserData));
+                pair.MarkOffline();
+
+                RecreateLazy();
+            }
+            catch (OperationCanceledException)
+            {
+                // ignored: offline was canceled due to online signal
+            }
+            finally
+            {
+                // Clean up token
+                _pendingOffline.TryRemove(uid, out _);
+                cts.Dispose();
+            }
+        });
     }
 
     public void MarkPairOnline(OnlineUserIdentDto dto, bool sendNotif = true)
     {
+        // Cancel any pending offline debounce for this UID (come back online immediately)
+        var uid = dto.User.UID;
+        if (!string.IsNullOrEmpty(uid) && _pendingOffline.TryRemove(uid, out var existingCts))
+        {
+            try
+            {
+                existingCts.Cancel();
+                existingCts.Dispose();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Intentionally ignored: CTS may already be disposed due to a concurrent race
+            }
+        }
+
         if (!_allClientPairs.ContainsKey(dto.User)) throw new InvalidOperationException("No user found for " + dto);
 
         Mediator.Publish(new ClearProfileDataMessage(dto.User));

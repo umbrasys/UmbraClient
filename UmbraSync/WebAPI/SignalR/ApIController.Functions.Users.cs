@@ -133,6 +133,42 @@ public partial class ApiController
         }
     }
 
+    public async Task UserSetTypingStateEx(TypingStateExDto dto)
+    {
+        CheckConnection();
+        try
+        {
+            await _mareHub!.SendAsync(nameof(UserSetTypingStateEx), dto).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            // Fallback to scoped/legacy APIs
+            Logger.LogDebug(ex, "UserSetTypingStateEx not supported on server, falling back to scoped/legacy call");
+            try
+            {
+                await UserSetTypingState(dto.IsTyping, dto.Scope).ConfigureAwait(false);
+            }
+            catch (Exception ex2)
+            {
+                Logger.LogDebug(ex2, "UserSetTypingStateEx fallback failed");
+            }
+        }
+    }
+
+    public async Task UserUpdateTypingChannels(TypingChannelsDto channels)
+    {
+        CheckConnection();
+        try
+        {
+            await _mareHub!.SendAsync(nameof(UserUpdateTypingChannels), channels).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            // Older servers won't have this method; silently ignore
+            Logger.LogTrace(ex, "UserUpdateTypingChannels not supported on server (ignored)");
+        }
+    }
+
     private async Task PushCharacterDataInternal(CharacterData character, List<UserData> visibleCharacters)
     {
         Logger.LogInformation("Pushing character data for {hash} to {charas}", character.DataHash.Value, string.Join(", ", visibleCharacters.Select(c => c.AliasOrUID)));
