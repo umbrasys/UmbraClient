@@ -70,20 +70,7 @@ public class DalamudUtilService : IHostedService, IMediatorSubscriber
 
     // Prefer IObjectTable.LocalPlayer when available (newer Dalamud),
     // otherwise fall back to obsolete IClientState.LocalPlayer (suppressed) for compatibility.
-    private IPlayerCharacter? LocalPlayer
-    {
-        get
-        {
-            var prop = _objectTable.GetType().GetProperty("LocalPlayer");
-            if (prop != null)
-            {
-                return prop.GetValue(_objectTable) as IPlayerCharacter;
-            }
-#pragma warning disable CS0618 // Type or member is obsolete
-            return _clientState.LocalPlayer;
-#pragma warning restore CS0618
-        }
-    }
+    private IPlayerCharacter? LocalPlayer => _objectTable.LocalPlayer;
 
 
     public DalamudUtilService(ILogger<DalamudUtilService> logger, IClientState clientState, IObjectTable objectTable, IFramework framework,
@@ -583,7 +570,7 @@ public class DalamudUtilService : IHostedService, IMediatorSubscriber
         const int tick = 250;
         int curWaitTime = 0;
         _logger.LogTrace("RenderFlags: {flags}", obj->RenderFlags.ToString("X"));
-        while (obj->RenderFlags != 0x00 && curWaitTime < timeOut)
+        while (obj->RenderFlags != FFXIVClientStructs.FFXIV.Client.Game.Object.VisibilityFlags.None && curWaitTime < timeOut)
         {
             _logger.LogTrace($"Waiting for gpose actor to finish drawing");
             curWaitTime += tick;
@@ -644,7 +631,7 @@ public class DalamudUtilService : IHostedService, IMediatorSubscriber
         bool isDrawingChanged = false;
         if ((nint)drawObj != IntPtr.Zero)
         {
-            isDrawing = gameObj->RenderFlags == 0b100000000000;
+            isDrawing = gameObj->RenderFlags == (FFXIVClientStructs.FFXIV.Client.Game.Object.VisibilityFlags)0b100000000000;
             if (!isDrawing)
             {
                 isDrawing = ((CharacterBase*)drawObj)->HasModelInSlotLoaded != 0;
@@ -715,7 +702,7 @@ public class DalamudUtilService : IHostedService, IMediatorSubscriber
 
                     _notUpdatedCharas.AddRange(_playerCharas.Keys);
 
-                    for (int i = 0; i < 200; i += 2)
+                    for (int i = 0; i < _objectTable.Length; i += 2)
                     {
                         var chara = _objectTable[i];
                         if (chara == null || chara.ObjectKind != Dalamud.Game.ClientState.Objects.Enums.ObjectKind.Player)

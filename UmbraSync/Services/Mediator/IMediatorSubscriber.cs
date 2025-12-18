@@ -1,6 +1,8 @@
-﻿namespace UmbraSync.Services.Mediator;
+﻿using Dalamud.Plugin.Services;
 
-public interface IMediatorSubscriber
+namespace UmbraSync.Services.Mediator;
+
+public interface IMediatorSubscriber : IDalamudService
 {
     MareMediator Mediator { get; }
 }

@@ -61,10 +61,10 @@ public class PartyListTypingService : DisposableMediatorSubscriberBase
         var activeTypers = _typingStateService.GetActiveTypers(TypingDisplayTime);
         var now = DateTime.UtcNow;
 
-        for (var i = 0; i < _partyList.Count; ++i)
+        for (var i = 0; i < _partyList.Length; ++i)
         {
             var member = _partyList[i];
-            if (member == null)
+            if (member == null || member.Address == nint.Zero)
                 continue;
 
             var displayName = member.Name.TextValue;

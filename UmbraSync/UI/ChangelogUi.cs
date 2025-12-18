@@ -173,9 +173,13 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
         {
             new(new Version(2, 0, 3, 0), "2.0.3.0", new List<ChangelogLine>
             {
-                new("Correction d'un problème en mettant un joueur en pause pouvant affecter d'autres utilisateurs."),
-                new("Correction de l'affichage de la bulle en fonction du canal utilisé.")
-                
+                new("Passage au .NET SDK 10.0.101."),
+                new("Mise à jour vers Dalamud.NET.Sdk 14.0.1."),
+                new("Compatible avec la version 7.4 de FFXIV."),  
+                new("Adaptations internes pour les changements de structure de l'API Dalamud."),   
+                new("Correction de l'affichage de la bulle en fonction du canal utilisé."),  
+                new("Correction d'un problème en mettant un utilisateur en pause pouvant mettre en pause temporairement d'autres utilisateurs."),
+                new("Correction d'un problème pouvant provoquer des erreurs de doublon de collection temporaire Penumbra empêchant l'utilisateur d'être vue avec ses mods.")               
             }),
             new(new Version(2, 0, 2, 0), "2.0.2.0", new List<ChangelogLine>
             {

@@ -427,7 +427,7 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
     {
         var drawObjZero = drawObj == IntPtr.Zero;
         if (drawObjZero) return DrawCondition.DrawObjectZero;
-        var renderFlags = (((FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)curPtr)->RenderFlags) != 0x0;
+        var renderFlags = (((FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)curPtr)->RenderFlags) != FFXIVClientStructs.FFXIV.Client.Game.Object.VisibilityFlags.None;
         if (renderFlags) return DrawCondition.RenderFlags;
 
         if (ObjectKind == ObjectKind.Player)
