@@ -26,12 +26,18 @@ namespace UmbraSync.UI.Components;
 public class DrawGroupPair : DrawPairBase
 {
     protected readonly MareMediator _mediator;
-    private readonly GroupPairFullInfoDto _fullInfoDto;
-    private readonly GroupFullInfoDto _group;
+    private GroupPairFullInfoDto _fullInfoDto;
+    private GroupFullInfoDto _group;
     private readonly CharaDataManager _charaDataManager;
     private readonly AutoDetectRequestService _autoDetectRequestService;
     private readonly ServerConfigurationManager _serverConfigurationManager;
     private const string ManualPairInvitePrefix = "[UmbraPairInvite|";
+
+    public void UpdateData(GroupFullInfoDto group, GroupPairFullInfoDto fullInfoDto)
+    {
+        _group = group;
+        _fullInfoDto = fullInfoDto;
+    }
 
     public DrawGroupPair(string id, Pair entry, ApiController apiController,
         MareMediator mareMediator, GroupFullInfoDto group, GroupPairFullInfoDto fullInfoDto,
@@ -231,7 +237,7 @@ public class DrawGroupPair : DrawPairBase
         bool showShared = _charaDataManager.SharedWithYouData.TryGetValue(_pair.UserData, out var sharedData);
         bool showInfo = (individualAnimDisabled || individualSoundsDisabled || individualVFXDisabled || animDisabled || soundsDisabled || vfxDisabled);
         bool showPlus = _pair.UserPair == null && _pair.IsOnline;
-        bool showBars = (userIsOwner || (userIsModerator && !entryIsMod && !entryIsOwner)) || !_pair.IsPaused;
+        bool showBars = true;
         bool showPause = true;
 
         var spacing = ImGui.GetStyle().ItemSpacing.X;
@@ -245,7 +251,7 @@ public class DrawGroupPair : DrawPairBase
         );
         float plusW = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Plus).X;
         float combinedW = MathF.Max(plusW, infoMaxW); // Même colonne pour Plus OU Info
-        var pauseIcon = _fullInfoDto.GroupUserPermissions.IsPaused() ? FontAwesomeIcon.Play : FontAwesomeIcon.Pause;
+        var pauseIcon = _pair.IsPaused ? FontAwesomeIcon.Play : FontAwesomeIcon.Pause;
         float pauseMaxW = MathF.Max(
             _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Pause).X,
             _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Play).X
@@ -396,11 +402,9 @@ public class DrawGroupPair : DrawPairBase
         {
             if (pauseIcon == FontAwesomeIcon.Pause ? _uiSharedService.IconPauseButtonCentered() : _uiSharedService.IconButtonCentered(pauseIcon))
             {
-                var newPermissions = _fullInfoDto.GroupUserPermissions ^ GroupUserPermissions.Paused;
-                _fullInfoDto.GroupUserPermissions = newPermissions;
-                _ = _apiController.GroupChangeIndividualPermissionState(new GroupPairUserPermissionDto(_group.Group, _pair.UserData, newPermissions));
+                _ = _apiController.Pause(_pair.UserData);
             }
-            UiSharedService.AttachToolTip(AppendSeenInfo((_fullInfoDto.GroupUserPermissions.IsPaused() ? "Resume" : "Pause") + " syncing with " + entryUID));
+            UiSharedService.AttachToolTip(AppendSeenInfo((_pair.IsPaused ? "Resume" : "Pause") + " syncing with " + entryUID));
         }
         currentX += pauseMaxW + spacing;
         ImGui.SetCursorPosX(currentX);

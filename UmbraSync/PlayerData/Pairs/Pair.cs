@@ -47,8 +47,55 @@ public class Pair : DisposableMediatorSubscriberBase
     public bool HasCachedPlayer => CachedPlayer != null && !string.IsNullOrEmpty(CachedPlayer.PlayerName) && _onlineUserIdentDto != null;
     public bool IsOnline => CachedPlayer != null;
 
-    public bool IsPaused => UserPair != null && UserPair.OtherPermissions.IsPaired() ? UserPair.OtherPermissions.IsPaused() || UserPair.OwnPermissions.IsPaused()
-            : GroupPair.All(p => p.Key.GroupUserPermissions.IsPaused() || p.Value.GroupUserPermissions.IsPaused());
+    public bool IsPaused
+    {
+        get
+        {
+            if (_serverConfigurationManager.IsUidPaused(UserData.UID))
+            {
+                _logger.LogTrace("IsPaused: true (LocalPaused) for {uid}", UserData.UID);
+                return true;
+            }
+
+            if (UserPair != null && UserPair.OtherPermissions.IsPaired())
+            {
+                if (UserPair.OtherPermissions.IsPaused())
+                {
+                    _logger.LogTrace("IsPaused: true (Individual OtherPaused) for {uid}", UserData.UID);
+                    return true;
+                }
+                if (UserPair.OwnPermissions.IsPaused())
+                {
+                    _logger.LogTrace("IsPaused: true (Individual OwnPaused) for {uid}", UserData.UID);
+                    return true;
+                }
+            }
+
+            if (GroupPair.Any())
+            {
+                foreach (var p in GroupPair)
+                {
+                    if (p.Key.GroupUserPermissions.IsPaused())
+                    {
+                        _logger.LogTrace("IsPaused: true (Group {gid} OwnPaused) for {uid}", p.Key.Group.GID, UserData.UID);
+                        return true;
+                    }
+                    if (p.Value.GroupUserPermissions.IsPaused())
+                    {
+                        _logger.LogTrace("IsPaused: true (Group {gid} OtherPaused) for {uid}", p.Key.Group.GID, UserData.UID);
+                        return true;
+                    }
+                    if (p.Key.GroupPermissions.IsPaused())
+                    {
+                        _logger.LogTrace("IsPaused: true (Group {gid} GroupPaused) for {uid}", p.Key.Group.GID, UserData.UID);
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+    }
 
     // Download locks apply earlier in the process than Application locks
     private ConcurrentDictionary<string, int> HoldDownloadLocks { get; set; } = new(StringComparer.Ordinal);
@@ -102,6 +149,8 @@ public class Pair : DisposableMediatorSubscriberBase
 
         Add("Open Profile", _ => Mediator.Publish(new ProfileOpenStandaloneMessage(this)));
 
+        Add(IsPaused ? "Resume syncing" : "Pause immediately", _ => Mediator.Publish(new PauseMessage(UserData)));
+
         if (!isBlocked && !isBlacklisted)
             Add("Always Block Modded Appearance", _ => {
                     _serverConfigurationManager.AddBlacklistUid(UserData.UID);
@@ -132,7 +181,6 @@ public class Pair : DisposableMediatorSubscriberBase
         if (UserPair != null)
         {
             Add("Change Permissions", _ => Mediator.Publish(new OpenPermissionWindow(this)));
-            Add("Pause immediately", _ => Mediator.Publish(new PauseMessage(UserData)));
         }
     }
 
@@ -172,7 +220,7 @@ public class Pair : DisposableMediatorSubscriberBase
     {
         if (CachedPlayer == null) return;
         if (LastReceivedCharacterData == null) return;
-        if (IsDownloadBlocked) return;
+        if (IsDownloadBlocked || IsPaused) return;
 
         if (_serverConfigurationManager.IsUidBlacklisted(UserData.UID))
             HoldApplication("Blacklist", maxValue: 1);
@@ -263,7 +311,6 @@ public class Pair : DisposableMediatorSubscriberBase
         {
             if (wait)
                 _creationSemaphore.Wait();
-            LastReceivedCharacterData = null;
             var player = CachedPlayer;
             CachedPlayer = null;
             player?.Dispose();
@@ -352,13 +399,13 @@ public class Pair : DisposableMediatorSubscriberBase
 
         bool disableIndividualAnimations = UserPair != null && (UserPair.OtherPermissions.IsDisableAnimations() || UserPair.OwnPermissions.IsDisableAnimations());
         bool disableIndividualVFX = UserPair != null && (UserPair.OtherPermissions.IsDisableVFX() || UserPair.OwnPermissions.IsDisableVFX());
-        bool disableGroupAnimations = ActiveGroupPairs.All(pair => pair.Value.GroupUserPermissions.IsDisableAnimations() || pair.Key.GroupPermissions.IsDisableAnimations() || pair.Key.GroupUserPermissions.IsDisableAnimations());
+        bool disableGroupAnimations = ActiveGroupPairs.Any() && ActiveGroupPairs.All(pair => pair.Value.GroupUserPermissions.IsDisableAnimations() || pair.Key.GroupPermissions.IsDisableAnimations() || pair.Key.GroupUserPermissions.IsDisableAnimations());
 
         bool disableAnimations = (UserPair != null && disableIndividualAnimations) || (UserPair == null && disableGroupAnimations);
 
         bool disableIndividualSounds = UserPair != null && (UserPair.OtherPermissions.IsDisableSounds() || UserPair.OwnPermissions.IsDisableSounds());
-        bool disableGroupSounds = ActiveGroupPairs.All(pair => pair.Value.GroupUserPermissions.IsDisableSounds() || pair.Key.GroupPermissions.IsDisableSounds() || pair.Key.GroupUserPermissions.IsDisableSounds());
-        bool disableGroupVFX = ActiveGroupPairs.All(pair => pair.Value.GroupUserPermissions.IsDisableVFX() || pair.Key.GroupPermissions.IsDisableVFX() || pair.Key.GroupUserPermissions.IsDisableVFX());
+        bool disableGroupSounds = ActiveGroupPairs.Any() && ActiveGroupPairs.All(pair => pair.Value.GroupUserPermissions.IsDisableSounds() || pair.Key.GroupPermissions.IsDisableSounds() || pair.Key.GroupUserPermissions.IsDisableSounds());
+        bool disableGroupVFX = ActiveGroupPairs.Any() && ActiveGroupPairs.All(pair => pair.Value.GroupUserPermissions.IsDisableVFX() || pair.Key.GroupPermissions.IsDisableVFX() || pair.Key.GroupUserPermissions.IsDisableVFX());
 
         bool disableSounds = (UserPair != null && disableIndividualSounds) || (UserPair == null && disableGroupSounds);
         bool disableVFX = (UserPair != null && disableIndividualVFX) || (UserPair == null && disableGroupVFX);

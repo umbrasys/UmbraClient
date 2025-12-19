@@ -29,6 +29,11 @@ public class VisibilityService : DisposableMediatorSubscriberBase
         _mare = mare;
         _dalamudUtil = dalamudUtil;
         Mediator.Subscribe<FrameworkUpdateMessage>(this, (_) => FrameworkUpdate());
+        Mediator.Subscribe<DisconnectedMessage>(this, (_) =>
+        {
+            _trackedPlayerVisibility.Clear();
+            _makeVisibleNextFrame.Clear();
+        });
     }
 
     public void StartTracking(string ident)

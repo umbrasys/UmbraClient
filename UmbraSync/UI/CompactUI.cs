@@ -117,6 +117,8 @@ public class CompactUi : WindowMediatorSubscriberBase
         VisibleOnly
     }
 
+    private readonly Dictionary<string, DrawUserPair> _drawUserPairCache = new(StringComparer.Ordinal);
+
     public CompactUi(ILogger<CompactUi> logger, UiSharedService uiShared, MareConfigService configService, ApiController apiController, PairManager pairManager, ChatService chatService,
         ServerConfigurationManager serverManager, MareMediator mediator, FileUploadManager fileTransferManager, UidDisplayHandler uidDisplayHandler, CharaDataManager charaDataManager,
         NearbyPendingService nearbyPendingService,
@@ -755,7 +757,20 @@ public class CompactUi : WindowMediatorSubscriberBase
 
         if (mode == PairContentMode.VisibleOnly)
         {
-            var visibleUsers = visibleUsersSource.Select(c => new DrawUserPair("Visible" + c.UserData.UID, c, _uidDisplayHandler, _apiController, Mediator, _selectGroupForPairUi, _uiSharedService, _charaDataManager, _serverManager)).ToList();
+            var visibleUsers = visibleUsersSource.Select(c =>
+            {
+                var cacheKey = "Visible" + c.UserData.UID;
+                if (!_drawUserPairCache.TryGetValue(cacheKey, out var drawPair))
+                {
+                    drawPair = new DrawUserPair(cacheKey, c, _uidDisplayHandler, _apiController, Mediator, _selectGroupForPairUi, _uiSharedService, _charaDataManager, _serverManager);
+                    _drawUserPairCache[cacheKey] = drawPair;
+                }
+                else
+                {
+                    drawPair.UpdateData();
+                }
+                return drawPair;
+            }).ToList();
             bool showVisibleCard = visibleUsers.Count > 0;
             bool showNearbyCard = nearbyEntriesForDisplay.Count > 0;
             var visibleHeader = string.Format(CultureInfo.CurrentCulture, Loc.Get("CompactUi.Pairs.VisibleHeader"), visibleUsersSource.Count);
@@ -781,16 +796,52 @@ public class CompactUi : WindowMediatorSubscriberBase
         else
         {
             // Build lists for Visible, Online and Offline (Individual Pairs view)
-            var visibleUsers = visibleUsersSource
-                .Select(c => new DrawUserPair("Visible" + c.UserData.UID, c, _uidDisplayHandler, _apiController, Mediator, _selectGroupForPairUi, _uiSharedService, _charaDataManager, _serverManager))
-                .ToList();
+            var visibleUsers = visibleUsersSource.Select(c =>
+            {
+                var cacheKey = "Visible" + c.UserData.UID;
+                if (!_drawUserPairCache.TryGetValue(cacheKey, out var drawPair))
+                {
+                    drawPair = new DrawUserPair(cacheKey, c, _uidDisplayHandler, _apiController, Mediator, _selectGroupForPairUi, _uiSharedService, _charaDataManager, _serverManager);
+                    _drawUserPairCache[cacheKey] = drawPair;
+                }
+                else
+                {
+                    drawPair.UpdateData();
+                }
+                return drawPair;
+            }).ToList();
 
             var onlineUsers = nonVisibleUsers.Where(u => u.UserPair!.OtherPermissions.IsPaired() && (u.IsOnline || u.UserPair!.OwnPermissions.IsPaused()))
-                .Select(c => new DrawUserPair("Online" + c.UserData.UID, c, _uidDisplayHandler, _apiController, Mediator, _selectGroupForPairUi, _uiSharedService, _charaDataManager, _serverManager))
-                .ToList();
+                .Select(c =>
+                {
+                    var cacheKey = "Online" + c.UserData.UID;
+                    if (!_drawUserPairCache.TryGetValue(cacheKey, out var drawPair))
+                    {
+                        drawPair = new DrawUserPair(cacheKey, c, _uidDisplayHandler, _apiController, Mediator, _selectGroupForPairUi, _uiSharedService, _charaDataManager, _serverManager);
+                        _drawUserPairCache[cacheKey] = drawPair;
+                    }
+                    else
+                    {
+                        drawPair.UpdateData();
+                    }
+                    return drawPair;
+                }).ToList();
+
             var offlineUsers = nonVisibleUsers.Where(u => !u.UserPair!.OtherPermissions.IsPaired() || (!u.IsOnline && !u.UserPair!.OwnPermissions.IsPaused()))
-                .Select(c => new DrawUserPair("Offline" + c.UserData.UID, c, _uidDisplayHandler, _apiController, Mediator, _selectGroupForPairUi, _uiSharedService, _charaDataManager, _serverManager))
-                .ToList();
+                .Select(c =>
+                {
+                    var cacheKey = "Offline" + c.UserData.UID;
+                    if (!_drawUserPairCache.TryGetValue(cacheKey, out var drawPair))
+                    {
+                        drawPair = new DrawUserPair(cacheKey, c, _uidDisplayHandler, _apiController, Mediator, _selectGroupForPairUi, _uiSharedService, _charaDataManager, _serverManager);
+                        _drawUserPairCache[cacheKey] = drawPair;
+                    }
+                    else
+                    {
+                        drawPair.UpdateData();
+                    }
+                    return drawPair;
+                }).ToList();
 
             Action? drawVisibleExtras = null;
             if (nearbyEntriesForDisplay.Count > 0)

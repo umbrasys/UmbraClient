@@ -3,6 +3,7 @@ using UmbraSync.API.Data;
 using UmbraSync.API.Data.Extensions;
 using UmbraSync.API.Dto;
 using UmbraSync.API.Dto.User;
+using UmbraSync.API.Dto.Group;
 using UmbraSync.API.SignalR;
 using UmbraSync.MareConfiguration;
 using UmbraSync.MareConfiguration.Models;
@@ -266,31 +267,54 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
     public async Task Pause(UserData userData)
     {
         var pair = _pairManager.GetPairByUID(userData.UID);
-        if (pair == null || pair.UserPair == null)
+        if (pair == null)
         {
-            Logger.LogWarning("Pause: Pair not found or not paired for UID {uid}", userData.UID);
+            Logger.LogWarning("Pause: Pair not found for UID {uid}", userData.UID);
             return;
         }
-        // Effet local immédiat: bloquer l'application et masquer visuellement le pair
-        try
-        {
-            // Empêche toute application supplémentaire locale côté client
-            Mediator.Publish(new HoldPairApplicationMessage(userData.UID, "Pause"));
 
-            // Forcer la visibilité à false immédiatement (sans attendre l'écho serveur)
-            var ident = pair.Ident;
-            if (!string.IsNullOrEmpty(ident))
+        bool isCurrentlyPaused = pair.IsPaused;
+        bool shouldPause = !isCurrentlyPaused;
+
+        Logger.LogInformation("Toggling pause for {uid}: {isCurrentlyPaused} -> {shouldPause}", userData.UID, isCurrentlyPaused, shouldPause);
+
+        // 1. Pause locale
+        if (shouldPause) _serverManager.AddPausedUid(userData.UID);
+        else _serverManager.RemovePausedUid(userData.UID);
+
+        // 2. Pause individuelle (si appairé)
+        if (pair.UserPair != null)
+        {
+            var perm = pair.UserPair.OwnPermissions;
+            perm.SetPaused(shouldPause);
+            pair.UserPair.OwnPermissions = perm;
+            Logger.LogTrace("Pause individual: sending UserSetPairPermissions for {uid} with Paused={shouldPause}", userData.UID, shouldPause);
+            _ = UserSetPairPermissions(new UserPermissionsDto(userData, perm));
+        }
+
+        // 3. Pause de groupe (pour chaque Syncshell)
+        if (pair.GroupPair.Any())
+        {
+            foreach (var groupEntry in pair.GroupPair)
             {
-                Mediator.Publish(new PlayerVisibilityMessage(ident, IsVisible: false, Invalidate: true));
+                var groupPerm = groupEntry.Value.GroupUserPermissions;
+                groupPerm.SetPaused(shouldPause);
+                groupEntry.Value.GroupUserPermissions = groupPerm;
+                Logger.LogTrace("Pause group: sending GroupChangeIndividualPermissionState for {uid} in {gid} with Paused={shouldPause}", userData.UID, groupEntry.Key.Group.GID, shouldPause);
+                _ = GroupChangeIndividualPermissionState(new GroupPairUserPermissionDto(groupEntry.Key.Group, userData, groupPerm));
             }
         }
-        catch (Exception ex)
+
+        // 4. Action immédiate en local pour fluidité (Snowcloak-style)
+        if (shouldPause)
         {
-            Logger.LogDebug(ex, "Pause local-optimistic update failed for UID {uid}", userData.UID);
+            Mediator.Publish(new PlayerVisibilityMessage(pair.Ident, IsVisible: false, Invalidate: true));
         }
-        var perm = pair.UserPair.OwnPermissions;
-        perm.SetPaused(paused: true);
-        await UserSetPairPermissions(new UserPermissionsDto(userData, perm)).ConfigureAwait(false);
+        else
+        {
+            _pairManager.CancelPendingOffline(userData.UID);
+            pair.ApplyLastReceivedData(forced: true);
+        }
     }
 
     public Task<ConnectionDto> GetConnectionDto() => GetConnectionDtoInternal(true);
@@ -307,8 +331,8 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         base.Dispose(disposing);
 
         _healthCheckTokenSource?.Cancel();
-        _ = Task.Run(async () => await StopConnection(ServerState.Disconnected).ConfigureAwait(false));
         _connectionCancellationTokenSource.Cancel();
+        _ = Task.Run(async () => await StopConnection(ServerState.Disconnected).ConfigureAwait(false));
     }
 
     private async Task ClientHealthCheck(CancellationToken ct)

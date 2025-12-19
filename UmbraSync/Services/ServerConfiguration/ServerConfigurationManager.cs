@@ -20,6 +20,7 @@ public class ServerConfigurationManager
 
     private HashSet<string>? _cachedWhitelistedUIDs = null;
     private HashSet<string>? _cachedBlacklistedUIDs = null;
+    private HashSet<string>? _cachedPausedUIDs = null;
     private string? _realApiUrl = null;
 
     public ServerConfigurationManager(ILogger<ServerConfigurationManager> logger, ServerConfigService configService,
@@ -58,6 +59,7 @@ public class ServerConfigurationManager
             _configService.Current.CurrentServer = value;
             _cachedWhitelistedUIDs = null;
             _cachedBlacklistedUIDs = null;
+            _cachedPausedUIDs = null;
             _realApiUrl = null;
             _configService.Save();
         }
@@ -430,6 +432,12 @@ public class ServerConfigurationManager
         return _cachedBlacklistedUIDs.Contains(uid);
     }
 
+    internal bool IsUidPaused(string uid)
+    {
+        _cachedPausedUIDs ??= [.. CurrentBlockStorage().Paused];
+        return _cachedPausedUIDs.Contains(uid);
+    }
+
     internal void AddWhitelistUid(string uid)
     {
         if (IsUidWhitelisted(uid))
@@ -452,6 +460,15 @@ public class ServerConfigurationManager
         _blockConfig.Save();
     }
 
+    internal void AddPausedUid(string uid)
+    {
+        if (IsUidPaused(uid))
+            return;
+        CurrentBlockStorage().Paused.Add(uid);
+        _cachedPausedUIDs = null;
+        _blockConfig.Save();
+    }
+
     internal void RemoveWhitelistUid(string uid)
     {
         if (CurrentBlockStorage().Whitelist.RemoveAll(u => u.Equals(uid, StringComparison.Ordinal)) > 0)
@@ -463,6 +480,13 @@ public class ServerConfigurationManager
     {
         if (CurrentBlockStorage().Blacklist.RemoveAll(u => u.Equals(uid, StringComparison.Ordinal)) > 0)
             _cachedBlacklistedUIDs = null;
+        _blockConfig.Save();
+    }
+
+    internal void RemovePausedUid(string uid)
+    {
+        if (CurrentBlockStorage().Paused.RemoveAll(u => u.Equals(uid, StringComparison.Ordinal)) > 0)
+            _cachedPausedUIDs = null;
         _blockConfig.Save();
     }
 

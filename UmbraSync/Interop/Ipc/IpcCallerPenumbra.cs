@@ -293,10 +293,16 @@ public sealed class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
         if (!APIAvailable) return;
         await _dalamudUtil.RunOnFrameworkThread(() =>
         {
-            logger.LogTrace("[{applicationId}] Removing temp collection for {collId}", applicationId, collId);
-            var ret2 = _penumbraRemoveTemporaryCollection.Invoke(collId);
-            logger.LogTrace("[{applicationId}] RemoveTemporaryCollection: {ret2}", applicationId, ret2);
+            RemoveTemporaryCollection(logger, applicationId, collId);
         }).ConfigureAwait(false);
+    }
+
+    public void RemoveTemporaryCollection(ILogger logger, Guid applicationId, Guid collId)
+    {
+        if (!APIAvailable) return;
+        logger.LogTrace("[{applicationId}] Removing temp collection for {collId}", applicationId, collId);
+        var ret2 = _penumbraRemoveTemporaryCollection.Invoke(collId);
+        logger.LogTrace("[{applicationId}] RemoveTemporaryCollection: {ret2}", applicationId, ret2);
     }
 
     public async Task<(string[] forward, string[][] reverse)> ResolvePathsAsync(string[] forward, string[] reverse)

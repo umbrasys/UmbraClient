@@ -171,6 +171,14 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
     {
         return new List<ChangelogEntry>
         {
+            new(new Version(2, 0, 3, 1), "2.0.3.1", new List<ChangelogLine>
+            {
+                new("Correction de la synchronisation de l'état de pause entre les paires individuelles et les Syncshells."),
+                new("Correction de la ré-application des mods lors de la reconnexion au serveur ou de la sortie de pause."),
+                new("Correction d'un problème où un utilisateur pouvait apparaître hors ligne après avoir été sorti de pause."),
+                new("Correction du classement des utilisateurs dans la liste 'visible' des Syncshells après une sortie de pause."),
+                new("Application d'une distance de 20 mètres maximum autour du personnage pour l'affichage de la bulle d'écriture."),
+            }),
             new(new Version(2, 0, 3, 0), "2.0.3.0", new List<ChangelogLine>
             {
                 new("Passage au .NET SDK 10.0.101."),

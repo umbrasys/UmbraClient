@@ -73,6 +73,9 @@ internal sealed class GroupPanel
     };
     private string _syncShellPassword = string.Empty;
     private string _syncShellToJoin = string.Empty;
+    private readonly Dictionary<string, DrawGroupPair> _drawGroupPairCache = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, List<Pair>> _sortedPairsCache = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, long> _sortedPairsLastUpdate = new(StringComparer.Ordinal);
 
     public GroupPanel(CompactUi mainUi, UiSharedService uiShared, PairManager pairManager, ChatService chatServivce,
         UidDisplayHandler uidDisplayHandler, ServerConfigurationManager serverConfigurationManager,
@@ -587,11 +590,18 @@ internal sealed class GroupPanel
         ImGui.Indent(20);
         if (expandedState)
         {
-            var sortedPairs = pairsInGroup
-                .OrderByDescending(u => string.Equals(u.UserData.UID, groupDto.OwnerUID, StringComparison.Ordinal))
-                .ThenByDescending(u => u.GroupPair[groupDto].GroupPairStatusInfo.IsModerator())
-                .ThenByDescending(u => u.GroupPair[groupDto].GroupPairStatusInfo.IsPinned())
-                .ThenBy(u => u.GetPairSortKey(), StringComparer.OrdinalIgnoreCase);
+            if (!_sortedPairsCache.TryGetValue(groupDto.GID, out var sortedPairs) ||
+                Environment.TickCount64 - _sortedPairsLastUpdate[groupDto.GID] > 1000)
+            {
+                sortedPairs = pairsInGroup
+                    .OrderByDescending(u => string.Equals(u.UserData.UID, groupDto.OwnerUID, StringComparison.Ordinal))
+                    .ThenByDescending(u => u.GroupPair[groupDto].GroupPairStatusInfo.IsModerator())
+                    .ThenByDescending(u => u.GroupPair[groupDto].GroupPairStatusInfo.IsPinned())
+                    .ThenBy(u => u.GetPairSortKey(), StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+                _sortedPairsCache[groupDto.GID] = sortedPairs;
+                _sortedPairsLastUpdate[groupDto.GID] = Environment.TickCount64;
+            }
 
             var visibleUsers = new List<DrawGroupPair>();
             var onlineUsers = new List<DrawGroupPair>();
@@ -599,17 +609,30 @@ internal sealed class GroupPanel
 
             foreach (var pair in sortedPairs)
             {
-                var drawPair = new DrawGroupPair(
-                    groupDto.GID + pair.UserData.UID, pair,
-                    ApiController, _mainUi.Mediator, groupDto,
-                    pair.GroupPair.Single(
-                        g => GroupDataComparer.Instance.Equals(g.Key.Group, groupDto.Group)
-                    ).Value,
-                    _uidDisplayHandler,
-                    _uiShared,
-                    _charaDataManager,
-                    _autoDetectRequestService,
-                    _serverConfigurationManager);
+                var cacheKey = groupDto.GID + pair.UserData.UID;
+                var groupPairFullInfoDto = pair.GroupPair.FirstOrDefault(
+                        g => string.Equals(g.Key.Group.GID, groupDto.GID, StringComparison.Ordinal)
+                    ).Value;
+
+                if (groupPairFullInfoDto == null) continue;
+
+                if (!_drawGroupPairCache.TryGetValue(cacheKey, out var drawPair))
+                {
+                    drawPair = new DrawGroupPair(
+                        cacheKey, pair,
+                        ApiController, _mainUi.Mediator, groupDto,
+                        groupPairFullInfoDto,
+                        _uidDisplayHandler,
+                        _uiShared,
+                        _charaDataManager,
+                        _autoDetectRequestService,
+                        _serverConfigurationManager);
+                    _drawGroupPairCache[cacheKey] = drawPair;
+                }
+                else
+                {
+                    drawPair.UpdateData(groupDto, groupPairFullInfoDto);
+                }
 
                 if (pair.IsVisible)
                     visibleUsers.Add(drawPair);

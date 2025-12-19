@@ -25,6 +25,11 @@ public class DrawUserPair : DrawPairBase
     private readonly CharaDataManager _charaDataManager;
     private readonly ServerConfigurationManager _serverConfigurationManager;
 
+    public void UpdateData()
+    {
+        // DrawUserPair uses _pair which is already updated in the PairManager
+    }
+
     public DrawUserPair(string id, Pair entry, UidDisplayHandler displayHandler, ApiController apiController,
         MareMediator mareMediator, SelectGroupForPairUi selectGroupForPairUi,
         UiSharedService uiSharedService, CharaDataManager charaDataManager,
@@ -150,7 +155,7 @@ public class DrawUserPair : DrawPairBase
 
     protected override float DrawRightSide(float textPosY, float originalY)
     {
-        var pauseIcon = _pair.UserPair!.OwnPermissions.IsPaused() ? FontAwesomeIcon.Play : FontAwesomeIcon.Pause;
+        var pauseIcon = _pair.IsPaused ? FontAwesomeIcon.Play : FontAwesomeIcon.Pause;
         var pauseIconSize = _uiSharedService.GetIconButtonSize(pauseIcon);
         var barButtonSize = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Bars);
         var entryUID = _pair.UserData.AliasOrUID;
@@ -178,88 +183,83 @@ public class DrawUserPair : DrawPairBase
             ImGui.EndPopup();
         }
 
-        if (_pair.UserPair!.OwnPermissions.IsPaired() && _pair.UserPair!.OtherPermissions.IsPaired())
+        rightSidePos -= pauseIconSize.X + spacingX;
+        ImGui.SameLine(rightSidePos);
+        ImGui.SetCursorPosY(originalY);
+        if (pauseIcon == FontAwesomeIcon.Pause ? _uiSharedService.IconPauseButtonCentered() : _uiSharedService.IconButtonCentered(pauseIcon))
         {
-            rightSidePos -= pauseIconSize.X + spacingX;
+            _ = _apiController.Pause(_pair.UserData);
+        }
+        var pauseKey = !_pair.IsPaused ? "DrawUserPair.Pause" : "DrawUserPair.Resume";
+        UiSharedService.AttachToolTip(AppendSeenInfo(string.Format(CultureInfo.CurrentCulture, Loc.Get(pauseKey), entryUID)));
+
+
+        var individualSoundsDisabled = (_pair.UserPair?.OwnPermissions.IsDisableSounds() ?? false) || (_pair.UserPair?.OtherPermissions.IsDisableSounds() ?? false);
+        var individualAnimDisabled = (_pair.UserPair?.OwnPermissions.IsDisableAnimations() ?? false) || (_pair.UserPair?.OtherPermissions.IsDisableAnimations() ?? false);
+        var individualVFXDisabled = (_pair.UserPair?.OwnPermissions.IsDisableVFX() ?? false) || (_pair.UserPair?.OtherPermissions.IsDisableVFX() ?? false);
+        if (individualSoundsDisabled || individualAnimDisabled || individualVFXDisabled)
+        {
+            var icon = FontAwesomeIcon.ExclamationTriangle;
+            var iconwidth = _uiSharedService.GetIconButtonSize(icon);
+
+            rightSidePos -= iconwidth.X + spacingX / 2f;
             ImGui.SameLine(rightSidePos);
-            ImGui.SetCursorPosY(originalY);
-            if (pauseIcon == FontAwesomeIcon.Pause ? _uiSharedService.IconPauseButtonCentered() : _uiSharedService.IconButtonCentered(pauseIcon))
+
+            ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudYellow);
+            _uiSharedService.IconText(icon);
+            ImGui.PopStyleColor();
+            if (ImGui.IsItemHovered())
             {
-                var perm = _pair.UserPair!.OwnPermissions;
-                perm.SetPaused(!perm.IsPaused());
-                _ = _apiController.UserSetPairPermissions(new(_pair.UserData, perm));
-            }
-            var pauseKey = !_pair.UserPair!.OwnPermissions.IsPaused() ? "DrawUserPair.Pause" : "DrawUserPair.Resume";
-            UiSharedService.AttachToolTip(AppendSeenInfo(string.Format(CultureInfo.CurrentCulture, Loc.Get(pauseKey), entryUID)));
+                ImGui.BeginTooltip();
 
+                ImGui.TextUnformatted(Loc.Get("DrawUserPair.Permissions.Header"));
 
-            var individualSoundsDisabled = (_pair.UserPair?.OwnPermissions.IsDisableSounds() ?? false) || (_pair.UserPair?.OtherPermissions.IsDisableSounds() ?? false);
-            var individualAnimDisabled = (_pair.UserPair?.OwnPermissions.IsDisableAnimations() ?? false) || (_pair.UserPair?.OtherPermissions.IsDisableAnimations() ?? false);
-            var individualVFXDisabled = (_pair.UserPair?.OwnPermissions.IsDisableVFX() ?? false) || (_pair.UserPair?.OtherPermissions.IsDisableVFX() ?? false);
-            if (individualSoundsDisabled || individualAnimDisabled || individualVFXDisabled)
-            {
-                var icon = FontAwesomeIcon.ExclamationTriangle;
-                var iconwidth = _uiSharedService.GetIconButtonSize(icon);
-
-                rightSidePos -= iconwidth.X + spacingX / 2f;
-                ImGui.SameLine(rightSidePos);
-
-                ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudYellow);
-                _uiSharedService.IconText(icon);
-                ImGui.PopStyleColor();
-                if (ImGui.IsItemHovered())
+                if (individualSoundsDisabled)
                 {
-                    ImGui.BeginTooltip();
-
-                    ImGui.TextUnformatted(Loc.Get("DrawUserPair.Permissions.Header"));
-
-                    if (individualSoundsDisabled)
-                    {
-                        var userSoundsText = string.Format(CultureInfo.CurrentCulture, Loc.Get("DrawUserPair.Permissions.SoundDisabled"), _pair.UserData.AliasOrUID);
-                        _uiSharedService.IconText(FontAwesomeIcon.VolumeMute);
-                        ImGui.SameLine(40 * ImGuiHelpers.GlobalScale);
-                        ImGui.TextUnformatted(userSoundsText);
-                        ImGui.NewLine();
-                        ImGui.SameLine(40 * ImGuiHelpers.GlobalScale);
-                        ImGui.TextUnformatted(string.Format(
-                            CultureInfo.CurrentCulture,
-                            Loc.Get("DrawUserPair.Permissions.StatusLine"),
-                            _pair.UserPair!.OwnPermissions.IsDisableSounds() ? Loc.Get("Common.Disabled") : Loc.Get("Common.Enabled"),
-                            _pair.UserPair!.OtherPermissions.IsDisableSounds() ? Loc.Get("Common.Disabled") : Loc.Get("Common.Enabled")));
-                    }
-
-                    if (individualAnimDisabled)
-                    {
-                        var userAnimText = string.Format(CultureInfo.CurrentCulture, Loc.Get("DrawUserPair.Permissions.AnimDisabled"), _pair.UserData.AliasOrUID);
-                        _uiSharedService.IconText(FontAwesomeIcon.WindowClose);
-                        ImGui.SameLine(40 * ImGuiHelpers.GlobalScale);
-                        ImGui.TextUnformatted(userAnimText);
-                        ImGui.NewLine();
-                        ImGui.SameLine(40 * ImGuiHelpers.GlobalScale);
-                        ImGui.TextUnformatted(string.Format(
-                            CultureInfo.CurrentCulture,
-                            Loc.Get("DrawUserPair.Permissions.StatusLine"),
-                            _pair.UserPair!.OwnPermissions.IsDisableAnimations() ? Loc.Get("Common.Disabled") : Loc.Get("Common.Enabled"),
-                            _pair.UserPair!.OtherPermissions.IsDisableAnimations() ? Loc.Get("Common.Disabled") : Loc.Get("Common.Enabled")));
-                    }
-
-                    if (individualVFXDisabled)
-                    {
-                        var userVFXText = string.Format(CultureInfo.CurrentCulture, Loc.Get("DrawUserPair.Permissions.VfxDisabled"), _pair.UserData.AliasOrUID);
-                        _uiSharedService.IconText(FontAwesomeIcon.TimesCircle);
-                        ImGui.SameLine(40 * ImGuiHelpers.GlobalScale);
-                        ImGui.TextUnformatted(userVFXText);
-                        ImGui.NewLine();
-                        ImGui.SameLine(40 * ImGuiHelpers.GlobalScale);
-                        ImGui.TextUnformatted(string.Format(
-                            CultureInfo.CurrentCulture,
-                            Loc.Get("DrawUserPair.Permissions.StatusLine"),
-                            _pair.UserPair!.OwnPermissions.IsDisableVFX() ? Loc.Get("Common.Disabled") : Loc.Get("Common.Enabled"),
-                            _pair.UserPair!.OtherPermissions.IsDisableVFX() ? Loc.Get("Common.Disabled") : Loc.Get("Common.Enabled")));
-                    }
-
-                    ImGui.EndTooltip();
+                    var userSoundsText = string.Format(CultureInfo.CurrentCulture, Loc.Get("DrawUserPair.Permissions.SoundDisabled"), _pair.UserData.AliasOrUID);
+                    _uiSharedService.IconText(FontAwesomeIcon.VolumeMute);
+                    ImGui.SameLine(40 * ImGuiHelpers.GlobalScale);
+                    ImGui.TextUnformatted(userSoundsText);
+                    ImGui.NewLine();
+                    ImGui.SameLine(40 * ImGuiHelpers.GlobalScale);
+                    ImGui.TextUnformatted(string.Format(
+                        CultureInfo.CurrentCulture,
+                        Loc.Get("DrawUserPair.Permissions.StatusLine"),
+                        _pair.UserPair!.OwnPermissions.IsDisableSounds() ? Loc.Get("Common.Disabled") : Loc.Get("Common.Enabled"),
+                        _pair.UserPair!.OtherPermissions.IsDisableSounds() ? Loc.Get("Common.Disabled") : Loc.Get("Common.Enabled")));
                 }
+
+                if (individualAnimDisabled)
+                {
+                    var userAnimText = string.Format(CultureInfo.CurrentCulture, Loc.Get("DrawUserPair.Permissions.AnimDisabled"), _pair.UserData.AliasOrUID);
+                    _uiSharedService.IconText(FontAwesomeIcon.WindowClose);
+                    ImGui.SameLine(40 * ImGuiHelpers.GlobalScale);
+                    ImGui.TextUnformatted(userAnimText);
+                    ImGui.NewLine();
+                    ImGui.SameLine(40 * ImGuiHelpers.GlobalScale);
+                    ImGui.TextUnformatted(string.Format(
+                        CultureInfo.CurrentCulture,
+                        Loc.Get("DrawUserPair.Permissions.StatusLine"),
+                        _pair.UserPair!.OwnPermissions.IsDisableAnimations() ? Loc.Get("Common.Disabled") : Loc.Get("Common.Enabled"),
+                        _pair.UserPair!.OtherPermissions.IsDisableAnimations() ? Loc.Get("Common.Disabled") : Loc.Get("Common.Enabled")));
+                }
+
+                if (individualVFXDisabled)
+                {
+                    var userVFXText = string.Format(CultureInfo.CurrentCulture, Loc.Get("DrawUserPair.Permissions.VfxDisabled"), _pair.UserData.AliasOrUID);
+                    _uiSharedService.IconText(FontAwesomeIcon.TimesCircle);
+                    ImGui.SameLine(40 * ImGuiHelpers.GlobalScale);
+                    ImGui.TextUnformatted(userVFXText);
+                    ImGui.NewLine();
+                    ImGui.SameLine(40 * ImGuiHelpers.GlobalScale);
+                    ImGui.TextUnformatted(string.Format(
+                        CultureInfo.CurrentCulture,
+                        Loc.Get("DrawUserPair.Permissions.StatusLine"),
+                        _pair.UserPair!.OwnPermissions.IsDisableVFX() ? Loc.Get("Common.Disabled") : Loc.Get("Common.Enabled"),
+                        _pair.UserPair!.OtherPermissions.IsDisableVFX() ? Loc.Get("Common.Disabled") : Loc.Get("Common.Enabled")));
+                }
+
+                ImGui.EndTooltip();
             }
         }
 

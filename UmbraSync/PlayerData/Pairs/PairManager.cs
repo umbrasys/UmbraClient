@@ -58,6 +58,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         _apiController = new Lazy<ApiController>(() => serviceProvider.GetRequiredService<ApiController>());
         Mediator.Subscribe<DisconnectedMessage>(this, (_) => ClearPairs());
         Mediator.Subscribe<CutsceneEndMessage>(this, (_) => ReapplyPairData());
+        Mediator.Subscribe<ConnectedMessage>(this, (_) => ReapplyPairData());
         _directPairsInternal = DirectPairsLazy();
         _groupPairsInternal = GroupPairsLazy();
 
@@ -81,8 +82,20 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         if (!_allClientPairs.ContainsKey(dto.User))
             _allClientPairs[dto.User] = _pairFactory.Create(dto.User);
 
+        var pair = _allClientPairs[dto.User];
         var group = _allGroups[dto.Group];
-        _allClientPairs[dto.User].GroupPair[group] = dto;
+        var prevPaused = pair.IsPaused;
+        pair.GroupPair[group] = dto;
+
+        if (!pair.IsPaused)
+        {
+            pair.ApplyLastReceivedData(forced: true);
+        }
+        else if (!prevPaused && pair.IsPaused)
+        {
+            Mediator.Publish(new PlayerVisibilityMessage(pair.Ident, IsVisible: false, Invalidate: true));
+        }
+
         RecreateLazy();
 
         if (!isInitialLoad)
@@ -113,10 +126,21 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
             addToLastAddedUser = false;
         }
 
-        _allClientPairs[dto.User].UserPair = dto;
+        var pair = _allClientPairs[dto.User];
+        var prevPaused = pair.IsPaused;
+        pair.UserPair = dto;
         if (addToLastAddedUser)
-            LastAddedUser = _allClientPairs[dto.User];
-        _allClientPairs[dto.User].ApplyLastReceivedData();
+            LastAddedUser = pair;
+
+        if (!pair.IsPaused)
+        {
+            pair.ApplyLastReceivedData(forced: true);
+        }
+        else if (!prevPaused && pair.IsPaused)
+        {
+            Mediator.Publish(new PlayerVisibilityMessage(pair.Ident, IsVisible: false, Invalidate: true));
+        }
+
         RecreateLazy();
 
         if (addToLastAddedUser)
@@ -129,8 +153,6 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
     {
         Logger.LogDebug("Clearing all Pairs");
         DisposePairs();
-        _allClientPairs.Clear();
-        _allGroups.Clear();
         RecreateLazy();
     }
 
@@ -206,17 +228,15 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
             }
             finally
             {
-                // Clean up token
-                _pendingOffline.TryRemove(uid, out _);
+                // Clean up token only if it's still our CTS
+                _pendingOffline.TryRemove(KeyValuePair.Create(uid, cts));
                 cts.Dispose();
             }
         });
     }
 
-    public void MarkPairOnline(OnlineUserIdentDto dto, bool sendNotif = true)
+    internal void CancelPendingOffline(string uid)
     {
-        // Cancel any pending offline debounce for this UID (come back online immediately)
-        var uid = dto.User.UID;
         if (!string.IsNullOrEmpty(uid) && _pendingOffline.TryRemove(uid, out var existingCts))
         {
             try
@@ -226,17 +246,29 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
             }
             catch (ObjectDisposedException)
             {
-                // Intentionally ignored: CTS may already be disposed due to a concurrent race
+                // Intentionally ignored
             }
         }
+    }
 
-        if (!_allClientPairs.ContainsKey(dto.User)) throw new InvalidOperationException("No user found for " + dto);
+    public void MarkPairOnline(OnlineUserIdentDto dto, bool sendNotif = true)
+    {
+        // Cancel any pending offline debounce for this UID (come back online immediately)
+        CancelPendingOffline(dto.User.UID);
+
+        if (!_allClientPairs.TryGetValue(dto.User, out var pair))
+        {
+            Logger.LogDebug("No user found for {dto}, creating temporary pair for online signal", dto);
+            pair = _pairFactory.Create(dto.User);
+            _allClientPairs[dto.User] = pair;
+        }
 
         Mediator.Publish(new ClearProfileDataMessage(dto.User));
 
-        var pair = _allClientPairs[dto.User];
         if (pair.HasCachedPlayer)
         {
+            Logger.LogTrace("Player {uid} already has cached player, forcing reapplication of data", dto.User.UID);
+            pair.ApplyLastReceivedData(forced: true);
             RecreateLazy();
             return;
         }
@@ -255,16 +287,22 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         }
 
         pair.CreateCachedPlayer(dto);
+        pair.ApplyLastReceivedData(forced: true);
 
         RecreateLazy();
     }
 
     public void ReceiveCharaData(OnlineUserCharaDataDto dto)
     {
-        if (!_allClientPairs.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
+        if (!_allClientPairs.TryGetValue(dto.User, out var pair))
+        {
+            Logger.LogDebug("No user found for {user}, creating temporary pair for character data", dto.User);
+            pair = _pairFactory.Create(dto.User);
+            _allClientPairs[dto.User] = pair;
+        }
 
         Mediator.Publish(new EventMessage(new Event(pair.UserData, nameof(PairManager), EventSeverity.Informational, "Received Character Data")));
-        _allClientPairs[dto.User].ApplyData(dto);
+        pair.ApplyData(dto);
     }
 
     public void RemoveGroup(GroupData data)
@@ -343,11 +381,18 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
     {
         if (!_allClientPairs.TryGetValue(dto.User, out var pair))
         {
-            throw new InvalidOperationException("No such pair for " + dto);
+            Logger.LogDebug("No user found for {dto}, ignoring permission update", dto);
+            return;
         }
 
-        if (pair.UserPair == null) throw new InvalidOperationException("No direct pair for " + dto);
+        if (pair.UserPair == null)
+        {
+            Logger.LogDebug("No direct pair for {dto}, ignoring permission update", dto);
+            return;
+        }
 
+        var prevPaused = pair.IsPaused;
+        var prevPermissions = pair.UserPair.OtherPermissions;
         if (pair.UserPair.OtherPermissions.IsPaused() != dto.Permissions.IsPaused()
             || pair.UserPair.OtherPermissions.IsPaired() != dto.Permissions.IsPaired())
         {
@@ -356,14 +401,32 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
 
         pair.UserPair.OtherPermissions = dto.Permissions;
 
-        Logger.LogTrace("Paused: {paused}, Anims: {anims}, Sounds: {sounds}, VFX: {vfx}",
+        Logger.LogTrace("UpdatePairPermissions: Paused: {paused}, Anims: {anims}, Sounds: {sounds}, VFX: {vfx}. Global IsPaused: {global}",
             pair.UserPair.OtherPermissions.IsPaused(),
             pair.UserPair.OtherPermissions.IsDisableAnimations(),
             pair.UserPair.OtherPermissions.IsDisableSounds(),
-            pair.UserPair.OtherPermissions.IsDisableVFX());
+            pair.UserPair.OtherPermissions.IsDisableVFX(),
+            pair.IsPaused);
 
-        if (!pair.IsPaused)
-            pair.ApplyLastReceivedData();
+        bool pauseChanged = prevPaused != pair.IsPaused;
+        bool filterChanged = prevPermissions.IsDisableAnimations() != dto.Permissions.IsDisableAnimations()
+            || prevPermissions.IsDisableSounds() != dto.Permissions.IsDisableSounds()
+            || prevPermissions.IsDisableVFX() != dto.Permissions.IsDisableVFX();
+
+        if (pauseChanged || filterChanged)
+        {
+            if (!pair.IsPaused)
+            {
+                CancelPendingOffline(pair.UserData.UID);
+                Logger.LogDebug("UpdatePairPermissions: triggering forced reapplication for {uid}", pair.UserData.UID);
+                pair.ApplyLastReceivedData(forced: true);
+            }
+            else if (pauseChanged && pair.IsPaused)
+            {
+                Logger.LogDebug("UpdatePairPermissions: triggering invalidation for {uid}", pair.UserData.UID);
+                Mediator.Publish(new PlayerVisibilityMessage(pair.Ident, IsVisible: false, Invalidate: true));
+            }
+        }
 
         RecreateLazy();
     }
@@ -372,11 +435,18 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
     {
         if (!_allClientPairs.TryGetValue(dto.User, out var pair))
         {
-            throw new InvalidOperationException("No such pair for " + dto);
+            Logger.LogDebug("No user found for {dto}, ignoring self permission update", dto);
+            return;
         }
 
-        if (pair.UserPair == null) throw new InvalidOperationException("No direct pair for " + dto);
+        if (pair.UserPair == null)
+        {
+            Logger.LogDebug("No direct pair for {dto}, ignoring self permission update", dto);
+            return;
+        }
 
+        var prevPaused = pair.IsPaused;
+        var prevPermissions = pair.UserPair.OwnPermissions;
         if (pair.UserPair.OwnPermissions.IsPaused() != dto.Permissions.IsPaused()
             || pair.UserPair.OwnPermissions.IsPaired() != dto.Permissions.IsPaired())
         {
@@ -385,14 +455,32 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
 
         pair.UserPair.OwnPermissions = dto.Permissions;
 
-        Logger.LogTrace("Paused: {paused}, Anims: {anims}, Sounds: {sounds}, VFX: {vfx}",
+        Logger.LogTrace("UpdateSelfPairPermissions: Paused: {paused}, Anims: {anims}, Sounds: {sounds}, VFX: {vfx}. Global IsPaused: {global}",
             pair.UserPair.OwnPermissions.IsPaused(),
             pair.UserPair.OwnPermissions.IsDisableAnimations(),
             pair.UserPair.OwnPermissions.IsDisableSounds(),
-            pair.UserPair.OwnPermissions.IsDisableVFX());
+            pair.UserPair.OwnPermissions.IsDisableVFX(),
+            pair.IsPaused);
 
-        if (!pair.IsPaused)
-            pair.ApplyLastReceivedData();
+        bool pauseChanged = prevPaused != pair.IsPaused;
+        bool filterChanged = prevPermissions.IsDisableAnimations() != dto.Permissions.IsDisableAnimations()
+            || prevPermissions.IsDisableSounds() != dto.Permissions.IsDisableSounds()
+            || prevPermissions.IsDisableVFX() != dto.Permissions.IsDisableVFX();
+
+        if (pauseChanged || filterChanged)
+        {
+            if (!pair.IsPaused)
+            {
+                CancelPendingOffline(pair.UserData.UID);
+                Logger.LogDebug("UpdateSelfPairPermissions: triggering forced reapplication for {uid}", pair.UserData.UID);
+                pair.ApplyLastReceivedData(forced: true);
+            }
+            else if (pauseChanged && pair.IsPaused)
+            {
+                Logger.LogDebug("UpdateSelfPairPermissions: triggering invalidation for {uid}", pair.UserData.UID);
+                Mediator.Publish(new PlayerVisibilityMessage(pair.Ident, IsVisible: false, Invalidate: true));
+            }
+        }
 
         RecreateLazy();
     }
@@ -407,57 +495,161 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
 
     internal void SetGroupPairStatusInfo(GroupPairUserInfoDto dto)
     {
-        var group = _allGroups[dto.Group];
-        _allClientPairs[dto.User].GroupPair[group].GroupPairStatusInfo = dto.GroupUserInfo;
+        if (!_allGroups.TryGetValue(dto.Group, out var group))
+        {
+            Logger.LogDebug("No group found for {dto}, ignoring status info", dto);
+            return;
+        }
+
+        if (!_allClientPairs.TryGetValue(dto.User, out var pair))
+        {
+            Logger.LogDebug("No user found for {dto}, ignoring status info", dto);
+            return;
+        }
+
+        if (!pair.GroupPair.TryGetValue(group, out var groupPair))
+        {
+            Logger.LogDebug("User {user} not in group {group}, ignoring status info", dto.User, dto.Group);
+            return;
+        }
+
+        groupPair.GroupPairStatusInfo = dto.GroupUserInfo;
         RecreateLazy();
     }
 
     internal void SetGroupPairUserPermissions(GroupPairUserPermissionDto dto)
     {
-        var group = _allGroups[dto.Group];
-        var prevPermissions = _allClientPairs[dto.User].GroupPair[group].GroupUserPermissions;
-        _allClientPairs[dto.User].GroupPair[group].GroupUserPermissions = dto.GroupPairPermissions;
-        if (prevPermissions.IsDisableAnimations() != dto.GroupPairPermissions.IsDisableAnimations()
-            || prevPermissions.IsDisableSounds() != dto.GroupPairPermissions.IsDisableSounds()
-            || prevPermissions.IsDisableVFX() != dto.GroupPairPermissions.IsDisableVFX())
+        if (!_allGroups.TryGetValue(dto.Group, out var group))
         {
-            _allClientPairs[dto.User].ApplyLastReceivedData();
+            Logger.LogDebug("No group found for {dto}, ignoring group pair permissions update", dto);
+            return;
+        }
+
+        if (!_allClientPairs.TryGetValue(dto.User, out var pair))
+        {
+            Logger.LogDebug("No user found for {dto}, ignoring group pair permissions update", dto);
+            return;
+        }
+
+        if (!pair.GroupPair.TryGetValue(group, out var groupPair))
+        {
+            Logger.LogDebug("User {user} not in group {group}, ignoring group pair permissions update", dto.User, dto.Group);
+            return;
+        }
+
+        var prevPermissions = groupPair.GroupUserPermissions;
+        groupPair.GroupUserPermissions = dto.GroupPairPermissions;
+
+        Logger.LogTrace("SetGroupPairUserPermissions: Group {gid}, User {uid}. Paused: {paused}, Global IsPaused: {global}",
+            dto.Group.GID, pair.UserData.UID, groupPair.GroupUserPermissions.IsPaused(), pair.IsPaused);
+
+        bool pauseChanged = prevPermissions.IsPaused() != dto.GroupPairPermissions.IsPaused();
+        bool filterChanged = prevPermissions.IsDisableAnimations() != dto.GroupPairPermissions.IsDisableAnimations()
+            || prevPermissions.IsDisableSounds() != dto.GroupPairPermissions.IsDisableSounds()
+            || prevPermissions.IsDisableVFX() != dto.GroupPairPermissions.IsDisableVFX();
+
+        if (pauseChanged || filterChanged)
+        {
+            if (!pair.IsPaused)
+            {
+                CancelPendingOffline(pair.UserData.UID);
+                Logger.LogDebug("SetGroupPairUserPermissions: triggering forced reapplication for {uid}", pair.UserData.UID);
+                pair.ApplyLastReceivedData(forced: true);
+            }
+            else if (pauseChanged && pair.IsPaused)
+            {
+                Logger.LogDebug("SetGroupPairUserPermissions: triggering invalidation for {uid}", pair.UserData.UID);
+                Mediator.Publish(new PlayerVisibilityMessage(pair.Ident, IsVisible: false, Invalidate: true));
+            }
         }
         RecreateLazy();
     }
 
     internal void SetGroupPermissions(GroupPermissionDto dto)
     {
-        var prevPermissions = _allGroups[dto.Group].GroupPermissions;
-        _allGroups[dto.Group].GroupPermissions = dto.Permissions;
-        if (prevPermissions.IsDisableAnimations() != dto.Permissions.IsDisableAnimations()
+        if (!_allGroups.TryGetValue(dto.Group, out var groupInfo))
+        {
+            Logger.LogDebug("No group found for {dto}, ignoring group permissions update", dto);
+            return;
+        }
+
+        var prevPermissions = groupInfo.GroupPermissions;
+        groupInfo.GroupPermissions = dto.Permissions;
+
+        bool pauseChanged = prevPermissions.IsPaused() != dto.Permissions.IsPaused();
+        bool filterChanged = prevPermissions.IsDisableAnimations() != dto.Permissions.IsDisableAnimations()
             || prevPermissions.IsDisableSounds() != dto.Permissions.IsDisableSounds()
-            || prevPermissions.IsDisableVFX() != dto.Permissions.IsDisableVFX())
+            || prevPermissions.IsDisableVFX() != dto.Permissions.IsDisableVFX();
+
+        if (pauseChanged || filterChanged)
         {
             RecreateLazy();
-            var group = _allGroups[dto.Group];
-            GroupPairs[group].ForEach(p => p.ApplyLastReceivedData());
+            foreach (var p in GroupPairs[groupInfo])
+            {
+                if (!p.IsPaused)
+                {
+                    CancelPendingOffline(p.UserData.UID);
+                    Logger.LogDebug("SetGroupPermissions: triggering forced reapplication for {uid} in group {gid}", p.UserData.UID, groupInfo.Group.GID);
+                    p.ApplyLastReceivedData(forced: true);
+                }
+                else if (pauseChanged && p.IsPaused)
+                {
+                    Logger.LogDebug("SetGroupPermissions: triggering invalidation for {uid} in group {gid}", p.UserData.UID, groupInfo.Group.GID);
+                    Mediator.Publish(new PlayerVisibilityMessage(p.Ident, IsVisible: false, Invalidate: true));
+                }
+            }
         }
         RecreateLazy();
     }
 
     internal void SetGroupStatusInfo(GroupPairUserInfoDto dto)
     {
-        _allGroups[dto.Group].GroupUserInfo = dto.GroupUserInfo;
+        if (!_allGroups.TryGetValue(dto.Group, out var groupInfo))
+        {
+            Logger.LogDebug("No group found for {dto}, ignoring group status info update", dto);
+            return;
+        }
+        groupInfo.GroupUserInfo = dto.GroupUserInfo;
         RecreateLazy();
     }
 
     internal void SetGroupUserPermissions(GroupPairUserPermissionDto dto)
     {
-        var prevPermissions = _allGroups[dto.Group].GroupUserPermissions;
-        _allGroups[dto.Group].GroupUserPermissions = dto.GroupPairPermissions;
-        if (prevPermissions.IsDisableAnimations() != dto.GroupPairPermissions.IsDisableAnimations()
+        if (!_allGroups.TryGetValue(dto.Group, out var groupInfo))
+        {
+            Logger.LogDebug("No group found for {dto}, ignoring group user permissions update", dto);
+            return;
+        }
+        var prevPermissions = groupInfo.GroupUserPermissions;
+        groupInfo.GroupUserPermissions = dto.GroupPairPermissions;
+
+        bool pauseChanged = prevPermissions.IsPaused() != dto.GroupPairPermissions.IsPaused();
+        bool filterChanged = prevPermissions.IsDisableAnimations() != dto.GroupPairPermissions.IsDisableAnimations()
             || prevPermissions.IsDisableSounds() != dto.GroupPairPermissions.IsDisableSounds()
-            || prevPermissions.IsDisableVFX() != dto.GroupPairPermissions.IsDisableVFX())
+            || prevPermissions.IsDisableVFX() != dto.GroupPairPermissions.IsDisableVFX();
+
+        if (pauseChanged || filterChanged)
         {
             RecreateLazy();
-            var group = _allGroups[dto.Group];
-            GroupPairs[group].ForEach(p => p.ApplyLastReceivedData());
+            foreach (var p in GroupPairs[groupInfo])
+            {
+                // Our permissions in the group changed. This affects what we can see/hear from others.
+                // We only need to reapply data for the others based on our NEW filters.
+                if (!p.IsPaused)
+                {
+                    CancelPendingOffline(p.UserData.UID);
+                    Logger.LogDebug("SetGroupUserPermissions: triggering forced reapplication for {uid} in group {gid} (reason: self filters changed)", p.UserData.UID, groupInfo.Group.GID);
+                    p.ApplyLastReceivedData(forced: true);
+                }
+                else if (pauseChanged && p.IsPaused)
+                {
+                    // If we paused ourselves in the group, we might want to hide others if we were only visible through this group.
+                    // But usually p.IsPaused includes many things. 
+                    // To be safe and avoid flickers, we only invalidate if the global pause state for this pair actually changed to true.
+                    Logger.LogDebug("SetGroupUserPermissions: triggering invalidation for {uid} in group {gid}", p.UserData.UID, groupInfo.Group.GID);
+                    Mediator.Publish(new PlayerVisibilityMessage(p.Ident, IsVisible: false, Invalidate: true));
+                }
+            }
         }
         RecreateLazy();
     }
