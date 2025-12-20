@@ -89,6 +89,12 @@ public class CompactUi : WindowMediatorSubscriberBase
     private static readonly Vector4 SidebarButtonActiveColor = new(0.16f, 0.16f, 0.22f, 0.95f);
     private static readonly Vector4 MutedCardBackground = new(0.10f, 0.10f, 0.13f, 0.78f);
     private static readonly Vector4 MutedCardBorder = new(0.55f, 0.55f, 0.62f, 0.82f);
+    private const float SidebarIndicatorAnimSpeed = 18f;
+    private readonly Dictionary<CompactUiSection, (Vector2 Min, Vector2 Max)> _sidebarButtonRects = new();
+    private Vector2 _sidebarIndicatorPos;
+    private Vector2 _sidebarIndicatorSize;
+    private bool _sidebarIndicatorInitialized;
+    private Vector2 _sidebarWindowPos;
     private float _socialSwitchAnimT = 1f;
     private float _socialSwitchAnimTargetT = 1f;
     private readonly float _socialSwitchAnimSpeed = 8f; // Vitesse d’animation (unités de t par seconde). 8 → transition ~125ms–200ms selon framerate
@@ -1026,6 +1032,11 @@ public class CompactUi : WindowMediatorSubscriberBase
         bool hasNotifications = _notificationCount > 0;
         bool hasVisiblePairs = _pairManager.DirectPairs.Any(p => p.IsVisible);
 
+        var drawList = ImGui.GetWindowDrawList();
+        drawList.ChannelsSplit(2);
+        drawList.ChannelsSetCurrent(1);
+        _sidebarButtonRects.Clear();
+
         ImGuiHelpers.ScaledDummy(6f);
         DrawConnectionIcon();
         ImGuiHelpers.ScaledDummy(12f);
@@ -1060,6 +1071,10 @@ public class CompactUi : WindowMediatorSubscriberBase
         {
             Mediator.Publish(new UiToggleMessage(typeof(SettingsUi)));
         });
+
+        drawList.ChannelsSetCurrent(0);
+        DrawSidebarIndicator(drawList);
+        drawList.ChannelsMerge();
     }
 
     private void DrawSidebarButton(FontAwesomeIcon icon, string tooltip, CompactUiSection section, bool enabled = true, bool highlight = false, int badgeCount = 0, Action? onClick = null, Vector4? highlightColor = null)
@@ -1084,6 +1099,7 @@ public class CompactUi : WindowMediatorSubscriberBase
             }
         }
 
+        _sidebarButtonRects[section] = (ImGui.GetItemRectMin(), ImGui.GetItemRectMax());
         UiSharedService.AttachToolTip(tooltip);
     }
 
@@ -1093,7 +1109,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         var hasServer = _serverManager.HasServers;
         var currentServer = hasServer ? _serverManager.CurrentServer : null;
         bool isLinked = currentServer != null && !currentServer.FullPause;
-        var icon = isLinked ? FontAwesomeIcon.Unlink : FontAwesomeIcon.Link;
+        var icon = isLinked ? FontAwesomeIcon.Link : FontAwesomeIcon.Unlink;
 
         using var id = ImRaii.PushId("connection-icon");
         float regionWidth = ImGui.GetContentRegionAvail().X;
@@ -1103,7 +1119,10 @@ public class CompactUi : WindowMediatorSubscriberBase
 
         bool isTogglingDisabled = !hasServer || state is ServerState.Reconnecting or ServerState.Disconnecting;
 
-        if (DrawSidebarSquareButton(icon, isLinked, false, !isTogglingDisabled, 0, null) && !isTogglingDisabled)
+        var connectionColor = state is ServerState.Connected
+            ? new Vector4(0.25f, 0.85f, 0.45f, 1f)
+            : new Vector4(0.90f, 0.25f, 0.25f, 1f);
+        if (DrawSidebarSquareButton(icon, false, false, !isTogglingDisabled, 0, null, connectionColor) && !isTogglingDisabled)
         {
             ToggleConnection();
         }
@@ -1116,14 +1135,21 @@ public class CompactUi : WindowMediatorSubscriberBase
         UiSharedService.AttachToolTip(tooltip);
     }
 
-    private bool DrawSidebarSquareButton(FontAwesomeIcon icon, bool isActive, bool highlight, bool enabled, int badgeCount, Vector4? highlightColor)
+    private bool DrawSidebarSquareButton(FontAwesomeIcon icon, bool isActive, bool highlight, bool enabled, int badgeCount, Vector4? highlightColor, Vector4? iconColorOverride = null)
     {
         float size = SidebarIconSize * ImGuiHelpers.GlobalScale;
 
-        bool useAccent = (isActive || highlight) && enabled;
+        bool useIndicator = isActive;
+        bool useAccent = highlight && enabled;
         var buttonColor = useAccent ? UiSharedService.AccentColor : SidebarButtonColor;
         var hoverColor = useAccent ? UiSharedService.AccentHoverColor : SidebarButtonHoverColor;
         var activeColor = useAccent ? UiSharedService.AccentActiveColor : SidebarButtonActiveColor;
+        if (useIndicator)
+        {
+            buttonColor = new Vector4(0f, 0f, 0f, 0f);
+            hoverColor = buttonColor;
+            activeColor = buttonColor;
+        }
 
         string iconText = icon.ToIconString();
         Vector2 iconSize;
@@ -1152,6 +1178,10 @@ public class CompactUi : WindowMediatorSubscriberBase
                 : ImGui.ColorConvertFloat4ToU32(new Vector4(0.85f, 0.85f, 0.9f, 1f));
             if (enabled)
             {
+                if (iconColorOverride.HasValue)
+                {
+                    iconColor = ImGui.ColorConvertFloat4ToU32(iconColorOverride.Value);
+                }
                 if (highlight)
                 {
                     var color = highlightColor ?? new Vector4(0.45f, 0.85f, 0.45f, 1f);
@@ -1179,6 +1209,39 @@ public class CompactUi : WindowMediatorSubscriberBase
         }
 
         return clicked && enabled;
+    }
+
+    private void DrawSidebarIndicator(ImDrawListPtr drawList)
+    {
+        if (!_sidebarButtonRects.TryGetValue(_activeSection, out var rect))
+        {
+            return;
+        }
+
+        var windowPos = ImGui.GetWindowPos();
+        var targetPos = rect.Min;
+        var targetSize = rect.Max - rect.Min;
+
+        if (!_sidebarIndicatorInitialized || _sidebarWindowPos != windowPos)
+        {
+            _sidebarIndicatorPos = targetPos;
+            _sidebarIndicatorSize = targetSize;
+            _sidebarIndicatorInitialized = true;
+            _sidebarWindowPos = windowPos;
+        }
+        else
+        {
+            float dt = ImGui.GetIO().DeltaTime;
+            float lerpT = 1f - MathF.Exp(-SidebarIndicatorAnimSpeed * dt);
+            _sidebarIndicatorPos = Vector2.Lerp(_sidebarIndicatorPos, targetPos, lerpT);
+            _sidebarIndicatorSize = Vector2.Lerp(_sidebarIndicatorSize, targetSize, lerpT);
+        }
+
+        float padding = 2f * ImGuiHelpers.GlobalScale;
+        var min = _sidebarIndicatorPos - new Vector2(padding);
+        var max = _sidebarIndicatorPos + _sidebarIndicatorSize + new Vector2(padding);
+        float rounding = 6f * ImGuiHelpers.GlobalScale;
+        drawList.AddRectFilled(min, max, ImGui.GetColorU32(UiSharedService.AccentColor), rounding);
     }
 
 

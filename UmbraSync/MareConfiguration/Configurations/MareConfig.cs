@@ -79,7 +79,8 @@ public class MareConfig : IMareConfiguration
     public Dictionary<string, SyncOverrideEntry> GroupSyncOverrides { get; set; } = new(StringComparer.Ordinal);
     public bool EnableAutoDetectDiscovery { get; set; } = true;
     public bool AllowAutoDetectPairRequests { get; set; } = true;
-    public int AutoDetectMaxDistanceMeters { get; set; } = 40;
+    public const int AutoDetectFixedMaxDistanceMeters = 50;
+    public int AutoDetectMaxDistanceMeters { get; set; } = AutoDetectFixedMaxDistanceMeters;
     public int AutoDetectMuteMinutes { get; set; } = 5;
     public int TimeSpanBetweenScansInSeconds { get; set; } = 30;
     public int TransferBarsHeight { get; set; } = 12;

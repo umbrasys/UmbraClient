@@ -9,6 +9,7 @@ using Dalamud.Plugin.Services;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using UmbraSync.MareConfiguration;
+using UmbraSync.MareConfiguration.Configurations;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.Notification;
 using UmbraSync.Services.ServerConfiguration;
@@ -445,7 +446,7 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
         {
             var local = await _dalamud.RunOnFrameworkThread(() => _dalamud.GetPlayerCharacter()).ConfigureAwait(false);
             var localPos = local?.Position ?? Vector3.Zero;
-            int maxDist = Math.Clamp(_config.Current.AutoDetectMaxDistanceMeters, 5, 100);
+            int maxDist = MareConfig.AutoDetectFixedMaxDistanceMeters;
 
             int limit = Math.Min(200, _objectTable.Length);
             for (int i = 0; i < limit; i++)

@@ -171,6 +171,11 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
     {
         return new List<ChangelogEntry>
         {
+            new(new Version(2, 0, 3, 2), "2.0.3.2", new List<ChangelogLine>
+            {
+                new("Mise à jour pour le support V3 de Brio."),
+                new("Divers changements et ajustement de l'interface graphique."),
+            }),
             new(new Version(2, 0, 3, 1), "2.0.3.1", new List<ChangelogLine>
             {
                 new("Correction de la synchronisation de l'état de pause entre les paires individuelles et les Syncshells."),

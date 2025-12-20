@@ -18,6 +18,7 @@ using System.Globalization;
 using System.Text;
 using UmbraSync.Services;
 using UmbraSync.Services.AutoDetect;
+using UmbraSync.MareConfiguration.Configurations;
 using NotificationType = UmbraSync.MareConfiguration.Models.NotificationType;
 
 namespace UmbraSync.UI;
@@ -78,44 +79,41 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
 
         Vector4 accent = UiSharedService.AccentColor;
         if (accent.W <= 0f) accent = ImGuiColors.ParsedPurple;
-        Vector4 inactiveTab = new(accent.X * 0.45f, accent.Y * 0.45f, accent.Z * 0.45f, Math.Clamp(accent.W + 0.15f, 0f, 1f));
-        Vector4 hoverTab = UiSharedService.AccentHoverColor;
 
         using var tabs = ImRaii.TabBar("AutoDetectTabs");
         if (!tabs.Success) return;
 
+        var accentColor = ImGui.ColorConvertFloat4ToU32(accent);
+        ImGui.PushStyleColor(ImGuiCol.TabActive, accentColor);
+        ImGui.PushStyleColor(ImGuiCol.TabHovered, accentColor);
+
         var incomingCount = incomingInvites.Count;
         var inviteTabLabel = string.Format(CultureInfo.CurrentCulture, Loc.Get("AutoDetectUi.Tab.Invitations"), incomingCount);
-        DrawStyledTab(inviteTabLabel, accent, inactiveTab, hoverTab, () =>
+        if (ImGui.BeginTabItem(inviteTabLabel))
         {
             DrawInvitationsTab(incomingInvites, outgoingInvites);
-        });
+            ImGui.EndTabItem();
+        }
 
-        DrawStyledTab(Loc.Get("AutoDetectUi.Tab.Nearby"), accent, inactiveTab, hoverTab, DrawNearbyTab);
+        if (ImGui.BeginTabItem(Loc.Get("AutoDetectUi.Tab.Nearby")))
+        {
+            DrawNearbyTab();
+            ImGui.EndTabItem();
+        }
         var syncCount = _syncshellEntries.Count > 0 ? _syncshellEntries.Count : _syncshellDiscoveryService.Entries.Count;
         var syncTabLabel = string.Create(CultureInfo.CurrentCulture, $"{Loc.Get("AutoDetectUi.Tab.SyncFinder")} ({syncCount})");
-        DrawStyledTab(syncTabLabel, accent, inactiveTab, hoverTab, DrawSyncshellTab);
+        if (ImGui.BeginTabItem(syncTabLabel))
+        {
+            DrawSyncshellTab();
+            ImGui.EndTabItem();
+        }
+
+        ImGui.PopStyleColor(2);
     }
 
     public void DrawInline()
     {
         DrawInternal();
-    }
-
-    private static void DrawStyledTab(string label, Vector4 accent, Vector4 inactive, Vector4 hover, Action draw, bool disabled = false)
-    {
-        var tabColor = disabled ? ImGuiColors.DalamudGrey3 : inactive;
-        var tabHover = disabled ? ImGuiColors.DalamudGrey3 : hover;
-        var tabActive = disabled ? ImGuiColors.DalamudGrey2 : accent;
-        using var baseColor = ImRaii.PushColor(ImGuiCol.Tab, tabColor);
-        using var hoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, tabHover);
-        using var activeColor = ImRaii.PushColor(ImGuiCol.TabActive, tabActive);
-        using var activeText = ImRaii.PushColor(ImGuiCol.Text, disabled ? ImGuiColors.DalamudGrey2 : Vector4.One, false);
-        using var tab = ImRaii.TabItem(label);
-        if (tab.Success)
-        {
-            draw();
-        }
     }
 
     private void DrawInvitationsTab(List<KeyValuePair<string, string>> incomingInvites, IReadOnlyCollection<AutoDetectRequestService.PendingRequestInfo> outgoingInvites)
@@ -213,18 +211,7 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
             ImGuiHelpers.ScaledDummy(6);
         }
 
-        int maxDist = Math.Clamp(_configService.Current.AutoDetectMaxDistanceMeters, 5, 100);
-        ImGui.AlignTextToFramePadding();
-        ImGui.TextUnformatted(Loc.Get("AutoDetectUi.Nearby.MaxDistanceLabel"));
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(120 * ImGuiHelpers.GlobalScale);
-        if (ImGui.SliderInt("##autodetect-dist", ref maxDist, 5, 100))
-        {
-            _configService.Current.AutoDetectMaxDistanceMeters = maxDist;
-            _configService.Save();
-        }
-
-        ImGuiHelpers.ScaledDummy(6);
+        int maxDist = MareConfig.AutoDetectFixedMaxDistanceMeters;
 
         var sourceEntries = _entries.Count > 0 ? _entries : _discoveryService.SnapshotEntries();
         // Build snapshot of pending invites to gray-out buttons

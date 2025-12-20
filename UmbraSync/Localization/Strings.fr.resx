@@ -438,7 +438,7 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value />
   </data>
   <data name="CompactUi.Notifications.AutoDetectTitle" xml:space="preserve">
-    <value />
+    <value>AutoDetect</value>
   </data>
   <data name="CompactUi.Notifications.Clear" xml:space="preserve">
     <value />
@@ -906,91 +906,91 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value />
   </data>
   <data name="AutoDetectUi.Duration.Minute.Plural" xml:space="preserve">
-    <value />
+    <value>{0} minutes</value>
   </data>
   <data name="AutoDetectUi.Duration.Minute.Single" xml:space="preserve">
-    <value />
+    <value>1 minute</value>
   </data>
   <data name="AutoDetectUi.Duration.Second.Plural" xml:space="preserve">
-    <value />
+    <value>{0} secondes</value>
   </data>
   <data name="AutoDetectUi.Duration.Second.Single" xml:space="preserve">
-    <value />
+    <value>1 seconde</value>
   </data>
   <data name="AutoDetectUi.Invitations.Accept" xml:space="preserve">
-    <value />
+    <value>Accepter</value>
   </data>
   <data name="AutoDetectUi.Invitations.Decline" xml:space="preserve">
-    <value />
+    <value>Refuser</value>
   </data>
   <data name="AutoDetectUi.Invitations.EmptyAll" xml:space="preserve">
-    <value />
+    <value>Aucune invitation en attente. Cette page regroupe les demandes que vous recevez et celles que vous envoyez.</value>
   </data>
   <data name="AutoDetectUi.Invitations.NoIncoming" xml:space="preserve">
-    <value />
+    <value>Vous n'avez aucune invitation de pair en attente pour le moment.</value>
   </data>
   <data name="AutoDetectUi.Invitations.Processing" xml:space="preserve">
-    <value />
+    <value>Traitement...</value>
   </data>
   <data name="AutoDetectUi.Invitations.ReceivedEmpty" xml:space="preserve">
-    <value />
+    <value>Aucune invitation reçue.</value>
   </data>
   <data name="AutoDetectUi.Invitations.ReceivedHeader" xml:space="preserve">
-    <value />
+    <value>Invitations reçues ({0})</value>
   </data>
   <data name="AutoDetectUi.Invitations.Remove" xml:space="preserve">
-    <value />
+    <value>Retirer</value>
   </data>
   <data name="AutoDetectUi.Invitations.RemoveTooltip" xml:space="preserve">
-    <value />
+    <value>Ne supprime que cette entrée de suivi locale.</value>
   </data>
   <data name="AutoDetectUi.Invitations.SentAgo" xml:space="preserve">
-    <value />
+    <value>Envoyée il y a {0}</value>
   </data>
   <data name="AutoDetectUi.Invitations.SentEmpty" xml:space="preserve">
-    <value />
+    <value>Aucune invitation envoyée.</value>
   </data>
   <data name="AutoDetectUi.Invitations.SentHeader" xml:space="preserve">
-    <value />
+    <value>Invitations envoyées ({0})</value>
   </data>
   <data name="AutoDetectUi.Nearby.DisabledNotice" xml:space="preserve">
-    <value />
+    <value>AutoDetect est désactivé. Activez-le dans les paramètres pour détecter les utilisateurs Umbra à proximité.</value>
   </data>
   <data name="AutoDetectUi.Nearby.Empty" xml:space="preserve">
-    <value />
+    <value>Aucune présence UmbraSync à proximité détectée pour le moment.</value>
   </data>
   <data name="AutoDetectUi.Nearby.InviteButton" xml:space="preserve">
-    <value />
+    <value>Envoyer une invitation</value>
   </data>
   <data name="AutoDetectUi.Nearby.InviteTooltip" xml:space="preserve">
-    <value />
+    <value>Envoie une demande d'appairage via AutoDetect.</value>
   </data>
   <data name="AutoDetectUi.Nearby.MaxDistanceLabel" xml:space="preserve">
-    <value />
+    <value>Distance max (m)</value>
   </data>
   <data name="AutoDetectUi.Nearby.Reason.InvitesDisabled" xml:space="preserve">
-    <value />
+    <value>Ce joueur a désactivé la réception automatique des invitations.</value>
   </data>
   <data name="AutoDetectUi.Nearby.Reason.OutOfRange" xml:space="preserve">
-    <value />
+    <value>Ce joueur est au-delà de la distance maximale configurée ({0} m).</value>
   </data>
   <data name="AutoDetectUi.Nearby.Reason.Paired" xml:space="preserve">
-    <value>Déjà appairé</value>
+    <value>Vous êtes déjà appairé avec ce joueur.</value>
   </data>
   <data name="AutoDetectUi.Nearby.Reason.AlreadyInvited" xml:space="preserve">
     <value>Invitation déjà envoyée</value>
   </data>
   <data name="AutoDetectUi.Nearby.Reason.Unavailable" xml:space="preserve">
-    <value />
+    <value>Impossible de récupérer un jeton d'invitation pour ce joueur.</value>
   </data>
   <data name="AutoDetectUi.Nearby.Status.Available" xml:space="preserve">
-    <value />
+    <value>Disponible</value>
   </data>
   <data name="AutoDetectUi.Nearby.Status.InvitesDisabled" xml:space="preserve">
-    <value />
+    <value>Invitations désactivées</value>
   </data>
   <data name="AutoDetectUi.Nearby.Status.OutOfRange" xml:space="preserve">
-    <value />
+    <value>Hors de portée (&gt; {0} m)</value>
   </data>
   <data name="AutoDetectUi.Nearby.Status.Paired" xml:space="preserve">
     <value>Déjà appairé</value>
@@ -999,100 +999,100 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value>Invitation envoyée</value>
   </data>
   <data name="AutoDetectUi.Nearby.Status.Unavailable" xml:space="preserve">
-    <value />
+    <value>Indisponible</value>
   </data>
   <data name="AutoDetectUi.Nearby.Table.Action" xml:space="preserve">
-    <value />
+    <value>Action</value>
   </data>
   <data name="AutoDetectUi.Nearby.Table.Distance" xml:space="preserve">
-    <value />
+    <value>Distance</value>
   </data>
   <data name="AutoDetectUi.Nearby.Table.Name" xml:space="preserve">
-    <value />
+    <value>Nom</value>
   </data>
   <data name="AutoDetectUi.Nearby.Table.Status" xml:space="preserve">
-    <value />
+    <value>Statut</value>
   </data>
   <data name="AutoDetectUi.Nearby.Table.World" xml:space="preserve">
-    <value />
+    <value>Monde</value>
   </data>
   <data name="AutoDetectUi.Notification.AcceptFailed" xml:space="preserve">
-    <value />
+    <value>Impossible d'accepter l'invitation {0}.</value>
   </data>
   <data name="AutoDetectUi.Notification.AcceptTitle" xml:space="preserve">
-    <value />
+    <value>AutoDetect</value>
   </data>
   <data name="AutoDetectUi.Syncshell.Description" xml:space="preserve">
-    <value />
+    <value>Les syncshells affichées ici ont temporairement désactivé leur mot de passe pour permettre un accès direct via AutoDetect. Rejoignez-les uniquement si vous faites confiance aux administrateurs.</value>
   </data>
   <data name="AutoDetectUi.Syncshell.Empty" xml:space="preserve">
-    <value />
+    <value>Aucune Syncshell n'est actuellement visible dans AutoDetect.</value>
   </data>
   <data name="AutoDetectUi.Syncshell.InviteMode.Auto" xml:space="preserve">
-    <value />
+    <value>Auto</value>
   </data>
   <data name="AutoDetectUi.Syncshell.InviteMode.Manual" xml:space="preserve">
-    <value />
+    <value>Manuel</value>
   </data>
   <data name="AutoDetectUi.Syncshell.InviteMode.ManualTooltip" xml:space="preserve">
-    <value />
+    <value>L'administrateur doit approuver manuellement les nouveaux membres.</value>
   </data>
   <data name="AutoDetectUi.Syncshell.JoinButton" xml:space="preserve">
-    <value />
+    <value>Rejoindre</value>
   </data>
   <data name="AutoDetectUi.Syncshell.JoinError" xml:space="preserve">
-    <value />
+    <value>Erreur lors de l'adhésion : {0}</value>
   </data>
   <data name="AutoDetectUi.Syncshell.JoinFailed" xml:space="preserve">
-    <value />
+    <value>Impossible de rejoindre {0}.</value>
   </data>
   <data name="AutoDetectUi.Syncshell.Joined" xml:space="preserve">
-    <value />
+    <value>{0} rejoint.</value>
   </data>
   <data name="AutoDetectUi.Syncshell.NotificationTitle" xml:space="preserve">
-    <value />
+    <value>Syncshell AutoDetect</value>
   </data>
   <data name="AutoDetectUi.Syncshell.RefreshButton" xml:space="preserve">
-    <value />
+    <value>Actualiser la liste</value>
   </data>
   <data name="AutoDetectUi.Syncshell.Refreshing" xml:space="preserve">
-    <value />
+    <value>Actualisation...</value>
   </data>
   <data name="AutoDetectUi.Syncshell.RefreshTooltip" xml:space="preserve">
-    <value />
+    <value>Actualise la liste des syncshells avec AutoDetect activé.</value>
   </data>
   <data name="AutoDetectUi.Syncshell.Status.Joining" xml:space="preserve">
-    <value />
+    <value>Rejoindre...</value>
   </data>
   <data name="AutoDetectUi.Syncshell.Status.Member" xml:space="preserve">
-    <value />
+    <value>Déjà membre</value>
   </data>
   <data name="AutoDetectUi.Syncshell.Table.Action" xml:space="preserve">
-    <value />
+    <value>Action</value>
   </data>
   <data name="AutoDetectUi.Syncshell.Table.Invites" xml:space="preserve">
-    <value />
+    <value>Invitations</value>
   </data>
   <data name="AutoDetectUi.Syncshell.Table.Members" xml:space="preserve">
-    <value />
+    <value>Membres</value>
   </data>
   <data name="AutoDetectUi.Syncshell.Table.Name" xml:space="preserve">
-    <value />
+    <value>Nom</value>
   </data>
   <data name="AutoDetectUi.Syncshell.Table.Owner" xml:space="preserve">
-    <value />
+    <value>Propriétaire</value>
   </data>
   <data name="AutoDetectUi.Syncshell.Table.Capacity" xml:space="preserve">
     <value>Capacité</value>
   </data>
   <data name="AutoDetectUi.Tab.Invitations" xml:space="preserve">
-    <value />
+    <value>Invitations ({0})</value>
   </data>
   <data name="AutoDetectUi.Tab.Nearby" xml:space="preserve">
-    <value />
+    <value>À proximité</value>
   </data>
   <data name="AutoDetectUi.Tab.Syncshell" xml:space="preserve">
-    <value />
+    <value>Syncshell</value>
   </data>
   <data name="AutoDetectUi.Tab.SyncFinder" xml:space="preserve">
     <value>SyncFinder</value>
@@ -2493,7 +2493,7 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value />
   </data>
   <data name="SyncshellAdmin.Tab.AutoDetect" xml:space="preserve">
-    <value />
+    <value>AutoDetect</value>
   </data>
   <data name="SyncshellAdmin.Tab.Invites" xml:space="preserve">
     <value />

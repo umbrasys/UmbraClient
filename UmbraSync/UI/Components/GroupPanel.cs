@@ -357,13 +357,17 @@ internal sealed class GroupPanel
             style.FramePadding.X + 4f * ImGuiHelpers.GlobalScale,
             // small nudge accounts for card border thickness vs. list rows
             style.FramePadding.Y + 0.5f * ImGuiHelpers.GlobalScale);
+        var standardPadding = new Vector2(
+            style.FramePadding.X + 4f * ImGuiHelpers.GlobalScale,
+            style.FramePadding.Y + 3f * ImGuiHelpers.GlobalScale);
+        bool isExpanded = _expandedGroupState[groupDto.GID];
+        var cardPadding = isExpanded ? compactPadding : standardPadding;
 
         UiSharedService.DrawCard($"syncshell-card-{groupDto.GID}", () =>
         {
         // Ensure text/icon baseline alignment with frame padding like list rows
         ImGui.AlignTextToFramePadding();
-        // Record start of content to enforce a minimum collapsed header height
-        float __contentStartY = ImGui.GetCursorPosY();
+        float lineStartY = ImGui.GetCursorPosY();
         bool expandedState = _expandedGroupState[groupDto.GID];
         UiSharedService.DrawArrowToggle(ref expandedState, $"##syncshell-toggle-{groupDto.GID}");
         if (expandedState != _expandedGroupState[groupDto.GID])
@@ -465,7 +469,7 @@ internal sealed class GroupPanel
         }
 
 
-        using (ImRaii.PushId(groupDto.GID + "settings")) DrawSyncShellButtons(groupDto, pairsInGroup);
+        using (ImRaii.PushId(groupDto.GID + "settings")) DrawSyncShellButtons(groupDto, pairsInGroup, lineStartY);
 
         if (_showModalBanList && !_modalBanListOpened)
         {
@@ -675,28 +679,12 @@ internal sealed class GroupPanel
             ImGui.Separator();
         }
         ImGui.Unindent(20);
-        
-        // Enforce minimum header height to visually match a single pair row when collapsed
-        // A card adds vertical padding (compactPadding.Y) on top and bottom. To match the
-        // list row height (fontSize + 2 * FramePadding.Y), we must ensure the CONTENT area
-        // inside the card is at least (rowHeight - 2 * compactPadding.Y).
-        float __contentEndY = ImGui.GetCursorPosY();
-        float __currentHeight = __contentEndY - __contentStartY; // content height inside DrawCard padding
-        float __rowHeight = ImGui.GetFontSize() + style.FramePadding.Y * 2f; // visual list row height
-        // Increase target height visibly as requested (+1.00 * GlobalScale)
-        float __delta = 1.00f * ImGuiHelpers.GlobalScale;
-        float __targetContentHeight = MathF.Max(0f, (__rowHeight - 2f * compactPadding.Y) + __delta);
-        if (__currentHeight < __targetContentHeight)
-        {
-            ImGui.Dummy(new Vector2(0, __targetContentHeight - __currentHeight));
-        }
-        }, padding: compactPadding, stretchWidth: true);
+        }, padding: cardPadding, stretchWidth: true);
 
-        // Add a uniform gap between cards equivalent to standard ItemSpacing
         ImGuiHelpers.ScaledDummy(style.ItemSpacing.Y);
     }
 
-    private void DrawSyncShellButtons(GroupFullInfoDto groupDto, List<Pair> groupPairs)
+    private void DrawSyncShellButtons(GroupFullInfoDto groupDto, List<Pair> groupPairs, float lineStartY)
     {
         var infoIcon = FontAwesomeIcon.InfoCircle;
 
@@ -728,11 +716,12 @@ internal sealed class GroupPanel
         var windowEndX = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - cardPaddingX - 6f * ImGuiHelpers.GlobalScale;
         var pauseIcon = groupDto.GroupUserPermissions.IsPaused() ? FontAwesomeIcon.Play : FontAwesomeIcon.Pause;
         var pauseIconSize = _uiShared.GetIconButtonSize(pauseIcon);
-
+        float buttonLineY = lineStartY - 1f * ImGuiHelpers.GlobalScale;
         ImGui.SameLine(windowEndX - barbuttonSize.X - (showInfoIcon ? iconSize.X : 0) - (showInfoIcon ? spacingX : 0) - pauseIconSize.X - spacingX);
 
         if (showInfoIcon)
         {
+            ImGui.SetCursorPosY(buttonLineY);
             _uiShared.IconText(infoIcon);
             if (ImGui.IsItemHovered())
             {
@@ -813,6 +802,7 @@ internal sealed class GroupPanel
             ImGui.SameLine();
         }
 
+        ImGui.SetCursorPosY(buttonLineY);
         bool clickedPause = pauseIcon == FontAwesomeIcon.Pause
             ? _uiShared.IconPauseButtonCentered(pauseIconSize.Y)
             : _uiShared.IconButtonCentered(pauseIcon, pauseIconSize.Y);
@@ -824,6 +814,7 @@ internal sealed class GroupPanel
         UiSharedService.AttachToolTip((groupDto.GroupUserPermissions.IsPaused() ? "Resume" : "Pause") + " pairing with all users in this Syncshell");
         ImGui.SameLine();
 
+        ImGui.SetCursorPosY(buttonLineY);
         if (_uiShared.IconButton(FontAwesomeIcon.Bars))
         {
             ImGui.OpenPopup("ShellPopup");

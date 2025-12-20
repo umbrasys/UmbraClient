@@ -2,6 +2,12 @@
   "version": 1,
   "dependencies": {
     "net10.0-windows7.0": {
+      "Brio.API": {
+        "type": "Direct",
+        "requested": "[3.0.1, )",
+        "resolved": "3.0.1",
+        "contentHash": "40MD49ETqyGsdHGoG3JF/BFcNAphRqi27+ZxfDk2Aj7gAkzDFe7C2UVGirUByrUIj8lxiz9eEoB2i7O9lefEPQ=="
+      },
       "Chaos.NaCl.Standard": {
         "type": "Direct",
         "requested": "[1.0.0, )",

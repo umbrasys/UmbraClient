@@ -82,37 +82,54 @@ public class DrawGroupPair : DrawPairBase
                 : FontAwesomeIcon.InfoCircle;
             width += UiSharedService.GetIconSize(icon).X + spacing * 0.5f;
         }
-
-        // petit coussin côté droit identique à l'individuel
+        
         width += spacing * 1.2f;
         return width;
     }
 
     protected override float GetLeftSideReservedWidth()
     {
+        var spacing = ImGui.GetStyle().ItemSpacing.X;
 
-        float spacing = ImGui.GetStyle().ItemSpacing.X;
-        float prefixMax = MathF.Max(
-            UiSharedService.GetIconSize(FontAwesomeIcon.PauseCircle).X,
-            UiSharedService.GetIconSize(FontAwesomeIcon.Moon).X
-        );
-        float presenceMax = MathF.Max(
-            UiSharedService.GetIconSize(FontAwesomeIcon.Eye).X,
-            UiSharedService.GetIconSize(FontAwesomeIcon.CloudMoon).X
-        );
-        float roleMax = MathF.Max(
-            UiSharedService.GetIconSize(FontAwesomeIcon.Crown).X,
-            MathF.Max(
-                UiSharedService.GetIconSize(FontAwesomeIcon.UserShield).X,
-                UiSharedService.GetIconSize(FontAwesomeIcon.Thumbtack).X
-            )
-        );
-        
-        float spacePrefixPresence = spacing * 1.2f;
-        float spacePresenceRole = spacing;
-        float gapBeforeText = spacing * 0.6f;
+        bool individuallyPaired = _pair.UserPair != null;
+        bool showPrefix = _pair.IsPaused || (individuallyPaired && (_pair.IsOnline || _pair.IsVisible));
+        bool showRole = _fullInfoDto.GroupPairStatusInfo.IsModerator()
+            || string.Equals(_pair.UserData.UID, _group.OwnerUID, StringComparison.Ordinal)
+            || _fullInfoDto.GroupPairStatusInfo.IsPinned();
 
-        float total = prefixMax + spacePrefixPresence + presenceMax + spacePresenceRole + roleMax + gapBeforeText;
+        float prefixWidth = 0f;
+        if (showPrefix)
+        {
+            var prefixIcon = _pair.IsPaused ? FontAwesomeIcon.PauseCircle : FontAwesomeIcon.Moon;
+            prefixWidth = UiSharedService.GetIconSize(prefixIcon).X;
+        }
+
+        var presenceIcon = _pair.IsVisible ? FontAwesomeIcon.Eye : FontAwesomeIcon.CloudMoon;
+        float presenceWidth = UiSharedService.GetIconSize(presenceIcon).X;
+
+        float roleWidth = 0f;
+        if (showRole)
+        {
+            var roleIcon = string.Equals(_pair.UserData.UID, _group.OwnerUID, StringComparison.Ordinal)
+                ? FontAwesomeIcon.Crown
+                : (_fullInfoDto.GroupPairStatusInfo.IsModerator() ? FontAwesomeIcon.UserShield : FontAwesomeIcon.Thumbtack);
+            roleWidth = UiSharedService.GetIconSize(roleIcon).X;
+        }
+
+        float total = 0f;
+        if (showPrefix)
+        {
+            total += prefixWidth + spacing * 1.2f;
+        }
+
+        total += presenceWidth;
+
+        if (showRole)
+        {
+            total += spacing + roleWidth;
+        }
+
+        total += spacing * 0.6f;
         return total;
     }
 

@@ -60,7 +60,7 @@ public class UidDisplayHandler
 
     public void DrawPairText(string id, Pair pair, float textPosX, float originalY, Func<float> editBoxWidth)
     {
-        ImGui.SameLine(textPosX);
+        ImGui.SetCursorPosX(textPosX);
         (bool textIsUid, string playerText) = GetPlayerText(pair);
         if (!string.Equals(_editNickEntry, pair.UserData.UID, StringComparison.Ordinal))
         {
@@ -134,6 +134,7 @@ public class UidDisplayHandler
         }
         else
         {
+            // Keep edit box aligned with the row's text line.
             ImGui.SetCursorPosY(originalY);
 
             ImGui.SetNextItemWidth(editBoxWidth.Invoke());

@@ -146,6 +146,10 @@ public class PlayerAnalysisUI : WindowMediatorSubscriberBase
             analyzer.LastPlayerName = playerName;
         }
 
+        var accent = UiSharedService.AccentColor;
+        if (accent.W <= 0f) accent = ImGuiColors.ParsedPurple;
+        using var tabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, accent);
+        using var tabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, accent);
         using var tabbar = ImRaii.TabBar("objectSelection");
         foreach (var kvp in cachedAnalysis)
         {

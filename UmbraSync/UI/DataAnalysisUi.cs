@@ -264,9 +264,10 @@ public class DataAnalysisUi : WindowMediatorSubscriberBase
 
     private void DrawObjectSelectionTabs(Dictionary<ObjectKind, Dictionary<string, CharacterAnalyzer.FileDataEntry>> cachedAnalysis, bool needAnalysis, bool isAnalyzing)
     {
-        using var objectTabColor = ImRaii.PushColor(ImGuiCol.Tab, UiSharedService.AccentColor);
-        using var objectTabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, UiSharedService.AccentHoverColor);
-        using var objectTabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, UiSharedService.AccentActiveColor);
+        var accent = UiSharedService.AccentColor;
+        if (accent.W <= 0f) accent = ImGuiColors.ParsedPurple;
+        using var objectTabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, accent);
+        using var objectTabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, accent);
         using var tabbar = ImRaii.TabBar("objectSelection");
         foreach (var kvp in cachedAnalysis)
         {
@@ -332,9 +333,8 @@ public class DataAnalysisUi : WindowMediatorSubscriberBase
                 _texturesToConvert.Clear();
             }
 
-            using var fileTabColor = ImRaii.PushColor(ImGuiCol.Tab, UiSharedService.AccentColor);
-            using var fileTabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, UiSharedService.AccentHoverColor);
-            using var fileTabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, UiSharedService.AccentActiveColor);
+            using var fileTabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, accent);
+            using var fileTabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, accent);
             using var fileTabBar = ImRaii.TabBar("fileTabs");
 
             foreach (var fileGroup in groupedfiles)

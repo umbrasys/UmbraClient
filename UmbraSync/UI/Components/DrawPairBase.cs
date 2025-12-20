@@ -79,8 +79,9 @@ public abstract class DrawPairBase
         drawList.AddRect(panelMin, panelMax, ImGui.ColorConvertFloat4ToU32(borderColor), rounding);
 
         float iconTop = rowStartCursor.Y + (rowHeight - iconHeight) / 2f;
-        // Keep text vertically aligned with the left-side icons for clearer grouping rows
-        float textTop = iconTop;
+        // Nudge text slightly up to sit visually centered with the icon row.
+        float textNudge = ImGui.GetFontSize() * 0.22f;
+        float textTop = iconTop - textNudge;
         float buttonTop = rowStartCursor.Y + (rowHeight - pauseClusterHeight) / 2f;
 
         ImGui.SetCursorPos(new Vector2(rowStartCursor.X + padding.X, iconTop));

@@ -249,9 +249,10 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
         });
 
         bool smallUi = false;
-        using (var topTabColor = ImRaii.PushColor(ImGuiCol.Tab, UiSharedService.AccentColor))
-        using (var topTabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, UiSharedService.AccentHoverColor))
-        using (var topTabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, UiSharedService.AccentActiveColor))
+        var accent = UiSharedService.AccentColor;
+        if (accent.W <= 0f) accent = ImGuiColors.ParsedPurple;
+        using (var topTabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, accent))
+        using (var topTabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, accent))
         {
             using var tabs = ImRaii.TabBar("TabsTopLevel");
 
@@ -273,9 +274,8 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
                 if (applicationTabItem)
                 {
                     smallUi = true;
-                    using (var appTabColor = ImRaii.PushColor(ImGuiCol.Tab, UiSharedService.AccentColor))
-                    using (var appTabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, UiSharedService.AccentHoverColor))
-                    using (var appTabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, UiSharedService.AccentActiveColor))
+                    using (var appTabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, accent))
+                    using (var appTabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, accent))
                     {
                         using var appTabs = ImRaii.TabBar("TabsApplicationLevel");
 
@@ -338,9 +338,8 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
                 {
                     if (creationTabItem)
                     {
-                        using (var creationTabColor = ImRaii.PushColor(ImGuiCol.Tab, UiSharedService.AccentColor))
-                        using (var creationTabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, UiSharedService.AccentHoverColor))
-                        using (var creationTabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, UiSharedService.AccentActiveColor))
+                        using (var creationTabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, accent))
+                        using (var creationTabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, accent))
                         {
                             using var creationTabs = ImRaii.TabBar("TabsCreationLevel");
 
@@ -518,9 +517,10 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
 
         ImGuiHelpers.ScaledDummy(10);
 
-        using (var applyTabColor = ImRaii.PushColor(ImGuiCol.Tab, UiSharedService.AccentColor))
-        using (var applyTabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, UiSharedService.AccentHoverColor))
-        using (var applyTabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, UiSharedService.AccentActiveColor))
+        var accent = UiSharedService.AccentColor;
+        if (accent.W <= 0f) accent = ImGuiColors.ParsedPurple;
+        using (var applyTabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, accent))
+        using (var applyTabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, accent))
         {
             using var tabs = ImRaii.TabBar("Tabs");
 

@@ -334,20 +334,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             }
         }
 
-        // Radius only available when both Nearby and Allow Pair Requests are ON
-        if (!isAutoDetectSuppressed && enableDiscovery && _configService.Current.AllowAutoDetectPairRequests)
-        {
-            ImGui.Indent();
-            int maxMeters = _configService.Current.AutoDetectMaxDistanceMeters;
-            ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
-            if (ImGui.SliderInt(Loc.Get("Settings.AutoDetect.MaxDistance"), ref maxMeters, 5, 100))
-            {
-                _configService.Current.AutoDetectMaxDistanceMeters = maxMeters;
-                _configService.Save();
-            }
-            ImGui.Unindent();
-        }
-        else if (isAutoDetectSuppressed)
+        if (isAutoDetectSuppressed)
         {
             UiSharedService.ColorTextWrapped(Loc.Get("Settings.AutoDetect.LockedInInstance"), ImGuiColors.DalamudYellow);
         }
@@ -2146,7 +2133,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         }
         _uiShared.DrawHelpText(Loc.Get("Settings.Typing.EnableSystemHelp"));
 
-        if (typingEnabled)
+        using (ImRaii.Disabled(!typingEnabled))
         {
             if (ImGui.Checkbox(Loc.Get("Settings.Typing.ShowOnNameplates"), ref typingIndicatorNameplates))
             {
