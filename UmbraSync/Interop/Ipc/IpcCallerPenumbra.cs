@@ -230,8 +230,9 @@ public sealed class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
         return await _dalamudUtil.RunOnFrameworkThread(() =>
         {
             Guid collId;
-            var collName = "UmbraSync_" + uid;
-            PenumbraApiEc penEC = _penumbraCreateNamedTemporaryCollection.Invoke(uid, collName, out collId);
+            var random = new Random();
+            var collName = "UmbraSync_" + uid + random.Next().ToString();
+            PenumbraApiEc penEC = _penumbraCreateNamedTemporaryCollection.Invoke(uid + random.Next().ToString(), collName, out collId);
             logger.LogTrace("Creating Temp Collection {collName}, GUID: {collId}", collName, collId);
             if (penEC != PenumbraApiEc.Success) 
             {

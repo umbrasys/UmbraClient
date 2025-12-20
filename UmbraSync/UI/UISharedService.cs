@@ -1115,7 +1115,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         ImGui.SameLine();
         IconText(_brioExists ? check : cross, GetBoolColor(_brioExists));
         ImGui.SameLine();
-        AttachToolTip($"Brio is " + (_moodlesExists ? "available and up to date." : "unavailable or not up to date."));
+        AttachToolTip($"Brio is " + (_brioExists ? "available and up to date." : "unavailable or not up to date."));
         ImGui.Spacing();
 
         ImGui.SameLine();

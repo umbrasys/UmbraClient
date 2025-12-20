@@ -295,12 +295,14 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         Logger.LogDebug("Disposing {name} ({user})", name, Pair);
         try
         {
+            Guid applicationId = Guid.NewGuid();
+
             if (!string.IsNullOrEmpty(name))
             {
                 Mediator.Publish(new EventMessage(new Event(name, Pair.UserData, nameof(PairHandler), EventSeverity.Informational, "Disposing User")));
             }
 
-            UndoApplicationNow();
+            UndoApplicationAsync(applicationId).GetAwaiter().GetResult();
 
             PlayerName = null;
             _applicationCancellationTokenSource?.Dispose();
@@ -323,71 +325,32 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         }
     }
 
-    public void UndoApplication(Guid? applicationId = null)
+    public void UndoApplication(Guid applicationId = default)
     {
-        var name = PlayerName;
         _ = Task.Run(async () => {
-            await UndoApplicationAsync(applicationId, name).ConfigureAwait(false);
+            await UndoApplicationAsync(applicationId).ConfigureAwait(false);
         });
     }
 
-    private void UndoApplicationNow()
+    private async Task UndoApplicationAsync(Guid applicationId = default)
     {
         var name = PlayerName;
-        Logger.LogDebug("Undoing application of {pair} (Name: {name}) (Synchronous)", Pair.UserData.UID, name);
-        try
-        {
-            var effectiveApplicationId = Guid.NewGuid();
-            _applicationCancellationTokenSource = _applicationCancellationTokenSource?.CancelRecreate();
-            _downloadCancellationTokenSource = _downloadCancellationTokenSource?.CancelRecreate();
-
-            if (_penumbraCollection != Guid.Empty)
-            {
-                var col = _penumbraCollection;
-                _penumbraCollection = Guid.Empty;
-                try
-                {
-                    _ipcManager.Penumbra.RemoveTemporaryCollection(Logger, effectiveApplicationId, col);
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogDebug(ex, "Failed to remove temporary collection {col}, likely already removed", col);
-                }
-            }
-
-            if (!string.IsNullOrEmpty(name))
-            {
-                Logger.LogDebug("[{applicationId}] Restoring Glamourer (Now) for {name} ({user})", effectiveApplicationId, name, Pair.UserData.UID);
-                _ipcManager.Glamourer.RevertByName(Logger, name, effectiveApplicationId);
-            }
-
-            _cachedData = null;
-            Mediator.Publish(new PairDataAppliedMessage(Pair.UserData.UID, null));
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "Error on undoing application (synchronous) of {name}", name);
-        }
-    }
-
-    private async Task UndoApplicationAsync(Guid? applicationId = null, string? forcedName = null)
-    {
-        var name = forcedName ?? PlayerName;
         Logger.LogDebug("Undoing application of {pair} (Name: {name})", Pair.UserData.UID, name);
         try
         {
-            var effectiveApplicationId = applicationId ?? Guid.NewGuid();
+            if (applicationId == default)
+                applicationId = Guid.NewGuid();
             _applicationCancellationTokenSource = _applicationCancellationTokenSource?.CancelRecreate();
             _downloadCancellationTokenSource = _downloadCancellationTokenSource?.CancelRecreate();
 
-            Logger.LogDebug("[{applicationId}] Removing Temp Collection for {name} ({user})", effectiveApplicationId, name, Pair.UserData.UID);
+            Logger.LogDebug("[{applicationId}] Removing Temp Collection for {name} ({user})", applicationId, name, Pair.UserData.UID);
             if (_penumbraCollection != Guid.Empty)
             {
                 var col = _penumbraCollection;
-                _penumbraCollection = Guid.Empty;
                 try
                 {
-                    await _ipcManager.Penumbra.RemoveTemporaryCollectionAsync(Logger, effectiveApplicationId, col).ConfigureAwait(false);
+                    await _ipcManager.Penumbra.RemoveTemporaryCollectionAsync(Logger, applicationId, col).ConfigureAwait(false);
+                    _penumbraCollection = Guid.Empty;
                 }
                 catch (Exception ex)
                 {
@@ -397,18 +360,18 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
 
             if (!string.IsNullOrEmpty(name))
             {
-                Logger.LogTrace("[{applicationId}] Restoring state for {name} ({OnlineUser})", effectiveApplicationId, name, Pair.UserData.UID);
+                Logger.LogTrace("[{applicationId}] Restoring state for {name} ({OnlineUser})", applicationId, name, Pair.UserData.UID);
                 if (!IsVisible)
                 {
-                    Logger.LogDebug("[{applicationId}] Restoring Glamourer for {name} ({user})", effectiveApplicationId, name, Pair.UserData.UID);
-                    await _ipcManager.Glamourer.RevertByNameAsync(Logger, name, effectiveApplicationId).ConfigureAwait(false);
+                    Logger.LogDebug("[{applicationId}] Restoring Glamourer for {name} ({user})", applicationId, name, Pair.UserData.UID);
+                    await _ipcManager.Glamourer.RevertByNameAsync(Logger, name, applicationId).ConfigureAwait(false);
                 }
                 else
                 {
                     using var cts = new CancellationTokenSource();
                     cts.CancelAfter(TimeSpan.FromSeconds(60));
 
-                    Logger.LogInformation("[{applicationId}] CachedData is null {isNull}, contains things: {contains}", effectiveApplicationId, _cachedData == null, _cachedData?.FileReplacements.Any() ?? false);
+                    Logger.LogInformation("[{applicationId}] CachedData is null {isNull}, contains things: {contains}", applicationId, _cachedData == null, _cachedData?.FileReplacements.Any() ?? false);
 
                     if (_cachedData != null && _cachedData.FileReplacements.Any())
                     {
@@ -416,7 +379,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
                         {
                             try
                             {
-                                await RevertCustomizationDataAsync(item.Key, name, effectiveApplicationId, cts.Token).ConfigureAwait(false);
+                                await RevertCustomizationDataAsync(item.Key, name, applicationId, cts.Token).ConfigureAwait(false);
                             }
                             catch (InvalidOperationException ex)
                             {
@@ -427,19 +390,19 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
                     }
                     else
                     {
-                        Logger.LogDebug("[{applicationId}] Restoring Glamourer (fallback) for {name} ({user})", effectiveApplicationId, name, Pair.UserData.UID);
-                        await _ipcManager.Glamourer.RevertByNameAsync(Logger, name, effectiveApplicationId).ConfigureAwait(false);
+                        Logger.LogDebug("[{applicationId}] Restoring Glamourer (fallback) for {name} ({user})", applicationId, name, Pair.UserData.UID);
+                        await _ipcManager.Glamourer.RevertByNameAsync(Logger, name, applicationId).ConfigureAwait(false);
                     }
                 }
             }
             else
             {
-                Logger.LogTrace("[{applicationId}] Not restoring state, PlayerName is null or empty", effectiveApplicationId);
+                Logger.LogTrace("[{applicationId}] Not restoring state, PlayerName is null or empty", applicationId);
             }
 
             _cachedData = null;
             Mediator.Publish(new PairDataAppliedMessage(Pair.UserData.UID, null));
-            Logger.LogDebug("Undo Application [{applicationId}] complete", effectiveApplicationId);
+            Logger.LogDebug("Undo Application [{applicationId}] complete", applicationId);
         }
         catch (Exception ex)
         {

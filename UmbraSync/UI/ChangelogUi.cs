@@ -174,6 +174,8 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
             new(new Version(2, 0, 3, 2), "2.0.3.2", new List<ChangelogLine>
             {
                 new("Mise à jour pour le support V3 de Brio."),
+                new("Mise à jour des IPC Glamourer & Penumbra."),
+                new("Correction d'une 'access violation' lors de la déconnexion provoquant un crash du joueur et de tout les paires autour."),
                 new("Divers changements et ajustement de l'interface graphique."),
             }),
             new(new Version(2, 0, 3, 1), "2.0.3.1", new List<ChangelogLine>
