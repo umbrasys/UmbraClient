@@ -338,7 +338,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         Logger.LogDebug("Undoing application of {pair} (Name: {name})", Pair.UserData.UID, name);
         try
         {
-            if (applicationId == default)
+            if (applicationId == Guid.Empty)
                 applicationId = Guid.NewGuid();
             _applicationCancellationTokenSource = _applicationCancellationTokenSource?.CancelRecreate();
             _downloadCancellationTokenSource = _downloadCancellationTokenSource?.CancelRecreate();

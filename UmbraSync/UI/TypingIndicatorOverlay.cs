@@ -78,7 +78,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         var showParty = _configService.Current.TypingIndicatorShowOnPartyList;
         var showNameplates = _configService.Current.TypingIndicatorShowOnNameplates;
 
-        if (!showParty && !showNameplates)
+        if ((!showParty && !showNameplates) || _dalamudUtil.IsInGpose)
             return;
 
         var overlayDrawList = ImGui.GetWindowDrawList();

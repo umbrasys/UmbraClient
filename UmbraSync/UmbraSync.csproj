@@ -5,8 +5,8 @@
         <LangVersion>13.0</LangVersion>
         <AssemblyName>UmbraSync</AssemblyName>
         <RootNamespace>UmbraSync</RootNamespace>
-        <Version>2.0.3.2</Version>
-        <DALAMUD_DIR>/Volumes/Ext/dev/ressources/dalamud/Hooks/dev</DALAMUD_DIR>
+        <Version>2.0.3.3</Version>
+        <DALAMUD_DIR>/Volumes/Data/dev/ressources/dalamud/Hooks/dev</DALAMUD_DIR>
     </PropertyGroup>
 
     <ItemGroup>

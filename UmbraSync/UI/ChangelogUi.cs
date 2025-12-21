@@ -171,6 +171,11 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
     {
         return new List<ChangelogEntry>
         {
+            new(new Version(2, 0, 3, 3), "2.0.3.3", new List<ChangelogLine>
+            {
+                new("Mise à jour de l'IPC Moodle."),
+                new("Désactivation des bulles d'écriture quand l'on entre en gpose."),
+            }),
             new(new Version(2, 0, 3, 2), "2.0.3.2", new List<ChangelogLine>
             {
                 new("Mise à jour pour le support V3 de Brio."),

@@ -30,6 +30,7 @@ public sealed class ChatTypingDetectionService : IDisposable
     private readonly PairManager _pairManager;
     private readonly IPartyList _partyList;
     private readonly MareConfigService _configService;
+    private readonly DalamudUtilService _dalamudUtil;
 
     private string _lastChatText = string.Empty;
     private bool _isTyping;
@@ -49,7 +50,8 @@ public sealed class ChatTypingDetectionService : IDisposable
 
     public ChatTypingDetectionService(ILogger<ChatTypingDetectionService> logger, IFramework framework,
         IClientState clientState, IGameGui gameGui, ChatService chatService, PairManager pairManager, IPartyList partyList,
-        TypingIndicatorStateService typingStateService, ApiController apiController, MareConfigService configService)
+        TypingIndicatorStateService typingStateService, ApiController apiController, MareConfigService configService,
+        DalamudUtilService dalamudUtil)
     {
         _logger = logger;
         _framework = framework;
@@ -61,6 +63,7 @@ public sealed class ChatTypingDetectionService : IDisposable
         _typingStateService = typingStateService;
         _apiController = apiController;
         _configService = configService;
+        _dalamudUtil = dalamudUtil;
 
         Subscribe();
         _logger.LogInformation("ChatTypingDetectionService initialized");
@@ -115,9 +118,9 @@ public sealed class ChatTypingDetectionService : IDisposable
                 return;
             }
 
-            if (!_configService.Current.TypingIndicatorEnabled)
+            if (!_configService.Current.TypingIndicatorEnabled || _dalamudUtil.IsInGpose)
             {
-                LogSkip("typing indicator disabled");
+                LogSkip("typing indicator disabled or in gpose");
                 ResetTypingState();
                 _chatService.ClearTypingState();
                 return;
