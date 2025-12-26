@@ -2,6 +2,7 @@
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 using UmbraSync.API.Data.Extensions;
 using UmbraSync.MareConfiguration;
 using UmbraSync.PlayerData.Pairs;
@@ -22,9 +23,12 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
     private Vector2 _lastMainPos = Vector2.Zero;
     private Vector2 _lastMainSize = Vector2.Zero;
     private byte[] _lastProfilePicture = [];
+    private byte[] _lastRpProfilePicture = [];
     private Pair? _pair;
     private IDalamudTextureWrap? _supporterTextureWrap;
     private IDalamudTextureWrap? _textureWrap;
+    private IDalamudTextureWrap? _rpTextureWrap;
+    private bool _isRpTab = false;
 
     public PopoutProfileUi(ILogger<PopoutProfileUi> logger, MareMediator mediator, UiSharedService uiSharedService,
         ServerConfigurationManager serverManager, MareConfigService mareConfigService,
@@ -40,10 +44,14 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
             IsOpen = msg.Pair != null;
             _pair = msg.Pair;
             _lastProfilePicture = [];
+            _lastRpProfilePicture = [];
             _textureWrap?.Dispose();
             _textureWrap = null;
+            _rpTextureWrap?.Dispose();
+            _rpTextureWrap = null;
             _supporterTextureWrap?.Dispose();
             _supporterTextureWrap = null;
+            _isRpTab = false;
         });
 
         Mediator.Subscribe<CompactUiChange>(this, (msg) =>
@@ -84,20 +92,55 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
 
             var mareProfile = _mareProfileManager.GetMareProfile(_pair.UserData);
 
-            if (_textureWrap == null || !mareProfile.ImageData.Value.SequenceEqual(_lastProfilePicture))
+            var accent = UiSharedService.AccentColor;
+            if (accent.W <= 0f) accent = ImGuiColors.ParsedPurple;
+            using (var topTabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, accent))
+            using (var topTabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, accent))
             {
-                _textureWrap?.Dispose();
-                _lastProfilePicture = mareProfile.ImageData.Value;
-
-                _textureWrap = _uiSharedService.LoadImage(_lastProfilePicture);
+                if (ImGui.BeginTabBar("PopoutProfileTabBarV2", ImGuiTabBarFlags.None))
+                {
+                    if (ImGui.BeginTabItem("RP"))
+                    {
+                        _isRpTab = true;
+                        ImGui.EndTabItem();
+                    }
+                    if (ImGui.BeginTabItem("HRP"))
+                    {
+                        _isRpTab = false;
+                        ImGui.EndTabItem();
+                    }
+                    ImGui.EndTabBar();
+                }
             }
+
+            var pfpData = _isRpTab ? mareProfile.RpImageData.Value : mareProfile.ImageData.Value;
+            if (_isRpTab)
+            {
+                if (_rpTextureWrap == null || !pfpData.SequenceEqual(_lastRpProfilePicture))
+                {
+                    _rpTextureWrap?.Dispose();
+                    _lastRpProfilePicture = pfpData;
+                    _rpTextureWrap = _uiSharedService.LoadImage(_lastRpProfilePicture);
+                }
+            }
+            else
+            {
+                if (_textureWrap == null || !pfpData.SequenceEqual(_lastProfilePicture))
+                {
+                    _textureWrap?.Dispose();
+                    _lastProfilePicture = pfpData;
+                    _textureWrap = _uiSharedService.LoadImage(_lastProfilePicture);
+                }
+            }
+
+            var currentTexture = _isRpTab ? _rpTextureWrap : _textureWrap;
 
             var drawList = ImGui.GetWindowDrawList();
             var rectMin = drawList.GetClipRectMin();
             var rectMax = drawList.GetClipRectMax();
 
             using (_uiSharedService.UidFont.Push())
-                UiSharedService.ColorText(_pair.UserData.AliasOrUID, UiSharedService.AccentColor);
+                UiSharedService.ColorText(_pair.UserData.AliasOrUID + (_isRpTab ? " (RP)" : " (HRP)"), UiSharedService.AccentColor);
 
             ImGuiHelpers.ScaledDummy(spacing.Y, spacing.Y);
             var textPos = ImGui.GetCursorPosY();
@@ -145,7 +188,7 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
             ImGui.Separator();
             _uiSharedService.GameFont.Push();
             var remaining = ImGui.GetWindowContentRegionMax().Y - ImGui.GetCursorPosY();
-            var descText = mareProfile.Description;
+            var descText = _isRpTab ? (mareProfile.RpDescription ?? "L'utilisateur n'a pas défini de description RP.") : mareProfile.Description;
             var textSize = ImGui.CalcTextSize(descText, hideTextAfterDoubleHash: false, 256f * ImGuiHelpers.GlobalScale);
             bool trimmed = textSize.Y > remaining;
             while (textSize.Y > remaining && descText.Contains(' '))
@@ -153,19 +196,22 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
                 descText = descText[..descText.LastIndexOf(' ')].TrimEnd();
                 textSize = ImGui.CalcTextSize(descText + $"...{Environment.NewLine}{Loc.Get("PopoutProfile.ReadMoreHint")}", hideTextAfterDoubleHash: false, 256f * ImGuiHelpers.GlobalScale);
             }
-            UiSharedService.TextWrapped(trimmed ? descText + $"...{Environment.NewLine}{Loc.Get("PopoutProfile.ReadMoreHint")}" : mareProfile.Description);
+            UiSharedService.TextWrapped(trimmed ? descText + $"...{Environment.NewLine}{Loc.Get("PopoutProfile.ReadMoreHint")}" : descText);
 
             _uiSharedService.GameFont.Pop();
 
             var padding = ImGui.GetStyle().WindowPadding.X / 2;
-            bool tallerThanWide = _textureWrap.Height >= _textureWrap.Width;
-            var stretchFactor = tallerThanWide ? 256f * ImGuiHelpers.GlobalScale / _textureWrap.Height : 256f * ImGuiHelpers.GlobalScale / _textureWrap.Width;
-            var newWidth = _textureWrap.Width * stretchFactor;
-            var newHeight = _textureWrap.Height * stretchFactor;
-            var remainingWidth = (256f * ImGuiHelpers.GlobalScale - newWidth) / 2f;
-            var remainingHeight = (256f * ImGuiHelpers.GlobalScale - newHeight) / 2f;
-            drawList.AddImage(_textureWrap.Handle, new Vector2(rectMin.X + padding + remainingWidth, rectMin.Y + spacing.Y + imagePos.Y + remainingHeight),
-                new Vector2(rectMin.X + padding + remainingWidth + newWidth, rectMin.Y + spacing.Y + imagePos.Y + remainingHeight + newHeight));
+            if (currentTexture != null)
+            {
+                bool tallerThanWide = currentTexture.Height >= currentTexture.Width;
+                var stretchFactor = tallerThanWide ? 256f * ImGuiHelpers.GlobalScale / currentTexture.Height : 256f * ImGuiHelpers.GlobalScale / currentTexture.Width;
+                var newWidth = currentTexture.Width * stretchFactor;
+                var newHeight = currentTexture.Height * stretchFactor;
+                var remainingWidth = (256f * ImGuiHelpers.GlobalScale - newWidth) / 2f;
+                var remainingHeight = (256f * ImGuiHelpers.GlobalScale - newHeight) / 2f;
+                drawList.AddImage(currentTexture.Handle, new Vector2(rectMin.X + padding + remainingWidth, rectMin.Y + spacing.Y + imagePos.Y + remainingHeight),
+                    new Vector2(rectMin.X + padding + remainingWidth + newWidth, rectMin.Y + spacing.Y + imagePos.Y + remainingHeight + newHeight));
+            }
             if (_supporterTextureWrap != null)
             {
                 const float iconSize = 38;

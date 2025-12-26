@@ -15,6 +15,7 @@ public class MareProfileManager : MediatorSubscriberBase
     private const string _nsfw = "Profile not displayed - NSFW";
     private readonly ApiController _apiController;
     private readonly MareConfigService _mareConfigService;
+    private readonly RpConfigService _rpConfigService;
     private readonly ConcurrentDictionary<UserData, MareProfileData> _mareProfiles = new(UserDataComparer.Instance);
 
     private readonly MareProfileData _defaultProfileData = new(IsFlagged: false, IsNSFW: false, string.Empty, _noDescription);
@@ -22,9 +23,10 @@ public class MareProfileManager : MediatorSubscriberBase
     private readonly MareProfileData _nsfwProfileData = new(IsFlagged: false, IsNSFW: false, string.Empty, _nsfw);
 
     public MareProfileManager(ILogger<MareProfileManager> logger, MareConfigService mareConfigService,
-        MareMediator mediator, ApiController apiController) : base(logger, mediator)
+        RpConfigService rpConfigService, MareMediator mediator, ApiController apiController) : base(logger, mediator)
     {
         _mareConfigService = mareConfigService;
+        _rpConfigService = rpConfigService;
         _apiController = apiController;
 
         Mediator.Subscribe<ClearProfileDataMessage>(this, (msg) =>
@@ -56,7 +58,8 @@ public class MareProfileManager : MediatorSubscriberBase
             var profile = await _apiController.UserGetProfile(new API.Dto.User.UserDto(data)).ConfigureAwait(false);
             MareProfileData profileData = new(profile.Disabled, profile.IsNSFW ?? false,
                 string.IsNullOrEmpty(profile.ProfilePictureBase64) ? string.Empty : profile.ProfilePictureBase64,
-                string.IsNullOrEmpty(profile.Description) ? _noDescription : profile.Description);
+                string.IsNullOrEmpty(profile.Description) ? _noDescription : profile.Description,
+                profile.RpProfilePictureBase64, profile.RpDescription, profile.IsRpNSFW ?? false);
             if (profileData.IsNSFW && !_mareConfigService.Current.ProfilesAllowNsfw && !string.Equals(_apiController.UID, data.UID, StringComparison.Ordinal))
             {
                 _mareProfiles[data] = _nsfwProfileData;

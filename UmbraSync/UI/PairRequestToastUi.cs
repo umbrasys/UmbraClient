@@ -142,7 +142,7 @@ public sealed class PairRequestToastUi : WindowMediatorSubscriberBase
         }
     }
 
-    private void DrawToastAccent(float accentWidth, float rounding)
+    private static void DrawToastAccent(float accentWidth, float rounding)
     {
         var drawList = ImGui.GetWindowDrawList();
         var pos = ImGui.GetWindowPos();
@@ -240,24 +240,22 @@ public sealed class PairRequestToastUi : WindowMediatorSubscriberBase
         return displayName;
     }
 
-    private static float DrawCenteredText(string text, float contentWidth, float paddingX)
+    private static void DrawCenteredText(string text, float contentWidth, float paddingX)
     {
-        if (string.IsNullOrEmpty(text)) return 0f;
+        if (string.IsNullOrEmpty(text)) return;
 
-        var startY = ImGui.GetCursorPosY();
         var textSize = ImGui.CalcTextSize(text, false, contentWidth);
         if (textSize.X <= contentWidth)
         {
             ImGui.SetCursorPosX(paddingX + (contentWidth - textSize.X) / 2f);
             ImGui.TextUnformatted(text);
-            return ImGui.GetCursorPosY() - startY;
+            return;
         }
 
         ImGui.SetCursorPosX(paddingX);
         ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + contentWidth);
         ImGui.TextWrapped(text);
         ImGui.PopTextWrapPos();
-        return ImGui.GetCursorPosY() - startY;
     }
 
     private IReadOnlyList<NotificationEntry> GetPendingEntries()

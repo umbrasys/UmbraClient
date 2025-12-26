@@ -160,6 +160,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton<PenumbraPrecacheService>();
 
             collection.AddSingleton((s) => new MareConfigService(pluginInterface.ConfigDirectory.FullName));
+            collection.AddSingleton((s) => new RpConfigService(pluginInterface.ConfigDirectory.FullName));
             collection.AddSingleton((s) => new ServerConfigService(pluginInterface.ConfigDirectory.FullName));
             collection.AddSingleton((s) => new NotesConfigService(pluginInterface.ConfigDirectory.FullName));
             collection.AddSingleton((s) => new ServerTagConfigService(pluginInterface.ConfigDirectory.FullName));

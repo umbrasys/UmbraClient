@@ -9,6 +9,8 @@ namespace UmbraSync.WebAPI.SignalR;
 
 public partial class ApiController
 {
+    public bool IsProfileNsfw { get; set; }
+
     public async Task PushCharacterData(CharacterData data, List<UserData> visibleCharacters)
     {
         if (!IsConnected) return;

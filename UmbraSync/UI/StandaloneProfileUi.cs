@@ -3,6 +3,7 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 using UmbraSync.API.Data.Extensions;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
@@ -18,19 +19,24 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
 {
     private readonly MareProfileManager _mareProfileManager;
     private readonly ServerConfigurationManager _serverManager;
+    private readonly ApiController _apiController;
     private readonly UiSharedService _uiSharedService;
     private bool _adjustedForScrollBars = false;
     private byte[] _lastProfilePicture = [];
+    private byte[] _lastRpProfilePicture = [];
     private IDalamudTextureWrap? _textureWrap;
+    private IDalamudTextureWrap? _rpTextureWrap;
+    private bool _isRpTab = false;
 
     public StandaloneProfileUi(ILogger<StandaloneProfileUi> logger, MareMediator mediator, UiSharedService uiBuilder,
-        ServerConfigurationManager serverManager, MareProfileManager mareProfileManager, Pair pair,
+        ServerConfigurationManager serverManager, MareProfileManager mareProfileManager, ApiController apiController, Pair pair,
         PerformanceCollectorService performanceCollector)
         : base(logger, mediator, string.Format(System.Globalization.CultureInfo.CurrentCulture, Loc.Get("StandaloneProfile.WindowTitle"), pair.UserData.AliasOrUID) + "##UmbraSyncStandaloneProfileUI" + pair.UserData.AliasOrUID, performanceCollector)
     {
         _uiSharedService = uiBuilder;
         _serverManager = serverManager;
         _mareProfileManager = mareProfileManager;
+        _apiController = apiController;
         Pair = pair;
         Flags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.AlwaysAutoResize;
 
@@ -48,15 +54,53 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
         try
         {
             var spacing = ImGui.GetStyle().ItemSpacing;
-
             var mareProfile = _mareProfileManager.GetMareProfile(Pair.UserData);
 
-            if (_textureWrap == null || !mareProfile.ImageData.Value.SequenceEqual(_lastProfilePicture))
+            var accent = UiSharedService.AccentColor;
+            if (accent.W <= 0f) accent = ImGuiColors.ParsedPurple;
+            using (var topTabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, accent))
+            using (var topTabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, accent))
             {
-                _textureWrap?.Dispose();
-                _lastProfilePicture = mareProfile.ImageData.Value;
-                _textureWrap = _uiSharedService.LoadImage(_lastProfilePicture);
+                if (ImGui.BeginTabBar("StandaloneProfileTabBarV2", ImGuiTabBarFlags.None))
+                {
+                    if (ImGui.BeginTabItem("RP"))
+                    {
+                        _isRpTab = true;
+                        ImGui.EndTabItem();
+                    }
+                    if (ImGui.BeginTabItem("HRP"))
+                    {
+                        _isRpTab = false;
+                        ImGui.EndTabItem();
+                    }
+                    ImGui.EndTabBar();
+                }
             }
+
+            var description = _isRpTab ? (mareProfile.RpDescription ?? "L'utilisateur n'a pas défini de description RP.") : mareProfile.Description;
+            var isNsfw = _isRpTab ? mareProfile.IsRpNSFW : mareProfile.IsNSFW;
+            var pfpData = _isRpTab ? mareProfile.RpImageData.Value : mareProfile.ImageData.Value;
+
+            if (_isRpTab)
+            {
+                if (_rpTextureWrap == null || !pfpData.SequenceEqual(_lastRpProfilePicture))
+                {
+                    _rpTextureWrap?.Dispose();
+                    _lastRpProfilePicture = pfpData;
+                    _rpTextureWrap = _uiSharedService.LoadImage(_lastRpProfilePicture);
+                }
+            }
+            else
+            {
+                if (_textureWrap == null || !pfpData.SequenceEqual(_lastProfilePicture))
+                {
+                    _textureWrap?.Dispose();
+                    _lastProfilePicture = pfpData;
+                    _textureWrap = _uiSharedService.LoadImage(_lastProfilePicture);
+                }
+            }
+
+            var currentTexture = _isRpTab ? _rpTextureWrap : _textureWrap;
 
             var drawList = ImGui.GetWindowDrawList();
             var rectMin = drawList.GetClipRectMin();
@@ -64,12 +108,15 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
             var headerSize = ImGui.GetCursorPosY() - ImGui.GetStyle().WindowPadding.Y;
 
             using (_uiSharedService.UidFont.Push())
-                UiSharedService.ColorText(Pair.UserData.AliasOrUID, UiSharedService.AccentColor);
+                UiSharedService.ColorText(Pair.UserData.AliasOrUID + (_isRpTab ? " (RP)" : " (HRP)"), UiSharedService.AccentColor);
 
-            var reportButtonSize = _uiSharedService.GetIconTextButtonSize(FontAwesomeIcon.ExclamationTriangle, Loc.Get("StandaloneProfile.ReportButton"));
-            ImGui.SameLine(ImGui.GetWindowContentRegionMax().X - reportButtonSize);
-            if (_uiSharedService.IconTextButton(FontAwesomeIcon.ExclamationTriangle, Loc.Get("StandaloneProfile.ReportButton")))
-                Mediator.Publish(new OpenReportPopupMessage(Pair));
+            if (!string.Equals(Pair.UserData.UID, _apiController.UID, StringComparison.Ordinal))
+            {
+                var reportButtonSize = _uiSharedService.GetIconTextButtonSize(FontAwesomeIcon.ExclamationTriangle, Loc.Get("StandaloneProfile.ReportButton"));
+                ImGui.SameLine(ImGui.GetWindowContentRegionMax().X - reportButtonSize);
+                if (_uiSharedService.IconTextButton(FontAwesomeIcon.ExclamationTriangle, Loc.Get("StandaloneProfile.ReportButton")))
+                    Mediator.Publish(new OpenReportPopupMessage(Pair));
+            }
 
             ImGuiHelpers.ScaledDummy(new Vector2(spacing.Y, spacing.Y));
             ImGui.Separator();
@@ -77,7 +124,13 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
             ImGuiHelpers.ScaledDummy(new Vector2(256, 256 + spacing.Y));
             var postDummy = ImGui.GetCursorPosY();
             ImGui.SameLine();
-            var descriptionTextSize = ImGui.CalcTextSize(mareProfile.Description, hideTextAfterDoubleHash: false, 256f);
+
+            if (isNsfw && !_isRpTab) // HRP NSFW check (legacy)
+            {
+                // existing logic for NSFW could go here, but let's keep it simple for now as requested
+            }
+
+            var descriptionTextSize = ImGui.CalcTextSize(description, hideTextAfterDoubleHash: false, 256f);
             var descriptionChildHeight = rectMax.Y - pos.Y - rectMin.Y - spacing.Y * 2;
             if (descriptionTextSize.Y > descriptionChildHeight && !_adjustedForScrollBars)
             {
@@ -98,7 +151,7 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
             if (ImGui.BeginChildFrame(1000, childFrame))
             {
                 using var _ = _uiSharedService.GameFont.Push();
-                ImGui.TextWrapped(mareProfile.Description);
+                ImGui.TextWrapped(description);
             }
             ImGui.EndChildFrame();
 
@@ -110,51 +163,23 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
             }
             string status = Pair.IsVisible ? Loc.Get("StandaloneProfile.Status.Visible") : (Pair.IsOnline ? Loc.Get("StandaloneProfile.Status.Online") : Loc.Get("StandaloneProfile.Status.Offline"));
             UiSharedService.ColorText(status, (Pair.IsVisible || Pair.IsOnline) ? ImGuiColors.HealerGreen : UiSharedService.AccentColor);
-            if (Pair.IsVisible)
-            {
-                ImGui.SameLine();
-                ImGui.TextUnformatted($"({Pair.PlayerName})");
-            }
-            if (Pair.UserPair != null)
-            {
-                ImGui.TextUnformatted(Loc.Get("StandaloneProfile.PairStatus.Direct"));
-                if (Pair.UserPair.OwnPermissions.IsPaused())
-                {
-                    ImGui.SameLine();
-                    UiSharedService.ColorText(Loc.Get("StandaloneProfile.PairStatus.YouPaused"), ImGuiColors.DalamudYellow);
-                }
-                if (Pair.UserPair.OtherPermissions.IsPaused())
-                {
-                    ImGui.SameLine();
-                    UiSharedService.ColorText(Loc.Get("StandaloneProfile.PairStatus.TheyPaused"), ImGuiColors.DalamudYellow);
-                }
-            }
 
-            if (Pair.GroupPair.Any())
+            if (currentTexture != null)
             {
-                ImGui.TextUnformatted(Loc.Get("StandaloneProfile.PairStatus.SyncshellHeader"));
-                foreach (var groupPair in Pair.GroupPair.Select(k => k.Key))
-                {
-                    var groupNote = _serverManager.GetNoteForGid(groupPair.GID);
-                    var groupName = groupPair.GroupAliasOrGID;
-                    var groupString = string.IsNullOrEmpty(groupNote) ? groupName : $"{groupNote} ({groupName})";
-                    ImGui.TextUnformatted("- " + groupString);
-                }
+                var padding = ImGui.GetStyle().WindowPadding.X / 2;
+                bool tallerThanWide = currentTexture.Height >= currentTexture.Width;
+                var stretchFactor = tallerThanWide ? 256f * ImGuiHelpers.GlobalScale / currentTexture.Height : 256f * ImGuiHelpers.GlobalScale / currentTexture.Width;
+                var newWidth = currentTexture.Width * stretchFactor;
+                var newHeight = currentTexture.Height * stretchFactor;
+                var remainingWidth = (256f * ImGuiHelpers.GlobalScale - newWidth) / 2f;
+                var remainingHeight = (256f * ImGuiHelpers.GlobalScale - newHeight) / 2f;
+                drawList.AddImage(currentTexture.Handle, new Vector2(rectMin.X + padding + remainingWidth, rectMin.Y + spacing.Y + pos.Y + remainingHeight),
+                    new Vector2(rectMin.X + padding + remainingWidth + newWidth, rectMin.Y + spacing.Y + pos.Y + remainingHeight + newHeight));
             }
-
-            var padding = ImGui.GetStyle().WindowPadding.X / 2;
-            bool tallerThanWide = _textureWrap.Height >= _textureWrap.Width;
-            var stretchFactor = tallerThanWide ? 256f * ImGuiHelpers.GlobalScale / _textureWrap.Height : 256f * ImGuiHelpers.GlobalScale / _textureWrap.Width;
-            var newWidth = _textureWrap.Width * stretchFactor;
-            var newHeight = _textureWrap.Height * stretchFactor;
-            var remainingWidth = (256f * ImGuiHelpers.GlobalScale - newWidth) / 2f;
-            var remainingHeight = (256f * ImGuiHelpers.GlobalScale - newHeight) / 2f;
-            drawList.AddImage(_textureWrap.Handle, new Vector2(rectMin.X + padding + remainingWidth, rectMin.Y + spacing.Y + pos.Y + remainingHeight),
-                new Vector2(rectMin.X + padding + remainingWidth + newWidth, rectMin.Y + spacing.Y + pos.Y + remainingHeight + newHeight));
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error during draw tooltip");
+            _logger.LogWarning(ex, "Error during draw standalone profile");
         }
     }
 
