@@ -17,7 +17,7 @@ namespace UmbraSync.UI;
 
 public class StandaloneProfileUi : WindowMediatorSubscriberBase
 {
-    private readonly MareProfileManager _mareProfileManager;
+    private readonly UmbraProfileManager _umbraProfileManager;
     private readonly ServerConfigurationManager _serverManager;
     private readonly ApiController _apiController;
     private readonly UiSharedService _uiSharedService;
@@ -29,13 +29,13 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
     private bool _isRpTab = false;
 
     public StandaloneProfileUi(ILogger<StandaloneProfileUi> logger, MareMediator mediator, UiSharedService uiBuilder,
-        ServerConfigurationManager serverManager, MareProfileManager mareProfileManager, ApiController apiController, Pair pair,
+        ServerConfigurationManager serverManager, UmbraProfileManager umbraProfileManager, ApiController apiController, Pair pair,
         PerformanceCollectorService performanceCollector)
         : base(logger, mediator, string.Format(System.Globalization.CultureInfo.CurrentCulture, Loc.Get("StandaloneProfile.WindowTitle"), pair.UserData.AliasOrUID) + "##UmbraSyncStandaloneProfileUI" + pair.UserData.AliasOrUID, performanceCollector)
     {
         _uiSharedService = uiBuilder;
         _serverManager = serverManager;
-        _mareProfileManager = mareProfileManager;
+        _umbraProfileManager = umbraProfileManager;
         _apiController = apiController;
         Pair = pair;
         Flags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.AlwaysAutoResize;
@@ -54,32 +54,30 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
         try
         {
             var spacing = ImGui.GetStyle().ItemSpacing;
-            var mareProfile = _mareProfileManager.GetMareProfile(Pair.UserData);
+            var umbraProfile = _umbraProfileManager.GetUmbraProfile(Pair.UserData);
 
             var accent = UiSharedService.AccentColor;
             if (accent.W <= 0f) accent = ImGuiColors.ParsedPurple;
             using (var topTabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, accent))
             using (var topTabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, accent))
             {
-                if (ImGui.BeginTabBar("StandaloneProfileTabBarV2", ImGuiTabBarFlags.None))
+                using var tabBar = ImRaii.TabBar("StandaloneProfileTabBarV2");
+                if (tabBar)
                 {
-                    if (ImGui.BeginTabItem("RP"))
+                    using (var tabItem = ImRaii.TabItem("RP"))
                     {
-                        _isRpTab = true;
-                        ImGui.EndTabItem();
+                        if (tabItem) _isRpTab = true;
                     }
-                    if (ImGui.BeginTabItem("HRP"))
+                    using (var tabItem = ImRaii.TabItem("HRP"))
                     {
-                        _isRpTab = false;
-                        ImGui.EndTabItem();
+                        if (tabItem) _isRpTab = false;
                     }
-                    ImGui.EndTabBar();
                 }
             }
 
-            var description = _isRpTab ? (mareProfile.RpDescription ?? "L'utilisateur n'a pas défini de description RP.") : mareProfile.Description;
-            var isNsfw = _isRpTab ? mareProfile.IsRpNSFW : mareProfile.IsNSFW;
-            var pfpData = _isRpTab ? mareProfile.RpImageData.Value : mareProfile.ImageData.Value;
+            var description = _isRpTab ? (umbraProfile.RpDescription ?? Loc.Get("UserProfile.NoRpDescription")) : umbraProfile.Description;
+            var isNsfw = _isRpTab ? umbraProfile.IsRpNSFW : umbraProfile.IsNSFW;
+            var pfpData = _isRpTab ? umbraProfile.RpImageData.Value : umbraProfile.ImageData.Value;
 
             if (_isRpTab)
             {
@@ -151,7 +149,55 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
             if (ImGui.BeginChildFrame(1000, childFrame))
             {
                 using var _ = _uiSharedService.GameFont.Push();
+                if (_isRpTab)
+                {
+                    if (!string.IsNullOrEmpty(umbraProfile.RpFirstName) || !string.IsNullOrEmpty(umbraProfile.RpLastName))
+                    {
+                        UiSharedService.ColorText(Loc.Get("UserProfile.RpFirstName") + " : ", accent);
+                        ImGui.SameLine();
+                        ImGui.TextUnformatted($"{umbraProfile.RpFirstName} {umbraProfile.RpLastName}");
+                    }
+                    if (!string.IsNullOrEmpty(umbraProfile.RpTitle))
+                    {
+                        UiSharedService.ColorText(Loc.Get("UserProfile.RpTitle") + " : ", accent);
+                        ImGui.SameLine();
+                        ImGui.TextUnformatted(umbraProfile.RpTitle);
+                    }
+                    if (!string.IsNullOrEmpty(umbraProfile.RpAge) || !string.IsNullOrEmpty(umbraProfile.RpHeight) || !string.IsNullOrEmpty(umbraProfile.RpBuild))
+                    {
+                        var details = new List<string>();
+                        if (!string.IsNullOrEmpty(umbraProfile.RpAge)) details.Add($"{Loc.Get("UserProfile.RpAge")} : {umbraProfile.RpAge}");
+                        if (!string.IsNullOrEmpty(umbraProfile.RpHeight)) details.Add($"{Loc.Get("UserProfile.RpHeight")} : {umbraProfile.RpHeight}");
+                        if (!string.IsNullOrEmpty(umbraProfile.RpBuild)) details.Add($"{Loc.Get("UserProfile.RpBuild")} : {umbraProfile.RpBuild}");
+                        ImGui.TextUnformatted(string.Join(" | ", details));
+                    }
+                    if (!string.IsNullOrEmpty(umbraProfile.RpOccupation))
+                    {
+                        UiSharedService.ColorText(Loc.Get("UserProfile.RpOccupation") + " : ", accent);
+                        ImGui.SameLine();
+                        ImGui.TextUnformatted(umbraProfile.RpOccupation);
+                    }
+                    if (!string.IsNullOrEmpty(umbraProfile.RpAffiliation))
+                    {
+                        UiSharedService.ColorText(Loc.Get("UserProfile.RpAffiliation") + " : ", accent);
+                        ImGui.SameLine();
+                        ImGui.TextUnformatted(umbraProfile.RpAffiliation);
+                    }
+                    if (!string.IsNullOrEmpty(umbraProfile.RpAlignment))
+                    {
+                        UiSharedService.ColorText(Loc.Get("UserProfile.RpAlignment") + " : ", accent);
+                        ImGui.SameLine();
+                        ImGui.TextUnformatted(umbraProfile.RpAlignment);
+                    }
+                    ImGui.Separator();
+                }
                 ImGui.TextWrapped(description);
+                if (_isRpTab && !string.IsNullOrEmpty(umbraProfile.RpAdditionalInfo))
+                {
+                    ImGui.Separator();
+                    UiSharedService.ColorText(Loc.Get("UserProfile.RpAdditionalInfo") + " :", accent);
+                    ImGui.TextWrapped(umbraProfile.RpAdditionalInfo);
+                }
             }
             ImGui.EndChildFrame();
 

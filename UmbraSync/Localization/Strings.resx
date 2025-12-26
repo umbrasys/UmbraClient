@@ -3054,4 +3054,61 @@ Click to change.</value>
   <data name="Notification.AutoDetect.RequestBody" xml:space="preserve">
     <value>{0} requested pairing with you. UID: {1}</value>
   </data>
+  <data name="UserProfile.RpFirstName" xml:space="preserve">
+    <value>First Name</value>
+  </data>
+  <data name="UserProfile.RpLastName" xml:space="preserve">
+    <value>Last Name</value>
+  </data>
+  <data name="UserProfile.RpTitle" xml:space="preserve">
+    <value>Title</value>
+  </data>
+  <data name="UserProfile.RpAge" xml:space="preserve">
+    <value>Age</value>
+  </data>
+  <data name="UserProfile.RpHeight" xml:space="preserve">
+    <value>Height</value>
+  </data>
+  <data name="UserProfile.RpBuild" xml:space="preserve">
+    <value>Build</value>
+  </data>
+  <data name="UserProfile.RpOccupation" xml:space="preserve">
+    <value>Occupation</value>
+  </data>
+  <data name="UserProfile.RpAffiliation" xml:space="preserve">
+    <value>Affiliation</value>
+  </data>
+  <data name="UserProfile.RpAlignment" xml:space="preserve">
+    <value>Alignment</value>
+  </data>
+  <data name="UserProfile.RpAdditionalInfo" xml:space="preserve">
+    <value>Additional Information</value>
+  </data>
+  <data name="UserProfile.RpNsfw" xml:space="preserve">
+    <value>Is this a RP NSFW profile?</value>
+  </data>
+  <data name="UserProfile.NoRpDescription" xml:space="preserve">
+    <value>User has no RP description set.</value>
+  </data>
+  <data name="EditProfile.PreviewButton" xml:space="preserve">
+    <value>Preview my profile</value>
+  </data>
+  <data name="EditProfile.SaveButton" xml:space="preserve">
+    <value>Save Profile</value>
+  </data>
+  <data name="EditProfile.SelectImageButton" xml:space="preserve">
+    <value>Select Image</value>
+  </data>
+  <data name="EditProfile.SaveSuccessTitle" xml:space="preserve">
+    <value>Profile saved</value>
+  </data>
+  <data name="EditProfile.SaveSuccessBody" xml:space="preserve">
+    <value>Your profile has been successfully saved on the Umbra server.</value>
+  </data>
+  <data name="EditProfile.SaveErrorTitle" xml:space="preserve">
+    <value>Save error</value>
+  </data>
+  <data name="EditProfile.SaveErrorBody" xml:space="preserve">
+    <value>An error occurred while saving your profile on the server.</value>
+  </data>
 </root>

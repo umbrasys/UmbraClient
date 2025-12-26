@@ -107,7 +107,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton<UmbraSync.Services.AutoDetect.AutoDetectSuppressionService>();
             collection.AddSingleton<UmbraSync.Services.AutoDetect.SyncshellDiscoveryService>();
             collection.AddSingleton<MarePlugin>();
-            collection.AddSingleton<MareProfileManager>();
+            collection.AddSingleton<UmbraProfileManager>();
             collection.AddSingleton<GameObjectHandlerFactory>();
             collection.AddSingleton<FileDownloadManagerFactory>();
             collection.AddSingleton<PairHandlerFactory>();

@@ -19,14 +19,14 @@ public class UiFactory
     private readonly UiSharedService _uiSharedService;
     private readonly PairManager _pairManager;
     private readonly ServerConfigurationManager _serverConfigManager;
-    private readonly MareProfileManager _mareProfileManager;
+    private readonly UmbraProfileManager _umbraProfileManager;
     private readonly PerformanceCollectorService _performanceCollectorService;
     private readonly SyncshellDiscoveryService _syncshellDiscoveryService;
     private readonly NotificationTracker _notificationTracker;
 
     public UiFactory(ILoggerFactory loggerFactory, MareMediator mareMediator, ApiController apiController,
         UiSharedService uiSharedService, PairManager pairManager, SyncshellDiscoveryService syncshellDiscoveryService, ServerConfigurationManager serverConfigManager,
-        MareProfileManager mareProfileManager, PerformanceCollectorService performanceCollectorService, NotificationTracker notificationTracker)
+        UmbraProfileManager umbraProfileManager, PerformanceCollectorService performanceCollectorService, NotificationTracker notificationTracker)
     {
         _loggerFactory = loggerFactory;
         _mareMediator = mareMediator;
@@ -35,7 +35,7 @@ public class UiFactory
         _pairManager = pairManager;
         _syncshellDiscoveryService = syncshellDiscoveryService;
         _serverConfigManager = serverConfigManager;
-        _mareProfileManager = mareProfileManager;
+        _umbraProfileManager = umbraProfileManager;
         _performanceCollectorService = performanceCollectorService;
         _notificationTracker = notificationTracker;
     }
@@ -49,7 +49,7 @@ public class UiFactory
     public StandaloneProfileUi CreateStandaloneProfileUi(Pair pair)
     {
         return new StandaloneProfileUi(_loggerFactory.CreateLogger<StandaloneProfileUi>(), _mareMediator,
-            _uiSharedService, _serverConfigManager, _mareProfileManager, _apiController, pair, _performanceCollectorService);
+            _uiSharedService, _serverConfigManager, _umbraProfileManager, _apiController, pair, _performanceCollectorService);
     }
 
     public PermissionWindowUI CreatePermissionPopupUi(Pair pair)

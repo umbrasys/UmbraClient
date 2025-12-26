@@ -17,7 +17,7 @@ namespace UmbraSync.UI;
 
 public class PopoutProfileUi : WindowMediatorSubscriberBase
 {
-    private readonly MareProfileManager _mareProfileManager;
+    private readonly UmbraProfileManager _umbraProfileManager;
     private readonly ServerConfigurationManager _serverManager;
     private readonly UiSharedService _uiSharedService;
     private Vector2 _lastMainPos = Vector2.Zero;
@@ -32,11 +32,11 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
 
     public PopoutProfileUi(ILogger<PopoutProfileUi> logger, MareMediator mediator, UiSharedService uiSharedService,
         ServerConfigurationManager serverManager, MareConfigService mareConfigService,
-        MareProfileManager mareProfileManager, PerformanceCollectorService performanceCollectorService) : base(logger, mediator, "###UmbraSyncPopoutProfileUI", performanceCollectorService)
+        UmbraProfileManager umbraProfileManager, PerformanceCollectorService performanceCollectorService) : base(logger, mediator, "###UmbraSyncPopoutProfileUI", performanceCollectorService)
     {
         _uiSharedService = uiSharedService;
         _serverManager = serverManager;
-        _mareProfileManager = mareProfileManager;
+        _umbraProfileManager = umbraProfileManager;
         Flags = ImGuiWindowFlags.NoDecoration;
 
         Mediator.Subscribe<ProfilePopoutToggle>(this, (msg) =>
@@ -90,30 +90,28 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
         {
             var spacing = ImGui.GetStyle().ItemSpacing;
 
-            var mareProfile = _mareProfileManager.GetMareProfile(_pair.UserData);
+            var umbraProfile = _umbraProfileManager.GetUmbraProfile(_pair.UserData);
 
             var accent = UiSharedService.AccentColor;
             if (accent.W <= 0f) accent = ImGuiColors.ParsedPurple;
             using (var topTabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, accent))
             using (var topTabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, accent))
             {
-                if (ImGui.BeginTabBar("PopoutProfileTabBarV2", ImGuiTabBarFlags.None))
+                using var tabBar = ImRaii.TabBar("PopoutProfileTabBarV2");
+                if (tabBar)
                 {
-                    if (ImGui.BeginTabItem("RP"))
+                    using (var tabItem = ImRaii.TabItem("RP"))
                     {
-                        _isRpTab = true;
-                        ImGui.EndTabItem();
+                        if (tabItem) _isRpTab = true;
                     }
-                    if (ImGui.BeginTabItem("HRP"))
+                    using (var tabItem = ImRaii.TabItem("HRP"))
                     {
-                        _isRpTab = false;
-                        ImGui.EndTabItem();
+                        if (tabItem) _isRpTab = false;
                     }
-                    ImGui.EndTabBar();
                 }
             }
 
-            var pfpData = _isRpTab ? mareProfile.RpImageData.Value : mareProfile.ImageData.Value;
+            var pfpData = _isRpTab ? umbraProfile.RpImageData.Value : umbraProfile.ImageData.Value;
             if (_isRpTab)
             {
                 if (_rpTextureWrap == null || !pfpData.SequenceEqual(_lastRpProfilePicture))
@@ -188,7 +186,26 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
             ImGui.Separator();
             _uiSharedService.GameFont.Push();
             var remaining = ImGui.GetWindowContentRegionMax().Y - ImGui.GetCursorPosY();
-            var descText = _isRpTab ? (mareProfile.RpDescription ?? "L'utilisateur n'a pas défini de description RP.") : mareProfile.Description;
+            var descText = _isRpTab ? (umbraProfile.RpDescription ?? Loc.Get("UserProfile.NoRpDescription")) : umbraProfile.Description;
+            
+            if (_isRpTab)
+            {
+                var rpInfo = string.Empty;
+                if (!string.IsNullOrEmpty(umbraProfile.RpFirstName) || !string.IsNullOrEmpty(umbraProfile.RpLastName))
+                    rpInfo += $"{umbraProfile.RpFirstName} {umbraProfile.RpLastName}\n";
+                if (!string.IsNullOrEmpty(umbraProfile.RpTitle))
+                    rpInfo += $"{Loc.Get("UserProfile.RpTitle")} : {umbraProfile.RpTitle}\n";
+                if (!string.IsNullOrEmpty(umbraProfile.RpAge))
+                    rpInfo += $"{Loc.Get("UserProfile.RpAge")} : {umbraProfile.RpAge}\n";
+                if (!string.IsNullOrEmpty(umbraProfile.RpOccupation))
+                    rpInfo += $"{Loc.Get("UserProfile.RpOccupation")} : {umbraProfile.RpOccupation}\n";
+
+                if (!string.IsNullOrEmpty(rpInfo))
+                {
+                    descText = rpInfo + "----------\n" + descText;
+                }
+            }
+
             var textSize = ImGui.CalcTextSize(descText, hideTextAfterDoubleHash: false, 256f * ImGuiHelpers.GlobalScale);
             bool trimmed = textSize.Y > remaining;
             while (textSize.Y > remaining && descText.Contains(' '))
