@@ -5,7 +5,7 @@
         <LangVersion>13.0</LangVersion>
         <AssemblyName>UmbraSync</AssemblyName>
         <RootNamespace>UmbraSync</RootNamespace>
-        <Version>2.0.3.5</Version>
+        <Version>2.1.0.0</Version>
         <DALAMUD_DIR>/Volumes/Data/dev/ressources/dalamud/Hooks/dev</DALAMUD_DIR>
     </PropertyGroup>
 
@@ -60,7 +60,16 @@
 
     <ItemGroup>
         <ProjectReference Include="..\UmbraAPI\UmbraSyncAPI\UmbraSync.API.csproj" />
+        <ProjectReference Include="..\OtterGui\OtterGui.csproj" />
         <None Include="..\.editorconfig" Link=".editorconfig" />
     </ItemGroup>
+
+    <Target Name="EnsureOtterGuiBuilt"
+            BeforeTargets="ResolveReferences"
+            Condition="Exists('..\OtterGui\OtterGui.csproj') and !Exists('..\OtterGui\bin\$(Configuration)\OtterGui.dll')">
+        <MSBuild Projects="..\OtterGui\OtterGui.csproj"
+                 Targets="Build"
+                 Properties="Configuration=$(Configuration)" />
+    </Target>
 
 </Project>

@@ -32,7 +32,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     private readonly PlayerPerformanceService _playerPerformanceService;
     private readonly PluginWarningNotificationService _pluginWarningNotificationManager;
     private readonly VisibilityService _visibilityService;
-    private readonly ApplicationSemaphoreService _applicationSemaphoreService;
+    private readonly SemaphoreSlim _applicationSemaphore = new(1, 1);
     private string _currentProcessingHash = string.Empty;
     private CancellationTokenSource? _applicationCancellationTokenSource = new();
     private Guid _applicationId;
@@ -55,8 +55,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         DalamudUtilService dalamudUtil, IHostApplicationLifetime lifetime,
         FileCacheManager fileDbManager, MareMediator mediator,
         PlayerPerformanceService playerPerformanceService,
-        MareConfigService configService, VisibilityService visibilityService,
-        ApplicationSemaphoreService applicationSemaphoreService) : base(logger, mediator)
+        MareConfigService configService, VisibilityService visibilityService) : base(logger, mediator)
     {
         Pair = pair;
         PairAnalyzer = pairAnalyzer;
@@ -69,7 +68,6 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         _playerPerformanceService = playerPerformanceService;
         _configService = configService;
         _visibilityService = visibilityService;
-        _applicationSemaphoreService = applicationSemaphoreService;
 
         _visibilityService.StartTracking(Pair.Ident);
 
@@ -195,6 +193,8 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             _cachedData = characterData;
             Mediator.Publish(new PairDataAppliedMessage(Pair.UserData.UID, characterData));
             Logger.LogDebug("[BASE-{appBase}] Setting data: {hash}, forceApplyMods: {force}", applicationBase, _cachedData.DataHash.Value, _forceApplyMods);
+            // Ensure that this deferred application actually occurs by forcing visibiltiy to re-proc
+            // Set _deferred as a silencing flag to avoid spamming logs once per frame with failed applications
             _isVisible = false;
             _deferred = applicationBase;
             return;
@@ -311,6 +311,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             _downloadCancellationTokenSource = null;
             _charaHandler?.Dispose();
             _charaHandler = null;
+            _applicationSemaphore.Dispose();
         }
         catch (Exception ex)
         {
@@ -533,22 +534,38 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
 
         _ = Task.Run(async () =>
         {
-            await using var semaphoreLease = await _applicationSemaphoreService
-                .AcquireAsync(downloadToken)
-                .ConfigureAwait(false);
-
-            if ((updateModdedPaths || updateManip) && !hasOtherChanges && !_forceApplyMods)
+            try
             {
-                Logger.LogDebug("[BASE-{appBase}] Applying mod changes only - skipping full redraw", applicationBase);
-                await ApplyModChangesOnlyAsync(applicationBase, charaData, updatedData, updateModdedPaths, updateManip, downloadToken).ConfigureAwait(false);
+                await _applicationSemaphore.WaitAsync(downloadToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
                 return;
             }
 
-            _currentProcessingHash = charaData.DataHash.Value;
-            await DownloadAndApplyCharacterAsync(applicationBase, charaData, updatedData, updateModdedPaths, updateManip, downloadToken).ConfigureAwait(false);
+            try
+            {
+                // Optimize mod application to reduce redraws
+                if ((updateModdedPaths || updateManip) && !hasOtherChanges && !_forceApplyMods)
+                {
+                    Logger.LogDebug("[BASE-{appBase}] Applying mod changes only - skipping full redraw", applicationBase);
+                    await ApplyModChangesOnlyAsync(applicationBase, charaData, updatedData, updateModdedPaths, updateManip, downloadToken).ConfigureAwait(false);
+                    return;
+                }
+                
+                _currentProcessingHash = charaData.DataHash.Value;
+                await DownloadAndApplyCharacterAsync(applicationBase, charaData, updatedData, updateModdedPaths, updateManip, downloadToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                _applicationSemaphore.Release();
+            }
         }, downloadToken);
     }
-    
+
+    /// <summary>
+    /// Apply only mod changes without forcing a full redraw when possible.
+    /// </summary>
     private async Task ApplyModChangesOnlyAsync(Guid applicationBase, CharacterData charaData, 
         Dictionary<ObjectKind, HashSet<PlayerChanges>> updatedData, bool updateModdedPaths, bool updateManip, CancellationToken token)
     {
@@ -556,6 +573,8 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         
         try
         {
+            // For mod-only changes, we can use a simplified approach
+            // Create a minimal updatedData with only mod changes
             var modOnlyUpdatedData = new Dictionary<ObjectKind, HashSet<PlayerChanges>>();
             
             foreach (var kvp in updatedData)
@@ -570,6 +589,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
                     modChanges.Add(PlayerChanges.ModManip);
                 }
                 
+                // Only add if we have mod changes for this object kind
                 if (modChanges.Count > 0)
                 {
                     modOnlyUpdatedData[kvp.Key] = modChanges;
@@ -582,6 +602,8 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
                 return;
             }
             
+            // Use the existing mechanism but without forcing a redraw
+            // Remove ForcedRedraw from the changes
             foreach (var changes in modOnlyUpdatedData.Values)
             {
                 changes.Remove(PlayerChanges.ForcedRedraw);
@@ -589,6 +611,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             
             Logger.LogDebug("[BASE-{applicationBase}] Applying mod changes using simplified mechanism", applicationBase);
             
+            // Use the existing download and apply mechanism
             await DownloadAndApplyCharacterAsync(applicationBase, charaData, modOnlyUpdatedData, updateModdedPaths, updateManip, token).ConfigureAwait(false);
             
             Logger.LogDebug("[BASE-{applicationBase}] Mod changes applied without forced redraw", applicationBase);
@@ -596,6 +619,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "[BASE-{applicationBase}] Failed to apply mod changes only, falling back to full apply", applicationBase);
+            // Fall back to full application if mod-only application fails
             await DownloadAndApplyCharacterAsync(applicationBase, charaData, updatedData, updateModdedPaths, updateManip, token).ConfigureAwait(false);
         }
     }
@@ -697,6 +721,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
                && !downloadToken.IsCancellationRequested
                && (!appToken?.IsCancellationRequested ?? false))
         {
+            // block until current application is done
             Logger.LogDebug("[BASE-{appBase}] Waiting for current data application (Id: {id}) for player ({handler}) to finish", applicationBase, _applicationId, PlayerName);
             await Task.Delay(250).ConfigureAwait(false);
         }
@@ -797,7 +822,9 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             Mediator.Publish(new EventMessage(new Event(PlayerName, Pair.UserData, nameof(PairHandler), EventSeverity.Informational,
                 $"Initializing User For Character {pc.Name}")));
         }
-        
+
+        // This was triggered by the character becoming handled by Mare, so unapply everything
+        // There seems to be a good chance that this races Mare and then crashes
         if (!nowVisible && invalidate)
         {
             bool wasVisible = IsVisible;
@@ -814,6 +841,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
 
         if (!IsVisible && nowVisible)
         {
+            // This is deferred application attempt, avoid any log output
             if (_deferred != Guid.Empty)
             {
                 _isVisible = true;

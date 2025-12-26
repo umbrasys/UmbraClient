@@ -12,6 +12,7 @@ public class RedrawManager
 {
     private readonly MareMediator _mareMediator;
     private readonly DalamudUtilService _dalamudUtil;
+    private readonly ConcurrentDictionary<nint, bool> _penumbraRedrawRequests = [];
     private CancellationTokenSource _disposalCts = new();
 
     public SemaphoreSlim RedrawSemaphore { get; init; } = new(2, 2);
@@ -24,7 +25,15 @@ public class RedrawManager
 
     public async Task PenumbraRedrawInternalAsync(ILogger logger, GameObjectHandler handler, Guid applicationId, Action<ICharacter> action, CancellationToken token)
     {
+        // Check if a redraw is already in progress for this character
+        if (_penumbraRedrawRequests.TryGetValue(handler.Address, out var existingRequest) && existingRequest)
+        {
+            logger.LogDebug("[{applicationId}] Skipping redraw for {handler} - redraw already in progress", applicationId, handler);
+            return;
+        }
+
         _mareMediator.Publish(new PenumbraStartRedrawMessage(handler.Address));
+        _penumbraRedrawRequests[handler.Address] = true;
 
         try
         {
@@ -39,6 +48,7 @@ public class RedrawManager
         }
         finally
         {
+            _penumbraRedrawRequests[handler.Address] = false;
             _mareMediator.Publish(new PenumbraEndRedrawMessage(handler.Address));
         }
     }

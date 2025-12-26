@@ -185,6 +185,9 @@
   <data name="AutoDetect.Notification.IncomingBody" xml:space="preserve">
     <value>{0} ({1}) sent you a pairing invite.</value>
   </data>
+  <data name="AutoDetect.Notification.IncomingBodyIdFirst" xml:space="preserve">
+    <value>{0} requested pairing with you.</value>
+  </data>
   <data name="AutoDetect.Notification.AcceptedTitle" xml:space="preserve">
     <value>Invitation accepted</value>
   </data>

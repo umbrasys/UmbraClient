@@ -93,9 +93,9 @@ public sealed class NearbyPendingService : IMediatorSubscriber
         if (!string.Equals(msg.TargetUid, _api.UID, StringComparison.Ordinal))
             return;
 
-        var display = !string.IsNullOrWhiteSpace(msg.DisplayName)
-            ? msg.DisplayName!
-            : (!string.IsNullOrWhiteSpace(msg.SourceAlias) ? msg.SourceAlias : msg.SourceUid);
+        var display = !string.IsNullOrWhiteSpace(msg.SourceAlias)
+            ? msg.SourceAlias
+            : (!string.IsNullOrWhiteSpace(msg.DisplayName) ? msg.DisplayName! : msg.SourceUid);
 
         _pending[msg.SourceUid] = display;
         _logger.LogInformation("NearbyPending: received manual invite from {uid} ({name})", msg.SourceUid, display);
