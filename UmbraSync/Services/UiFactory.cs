@@ -23,10 +23,12 @@ public class UiFactory
     private readonly PerformanceCollectorService _performanceCollectorService;
     private readonly SyncshellDiscoveryService _syncshellDiscoveryService;
     private readonly NotificationTracker _notificationTracker;
+    private readonly DalamudUtilService _dalamudUtilService;
 
     public UiFactory(ILoggerFactory loggerFactory, MareMediator mareMediator, ApiController apiController,
         UiSharedService uiSharedService, PairManager pairManager, SyncshellDiscoveryService syncshellDiscoveryService, ServerConfigurationManager serverConfigManager,
-        UmbraProfileManager umbraProfileManager, PerformanceCollectorService performanceCollectorService, NotificationTracker notificationTracker)
+        UmbraProfileManager umbraProfileManager, PerformanceCollectorService performanceCollectorService, NotificationTracker notificationTracker,
+        DalamudUtilService dalamudUtilService)
     {
         _loggerFactory = loggerFactory;
         _mareMediator = mareMediator;
@@ -38,12 +40,13 @@ public class UiFactory
         _umbraProfileManager = umbraProfileManager;
         _performanceCollectorService = performanceCollectorService;
         _notificationTracker = notificationTracker;
+        _dalamudUtilService = dalamudUtilService;
     }
 
     public SyncshellAdminUI CreateSyncshellAdminUi(GroupFullInfoDto dto)
     {
         return new SyncshellAdminUI(_loggerFactory.CreateLogger<SyncshellAdminUI>(), _mareMediator,
-            _apiController, _uiSharedService, _pairManager, _syncshellDiscoveryService, dto, _performanceCollectorService, _notificationTracker);
+            _apiController, _uiSharedService, _pairManager, _syncshellDiscoveryService, dto, _performanceCollectorService, _notificationTracker, _dalamudUtilService);
     }
 
     public StandaloneProfileUi CreateStandaloneProfileUi(Pair pair)

@@ -313,6 +313,14 @@ public class SettingsUi : WindowMediatorSubscriberBase
             }
         }
 
+        var enableSlotNotifications = _configService.Current.EnableSlotNotifications;
+        if (ImGui.Checkbox(Loc.Get("Settings.AutoDetect.EnableSlotNotifications"), ref enableSlotNotifications))
+        {
+            _configService.Current.EnableSlotNotifications = enableSlotNotifications;
+            _configService.Save();
+        }
+        _uiShared.DrawHelpText(Loc.Get("Settings.AutoDetect.EnableSlotNotificationsHelp"));
+
         if (isAutoDetectSuppressed)
         {
             UiSharedService.ColorTextWrapped(Loc.Get("Settings.AutoDetect.LockedInInstance"), ImGuiColors.DalamudYellow);

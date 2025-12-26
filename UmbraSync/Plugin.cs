@@ -159,6 +159,8 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton<ChatTwoCompatibilityService>();
             collection.AddSingleton<NotificationTracker>();
             collection.AddSingleton<PenumbraPrecacheService>();
+            collection.AddSingleton<SlotService>();
+            collection.AddSingleton<HousingMonitorService>();
 
             collection.AddSingleton((s) => new MareConfigService(pluginInterface.ConfigDirectory.FullName));
             collection.AddSingleton((s) => new RpConfigService(pluginInterface.ConfigDirectory.FullName));
@@ -215,6 +217,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddScoped<WindowMediatorSubscriberBase, TypingIndicatorOverlay>();
             collection.AddScoped<IPopupHandler, ReportPopupHandler>();
             collection.AddScoped<IPopupHandler, BanUserPopupHandler>();
+            collection.AddScoped<IPopupHandler, SlotPopupHandler>();
             collection.AddScoped<CacheCreationService>();
             collection.AddScoped<TransientResourceManager>();
             collection.AddScoped<PlayerDataFactory>();
@@ -246,6 +249,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddHostedService(p => p.GetRequiredService<ChatTwoCompatibilityService>());
             collection.AddHostedService(p => p.GetRequiredService<UmbraSync.Services.AutoDetect.AutoDetectSuppressionService>());
             collection.AddHostedService(p => p.GetRequiredService<PenumbraPrecacheService>());
+            collection.AddHostedService(p => p.GetRequiredService<HousingMonitorService>());
         })
         .Build();
 

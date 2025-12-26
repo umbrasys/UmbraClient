@@ -110,6 +110,7 @@ public class MareConfig : IMareConfiguration
     public float TypingIndicatorPartyOpacity { get; set; } = 0.9f;
 
     public bool UmbraAPI { get; set; } = true;
+    public bool EnableSlotNotifications { get; set; } = true;
 
     [SuppressMessage("Major Code Smell", "S1133:Do not forget to remove this deprecated code someday", Justification = "Legacy config needed for migration")]
     [SuppressMessage("Major Code Smell", "S1123:Add an explanation", Justification = "Legacy config needed for migration")]

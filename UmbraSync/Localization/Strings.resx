@@ -1008,6 +1008,132 @@ Click to change.</value>
   <data name="BanUserPopup.SubmitButton" xml:space="preserve">
     <value>Ban User</value>
   </data>
+  <data name="SlotPopup.Title" xml:space="preserve">
+    <value>New Slot detected</value>
+  </data>
+  <data name="SlotPopup.WelcomeTo" xml:space="preserve">
+    <value>Welcome to {0}!</value>
+  </data>
+  <data name="SlotPopup.SyncshellFound" xml:space="preserve">
+    <value>A Syncshell is associated with this place: {0}</value>
+  </data>
+  <data name="SlotPopup.JoinButton" xml:space="preserve">
+    <value>Join Syncshell</value>
+  </data>
+  <data name="SlotPopup.JoinToolTip" xml:space="preserve">
+    <value>Automatically join the Syncshell of this place.</value>
+  </data>
+  <data name="SlotPopup.AutoLeaveNotice" xml:space="preserve">
+    <value>Note: You will automatically leave this Syncshell if you stay outside of the housing area for more than 5 minutes.</value>
+  </data>
+  <data name="SlotPopup.DeclineButton" xml:space="preserve">
+    <value>Decline</value>
+  </data>
+  <data name="Slot.Decline.Notification" xml:space="preserve">
+    <value>You have declined to join the Syncshell for {0}. You will not be prompted again for this location during this session.</value>
+  </data>
+  <data name="Slot.Toast.Welcome" xml:space="preserve">
+    <value>Welcome to {0}</value>
+  </data>
+  <data name="Slot.Toast.Leaving" xml:space="preserve">
+    <value>You are leaving {0}</value>
+  </data>
+  <data name="SyncshellAdmin.Tab.Slot" xml:space="preserve">
+    <value>Slot</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.Loading" xml:space="preserve">
+    <value>Loading Slot data...</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.Description" xml:space="preserve">
+    <value>Configure the association between this Syncshell and a physical housing location (Slot). When players approach this location, they will be prompted to join the Syncshell.</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.AutoLeaveWarning" xml:space="preserve">
+    <value>Important: When a player joins via this system, they will be automatically removed from the Syncshell 5 minutes after leaving the vicinity of the housing.</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.Name" xml:space="preserve">
+    <value>Slot Name</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.NameHelp" xml:space="preserve">
+    <value>The name of the place as it will appear in the popup.</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.SlotDescription" xml:space="preserve">
+    <value>Slot Description</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.SlotDescriptionHelp" xml:space="preserve">
+    <value>A short description of the place shown in the popup.</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.Location" xml:space="preserve">
+    <value>Location</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.Step1Outside" xml:space="preserve">
+    <value>Step 1: Capture outside coordinates</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.GetOutsidePos" xml:space="preserve">
+    <value>Get Outside Position</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.GetOutsidePosHelp" xml:space="preserve">
+    <value>Stand in front of the entrance outside and click this button.</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.Step2Inside" xml:space="preserve">
+    <value>Step 2: Capture housing information</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.GetHousingInfo" xml:space="preserve">
+    <value>Get Housing Info</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.GetHousingInfoHelp" xml:space="preserve">
+    <value>Enter the house (inside the plot) and click this button.</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.HousingSummary" xml:space="preserve">
+    <value>Housing Info: S:{0} | T:{1} | W:{2} | P:{3}</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.LocationCoords" xml:space="preserve">
+    <value>Coords: X: {0:F1} | Y: {1:F1} | Z: {2:F1}</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.Radius" xml:space="preserve">
+    <value>Detection Radius (meters)</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.RadiusHelp" xml:space="preserve">
+    <value>The radius around the coordinates where the popup will appear (useful for detection outside the house).</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.Save" xml:space="preserve">
+    <value>Save Slot Configuration</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.SaveSuccessTitle" xml:space="preserve">
+    <value>Slot Saved</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.SaveSuccessMessage" xml:space="preserve">
+    <value>The Slot configuration has been successfully updated.</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.SaveErrorTitle" xml:space="preserve">
+    <value>Save Failed</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.EditTooltip" xml:space="preserve">
+    <value>Edit this Slot</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.DeleteTooltip" xml:space="preserve">
+    <value>Delete this Slot</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.DeleteSuccessTitle" xml:space="preserve">
+    <value>Slot Deleted</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.DeleteSuccessMessage" xml:space="preserve">
+    <value>The Slot has been successfully removed.</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.AddButton" xml:space="preserve">
+    <value>Add New Slot</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.AddingNew" xml:space="preserve">
+    <value>Adding new Slot</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.Editing" xml:space="preserve">
+    <value>Editing Slot</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
   <data name="PopupHandler.CloseButton" xml:space="preserve">
     <value>Close</value>
   </data>
@@ -2150,6 +2276,12 @@ Click to change.</value>
   </data>
   <data name="Settings.AutoDetect.InvitesEnabled" xml:space="preserve">
     <value>Incoming invitations enabled: others can invite you.</value>
+  </data>
+  <data name="Settings.AutoDetect.EnableSlotNotifications" xml:space="preserve">
+    <value>Enable Slot Detection</value>
+  </data>
+  <data name="Settings.AutoDetect.EnableSlotNotificationsHelp" xml:space="preserve">
+    <value>If enabled, you will be prompted to join a Syncshell when approaching a registered housing location (Slot).</value>
   </data>
   <data name="Settings.AutoDetect.LockedInInstance" xml:space="preserve">
     <value>AutoDetect is locked while you remain in an instanced area.</value>
