@@ -201,6 +201,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddScoped<WindowMediatorSubscriberBase>(sp => sp.GetRequiredService<CompactUi>());
             collection.AddScoped<WindowMediatorSubscriberBase, IntroUi>();
             collection.AddScoped<WindowMediatorSubscriberBase, DownloadUi>();
+            collection.AddScoped<WindowMediatorSubscriberBase, PairRequestToastUi>();
             collection.AddScoped<WindowMediatorSubscriberBase>(sp => sp.GetRequiredService<AutoDetectUi>());
             collection.AddScoped<WindowMediatorSubscriberBase, ChangelogUi>();
             collection.AddScoped<WindowMediatorSubscriberBase, PopoutProfileUi>();

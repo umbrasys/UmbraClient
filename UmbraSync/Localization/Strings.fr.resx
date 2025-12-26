@@ -220,6 +220,9 @@
   <data name="AutoDetect.Notification.IncomingBody" xml:space="preserve">
     <value>{0} ({1}) vous a envoyé une invitation de pair.</value>
   </data>
+  <data name="AutoDetect.Notification.IncomingBodyIdFirst" xml:space="preserve">
+    <value>{0} souhaite s'appairer avec vous.</value>
+  </data>
   <data name="AutoDetect.Notification.AcceptedTitle" xml:space="preserve">
     <value>Invitation acceptée</value>
   </data>
@@ -432,7 +435,7 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value />
   </data>
   <data name="CompactUi.Notifications.Accept" xml:space="preserve">
-    <value />
+    <value>Accepter</value>
   </data>
   <data name="CompactUi.Notifications.AcceptFailed" xml:space="preserve">
     <value />
@@ -444,7 +447,7 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value />
   </data>
   <data name="CompactUi.Notifications.Decline" xml:space="preserve">
-    <value />
+    <value>Refuser</value>
   </data>
   <data name="CompactUi.Notifications.Empty" xml:space="preserve">
     <value />

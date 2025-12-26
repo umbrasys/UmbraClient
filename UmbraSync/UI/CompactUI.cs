@@ -4,6 +4,8 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Utility;
+using OtterGui.Text;
+using OtterGuiImGuiClip = OtterGui.ImGuiClip;
 using UmbraSync.API.Data.Extensions;
 using UmbraSync.API.Dto.User;
 using UmbraSync.MareConfiguration;
@@ -430,7 +432,8 @@ public class CompactUi : WindowMediatorSubscriberBase
 
                 UiSharedService.DrawGrouped(() =>
                 {
-                    if (ImGui.BeginTable("self-analysis-stats", 2, ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.NoSavedSettings))
+                    using var table = ImUtf8.Table("self-analysis-stats", 2, ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.NoSavedSettings);
+                    if (table)
                     {
                         ImGui.TableSetupColumn("label", ImGuiTableColumnFlags.WidthStretch, 0.55f);
                         ImGui.TableSetupColumn("value", ImGuiTableColumnFlags.WidthStretch, 0.45f);
@@ -470,8 +473,6 @@ public class CompactUi : WindowMediatorSubscriberBase
                             trianglesIconColor = ImGuiColors.DalamudYellow;
                         }
                         DrawSelfAnalysisStatRow(Loc.Get("CompactUi.SelfAnalysis.Stat.Triangles"), UiSharedService.TrisToString(summary.TotalTriangles), trianglesColor, trianglesTooltip, trianglesIcon, trianglesIconColor);
-
-                        ImGui.EndTable();
                     }
                 }, rounding: 4f, expectedWidth: ImGui.GetContentRegionAvail().X, drawBorder: false);
 
@@ -959,18 +960,15 @@ public class CompactUi : WindowMediatorSubscriberBase
 
                 // Use a table to guarantee right-aligned action within the card content area
                 var actionButtonSize = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.UserPlus);
-                if (ImGui.BeginTable("nearby-table", 2, ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX | ImGuiTableFlags.BordersInnerV))
+                using var table = ImUtf8.Table("nearby-table", 2, ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX | ImGuiTableFlags.BordersInnerV);
+                if (table)
                 {
                     ImGui.TableSetupColumn(Loc.Get("CompactUi.Nearby.Table.Name"), ImGuiTableColumnFlags.WidthStretch, 1f);
                     ImGui.TableSetupColumn(Loc.Get("CompactUi.Nearby.Table.Action"), ImGuiTableColumnFlags.WidthFixed, actionButtonSize.X);
 
-                    foreach (var e in nearbyEntries)
+                    var rowHeight = MathF.Max(ImGui.GetFrameHeight(), ImGui.GetTextLineHeight()) + ImGui.GetStyle().ItemSpacing.Y;
+                    OtterGuiImGuiClip.ClippedDraw(nearbyEntries, e =>
                     {
-                        if (!e.AcceptPairRequests || string.IsNullOrEmpty(e.Token))
-                        {
-                            continue;
-                        }
-
                         bool alreadyPaired = false;
                         if (!string.IsNullOrEmpty(e.Uid))
                         {
@@ -1016,8 +1014,7 @@ public class CompactUi : WindowMediatorSubscriberBase
                             }
                         }
                         UiSharedService.AttachToolTip(Loc.Get("CompactUi.Nearby.InviteTooltip"));
-                    }
-                    ImGui.EndTable();
+                    }, rowHeight);
                 }
 
                 ImGui.Unindent(indent);
@@ -1387,7 +1384,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         available = MathF.Max(0f, available - rightPad);
         var style = ImGui.GetStyle();
         const float padYMultiplier = 2.4f;
-        const float fontScaleMul   = 1.3f;
+        const float fontScaleMul = 1.3f;
 
         using var padPush = ImRaii.PushStyle(ImGuiStyleVar.FramePadding,
             new Vector2(style.FramePadding.X, style.FramePadding.Y * padYMultiplier));
@@ -1602,17 +1599,15 @@ public class CompactUi : WindowMediatorSubscriberBase
     {
         UiSharedService.DrawCard($"notification-autodetect-{notification.Id}", () =>
         {
-            var label = _nearbyPending.Pending.TryGetValue(notification.Id, out var displayName)
-                ? displayName
-                : notification.Title;
+            var displayName = ResolveRequesterDisplayName(notification.Id);
+            var title = Loc.Get("AutoDetect.Notification.IncomingTitle");
+            var body = string.Format(CultureInfo.CurrentCulture, Loc.Get("AutoDetect.Notification.IncomingBodyIdFirst"),
+                BuildRequesterLabel(notification.Id, displayName));
 
-            ImGui.TextUnformatted(label);
-            if (!string.IsNullOrEmpty(notification.Description))
-            {
-                ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudGrey3);
-                ImGui.TextWrapped(notification.Description);
-                ImGui.PopStyleColor();
-            }
+            ImGui.TextUnformatted(title);
+            ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudGrey3);
+            ImGui.TextWrapped(body);
+            ImGui.PopStyleColor();
 
             ImGuiHelpers.ScaledDummy(3f);
 
@@ -1724,6 +1719,28 @@ public class CompactUi : WindowMediatorSubscriberBase
                 Mediator.Publish(new NotificationMessage(Loc.Get("CompactUi.Notifications.AutoDetectTitle"), string.Format(CultureInfo.CurrentCulture, Loc.Get("CompactUi.Notifications.AcceptFailed"), uid), NotificationType.Warning, TimeSpan.FromSeconds(5)));
             }
         });
+    }
+
+    private static string BuildRequesterLabel(string uid, string displayName)
+    {
+        if (string.IsNullOrWhiteSpace(displayName)) return uid;
+        if (string.Equals(displayName, uid, StringComparison.OrdinalIgnoreCase)) return uid;
+        return displayName;
+    }
+
+    private string ResolveRequesterDisplayName(string uid)
+    {
+        var nearby = _nearbyEntries.FirstOrDefault(e => e.IsMatch
+            && string.Equals(e.Uid, uid, StringComparison.OrdinalIgnoreCase));
+        if (nearby != null && !string.IsNullOrWhiteSpace(nearby.Name))
+            return nearby.Name;
+
+        if (_nearbyPending.Pending.TryGetValue(uid, out var pendingName)
+            && !string.IsNullOrWhiteSpace(pendingName)
+            && !string.Equals(pendingName, _apiController.DisplayName, StringComparison.OrdinalIgnoreCase))
+            return pendingName;
+
+        return string.Empty;
     }
 
     private void DrawNewUserNoteModal()
