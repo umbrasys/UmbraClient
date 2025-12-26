@@ -228,6 +228,16 @@ public class ChatService : DisposableMediatorSubscriberBase
             Type = (XivChatType)chatType
         });
     }
+
+    public void Print(string message)
+    {
+        _chatGui.Print(new XivChatEntry
+        {
+            Message = "[UmbraSync] " + message,
+            Type = XivChatType.Debug
+        });
+    }
+
     public void MaybeUpdateShellName(int shellNumber)
     {
         if (_mareConfig.Current.DisableSyncshellChat)

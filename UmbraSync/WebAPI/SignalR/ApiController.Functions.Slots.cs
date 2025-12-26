@@ -1,0 +1,65 @@
+using Microsoft.AspNetCore.SignalR.Client;
+using UmbraSync.API.Dto.Slot;
+using UmbraSync.API.Dto.Group;
+using Microsoft.Extensions.Logging;
+
+namespace UmbraSync.WebAPI.SignalR;
+
+public partial class ApiController
+{
+    public async Task<SlotInfoResponseDto?> SlotGetInfo(SlotLocationDto location)
+    {
+        CheckConnection();
+        try
+        {
+            return await _mareHub!.InvokeAsync<SlotInfoResponseDto?>(nameof(SlotGetInfo), location).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error getting slot info for {location}", location);
+            return null;
+        }
+    }
+
+    public async Task<SlotInfoResponseDto?> SlotGetNearby(uint serverId, uint territoryId, float x, float y, float z)
+    {
+        CheckConnection();
+        try
+        {
+            return await _mareHub!.InvokeAsync<SlotInfoResponseDto?>(nameof(SlotGetNearby), serverId, territoryId, x, y, z).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error getting nearby slot info");
+            return null;
+        }
+    }
+
+    public async Task<bool> SlotUpdate(SlotUpdateRequestDto request)
+    {
+        CheckConnection();
+        try
+        {
+            return await _mareHub!.InvokeAsync<bool>(nameof(SlotUpdate), request).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error updating slot info for {gid}", request.Group.GID);
+            return false;
+        }
+    }
+
+    public async Task<List<SlotInfoResponseDto>> SlotGetInfoForGroup(GroupDto group)
+    {
+        CheckConnection();
+        try
+        {
+            return await _mareHub!.InvokeAsync<List<SlotInfoResponseDto>>(nameof(SlotGetInfoForGroup), group).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error getting slot info for group {gid}", group.GID);
+            return [];
+        }
+    }
+}

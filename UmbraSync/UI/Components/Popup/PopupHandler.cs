@@ -50,6 +50,14 @@ public class PopupHandler : WindowMediatorSubscriberBase
             ((BanUserPopupHandler)_currentHandler).Open(msg);
             IsOpen = true;
         });
+
+        Mediator.Subscribe<OpenSlotPromptMessage>(this, (msg) =>
+        {
+            _openPopup = true;
+            _currentHandler = _handlers.OfType<SlotPopupHandler>().Single();
+            ((SlotPopupHandler)_currentHandler).Open(msg);
+            IsOpen = true;
+        });
         _uiSharedService = uiSharedService;
         DisableWindowSounds = true;
     }
