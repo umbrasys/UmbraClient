@@ -2936,4 +2936,61 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="Notification.AutoDetect.RequestBody" xml:space="preserve">
     <value>{0} a demandé un appairage avec vous. UID : {1}</value>
   </data>
+  <data name="UserProfile.RpFirstName" xml:space="preserve">
+    <value>Prénom</value>
+  </data>
+  <data name="UserProfile.RpLastName" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="UserProfile.RpTitle" xml:space="preserve">
+    <value>Titre</value>
+  </data>
+  <data name="UserProfile.RpAge" xml:space="preserve">
+    <value>Âge</value>
+  </data>
+  <data name="UserProfile.RpHeight" xml:space="preserve">
+    <value>Taille</value>
+  </data>
+  <data name="UserProfile.RpBuild" xml:space="preserve">
+    <value>Corpulence</value>
+  </data>
+  <data name="UserProfile.RpOccupation" xml:space="preserve">
+    <value>Occupation</value>
+  </data>
+  <data name="UserProfile.RpAffiliation" xml:space="preserve">
+    <value>Affiliation</value>
+  </data>
+  <data name="UserProfile.RpAlignment" xml:space="preserve">
+    <value>Alignement</value>
+  </data>
+  <data name="UserProfile.RpAdditionalInfo" xml:space="preserve">
+    <value>Informations supplémentaires</value>
+  </data>
+  <data name="UserProfile.RpNsfw" xml:space="preserve">
+    <value>Est-ce un profil RP NSFW ?</value>
+  </data>
+  <data name="UserProfile.NoRpDescription" xml:space="preserve">
+    <value>L'utilisateur n'a pas défini de description RP.</value>
+  </data>
+  <data name="EditProfile.PreviewButton" xml:space="preserve">
+    <value>Prévisualiser mon profil</value>
+  </data>
+  <data name="EditProfile.SaveButton" xml:space="preserve">
+    <value>Sauvegarder le profil</value>
+  </data>
+  <data name="EditProfile.SelectImageButton" xml:space="preserve">
+    <value>Sélectionner une image</value>
+  </data>
+  <data name="EditProfile.SaveSuccessTitle" xml:space="preserve">
+    <value>Profil sauvegardé</value>
+  </data>
+  <data name="EditProfile.SaveSuccessBody" xml:space="preserve">
+    <value>Votre profil a été enregistré avec succès sur le serveur Umbra.</value>
+  </data>
+  <data name="EditProfile.SaveErrorTitle" xml:space="preserve">
+    <value>Erreur de sauvegarde</value>
+  </data>
+  <data name="EditProfile.SaveErrorBody" xml:space="preserve">
+    <value>Une erreur est survenue lors de l'enregistrement de votre profil sur le serveur.</value>
+  </data>
 </root>

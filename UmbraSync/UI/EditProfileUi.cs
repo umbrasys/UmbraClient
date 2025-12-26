@@ -28,7 +28,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
 {
     private readonly ApiController _apiController;
     private readonly FileDialogManager _fileDialogManager;
-    private readonly MareProfileManager _mareProfileManager;
+    private readonly UmbraProfileManager _umbraProfileManager;
     private readonly PairManager _pairManager;
     private readonly PairFactory _pairFactory;
     private readonly RpConfigService _rpConfigService;
@@ -37,6 +37,16 @@ public class EditProfileUi : WindowMediatorSubscriberBase
     private bool _adjustedForScollBarsOnlineProfile = false;
     private string _descriptionText = string.Empty;
     private string _rpDescriptionText = string.Empty;
+    private string _rpFirstNameText = string.Empty;
+    private string _rpLastNameText = string.Empty;
+    private string _rpTitleText = string.Empty;
+    private string _rpAgeText = string.Empty;
+    private string _rpHeightText = string.Empty;
+    private string _rpBuildText = string.Empty;
+    private string _rpOccupationText = string.Empty;
+    private string _rpAffiliationText = string.Empty;
+    private string _rpAlignmentText = string.Empty;
+    private string _rpAdditionalInfoText = string.Empty;
     private IDalamudTextureWrap? _pfpTextureWrap;
     private IDalamudTextureWrap? _rpPfpTextureWrap;
     private string _profileDescription = string.Empty;
@@ -50,7 +60,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
 
     public EditProfileUi(ILogger<EditProfileUi> logger, MareMediator mediator,
         ApiController apiController, UiSharedService uiSharedService, FileDialogManager fileDialogManager,
-        MareProfileManager mareProfileManager, PairManager pairManager, PairFactory pairFactory,
+        UmbraProfileManager umbraProfileManager, PairManager pairManager, PairFactory pairFactory,
         RpConfigService rpConfigService, PerformanceCollectorService performanceCollectorService)
         : base(logger, mediator, $"{Loc.Get("EditProfile.WindowTitle")}###UmbraSyncEditProfileUI", performanceCollectorService)
     {
@@ -63,7 +73,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
         _apiController = apiController;
         _uiSharedService = uiSharedService;
         _fileDialogManager = fileDialogManager;
-        _mareProfileManager = mareProfileManager;
+        _umbraProfileManager = umbraProfileManager;
         _pairManager = pairManager;
         _pairFactory = pairFactory;
         _rpConfigService = rpConfigService;
@@ -88,7 +98,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
         var accent = UiSharedService.AccentColor;
         if (accent.W <= 0f) accent = ImGuiColors.ParsedPurple;
 
-        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Eye, "Prévisualiser son profil"))
+        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Eye, Loc.Get("EditProfile.PreviewButton")))
         {
             var myUserData = new UserData(_apiController.UID, _apiController.DisplayName);
             var pair = _pairManager.GetPairByUID(_apiController.UID) ?? _pairFactory.Create(myUserData);
@@ -98,19 +108,17 @@ public class EditProfileUi : WindowMediatorSubscriberBase
         using (var topTabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, accent))
         using (var topTabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, accent))
         {
-            if (ImGui.BeginTabBar("ProfileTabBarV2", ImGuiTabBarFlags.None))
+            using var tabBar = ImRaii.TabBar("ProfileTabBarV2");
+            if (tabBar)
             {
-                if (ImGui.BeginTabItem("RP"))
+                using (var tabItem = ImRaii.TabItem("RP"))
                 {
-                    DrawProfileContent(true);
-                    ImGui.EndTabItem();
+                    if (tabItem) DrawProfileContent(true);
                 }
-                if (ImGui.BeginTabItem("HRP"))
+                using (var tabItem = ImRaii.TabItem("HRP"))
                 {
-                    DrawProfileContent(false);
-                    ImGui.EndTabItem();
+                    if (tabItem) DrawProfileContent(false);
                 }
-                ImGui.EndTabBar();
             }
         }
     }
@@ -120,22 +128,27 @@ public class EditProfileUi : WindowMediatorSubscriberBase
         var accent = UiSharedService.AccentColor;
         if (accent.W <= 0f) accent = ImGuiColors.ParsedPurple;
 
+        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Eye, Loc.Get("EditProfile.PreviewButton")))
+        {
+            var myUserData = new UserData(_apiController.UID, _apiController.DisplayName);
+            var pair = _pairManager.GetPairByUID(_apiController.UID) ?? _pairFactory.Create(myUserData);
+            Mediator.Publish(new ProfileOpenStandaloneMessage(pair));
+        }
+
         using (var topTabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, accent))
         using (var topTabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, accent))
         {
-            if (ImGui.BeginTabBar("ProfileTabBarInlineV2", ImGuiTabBarFlags.None))
+            using var tabBar = ImRaii.TabBar("ProfileTabBarInlineV2");
+            if (tabBar)
             {
-                if (ImGui.BeginTabItem("RP"))
+                using (var tabItem = ImRaii.TabItem("RP"))
                 {
-                    DrawProfileContent(true);
-                    ImGui.EndTabItem();
+                    if (tabItem) DrawProfileContent(true);
                 }
-                if (ImGui.BeginTabItem("HRP"))
+                using (var tabItem = ImRaii.TabItem("HRP"))
                 {
-                    DrawProfileContent(false);
-                    ImGui.EndTabItem();
+                    if (tabItem) DrawProfileContent(false);
                 }
-                ImGui.EndTabBar();
             }
         }
     }
@@ -145,41 +158,51 @@ public class EditProfileUi : WindowMediatorSubscriberBase
         _uiSharedService.BigText(isRp ? "Profil RP" : Loc.Get("EditProfile.CurrentProfile"));
         ImGuiHelpers.ScaledDummy(new Vector2(0f, ImGui.GetStyle().ItemSpacing.Y / 2));
 
-        var profile = _mareProfileManager.GetMareProfile(new UserData(_apiController.UID));
+        var umbraProfile = _umbraProfileManager.GetUmbraProfile(new UserData(_apiController.UID));
 
-        if (profile.IsFlagged)
+        if (umbraProfile.IsFlagged)
         {
-            UiSharedService.ColorTextWrapped(profile.Description, UiSharedService.AccentColor);
+            UiSharedService.ColorTextWrapped(umbraProfile.Description, UiSharedService.AccentColor);
             return;
         }
 
         if (isRp)
         {
-            if (!_rpProfileImage.SequenceEqual(profile.RpImageData.Value))
+            if (!_rpProfileImage.SequenceEqual(_rpConfigService.Current.RpProfilePictureBase64 != null ? Convert.FromBase64String(_rpConfigService.Current.RpProfilePictureBase64) : []))
             {
-                _rpProfileImage = profile.RpImageData.Value;
+                _rpProfileImage = _rpConfigService.Current.RpProfilePictureBase64 != null ? Convert.FromBase64String(_rpConfigService.Current.RpProfilePictureBase64) : [];
                 _rpPfpTextureWrap?.Dispose();
                 _rpPfpTextureWrap = _uiSharedService.LoadImage(_rpProfileImage);
             }
 
-            if (!string.Equals(_rpProfileDescription, profile.RpDescription ?? string.Empty, StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(_rpProfileDescription, _rpConfigService.Current.RpDescription ?? string.Empty, StringComparison.OrdinalIgnoreCase))
             {
-                _rpProfileDescription = profile.RpDescription ?? string.Empty;
+                _rpProfileDescription = _rpConfigService.Current.RpDescription ?? string.Empty;
                 _rpDescriptionText = _rpProfileDescription;
+                _rpFirstNameText = _rpConfigService.Current.RpFirstName ?? string.Empty;
+                _rpLastNameText = _rpConfigService.Current.RpLastName ?? string.Empty;
+                _rpTitleText = _rpConfigService.Current.RpTitle ?? string.Empty;
+                _rpAgeText = _rpConfigService.Current.RpAge ?? string.Empty;
+                _rpHeightText = _rpConfigService.Current.RpHeight ?? string.Empty;
+                _rpBuildText = _rpConfigService.Current.RpBuild ?? string.Empty;
+                _rpOccupationText = _rpConfigService.Current.RpOccupation ?? string.Empty;
+                _rpAffiliationText = _rpConfigService.Current.RpAffiliation ?? string.Empty;
+                _rpAlignmentText = _rpConfigService.Current.RpAlignment ?? string.Empty;
+                _rpAdditionalInfoText = _rpConfigService.Current.RpAdditionalInfo ?? string.Empty;
             }
         }
         else
         {
-            if (!_profileImage.SequenceEqual(profile.ImageData.Value))
+            if (!_profileImage.SequenceEqual(umbraProfile.ImageData.Value))
             {
-                _profileImage = profile.ImageData.Value;
+                _profileImage = umbraProfile.ImageData.Value;
                 _pfpTextureWrap?.Dispose();
                 _pfpTextureWrap = _uiSharedService.LoadImage(_profileImage);
             }
 
-            if (!string.Equals(_profileDescription, profile.Description, StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(_profileDescription, umbraProfile.Description, StringComparison.OrdinalIgnoreCase))
             {
-                _profileDescription = profile.Description;
+                _profileDescription = umbraProfile.Description;
                 _descriptionText = _profileDescription;
             }
         }
@@ -191,12 +214,53 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             ImGui.Image(pfpTexture.Handle, ImGuiHelpers.ScaledVector2(pfpTexture.Width, pfpTexture.Height));
             ImGuiHelpers.ScaledRelativeSameLine(256, spacing);
         }
+        
+        if (isRp)
+        {
+            ImGui.BeginGroup();
+            var inputWidth = 200f;
+            var labelWidth = 120f * ImGuiHelpers.GlobalScale;
+
+            void DrawLabeledInput(string label, ref string text, int maxLength, bool sameLine = false)
+            {
+                if (sameLine)
+                {
+                    ImGui.SameLine();
+                    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 20f * ImGuiHelpers.GlobalScale);
+                }
+                
+                var startPosX = ImGui.GetCursorPosX();
+                ImGui.AlignTextToFramePadding();
+                ImGui.TextUnformatted(label);
+                ImGui.SameLine();
+                ImGui.SetCursorPosX(startPosX + labelWidth);
+                ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * inputWidth);
+                ImGui.InputText("##" + label, ref text, maxLength);
+            }
+
+            DrawLabeledInput(Loc.Get("UserProfile.RpFirstName"), ref _rpFirstNameText, 100);
+            DrawLabeledInput(Loc.Get("UserProfile.RpLastName"), ref _rpLastNameText, 100, true);
+
+            DrawLabeledInput(Loc.Get("UserProfile.RpTitle"), ref _rpTitleText, 100);
+            DrawLabeledInput(Loc.Get("UserProfile.RpAge"), ref _rpAgeText, 50, true);
+
+            DrawLabeledInput(Loc.Get("UserProfile.RpHeight"), ref _rpHeightText, 50);
+            DrawLabeledInput(Loc.Get("UserProfile.RpBuild"), ref _rpBuildText, 100, true);
+
+            DrawLabeledInput(Loc.Get("UserProfile.RpOccupation"), ref _rpOccupationText, 100);
+            DrawLabeledInput(Loc.Get("UserProfile.RpAffiliation"), ref _rpAffiliationText, 100, true);
+
+            DrawLabeledInput(Loc.Get("UserProfile.RpAlignment"), ref _rpAlignmentText, 100);
+            ImGui.EndGroup();
+        }
+
         using (_uiSharedService.GameFont.Push())
         {
             using var _ = ImRaii.PushId(isRp ? "rp" : "hrp");
             var descriptionText = isRp ? _rpDescriptionText : _descriptionText;
-            if (ImGui.InputTextMultiline(Loc.Get("EditProfile.Description"), ref descriptionText, 1000,
-                    ImGuiHelpers.ScaledVector2(512, 256)))
+            ImGui.TextUnformatted(Loc.Get("EditProfile.Description"));
+            if (ImGui.InputTextMultiline("##description_multi", ref descriptionText, 1000,
+                    ImGuiHelpers.ScaledVector2(600, 150)))
             {
                 if (isRp) _rpDescriptionText = descriptionText;
                 else _descriptionText = descriptionText;
@@ -205,8 +269,18 @@ public class EditProfileUi : WindowMediatorSubscriberBase
 
         if (isRp)
         {
+            using (_uiSharedService.GameFont.Push())
+            {
+                ImGui.TextUnformatted(Loc.Get("UserProfile.RpAdditionalInfo"));
+                ImGui.InputTextMultiline("##additional_info", ref _rpAdditionalInfoText, 3000,
+                    ImGuiHelpers.ScaledVector2(600, 150));
+            }
+        }
+
+        if (isRp)
+        {
             var isRpNsfw = _rpConfigService.Current.IsRpNsfw;
-            if (ImGui.Checkbox("Est-ce un profil RP NSFW ?", ref isRpNsfw))
+            if (ImGui.Checkbox(Loc.Get("UserProfile.RpNsfw"), ref isRpNsfw))
             {
                 _rpConfigService.Current.IsRpNsfw = isRpNsfw;
                 _rpConfigService.Save();
@@ -226,7 +300,21 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             if (isRp)
             {
                 _rpConfigService.Current.RpDescription = _rpDescriptionText;
+                _rpConfigService.Current.RpFirstName = _rpFirstNameText;
+                _rpConfigService.Current.RpLastName = _rpLastNameText;
+                _rpConfigService.Current.RpTitle = _rpTitleText;
+                _rpConfigService.Current.RpAge = _rpAgeText;
+                _rpConfigService.Current.RpHeight = _rpHeightText;
+                _rpConfigService.Current.RpBuild = _rpBuildText;
+                _rpConfigService.Current.RpOccupation = _rpOccupationText;
+                _rpConfigService.Current.RpAffiliation = _rpAffiliationText;
+                _rpConfigService.Current.RpAlignment = _rpAlignmentText;
+                _rpConfigService.Current.RpAdditionalInfo = _rpAdditionalInfoText;
                 _rpConfigService.Save();
+            }
+            else
+            {
+                _profileDescription = _descriptionText;
             }
 
             _ = Task.Run(async () =>
@@ -237,7 +325,10 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                     if (isRp)
                     {
                         await _apiController.UserSetProfile(new UserProfileDto(new UserData(_apiController.UID), curProfile.Disabled, curProfile.IsNSFW, curProfile.ProfilePictureBase64, curProfile.Description,
-                            _rpConfigService.Current.RpProfilePictureBase64, _rpConfigService.Current.RpDescription, _rpConfigService.Current.IsRpNsfw)).ConfigureAwait(false);
+                            _rpConfigService.Current.RpProfilePictureBase64, _rpConfigService.Current.RpDescription, _rpConfigService.Current.IsRpNsfw,
+                            _rpConfigService.Current.RpFirstName, _rpConfigService.Current.RpLastName, _rpConfigService.Current.RpTitle, _rpConfigService.Current.RpAge,
+                            _rpConfigService.Current.RpHeight, _rpConfigService.Current.RpBuild, _rpConfigService.Current.RpOccupation, _rpConfigService.Current.RpAffiliation,
+                            _rpConfigService.Current.RpAlignment, _rpConfigService.Current.RpAdditionalInfo)).ConfigureAwait(false);
                     }
                     else
                     {
@@ -245,10 +336,12 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                             curProfile.RpProfilePictureBase64, curProfile.RpDescription, curProfile.IsRpNSFW)).ConfigureAwait(false);
                     }
                     Mediator.Publish(new ClearProfileDataMessage(new UserData(_apiController.UID)));
+                    Mediator.Publish(new NotificationMessage(Loc.Get("EditProfile.SaveSuccessTitle"), Loc.Get("EditProfile.SaveSuccessBody"), NotificationType.Info));
                 }
                 catch (Exception ex)
                 {
                     _logger.LogWarning(ex, "Failed to save profile");
+                    Mediator.Publish(new NotificationMessage(Loc.Get("EditProfile.SaveErrorTitle"), Loc.Get("EditProfile.SaveErrorBody"), NotificationType.Error));
                 }
             });
         }
@@ -275,7 +368,10 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                             _rpConfigService.Current.RpProfilePictureBase64 = Convert.ToBase64String(file);
                             _rpConfigService.Save();
                             await _apiController.UserSetProfile(new UserProfileDto(new UserData(_apiController.UID), curProfile.Disabled, curProfile.IsNSFW, curProfile.ProfilePictureBase64, curProfile.Description,
-                                _rpConfigService.Current.RpProfilePictureBase64, _rpConfigService.Current.RpDescription, _rpConfigService.Current.IsRpNsfw)).ConfigureAwait(false);
+                                _rpConfigService.Current.RpProfilePictureBase64, _rpConfigService.Current.RpDescription, _rpConfigService.Current.IsRpNsfw,
+                                _rpConfigService.Current.RpFirstName, _rpConfigService.Current.RpLastName, _rpConfigService.Current.RpTitle, _rpConfigService.Current.RpAge,
+                                _rpConfigService.Current.RpHeight, _rpConfigService.Current.RpBuild, _rpConfigService.Current.RpOccupation, _rpConfigService.Current.RpAffiliation,
+                                _rpConfigService.Current.RpAlignment, _rpConfigService.Current.RpAdditionalInfo)).ConfigureAwait(false);
                         }
                         else
                         {
@@ -283,10 +379,12 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                                 curProfile.RpProfilePictureBase64, curProfile.RpDescription, curProfile.IsRpNSFW)).ConfigureAwait(false);
                         }
                         Mediator.Publish(new ClearProfileDataMessage(new UserData(_apiController.UID)));
+                        Mediator.Publish(new NotificationMessage(Loc.Get("EditProfile.SaveSuccessTitle"), Loc.Get("EditProfile.SaveSuccessBody"), NotificationType.Info));
                     }
                     catch (Exception ex)
                     {
                         _logger.LogWarning(ex, "Failed to upload profile image");
+                        Mediator.Publish(new NotificationMessage(Loc.Get("EditProfile.SaveErrorTitle"), Loc.Get("EditProfile.SaveErrorBody"), NotificationType.Error));
                     }
                 });
             });
@@ -306,79 +404,13 @@ public class EditProfileUi : WindowMediatorSubscriberBase
         {
             UiSharedService.ColorTextWrapped(Loc.Get("EditProfile.UploadPictureError"), UiSharedService.AccentColor);
         }
-        var isNsfw = profile.IsNSFW;
+        var isNsfw = umbraProfile.IsNSFW;
         if (ImGui.Checkbox(Loc.Get("EditProfile.ProfileIsNsfw"), ref isNsfw))
         {
             _ = _apiController.UserSetProfile(new UserProfileDto(new UserData(_apiController.UID), Disabled: false, isNsfw, ProfilePictureBase64: null, Description: null));
         }
         _uiSharedService.DrawHelpText(Loc.Get("EditProfile.ProfileIsNsfwHelp"));
-        var widthTextBox = 400;
-        var posX = ImGui.GetCursorPosX();
-        ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("EditProfile.DescriptionCounter"), _descriptionText.Length));
-        ImGui.SetCursorPosX(posX);
-        ImGuiHelpers.ScaledRelativeSameLine(widthTextBox, ImGui.GetStyle().ItemSpacing.X);
-        ImGui.TextUnformatted(Loc.Get("EditProfile.DescriptionPreview"));
-        using (_uiSharedService.GameFont.Push())
-            ImGui.InputTextMultiline("##description", ref _descriptionText, 1500, ImGuiHelpers.ScaledVector2(widthTextBox, 200));
-
-        ImGui.SameLine();
-
-        using (_uiSharedService.GameFont.Push())
-        {
-            var descriptionTextSizeLocal = ImGui.CalcTextSize(_descriptionText, hideTextAfterDoubleHash: false, 256f);
-            var childFrameLocal = ImGuiHelpers.ScaledVector2(256 + ImGui.GetStyle().WindowPadding.X + ImGui.GetStyle().WindowBorderSize, 200);
-            if (descriptionTextSizeLocal.Y > childFrameLocal.Y)
-            {
-                _adjustedForScollBarsLocalProfile = true;
-            }
-            else
-            {
-                _adjustedForScollBarsLocalProfile = false;
-            }
-            childFrameLocal = childFrameLocal with
-            {
-                X = childFrameLocal.X + (_adjustedForScollBarsLocalProfile ? ImGui.GetStyle().ScrollbarSize : 0),
-            };
-            if (ImGui.BeginChildFrame(102, childFrameLocal))
-            {
-                UiSharedService.TextWrapped(_descriptionText);
-            }
-            ImGui.EndChildFrame();
-        }
-
-        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Save, Loc.Get("EditProfile.SaveDescription")))
-        {
-            _ = _apiController.UserSetProfile(new UserProfileDto(new UserData(_apiController.UID), Disabled: false, IsNSFW: null, ProfilePictureBase64: null, _descriptionText));
-        }
-        UiSharedService.AttachToolTip(Loc.Get("EditProfile.SaveDescriptionTooltip"));
-        ImGui.SameLine();
-        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Trash, Loc.Get("EditProfile.ClearDescription")))
-        {
-            _ = _apiController.UserSetProfile(new UserProfileDto(new UserData(_apiController.UID), Disabled: false, IsNSFW: null, ProfilePictureBase64: null, ""));
-        }
-        UiSharedService.AttachToolTip(Loc.Get("EditProfile.ClearDescriptionTooltip"));
-        
-        if (_vanityModalOpen && ImGui.BeginPopupModal("SetCustomIdModal", ref _vanityModalOpen, ImGuiWindowFlags.AlwaysAutoResize))
-        {
-            ImGui.TextUnformatted(Loc.Get("EditProfile.SetCustomId.Title"));
-            ImGuiHelpers.ScaledDummy(new Vector2(0f, ImGui.GetStyle().ItemSpacing.Y / 2));
-            ImGui.InputTextWithHint("##customId", Loc.Get("EditProfile.SetCustomId.Placeholder"), ref _vanityInput, 64);
-            UiSharedService.AttachToolTip(Loc.Get("EditProfile.SetCustomId.FormatHint"));
-
-            ImGuiHelpers.ScaledDummy(new Vector2(0f, ImGui.GetStyle().ItemSpacing.Y));
-            if (ImGui.Button(Loc.Get("EditProfile.SetCustomId.Confirm")))
-            {
-                _ = SubmitVanityAsync(_vanityInput);
-            }
-            ImGui.SameLine();
-            if (ImGui.Button(Loc.Get("Common.Cancel")))
-            {
-                _vanityModalOpen = false;
-                ImGui.CloseCurrentPopup();
-            }
-
-            ImGui.EndPopup();
-        }
+        ImGui.Separator();
     }
 
     protected override void Dispose(bool disposing)
