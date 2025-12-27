@@ -527,6 +527,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
 
         var updateModdedPaths = updatedData.Values.Any(v => v.Any(p => p == PlayerChanges.ModFiles));
         var updateManip = updatedData.Values.Any(v => v.Any(p => p == PlayerChanges.ModManip));
+        var hasOtherChanges = updatedData.Values.Any(v => v.Any(p => p != PlayerChanges.ModFiles && p != PlayerChanges.ModManip && p != PlayerChanges.ForcedRedraw));
 
         _downloadCancellationTokenSource = _downloadCancellationTokenSource?.CancelRecreate() ?? new CancellationTokenSource();
         var downloadToken = _downloadCancellationTokenSource.Token;
@@ -544,6 +545,14 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
 
             try
             {
+                // Optimize mod application to reduce redraws
+                if ((updateModdedPaths || updateManip) && !hasOtherChanges && !_forceApplyMods)
+                {
+                    Logger.LogDebug("[BASE-{appBase}] Applying mod changes only - skipping full redraw", applicationBase);
+                    await ApplyModChangesOnlyAsync(applicationBase, charaData, updatedData, updateModdedPaths, updateManip, downloadToken).ConfigureAwait(false);
+                    return;
+                }
+                
                 _currentProcessingHash = charaData.DataHash.Value;
                 await DownloadAndApplyCharacterAsync(applicationBase, charaData, updatedData, updateModdedPaths, updateManip, downloadToken).ConfigureAwait(false);
             }
@@ -552,6 +561,67 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
                 _applicationSemaphore.Release();
             }
         }, downloadToken);
+    }
+
+    /// <summary>
+    /// Apply only mod changes without forcing a full redraw when possible.
+    /// </summary>
+    private async Task ApplyModChangesOnlyAsync(Guid applicationBase, CharacterData charaData, 
+        Dictionary<ObjectKind, HashSet<PlayerChanges>> updatedData, bool updateModdedPaths, bool updateManip, CancellationToken token)
+    {
+        Logger.LogDebug("[BASE-{applicationBase}] Applying mod changes only", applicationBase);
+        
+        try
+        {
+            // For mod-only changes, we can use a simplified approach
+            // Create a minimal updatedData with only mod changes
+            var modOnlyUpdatedData = new Dictionary<ObjectKind, HashSet<PlayerChanges>>();
+            
+            foreach (var kvp in updatedData)
+            {
+                var modChanges = new HashSet<PlayerChanges>();
+                if (updateModdedPaths && kvp.Value.Contains(PlayerChanges.ModFiles))
+                {
+                    modChanges.Add(PlayerChanges.ModFiles);
+                }
+                if (updateManip && kvp.Value.Contains(PlayerChanges.ModManip))
+                {
+                    modChanges.Add(PlayerChanges.ModManip);
+                }
+                
+                // Only add if we have mod changes for this object kind
+                if (modChanges.Count > 0)
+                {
+                    modOnlyUpdatedData[kvp.Key] = modChanges;
+                }
+            }
+            
+            if (modOnlyUpdatedData.Count == 0)
+            {
+                Logger.LogDebug("[BASE-{applicationBase}] No mod changes to apply", applicationBase);
+                return;
+            }
+            
+            // Use the existing mechanism but without forcing a redraw
+            // Remove ForcedRedraw from the changes
+            foreach (var changes in modOnlyUpdatedData.Values)
+            {
+                changes.Remove(PlayerChanges.ForcedRedraw);
+            }
+            
+            Logger.LogDebug("[BASE-{applicationBase}] Applying mod changes using simplified mechanism", applicationBase);
+            
+            // Use the existing download and apply mechanism
+            await DownloadAndApplyCharacterAsync(applicationBase, charaData, modOnlyUpdatedData, updateModdedPaths, updateManip, token).ConfigureAwait(false);
+            
+            Logger.LogDebug("[BASE-{applicationBase}] Mod changes applied without forced redraw", applicationBase);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "[BASE-{applicationBase}] Failed to apply mod changes only, falling back to full apply", applicationBase);
+            // Fall back to full application if mod-only application fails
+            await DownloadAndApplyCharacterAsync(applicationBase, charaData, updatedData, updateModdedPaths, updateManip, token).ConfigureAwait(false);
+        }
     }
 
     private Task? _pairDownloadTask;

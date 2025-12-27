@@ -171,6 +171,14 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
     {
         return new List<ChangelogEntry>
         {
+            new(new Version(2, 0, 3, 5), "2.0.3.5", new List<ChangelogLine>
+            {
+                new("Ajustement de la gestion des redraws Penumbra pour permettre l'empilement des requêtes."),
+            }),
+            new(new Version(2, 0, 3, 4), "2.0.3.4", new List<ChangelogLine>
+            {
+                new("Optimisation de la gestion des mods Penumbra pour éviter les redraw inutiles."),
+            }),
             new(new Version(2, 0, 3, 3), "2.0.3.3", new List<ChangelogLine>
             {
                 new("Mise à jour de l'IPC Moodle."),
