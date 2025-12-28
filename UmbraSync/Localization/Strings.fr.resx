@@ -891,7 +891,7 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value />
   </data>
   <data name="SlotPopup.Title" xml:space="preserve">
-    <value>Nouveau Slot détecté</value>
+    <value>Syncshell Slot</value>
   </data>
   <data name="SlotPopup.WelcomeTo" xml:space="preserve">
     <value>Bienvenue à {0} !</value>
@@ -919,6 +919,9 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   </data>
   <data name="Slot.Toast.Leaving" xml:space="preserve">
     <value>Vous quittez le {0}</value>
+  </data>
+  <data name="Slot.Toast.AutoLeaveStarting" xml:space="preserve">
+    <value>Vous quittez les alentours de {0}. Vous serez exclu de la Syncshell dans 5 minutes si vous ne revenez pas dans la zone.</value>
   </data>
   <data name="SyncshellAdmin.Tab.Slot" xml:space="preserve">
     <value>Slot</value>
@@ -1017,7 +1020,7 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value>Annuler</value>
   </data>
   <data name="PopupHandler.CloseButton" xml:space="preserve">
-    <value />
+    <value>Fermer</value>
   </data>
   <data name="ReportPopup.Note" xml:space="preserve">
     <value />

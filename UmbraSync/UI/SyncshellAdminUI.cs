@@ -71,7 +71,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
     private float _slotX;
     private float _slotY;
     private float _slotZ;
-    private float _slotRadius = 10f;
+    private float _slotRadius = 25f;
     private bool _slotLoading = false;
     private readonly DalamudUtilService _dalamudUtilService;
 
@@ -612,9 +612,10 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
         ImGui.PopStyleColor();
         ImGuiHelpers.ScaledDummy(5);
 
-        if (ImGui.BeginTable("slots_table", 2, ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders))
+        if (ImGui.BeginTable("slots_table", 3, ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders))
         {
             ImGui.TableSetupColumn(Loc.Get("SyncshellAdmin.Slot.Name"), ImGuiTableColumnFlags.WidthStretch);
+            ImGui.TableSetupColumn(Loc.Get("SyncshellAdmin.Slot.Location"), ImGuiTableColumnFlags.WidthStretch);
             ImGui.TableSetupColumn(Loc.Get("SyncshellAdmin.Slot.Actions"), ImGuiTableColumnFlags.WidthFixed, 100 * ImGuiHelpers.GlobalScale);
             ImGui.TableHeadersRow();
 
@@ -631,6 +632,17 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                 }
 
                 ImGui.TableNextColumn();
+                if (slot.Location != null)
+                {
+                    ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, "X:{0:F1} Y:{1:F1} Z:{2:F1}", slot.Location.X, slot.Location.Y, slot.Location.Z));
+                    ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, "S:{0} T:{1} W:{2} P:{3}", slot.Location.ServerId, slot.Location.TerritoryId, slot.Location.WardId, slot.Location.PlotId));
+                }
+                else
+                {
+                    ImGui.TextDisabled("No location data");
+                }
+
+                ImGui.TableNextColumn();
                 if (_uiSharedService.IconButton(FontAwesomeIcon.Edit))
                 {
                     _selectedSlot = slot;
@@ -643,7 +655,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                     _slotX = slot.Location?.X ?? 0;
                     _slotY = slot.Location?.Y ?? 0;
                     _slotZ = slot.Location?.Z ?? 0;
-                    _slotRadius = 10f;
+                    _slotRadius = slot.Location?.Radius ?? 25f;
                 }
                 UiSharedService.AttachToolTip(Loc.Get("SyncshellAdmin.Slot.EditTooltip"));
                 ImGui.SameLine();
@@ -683,7 +695,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                 _slotX = 0;
                 _slotY = 0;
                 _slotZ = 0;
-                _slotRadius = 10f;
+                _slotRadius = 25f;
             }
         }
         else
@@ -701,6 +713,11 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
             _uiSharedService.DrawHelpText(Loc.Get("SyncshellAdmin.Slot.SlotDescriptionHelp"));
 
             ImGuiHelpers.ScaledDummy(5);
+            ImGui.TextUnformatted(Loc.Get("SyncshellAdmin.Slot.Radius"));
+            ImGui.SliderFloat("##slotradius", ref _slotRadius, 5f, 100f, "%.1f m");
+            _uiSharedService.DrawHelpText(Loc.Get("SyncshellAdmin.Slot.RadiusHelp"));
+
+            ImGuiHelpers.ScaledDummy(5);
             ImGui.TextUnformatted(Loc.Get("SyncshellAdmin.Slot.Location"));
             ImGui.Separator();
 
@@ -713,6 +730,12 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                     _slotX = player.Position.X;
                     _slotY = player.Position.Y;
                     _slotZ = player.Position.Z;
+                    
+                    var mapData = _dalamudUtilService.GetMapData();
+                    _slotTerritoryId = mapData.TerritoryId;
+                    _slotServerId = mapData.ServerId;
+
+                    _logger.LogInformation("Captured outside position: {x}, {y}, {z} on Territory {t}", _slotX, _slotY, _slotZ, _slotTerritoryId);
                 }
             }
             _uiSharedService.DrawHelpText(Loc.Get("SyncshellAdmin.Slot.GetOutsidePosHelp"));
@@ -724,9 +747,9 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
             {
                 var mapData = _dalamudUtilService.GetMapData();
                 _slotServerId = mapData.ServerId;
-                _slotTerritoryId = mapData.TerritoryId;
                 _slotWardId = mapData.WardId;
                 _slotPlotId = mapData.HouseId;
+                _logger.LogInformation("Captured housing info: S:{s} T:{t} W:{w} P:{p}", _slotServerId, _slotTerritoryId, _slotWardId, _slotPlotId);
             }
             _uiSharedService.DrawHelpText(Loc.Get("SyncshellAdmin.Slot.GetHousingInfoHelp"));
             if (_slotServerId != 0)
@@ -735,7 +758,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
             }
 
             ImGuiHelpers.ScaledDummy(10);
-            using (ImRaii.Disabled(string.IsNullOrWhiteSpace(_slotName) || (_slotPlotId == 0 && _slotRadius == 0)))
+            using (ImRaii.Disabled(string.IsNullOrWhiteSpace(_slotName) || (_slotPlotId == 0 && _slotRadius < 0.001f)))
             {
                 if (_uiSharedService.IconTextButton(FontAwesomeIcon.Save, Loc.Get("SyncshellAdmin.Slot.Save")))
                 {

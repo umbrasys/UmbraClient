@@ -78,6 +78,10 @@ public partial class ApiController
     {
         Logger.LogTrace("Client_GroupPairLeft: {dto}", groupPairDto);
         ExecuteSafely(() => _pairManager.RemoveGroupPair(groupPairDto));
+        if (string.Equals(groupPairDto.User.UID, _connectionDto?.User.UID, StringComparison.Ordinal))
+        {
+            Mediator.Publish(new GroupLeftMessage(groupPairDto.Group.GID));
+        }
         return Task.CompletedTask;
     }
 
@@ -192,7 +196,7 @@ public partial class ApiController
     public Task Client_UserUpdateProfile(UserDto dto)
     {
         Logger.LogDebug("Client_UserUpdateProfile: {dto}", dto);
-        ExecuteSafely(() => Mediator.Publish(new ClearProfileDataMessage(dto.User)));
+        ExecuteSafely(() => Mediator.Publish(new ClearProfileDataMessage(dto.User, dto.CharacterName, dto.WorldId)));
         return Task.CompletedTask;
     }
 

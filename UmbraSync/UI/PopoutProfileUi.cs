@@ -90,7 +90,7 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
         {
             var spacing = ImGui.GetStyle().ItemSpacing;
 
-            var umbraProfile = _umbraProfileManager.GetUmbraProfile(_pair.UserData);
+            var umbraProfile = _umbraProfileManager.GetUmbraProfile(_pair.UserData, _pair.PlayerName, _pair.WorldId);
 
             var accent = UiSharedService.AccentColor;
             if (accent.W <= 0f) accent = ImGuiColors.ParsedPurple;
@@ -197,8 +197,16 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
                     rpInfo += $"{Loc.Get("UserProfile.RpTitle")} : {umbraProfile.RpTitle}\n";
                 if (!string.IsNullOrEmpty(umbraProfile.RpAge))
                     rpInfo += $"{Loc.Get("UserProfile.RpAge")} : {umbraProfile.RpAge}\n";
+                if (!string.IsNullOrEmpty(umbraProfile.RpHeight))
+                    rpInfo += $"{Loc.Get("UserProfile.RpHeight")} : {umbraProfile.RpHeight}\n";
+                if (!string.IsNullOrEmpty(umbraProfile.RpBuild))
+                    rpInfo += $"{Loc.Get("UserProfile.RpBuild")} : {umbraProfile.RpBuild}\n";
                 if (!string.IsNullOrEmpty(umbraProfile.RpOccupation))
                     rpInfo += $"{Loc.Get("UserProfile.RpOccupation")} : {umbraProfile.RpOccupation}\n";
+                if (!string.IsNullOrEmpty(umbraProfile.RpAffiliation))
+                    rpInfo += $"{Loc.Get("UserProfile.RpAffiliation")} : {umbraProfile.RpAffiliation}\n";
+                if (!string.IsNullOrEmpty(umbraProfile.RpAlignment))
+                    rpInfo += $"{Loc.Get("UserProfile.RpAlignment")} : {umbraProfile.RpAlignment}\n";
 
                 if (!string.IsNullOrEmpty(rpInfo))
                 {

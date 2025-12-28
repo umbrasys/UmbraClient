@@ -54,7 +54,7 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
         try
         {
             var spacing = ImGui.GetStyle().ItemSpacing;
-            var umbraProfile = _umbraProfileManager.GetUmbraProfile(Pair.UserData);
+            var umbraProfile = _umbraProfileManager.GetUmbraProfile(Pair.UserData, Pair.PlayerName, Pair.WorldId);
 
             var accent = UiSharedService.AccentColor;
             if (accent.W <= 0f) accent = ImGuiColors.ParsedPurple;
