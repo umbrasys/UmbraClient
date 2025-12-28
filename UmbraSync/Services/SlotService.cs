@@ -17,8 +17,8 @@ namespace UmbraSync.Services;
 public class SlotService : MediatorSubscriberBase, IDisposable
 {
     private readonly ApiController _apiController;
-    private readonly SyncshellDiscoveryService _syncshellDiscoveryService;
     private readonly MareConfigService _configService;
+    private readonly TransientConfigService _transientConfigService;
     private readonly PairManager _pairManager;
     private readonly ChatService _chatService;
     private SlotSyncshellDto? _currentSlotSyncshell;
@@ -27,25 +27,60 @@ public class SlotService : MediatorSubscriberBase, IDisposable
     private readonly HashSet<Guid> _declinedSlots = [];
 
     public SlotService(ILogger<SlotService> logger, MareMediator mediator, ApiController apiController, 
-        SyncshellDiscoveryService syncshellDiscoveryService, MareConfigService configService, PairManager pairManager,
-        ChatService chatService) 
+        SyncshellDiscoveryService syncshellDiscoveryService, MareConfigService configService, TransientConfigService transientConfigService, 
+        PairManager pairManager, ChatService chatService) 
         : base(logger, mediator)
     {
         _apiController = apiController;
-        _syncshellDiscoveryService = syncshellDiscoveryService;
         _configService = configService;
+        _transientConfigService = transientConfigService;
         _pairManager = pairManager;
         _chatService = chatService;
+
+        Mediator.Subscribe<ConnectedMessage>(this, (msg) =>
+        {
+            var uid = msg.Connection.User.UID;
+            if (_transientConfigService.Current.LastJoinedSlotSyncshellPerUid.TryGetValue(uid, out var lastJoined))
+            {
+                _currentSlotSyncshell = lastJoined;
+                _joinedViaSlot = true;
+                Logger.LogInformation("Loaded last joined slot syncshell {name} for UID {uid}", _currentSlotSyncshell.Name, uid);
+            }
+            else
+            {
+                _currentSlotSyncshell = null;
+                _joinedViaSlot = false;
+            }
+        });
 
         Mediator.Subscribe<HousingPlotEnteredMessage>(this, (msg) => _ = OnHousingPlotEntered(msg.LocationInfo));
         Mediator.Subscribe<HousingPlotLeftMessage>(this, (msg) => OnHousingPlotLeft());
         Mediator.Subscribe<HousingPositionUpdateMessage>(this, (msg) => OnHousingPositionUpdate(msg.ServerId, msg.TerritoryId, msg.Position));
-        Mediator.Subscribe<DisconnectedMessage>(this, (_) => ClearState());
+        Mediator.Subscribe<DisconnectedMessage>(this, (msg) =>
+        {
+            _ = ClearState();
+        });
+        Mediator.Subscribe<GroupLeftMessage>(this, (msg) =>
+        {
+            if (_currentSlotSyncshell != null && string.Equals(msg.Gid, _currentSlotSyncshell.Gid, StringComparison.Ordinal))
+            {
+                Logger.LogInformation("Leaving slot syncshell {name} because user left the group", _currentSlotSyncshell.Name);
+                _currentSlotSyncshell = null;
+                _joinedViaSlot = false;
+                var uid = _apiController.UID;
+                if (!string.IsNullOrEmpty(uid))
+                {
+                    _transientConfigService.Current.LastJoinedSlotSyncshellPerUid.Remove(uid);
+                    _transientConfigService.Save();
+                }
+            }
+        });
     }
 
     private SlotInfoResponseDto? _detectedSlotByDistance = null;
     private SlotInfoResponseDto? _lastNotifiedSlot = null;
     private Vector3 _lastQueryPosition = Vector3.Zero;
+    private LocationInfo? _currentPlot = null;
 
     private static bool IsResidentialArea(uint territoryId)
     {
@@ -59,63 +94,127 @@ public class SlotService : MediatorSubscriberBase, IDisposable
     private async void OnHousingPositionUpdate(uint serverId, uint territoryId, Vector3 position)
     {
         if (!_configService.Current.EnableSlotNotifications) return;
-
-        // Uniquement dans les quartiers résidentiels
-        if (!IsResidentialArea(territoryId)) return;
-
-        // On ne fait rien si on a déjà rejoint une Syncshell via Slot
-        if (_joinedViaSlot) return;
-
-        // On évite de spammer les requêtes au serveur
+        if (!IsResidentialArea(territoryId)) 
+        {
+            Logger.LogTrace("OnHousingPositionUpdate: Not in a residential area (Territory: {id})", territoryId);
+            return;
+        }
         if (Vector3.Distance(position, _lastQueryPosition) < 2.0f) return;
+        
+        if (!_apiController.IsConnected) return;
+
         _lastQueryPosition = position;
 
-        var slotInfo = await _apiController.SlotGetNearby(serverId, territoryId, position.X, position.Y, position.Z).ConfigureAwait(false);
-        
-        // Si on détecte un slot à proximité et qu'on n'en avait pas ou que c'est un différent
-        if (slotInfo != null && _detectedSlotByDistance == null)
+        Logger.LogTrace("Querying SlotGetNearby (2D Distance) at {serverId}:{territoryId} Pos: {x},{y},{z}", serverId, territoryId, position.X, position.Y, position.Z);
+        try
         {
-            if (_declinedSlots.Contains(slotInfo.SlotId)) return;
-
-            _detectedSlotByDistance = slotInfo;
-            if (slotInfo.AssociatedSyncshell != null)
+            var slotInfo = await _apiController.SlotGetNearby(serverId, territoryId, position.X, position.Y, position.Z).ConfigureAwait(false);
+            if (slotInfo != null)
             {
-                _currentSlotSyncshell = slotInfo.AssociatedSyncshell;
-                var isMember = _pairManager.Groups.Any(g => string.Equals(g.Key.GID, slotInfo.AssociatedSyncshell.Gid, StringComparison.Ordinal));
-                if (isMember)
+                Logger.LogDebug("SlotGetNearby result: {name} (ID: {id})", slotInfo.SlotName, slotInfo.SlotId);
+            }
+            else
+            {
+                Logger.LogTrace("SlotGetNearby: No slot found at {x}, {y}, {z}", position.X, position.Y, position.Z);
+            }
+            
+            // Si on détecte un slot à proximité
+            if (slotInfo != null)
+            {
+                // Si un timer de sortie était en cours, on l'annule puisqu'on est de nouveau à proximité
+                if (_leaveTimerCts != null)
                 {
-                    if (_lastNotifiedSlot?.SlotId != slotInfo.SlotId)
+                    Logger.LogInformation("Player back in range of a Slot, canceling leave timer");
+                    await _leaveTimerCts.CancelAsync().ConfigureAwait(false);
+                    _leaveTimerCts.Dispose();
+                    _leaveTimerCts = null;
+                }
+
+                // Si on a déjà rejoint via Slot, on ne fait rien de plus
+                if (_joinedViaSlot) return;
+
+                // Si on n'avait pas encore détecté ce slot par distance
+                if (_detectedSlotByDistance == null)
+                {
+                    if (_declinedSlots.Contains(slotInfo.SlotId)) 
                     {
-                        _lastNotifiedSlot = slotInfo;
-                        Mediator.Publish(new NotificationMessage(Loc.Get("SlotPopup.Title"), string.Format(Loc.Get("Slot.Toast.Welcome"), slotInfo.SlotName), MareConfiguration.Models.NotificationType.Info));
+                        Logger.LogDebug("Slot {id} is in declined list, ignoring", slotInfo.SlotId);
+                        return;
+                    }
+
+                    _detectedSlotByDistance = slotInfo;
+                    if (slotInfo.AssociatedSyncshell != null)
+                    {
+                        _currentSlotSyncshell = slotInfo.AssociatedSyncshell;
+                        var isMember = _pairManager.Groups.Any(g => string.Equals(g.Key.GID, slotInfo.AssociatedSyncshell.Gid, StringComparison.Ordinal));
+                        Logger.LogDebug("Slot {name} member status: {isMember}", slotInfo.SlotName, isMember);
+                        if (isMember)
+                        {
+                            if (_lastNotifiedSlot?.SlotId != slotInfo.SlotId)
+                            {
+                                _lastNotifiedSlot = slotInfo;
+                                Mediator.Publish(new NotificationMessage(Loc.Get("SlotPopup.Title"), string.Format(Loc.Get("Slot.Toast.Welcome"), slotInfo.SlotName), MareConfiguration.Models.NotificationType.Info));
+                            }
+                        }
+                        else
+                        {
+                            _lastNotifiedSlot = slotInfo;
+                            Mediator.Publish(new OpenSlotPromptMessage(slotInfo));
+                        }
                     }
                 }
-                else
+            }
+            else if (slotInfo == null)
+            {
+                // Si on était dans un slot via le système de Slot, on lance le timer de 5 minutes si on s'éloigne
+                if (_joinedViaSlot && _currentSlotSyncshell != null && _leaveTimerCts == null && _currentPlot == null)
                 {
-                    _lastNotifiedSlot = slotInfo;
-                    Mediator.Publish(new OpenSlotPromptMessage(slotInfo));
+                    StartLeaveTimer();
                 }
+
+                if (_detectedSlotByDistance != null && _lastNotifiedSlot?.SlotId == _detectedSlotByDistance.SlotId)
+                {
+                    var isMember = _pairManager.Groups.Any(g => _detectedSlotByDistance.AssociatedSyncshell != null && string.Equals(g.Key.GID, _detectedSlotByDistance.AssociatedSyncshell.Gid, StringComparison.Ordinal));
+                    if (isMember && !_joinedViaSlot)
+                    {
+                        Mediator.Publish(new NotificationMessage(Loc.Get("SlotPopup.Title"), string.Format(Loc.Get("Slot.Toast.Leaving"), _detectedSlotByDistance.SlotName), MareConfiguration.Models.NotificationType.Info));
+                    }
+                    _lastNotifiedSlot = null;
+                }
+                _detectedSlotByDistance = null;
             }
         }
-        else if (slotInfo == null)
+        catch (Exception ex)
         {
-            _detectedSlotByDistance = null;
+            Logger.LogWarning(ex, "Error in OnHousingPositionUpdate");
         }
     }
 
-    private void ClearState()
+    private async Task ClearState()
     {
-        _leaveTimerCts?.Cancel();
-        _leaveTimerCts?.Dispose();
-        _leaveTimerCts = null;
-        _currentSlotSyncshell = null;
-        _joinedViaSlot = false;
+        if (_leaveTimerCts != null)
+        {
+            await _leaveTimerCts.CancelAsync().ConfigureAwait(false);
+            _leaveTimerCts.Dispose();
+            _leaveTimerCts = null;
+        }
+        _declinedSlots.Clear();
+        _detectedSlotByDistance = null;
+        _lastNotifiedSlot = null;
+        _lastQueryPosition = Vector3.Zero;
+        _currentPlot = null;
     }
 
     public void MarkJoinedViaSlot(SlotSyncshellDto syncshell)
     {
         _currentSlotSyncshell = syncshell;
         _joinedViaSlot = true;
+        var uid = _apiController.UID;
+        if (!string.IsNullOrEmpty(uid))
+        {
+            _transientConfigService.Current.LastJoinedSlotSyncshellPerUid[uid] = syncshell;
+            _transientConfigService.Save();
+        }
         Logger.LogInformation("Syncshell {name} marked as joined via Slot", syncshell.Name);
     }
 
@@ -125,9 +224,13 @@ public class SlotService : MediatorSubscriberBase, IDisposable
         if (!IsResidentialArea(location.TerritoryId)) return;
 
         Logger.LogInformation("Entered housing plot: {location}", location);
-        _leaveTimerCts?.Cancel();
-        _leaveTimerCts?.Dispose();
-        _leaveTimerCts = null;
+        _currentPlot = location;
+        if (_leaveTimerCts != null)
+        {
+            await _leaveTimerCts.CancelAsync().ConfigureAwait(false);
+            _leaveTimerCts.Dispose();
+            _leaveTimerCts = null;
+        }
 
         var slotLocation = new SlotLocationDto
         {
@@ -140,13 +243,27 @@ public class SlotService : MediatorSubscriberBase, IDisposable
         var slotInfo = await _apiController.SlotGetInfo(slotLocation).ConfigureAwait(false);
         if (slotInfo != null)
         {
-            if (_declinedSlots.Contains(slotInfo.SlotId)) return;
+            Logger.LogDebug("SlotGetInfo (plot) result: {name} (ID: {id})", slotInfo.SlotName, slotInfo.SlotId);
+        }
+        else
+        {
+            Logger.LogTrace("SlotGetInfo (plot): No slot found for plot {id}", slotLocation.PlotId);
+        }
+
+        if (slotInfo != null)
+        {
+            if (_declinedSlots.Contains(slotInfo.SlotId)) 
+            {
+                Logger.LogDebug("Slot {id} is in declined list, ignoring", slotInfo.SlotId);
+                return;
+            }
 
             Logger.LogInformation("Slot detected: {name}", slotInfo.SlotName);
             if (slotInfo.AssociatedSyncshell != null)
             {
                 _currentSlotSyncshell = slotInfo.AssociatedSyncshell;
                 var isMember = _pairManager.Groups.Any(g => string.Equals(g.Key.GID, slotInfo.AssociatedSyncshell.Gid, StringComparison.Ordinal));
+                Logger.LogDebug("Slot {name} member status: {isMember}", slotInfo.SlotName, isMember);
                 if (isMember)
                 {
                     if (_lastNotifiedSlot?.SlotId != slotInfo.SlotId)
@@ -164,23 +281,28 @@ public class SlotService : MediatorSubscriberBase, IDisposable
         }
     }
 
-    private void OnHousingPlotLeft()
+    private void StartLeaveTimer()
     {
-        Logger.LogInformation("Left housing plot");
-
-        if (_lastNotifiedSlot != null)
-        {
-            var isMember = _pairManager.Groups.Any(g => _lastNotifiedSlot.AssociatedSyncshell != null && string.Equals(g.Key.GID, _lastNotifiedSlot.AssociatedSyncshell.Gid, StringComparison.Ordinal));
-            if (isMember && !_joinedViaSlot)
-            {
-                Mediator.Publish(new NotificationMessage(Loc.Get("SlotPopup.Title"), string.Format(Loc.Get("Slot.Toast.Leaving"), _lastNotifiedSlot.SlotName), MareConfiguration.Models.NotificationType.Info));
-            }
-            _lastNotifiedSlot = null;
-        }
-
         if (_currentSlotSyncshell != null && _joinedViaSlot)
         {
+            if (_leaveTimerCts != null) return; // Déjà en cours
+
+            // Si l'utilisateur est le propriétaire de la Syncshell, on ne l'éjecte pas
+            var gid = _currentSlotSyncshell.Gid;
+            var group = _pairManager.Groups.Values.FirstOrDefault(g => string.Equals(g.Group.GID, gid, StringComparison.Ordinal));
+            if (group != null && string.Equals(group.Owner.UID, _apiController.UID, StringComparison.Ordinal))
+            {
+                Logger.LogInformation("User is owner of syncshell {name}, skipping leave timer", _currentSlotSyncshell.Name);
+                return;
+            }
+
             Logger.LogInformation("Starting 5 minute leave timer for syncshell {name}", _currentSlotSyncshell.Name);
+            var title = Loc.Get("SlotPopup.Title");
+            var message = string.Format(Loc.Get("Slot.Toast.AutoLeaveStarting"), _currentSlotSyncshell.Name);
+            Logger.LogDebug("Publishing leave notification: {title} - {message}", title, message);
+            
+            Mediator.Publish(new DualNotificationMessage(title, message, MareConfiguration.Models.NotificationType.Warning));
+
             _leaveTimerCts = new CancellationTokenSource();
             _ = Task.Run(async () =>
             {
@@ -197,6 +319,24 @@ public class SlotService : MediatorSubscriberBase, IDisposable
         }
     }
 
+    private void OnHousingPlotLeft()
+    {
+        Logger.LogInformation("Left housing plot");
+        _currentPlot = null;
+
+        if (_lastNotifiedSlot != null)
+        {
+            var isMember = _pairManager.Groups.Any(g => _lastNotifiedSlot.AssociatedSyncshell != null && string.Equals(g.Key.GID, _lastNotifiedSlot.AssociatedSyncshell.Gid, StringComparison.Ordinal));
+            if (isMember && !_joinedViaSlot)
+            {
+                Mediator.Publish(new NotificationMessage(Loc.Get("SlotPopup.Title"), string.Format(Loc.Get("Slot.Toast.Leaving"), _lastNotifiedSlot.SlotName), MareConfiguration.Models.NotificationType.Info));
+            }
+            _lastNotifiedSlot = null;
+        }
+
+        StartLeaveTimer();
+    }
+
     private async Task LeaveSlotSyncshell()
     {
         if (_currentSlotSyncshell != null)
@@ -204,6 +344,13 @@ public class SlotService : MediatorSubscriberBase, IDisposable
             Logger.LogInformation("Leaving slot syncshell {name} due to inactivity", _currentSlotSyncshell.Name);
             await _apiController.GroupLeave(new GroupDto(new GroupData(_currentSlotSyncshell.Gid))).ConfigureAwait(false);
             _currentSlotSyncshell = null;
+            _joinedViaSlot = false;
+            var uid = _apiController.UID;
+            if (!string.IsNullOrEmpty(uid))
+            {
+                _transientConfigService.Current.LastJoinedSlotSyncshellPerUid.Remove(uid);
+                _transientConfigService.Save();
+            }
         }
     }
 
@@ -217,8 +364,20 @@ public class SlotService : MediatorSubscriberBase, IDisposable
 
     public void Dispose()
     {
-        _leaveTimerCts?.Cancel();
-        _leaveTimerCts?.Dispose();
-        UnsubscribeAll();
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            if (_leaveTimerCts != null)
+            {
+                _ = _leaveTimerCts.CancelAsync().ConfigureAwait(false);
+                _leaveTimerCts.Dispose();
+            }
+            UnsubscribeAll();
+        }
     }
 }

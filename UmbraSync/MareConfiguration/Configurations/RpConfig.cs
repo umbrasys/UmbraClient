@@ -5,6 +5,13 @@ namespace UmbraSync.MareConfiguration.Configurations;
 [Serializable]
 public class RpConfig : IMareConfiguration
 {
+    public Dictionary<string, CharacterRpProfile> CharacterProfiles { get; set; } = new(StringComparer.Ordinal);
+    public int Version { get; set; } = 2;
+}
+
+[Serializable]
+public class CharacterRpProfile
+{
     public string RpDescription { get; set; } = string.Empty;
     public string RpProfilePictureBase64 { get; set; } = string.Empty;
     public bool IsRpNsfw { get; set; } = false;
@@ -18,5 +25,4 @@ public class RpConfig : IMareConfiguration
     public string RpAffiliation { get; set; } = string.Empty;
     public string RpAlignment { get; set; } = string.Empty;
     public string RpAdditionalInfo { get; set; } = string.Empty;
-    public int Version { get; set; } = 1;
 }

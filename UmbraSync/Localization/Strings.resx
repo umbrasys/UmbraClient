@@ -1009,7 +1009,7 @@ Click to change.</value>
     <value>Ban User</value>
   </data>
   <data name="SlotPopup.Title" xml:space="preserve">
-    <value>New Slot detected</value>
+    <value>Syncshell Slot</value>
   </data>
   <data name="SlotPopup.WelcomeTo" xml:space="preserve">
     <value>Welcome to {0}!</value>
@@ -1037,6 +1037,9 @@ Click to change.</value>
   </data>
   <data name="Slot.Toast.Leaving" xml:space="preserve">
     <value>You are leaving {0}</value>
+  </data>
+  <data name="Slot.Toast.AutoLeaveStarting" xml:space="preserve">
+    <value>You are leaving the vicinity of {0}. You will be removed from the Syncshell in 5 minutes if you do not return to the area.</value>
   </data>
   <data name="SyncshellAdmin.Tab.Slot" xml:space="preserve">
     <value>Slot</value>

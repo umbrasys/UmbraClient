@@ -69,7 +69,7 @@ public record DownloadStartedMessage(GameObjectHandler DownloadId, Dictionary<st
 public record DownloadFinishedMessage(GameObjectHandler DownloadId) : MessageBase;
 public record UiToggleMessage(Type UiType) : MessageBase;
 public record PlayerUploadingMessage(GameObjectHandler Handler, bool IsUploading) : MessageBase;
-public record ClearProfileDataMessage(UserData? UserData = null) : MessageBase;
+public record ClearProfileDataMessage(UserData? UserData = null, string? CharacterName = null, uint? WorldId = null) : MessageBase;
 public record CyclePauseMessage(UserData UserData) : MessageBase;
 public record PauseMessage(UserData UserData) : MessageBase;
 public record ProfilePopoutToggle(Pair? Pair) : MessageBase;
@@ -120,6 +120,7 @@ public record NearbyDetectionToggled(bool Enabled) : MessageBase;
 public record AllowPairRequestsToggled(bool Enabled) : MessageBase;
 public record SyncshellDiscoveryUpdated(List<SyncshellDiscoveryEntryDto> Entries) : MessageBase;
 public record SyncshellAutoDetectStateChanged(string Gid, bool Visible, bool PasswordTemporarilyDisabled) : MessageBase;
+public record GroupLeftMessage(string Gid) : MessageBase;
 public record HousingPlotEnteredMessage(LocationInfo LocationInfo) : MessageBase;
 public record HousingPlotLeftMessage : MessageBase;
 public record HousingPositionUpdateMessage(uint ServerId, uint TerritoryId, Vector3 Position) : MessageBase;

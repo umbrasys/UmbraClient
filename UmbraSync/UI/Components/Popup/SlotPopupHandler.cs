@@ -65,7 +65,7 @@ public class SlotPopupHandler : IPopupHandler
             if (_uiSharedService.IconTextButton(FontAwesomeIcon.Plus, Loc.Get("SlotPopup.JoinButton")))
             {
                 _slotService.MarkJoinedViaSlot(_slotInfo.AssociatedSyncshell);
-                _ = _apiController.SyncshellDiscoveryJoin(new GroupDto(new GroupData(_slotInfo.AssociatedSyncshell.Gid)));
+                _ = _apiController.SlotJoin(_slotInfo.SlotId);
                 ImGui.CloseCurrentPopup();
             }
             
