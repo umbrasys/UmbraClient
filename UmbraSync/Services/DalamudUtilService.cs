@@ -181,6 +181,7 @@ public class DalamudUtilService : IHostedService, IMediatorSubscriber
     public bool IsOnFrameworkThread => _framework.IsInFrameworkUpdateThread;
     public bool IsZoning => _condition[ConditionFlag.BetweenAreas] || _condition[ConditionFlag.BetweenAreas51];
     public bool IsInCombatOrPerforming { get; private set; } = false;
+    public bool IsInHousingMode => _condition[ConditionFlag.UsingHousingFunctions];
     public bool HasModifiedGameFiles => _gameData.HasModifiedGameDataFiles;
 
     public bool IsConditionActive(string flagName)

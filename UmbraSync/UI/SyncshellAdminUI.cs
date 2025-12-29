@@ -634,8 +634,10 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                 ImGui.TableNextColumn();
                 if (slot.Location != null)
                 {
-                    ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, "X:{0:F1} Y:{1:F1} Z:{2:F1}", slot.Location.X, slot.Location.Y, slot.Location.Z));
-                    ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, "S:{0} T:{1} W:{2} P:{3}", slot.Location.ServerId, slot.Location.TerritoryId, slot.Location.WardId, slot.Location.PlotId));
+                    string worldName = _dalamudUtilService.WorldData.Value.TryGetValue((ushort)slot.Location.ServerId, out var world) ? world : slot.Location.ServerId.ToString();
+                    string territoryName = _dalamudUtilService.TerritoryData.Value.TryGetValue(slot.Location.TerritoryId, out var territory) ? territory : slot.Location.TerritoryId.ToString();
+                    ImGui.TextUnformatted($"{worldName}, {territoryName}");
+                    ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, "S:{0} P:{1} (X:{2:F1} Y:{3:F1} Z:{4:F1})", slot.Location.WardId, slot.Location.PlotId, slot.Location.X, slot.Location.Y, slot.Location.Z));
                 }
                 else
                 {
@@ -743,15 +745,32 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
 
             ImGuiHelpers.ScaledDummy(5);
             ImGui.TextUnformatted(Loc.Get("SyncshellAdmin.Slot.Step2Inside"));
-            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Home, Loc.Get("SyncshellAdmin.Slot.GetHousingInfo")))
+
+            // Vérifier si le joueur est en mode housing
+            var isInHousingEditMode = _dalamudUtilService.IsInHousingMode;
+
+            using (ImRaii.Disabled(!isInHousingEditMode))
             {
-                var mapData = _dalamudUtilService.GetMapData();
-                _slotServerId = mapData.ServerId;
-                _slotWardId = mapData.WardId;
-                _slotPlotId = mapData.HouseId;
-                _logger.LogInformation("Captured housing info: S:{s} T:{t} W:{w} P:{p}", _slotServerId, _slotTerritoryId, _slotWardId, _slotPlotId);
+                if (_uiSharedService.IconTextButton(FontAwesomeIcon.Home, Loc.Get("SyncshellAdmin.Slot.GetHousingInfo")))
+                {
+                    var currentMapData = _dalamudUtilService.GetMapData();
+                    _slotServerId = currentMapData.ServerId;
+                    _slotWardId = currentMapData.WardId;
+                    _slotPlotId = currentMapData.HouseId;
+                    _logger.LogInformation("Captured housing info: S:{s} T:{t} W:{w} P:{p}", _slotServerId, _slotTerritoryId, _slotWardId, _slotPlotId);
+                }
             }
-            _uiSharedService.DrawHelpText(Loc.Get("SyncshellAdmin.Slot.GetHousingInfoHelp"));
+
+            if (!isInHousingEditMode)
+            {
+                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, 0.5f, 0.2f, 1.0f));
+                ImGui.TextWrapped(Loc.Get("SyncshellAdmin.Slot.MustBeInHousingEditMode"));
+                ImGui.PopStyleColor();
+            }
+            else
+            {
+                _uiSharedService.DrawHelpText(Loc.Get("SyncshellAdmin.Slot.GetHousingInfoHelp"));
+            }
             if (_slotServerId != 0)
             {
                 ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("SyncshellAdmin.Slot.HousingSummary"), _slotServerId, _slotTerritoryId, _slotWardId, _slotPlotId));

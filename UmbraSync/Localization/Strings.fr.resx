@@ -911,6 +911,33 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="SlotPopup.DeclineButton" xml:space="preserve">
     <value>Refuser</value>
   </data>
+  <data name="SlotPopup.VenueLocation" xml:space="preserve">
+    <value>Localisation du lieu :</value>
+  </data>
+  <data name="SlotPopup.Host" xml:space="preserve">
+    <value>Hôte :</value>
+  </data>
+  <data name="SlotPopup.AboutVenue" xml:space="preserve">
+    <value>À propos de ce lieu</value>
+  </data>
+  <data name="SlotPopup.VenueRegistered" xml:space="preserve">
+    <value>Ce housing possède une Syncshell associée.</value>
+  </data>
+  <data name="SlotPopup.CloseButton" xml:space="preserve">
+    <value>Fermer</value>
+  </data>
+  <data name="SlotPopup.NoSyncshell" xml:space="preserve">
+    <value>Aucune Syncshell n'est associée à ce lieu.</value>
+  </data>
+  <data name="SlotPopup.JoinPermanentlyCheckbox" xml:space="preserve">
+    <value>Rejoindre cette Syncshell de manière permanente</value>
+  </data>
+  <data name="SlotPopup.JoinPermanentlyTooltip" xml:space="preserve">
+    <value>Si cochée, vous resterez dans cette Syncshell même après avoir quitté la zone du lieu. Vous devrez quitter manuellement la Syncshell plus tard.</value>
+  </data>
+  <data name="SlotPopup.PermanentJoinNotice" xml:space="preserve">
+    <value>✓ Vous resterez dans cette Syncshell de manière permanente (pas d'auto-déconnexion).</value>
+  </data>
   <data name="Slot.Decline.Notification" xml:space="preserve">
     <value>Vous avez refusé de rejoindre la Syncshell pour {0}. Vous ne serez plus sollicité pour ce lieu durant cette session.</value>
   </data>
@@ -967,6 +994,9 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   </data>
   <data name="SyncshellAdmin.Slot.GetHousingInfoHelp" xml:space="preserve">
     <value>Entrez dans la maison (à l'intérieur de la parcelle) et cliquez sur ce bouton.</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.MustBeInHousingEditMode" xml:space="preserve">
+    <value>⚠️ Vous devez être en Mode Édition de Housing (Mode Aménagement) pour enregistrer ce housing. Activez-le via le menu Housing → Mode Aménagement. Cette mesure de sécurité garantit que seul le propriétaire du housing peut enregistrer un slot.</value>
   </data>
   <data name="SyncshellAdmin.Slot.HousingSummary" xml:space="preserve">
     <value>Infos Housing : S:{0} | T:{1} | W:{2} | P:{3}</value>

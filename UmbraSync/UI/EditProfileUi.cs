@@ -334,8 +334,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                             profile.RpProfilePictureBase64, profile.RpDescription, profile.IsRpNsfw,
                             profile.RpFirstName, profile.RpLastName, profile.RpTitle, profile.RpAge,
                             profile.RpHeight, profile.RpBuild, profile.RpOccupation, profile.RpAffiliation,
-                            profile.RpAlignment, profile.RpAdditionalInfo,
-                            charaName, worldId)).ConfigureAwait(false);
+                            profile.RpAlignment, profile.RpAdditionalInfo)).ConfigureAwait(false);
                     }
                     else
                     {
@@ -358,9 +357,9 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             _fileDialogManager.OpenFileDialog(Loc.Get("EditProfile.SelectImageButton"), "Image files{.png,.jpg,.jpeg}", (success, name) =>
             {
                 if (!success) return;
-                        var charaName = _dalamudUtil.GetPlayerName();
-                        var worldId = _dalamudUtil.GetWorldId();
-                        _ = Task.Run(async () =>
+                var charaName = _dalamudUtil.GetPlayerName();
+                var worldId = _dalamudUtil.GetWorldId();
+                _ = Task.Run(async () =>
                         {
                             try
                             {
@@ -381,8 +380,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                                         profile.RpProfilePictureBase64, profile.RpDescription, profile.IsRpNsfw,
                                         profile.RpFirstName, profile.RpLastName, profile.RpTitle, profile.RpAge,
                                         profile.RpHeight, profile.RpBuild, profile.RpOccupation, profile.RpAffiliation,
-                                        profile.RpAlignment, profile.RpAdditionalInfo,
-                                        charaName, worldId)).ConfigureAwait(false);
+                                        profile.RpAlignment, profile.RpAdditionalInfo)).ConfigureAwait(false);
                                 }
                                 else
                                 {
