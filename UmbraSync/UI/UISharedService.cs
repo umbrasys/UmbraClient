@@ -640,7 +640,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         return clicked;
     }
 
-    private bool IconTextButtonInternal(FontAwesomeIcon icon, string text, Vector4? defaultColor = null, float? width = null, bool useAccentHover = true)
+    private bool IconTextButtonInternal(FontAwesomeIcon icon, string text, Vector4? defaultColor = null, float? width = null, bool useAccentHover = true, float? height = null)
     {
         int colorsPushed = 0;
         if (defaultColor.HasValue)
@@ -656,21 +656,29 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         }
 
         ImGui.PushID(text);
-        Vector2 vector;
+        Vector2 iconSize;
         using (IconFont.Push())
-            vector = ImGui.CalcTextSize(icon.ToIconString());
-        Vector2 vector2 = ImGui.CalcTextSize(text);
+            iconSize = ImGui.CalcTextSize(icon.ToIconString());
+        Vector2 textSize = ImGui.CalcTextSize(text);
         ImDrawListPtr windowDrawList = ImGui.GetWindowDrawList();
         Vector2 cursorScreenPos = ImGui.GetCursorScreenPos();
-        float num2 = 3f * ImGuiHelpers.GlobalScale;
-        float x = width ?? vector.X + vector2.X + ImGui.GetStyle().FramePadding.X * 2f + num2;
-        float frameHeight = ImGui.GetFrameHeight();
-        bool result = ImGui.Button(string.Empty, new Vector2(x, frameHeight));
-        Vector2 pos = new Vector2(cursorScreenPos.X + ImGui.GetStyle().FramePadding.X, cursorScreenPos.Y + ImGui.GetStyle().FramePadding.Y);
+        float spacing = 3f * ImGuiHelpers.GlobalScale;
+        float totalContentWidth = iconSize.X + spacing + textSize.X;
+        float x = width ?? totalContentWidth + ImGui.GetStyle().FramePadding.X * 2f;
+        float h = height ?? ImGui.GetFrameHeight();
+        
+        bool result = ImGui.Button(string.Empty, new Vector2(x, h));
+        
+        float offsetX = (x - totalContentWidth) / 2f;
+        float offsetY = (h - MathF.Max(iconSize.Y, textSize.Y)) / 2f;
+        
+        Vector2 iconPos = new Vector2(cursorScreenPos.X + offsetX, cursorScreenPos.Y + offsetY);
         using (IconFont.Push())
-            windowDrawList.AddText(pos, ImGui.GetColorU32(ImGuiCol.Text), icon.ToIconString());
-        Vector2 pos2 = new Vector2(pos.X + vector.X + num2, cursorScreenPos.Y + ImGui.GetStyle().FramePadding.Y);
-        windowDrawList.AddText(pos2, ImGui.GetColorU32(ImGuiCol.Text), text);
+            windowDrawList.AddText(iconPos, ImGui.GetColorU32(ImGuiCol.Text), icon.ToIconString());
+            
+        Vector2 textPos = new Vector2(iconPos.X + iconSize.X + spacing, cursorScreenPos.Y + offsetY);
+        windowDrawList.AddText(textPos, ImGui.GetColorU32(ImGuiCol.Text), text);
+        
         ImGui.PopID();
         if (colorsPushed > 0)
         {
@@ -680,12 +688,13 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         return result;
     }
 
-    public bool IconTextButton(FontAwesomeIcon icon, string text, float? width = null, bool isInPopup = false)
+    public bool IconTextButton(FontAwesomeIcon icon, string text, float? width = null, bool isInPopup = false, Vector4? buttonColor = null, float? height = null)
     {
         return IconTextButtonInternal(icon, text,
-            isInPopup ? ColorHelpers.RgbaUintToVector4(ImGui.GetColorU32(ImGuiCol.PopupBg)) : null,
+            buttonColor ?? (isInPopup ? ColorHelpers.RgbaUintToVector4(ImGui.GetColorU32(ImGuiCol.PopupBg)) : null),
             width <= 0 ? null : width,
-            !isInPopup);
+            !isInPopup,
+            height <= 0 ? null : height);
     }
 
     public static bool IsDirectoryWritable(string dirPath, bool throwIfFails = false)

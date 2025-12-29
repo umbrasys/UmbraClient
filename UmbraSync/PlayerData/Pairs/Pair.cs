@@ -108,8 +108,10 @@ public class Pair : DisposableMediatorSubscriberBase
     public IEnumerable<string> HoldApplicationReasons => Enumerable.Concat(HoldDownloadLocks.Keys, HoldApplicationLocks.Keys);
 
     public bool IsVisible => CachedPlayer?.IsVisible ?? false;
-    public uint WorldId => _onlineUserIdentDto?.WorldId ?? 0;
+    public uint WorldId => 0;
+    
     public CharacterData? LastReceivedCharacterData { get; set; }
+
     public string? PlayerName => GetPlayerName();
     public uint PlayerCharacterId => GetPlayerCharacterId();
     public long LastAppliedDataBytes => CachedPlayer?.LastAppliedDataBytes ?? -1;

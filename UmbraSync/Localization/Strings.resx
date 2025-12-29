@@ -1029,6 +1029,33 @@ Click to change.</value>
   <data name="SlotPopup.DeclineButton" xml:space="preserve">
     <value>Decline</value>
   </data>
+  <data name="SlotPopup.VenueLocation" xml:space="preserve">
+    <value>Venue location:</value>
+  </data>
+  <data name="SlotPopup.Host" xml:space="preserve">
+    <value>Host:</value>
+  </data>
+  <data name="SlotPopup.AboutVenue" xml:space="preserve">
+    <value>About this venue</value>
+  </data>
+  <data name="SlotPopup.VenueRegistered" xml:space="preserve">
+    <value>This housing plot has a Syncshell associated with it.</value>
+  </data>
+  <data name="SlotPopup.CloseButton" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="SlotPopup.NoSyncshell" xml:space="preserve">
+    <value>No Syncshell is associated with this venue.</value>
+  </data>
+  <data name="SlotPopup.JoinPermanentlyCheckbox" xml:space="preserve">
+    <value>Join this Syncshell permanently</value>
+  </data>
+  <data name="SlotPopup.JoinPermanentlyTooltip" xml:space="preserve">
+    <value>If checked, you will remain in this Syncshell even after leaving the venue area. You will need to manually leave the Syncshell later.</value>
+  </data>
+  <data name="SlotPopup.PermanentJoinNotice" xml:space="preserve">
+    <value>✓ You will stay in this Syncshell permanently (no auto-leave).</value>
+  </data>
   <data name="Slot.Decline.Notification" xml:space="preserve">
     <value>You have declined to join the Syncshell for {0}. You will not be prompted again for this location during this session.</value>
   </data>
@@ -1085,6 +1112,9 @@ Click to change.</value>
   </data>
   <data name="SyncshellAdmin.Slot.GetHousingInfoHelp" xml:space="preserve">
     <value>Enter the house (inside the plot) and click this button.</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.MustBeInHousingEditMode" xml:space="preserve">
+    <value>⚠️ You must be in Housing Edit Mode (Layout Mode) to register this housing. Activate it by clicking the Housing menu → Layout Mode. This security measure ensures only the housing owner can register a slot.</value>
   </data>
   <data name="SyncshellAdmin.Slot.HousingSummary" xml:space="preserve">
     <value>Housing Info: S:{0} | T:{1} | W:{2} | P:{3}</value>
