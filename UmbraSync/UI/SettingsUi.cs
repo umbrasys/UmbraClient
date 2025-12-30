@@ -282,72 +282,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
             : Loc.Get("Settings.DownloadQueue.MaxStreams"));
 
         ImGui.Separator();
-        _uiShared.BigText("AutoDetect");
-        bool isAutoDetectSuppressed = _autoDetectSuppressionService.IsSuppressed;
-        bool enableDiscovery = _configService.Current.EnableAutoDetectDiscovery;
-        using (ImRaii.Disabled(isAutoDetectSuppressed))
-        {
-            if (ImGui.Checkbox(Loc.Get("Settings.AutoDetect.Enable"), ref enableDiscovery))
-            {
-                _configService.Current.EnableAutoDetectDiscovery = enableDiscovery;
-                _configService.Save();
-
-                // notify services of toggle
-                Mediator.Publish(new NearbyDetectionToggled(enableDiscovery));
-
-                // if Nearby is turned OFF, force Allow Pair Requests OFF as well
-                if (!enableDiscovery && _configService.Current.AllowAutoDetectPairRequests)
-                {
-                    _configService.Current.AllowAutoDetectPairRequests = false;
-                    _configService.Save();
-                    Mediator.Publish(new AllowPairRequestsToggled(false));
-                }
-            }
-            if (isAutoDetectSuppressed && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
-            {
-                UiSharedService.AttachToolTip(Loc.Get("Settings.AutoDetect.SuppressedTooltip"));
-            }
-        }
-
-        // Allow Pair Requests is disabled when Nearby is OFF
-        using (ImRaii.Disabled(isAutoDetectSuppressed || !enableDiscovery))
-        {
-            bool allowRequests = _configService.Current.AllowAutoDetectPairRequests;
-            if (ImGui.Checkbox(Loc.Get("Settings.AutoDetect.AllowInvites"), ref allowRequests))
-            {
-                _configService.Current.AllowAutoDetectPairRequests = allowRequests;
-                _configService.Save();
-
-                // notify services of toggle
-                Mediator.Publish(new AllowPairRequestsToggled(allowRequests));
-
-                // user-facing info toast
-                Mediator.Publish(new NotificationMessage(
-                    "AutoDetect",
-                    allowRequests ? Loc.Get("Settings.AutoDetect.InvitesEnabled") : Loc.Get("Settings.AutoDetect.InvitesDisabled"),
-                    NotificationType.Info,
-                    default));
-            }
-            if (isAutoDetectSuppressed && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
-            {
-                UiSharedService.AttachToolTip(Loc.Get("Settings.AutoDetect.SuppressedTooltip"));
-            }
-        }
-
-        var enableSlotNotifications = _configService.Current.EnableSlotNotifications;
-        if (ImGui.Checkbox(Loc.Get("Settings.AutoDetect.EnableSlotNotifications"), ref enableSlotNotifications))
-        {
-            _configService.Current.EnableSlotNotifications = enableSlotNotifications;
-            _configService.Save();
-        }
-        _uiShared.DrawHelpText(Loc.Get("Settings.AutoDetect.EnableSlotNotificationsHelp"));
-
-        if (isAutoDetectSuppressed)
-        {
-            UiSharedService.ColorTextWrapped(Loc.Get("Settings.AutoDetect.LockedInInstance"), ImGuiColors.DalamudYellow);
-        }
-
-        ImGui.Separator();
         _uiShared.BigText("Transfer UI");
 
         bool showTransferWindow = _configService.Current.ShowTransferWindow;
@@ -1129,6 +1063,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         var showOfflineSeparate = _configService.Current.ShowOfflineUsersSeparately;
         var showProfiles = _configService.Current.ProfilesShow;
         var showNsfwProfiles = _configService.Current.ProfilesAllowNsfw;
+        var showRpNsfwProfiles = _configService.Current.ProfilesAllowRpNsfw;
         var profileDelay = _configService.Current.ProfileDelay;
         var profileOnRight = _configService.Current.ProfilePopoutRight;
         var enableRightClickMenu = _configService.Current.EnableRightClickMenus;
@@ -1285,6 +1220,14 @@ public class SettingsUi : WindowMediatorSubscriberBase
             _configService.Save();
         }
         _uiShared.DrawHelpText("Will show profiles that have the NSFW tag enabled");
+
+        if (ImGui.Checkbox("Show RP profiles marked as NSFW", ref showRpNsfwProfiles))
+        {
+            Mediator.Publish(new ClearProfileDataMessage());
+            _configService.Current.ProfilesAllowRpNsfw = showRpNsfwProfiles;
+            _configService.Save();
+        }
+        _uiShared.DrawHelpText("Will show RP profiles that have the RP NSFW tag enabled");
 
         ImGui.Separator();
 
@@ -2058,6 +2001,12 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 ImGui.EndTabItem();
             }
 
+            if (ImGui.BeginTabItem("AutoDetect"))
+            {
+                DrawAutoDetect();
+                ImGui.EndTabItem();
+            }
+
             if (ImGui.BeginTabItem("Chat"))
             {
                 DrawChatConfig();
@@ -2080,6 +2029,77 @@ public class SettingsUi : WindowMediatorSubscriberBase
             ImGui.PopStyleColor(2);
 
             ImGui.EndTabBar();
+        }
+    }
+
+    private void DrawAutoDetect()
+    {
+        _lastTab = "AutoDetect";
+        _uiShared.BigText("AutoDetect");
+        
+        bool isAutoDetectSuppressed = _autoDetectSuppressionService.IsSuppressed;
+        bool enableDiscovery = _configService.Current.EnableAutoDetectDiscovery;
+        
+        using (ImRaii.Disabled(isAutoDetectSuppressed))
+        {
+            if (ImGui.Checkbox(Loc.Get("Settings.AutoDetect.Enable"), ref enableDiscovery))
+            {
+                _configService.Current.EnableAutoDetectDiscovery = enableDiscovery;
+                _configService.Save();
+
+                // notify services of toggle
+                Mediator.Publish(new NearbyDetectionToggled(enableDiscovery));
+
+                // if Nearby is turned OFF, force Allow Pair Requests OFF as well
+                if (!enableDiscovery && _configService.Current.AllowAutoDetectPairRequests)
+                {
+                    _configService.Current.AllowAutoDetectPairRequests = false;
+                    _configService.Save();
+                    Mediator.Publish(new AllowPairRequestsToggled(false));
+                }
+            }
+            if (isAutoDetectSuppressed && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+            {
+                UiSharedService.AttachToolTip(Loc.Get("Settings.AutoDetect.SuppressedTooltip"));
+            }
+        }
+
+        // Allow Pair Requests is disabled when Nearby is OFF
+        using (ImRaii.Disabled(isAutoDetectSuppressed || !enableDiscovery))
+        {
+            bool allowRequests = _configService.Current.AllowAutoDetectPairRequests;
+            if (ImGui.Checkbox(Loc.Get("Settings.AutoDetect.AllowInvites"), ref allowRequests))
+            {
+                _configService.Current.AllowAutoDetectPairRequests = allowRequests;
+                _configService.Save();
+
+                // notify services of toggle
+                Mediator.Publish(new AllowPairRequestsToggled(allowRequests));
+
+                // user-facing info toast
+                Mediator.Publish(new NotificationMessage(
+                    "AutoDetect",
+                    allowRequests ? Loc.Get("Settings.AutoDetect.InvitesEnabled") : Loc.Get("Settings.AutoDetect.InvitesDisabled"),
+                    NotificationType.Info,
+                    default));
+            }
+            if (isAutoDetectSuppressed && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+            {
+                UiSharedService.AttachToolTip(Loc.Get("Settings.AutoDetect.SuppressedTooltip"));
+            }
+        }
+
+        var enableSlotNotifications = _configService.Current.EnableSlotNotifications;
+        if (ImGui.Checkbox(Loc.Get("Settings.AutoDetect.EnableSlotNotifications"), ref enableSlotNotifications))
+        {
+            _configService.Current.EnableSlotNotifications = enableSlotNotifications;
+            _configService.Save();
+        }
+        _uiShared.DrawHelpText(Loc.Get("Settings.AutoDetect.EnableSlotNotificationsHelp"));
+
+        if (isAutoDetectSuppressed)
+        {
+            UiSharedService.ColorTextWrapped(Loc.Get("Settings.AutoDetect.LockedInInstance"), ImGuiColors.DalamudYellow);
         }
     }
 

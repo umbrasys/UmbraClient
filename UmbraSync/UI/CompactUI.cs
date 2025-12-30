@@ -1584,8 +1584,17 @@ public class CompactUi : WindowMediatorSubscriberBase
                         if (!string.IsNullOrEmpty(notification.Description))
                         {
                             ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudGrey3);
-                            ImGui.TextUnformatted(notification.Description);
+                            ImGui.TextWrapped(notification.Description);
                             ImGui.PopStyleColor();
+                        }
+
+                        ImGuiHelpers.ScaledDummy(3f);
+                        using (ImRaii.PushId($"notification-default-{notification.Id}"))
+                        {
+                            if (ImGui.Button(Loc.Get("CompactUi.Notifications.Clear") + "##" + notification.Id))
+                            {
+                                _notificationTracker.Remove(notification.Category, notification.Id);
+                            }
                         }
                     }, stretchWidth: true);
                     break;

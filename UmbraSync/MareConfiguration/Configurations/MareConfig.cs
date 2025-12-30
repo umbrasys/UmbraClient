@@ -51,6 +51,7 @@ public class MareConfig : IMareConfiguration
     public float ProfileDelay { get; set; } = 1.5f;
     public bool ProfilePopoutRight { get; set; } = false;
     public bool ProfilesAllowNsfw { get; set; } = false;
+    public bool ProfilesAllowRpNsfw { get; set; } = false;
     public bool ProfilesShow { get; set; } = false;
     public bool ShowSyncshellUsersInVisible { get; set; } = true;
     [SuppressMessage("Major Code Smell", "S1133:Do not forget to remove this deprecated code someday", Justification = "Legacy config needed for migration")]

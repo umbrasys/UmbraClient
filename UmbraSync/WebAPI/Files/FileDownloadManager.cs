@@ -490,6 +490,10 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
                 .SendRequestAsync(HttpMethod.Post, uri, hashes, ct)
                 .ConfigureAwait(false);
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "getFileSizes POST threw before response");
@@ -512,6 +516,10 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
                     // Old servers might return text/plain with a double-serialized JSON string
                     var body = await getFallback.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
                     return ParseDownloadFileDtoList(body);
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
                 }
                 catch (Exception ex)
                 {
@@ -538,6 +546,10 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
                         string.Join("; ", getRetry.Headers.Select(h => h.Key + ":" + string.Join(",", h.Value))),
                         getBody);
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {

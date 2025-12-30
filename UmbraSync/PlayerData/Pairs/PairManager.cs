@@ -153,6 +153,9 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
     {
         Logger.LogDebug("Clearing all Pairs");
         DisposePairs();
+        _allClientPairs.Clear();
+        _allGroups.Clear();
+        LastAddedUser = null;
         RecreateLazy();
     }
 
@@ -803,6 +806,13 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
     private void DisposePairs()
     {
         Logger.LogDebug("Disposing all Pairs");
+        foreach (var pending in _pendingOffline)
+        {
+            pending.Value.Cancel();
+            pending.Value.Dispose();
+        }
+        _pendingOffline.Clear();
+
         Parallel.ForEach(_allClientPairs, item =>
         {
             item.Value.MarkOffline(wait: false);

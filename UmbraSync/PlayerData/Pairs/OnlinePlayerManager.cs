@@ -43,6 +43,7 @@ public class OnlinePlayerManager : DisposableMediatorSubscriberBase
         });
         Mediator.Subscribe<PairHandlerVisibleMessage>(this, (msg) => _newVisiblePlayers.Add(msg.Player));
         Mediator.Subscribe<ConnectedMessage>(this, (_) => PushCharacterData(_pairManager.GetVisibleUsers()));
+        Mediator.Subscribe<DisconnectedMessage>(this, (_) => _lastSentData = null);
     }
 
     private void FrameworkOnUpdate()

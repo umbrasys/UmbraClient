@@ -177,6 +177,9 @@
   <data name="Settings.Transfer.Precache.Status.CompletedSkipped" xml:space="preserve">
     <value>Terminé avec {0} ignoré(s)</value>
   </data>
+  <data name="Settings.Transfer.Precache.Status.WaitingConnection" xml:space="preserve">
+    <value>En attente de connexion au serveur</value>
+  </data>
   
   <!-- Vanity / Custom ID in Edit Profile (FR) -->
   <data name="EditProfile.SetCustomId.Button" xml:space="preserve">
@@ -444,7 +447,7 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value>AutoDetect</value>
   </data>
   <data name="CompactUi.Notifications.Clear" xml:space="preserve">
-    <value />
+    <value>Ok</value>
   </data>
   <data name="CompactUi.Notifications.Decline" xml:space="preserve">
     <value>Refuser</value>
@@ -3249,6 +3252,12 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   </data>
   <data name="UserProfile.NoRpDescription" xml:space="preserve">
     <value>L'utilisateur n'a pas défini de description RP.</value>
+  </data>
+  <data name="UserProfile.RpDescription" xml:space="preserve">
+    <value>Description RP</value>
+  </data>
+  <data name="UserProfile.RpNsfwHelp" xml:space="preserve">
+    <value>Si activé, votre profil RP sera masqué pour les utilisateurs qui ont l'option "Afficher les profils RP marqués comme NSFW" désactivée.</value>
   </data>
   <data name="EditProfile.PreviewButton" xml:space="preserve">
     <value>Prévisualiser mon profil</value>

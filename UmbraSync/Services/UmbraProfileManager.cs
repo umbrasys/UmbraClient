@@ -15,7 +15,9 @@ public class UmbraProfileManager : MediatorSubscriberBase
     private const string _noDescription = "-- User has no description set --";
     private const string _nsfw = "Profile not displayed - NSFW";
     private readonly ApiController _apiController;
+    private readonly DalamudUtilService _dalamudUtil;
     private readonly MareConfigService _mareConfigService;
+    private readonly RpConfigService _rpConfigService;
     private readonly PairManager _pairManager;
     private readonly ConcurrentDictionary<(UserData User, string? CharName, uint? WorldId), UmbraProfileData> _umbraProfiles = new();
 
@@ -25,11 +27,13 @@ public class UmbraProfileManager : MediatorSubscriberBase
 
     public UmbraProfileManager(ILogger<UmbraProfileManager> logger, MareConfigService mareConfigService,
         RpConfigService rpConfigService, MareMediator mediator, ApiController apiController,
-        PairManager pairManager) : base(logger, mediator)
+        PairManager pairManager, DalamudUtilService dalamudUtil) : base(logger, mediator)
     {
         _mareConfigService = mareConfigService;
+        _rpConfigService = rpConfigService;
         _apiController = apiController;
         _pairManager = pairManager;
+        _dalamudUtil = dalamudUtil;
 
         Mediator.Subscribe<ClearProfileDataMessage>(this, (msg) =>
         {
@@ -52,7 +56,9 @@ public class UmbraProfileManager : MediatorSubscriberBase
     public UmbraProfileData GetUmbraProfile(UserData data)
     {
         var pair = _pairManager.GetPairByUID(data.UID);
-        return GetUmbraProfile(data, pair?.PlayerName, pair?.WorldId);
+        var charName = pair?.PlayerName ?? (string.Equals(data.UID, _apiController.UID, StringComparison.Ordinal) ? _dalamudUtil.GetPlayerName() : null);
+        var worldId = pair?.WorldId ?? (string.Equals(data.UID, _apiController.UID, StringComparison.Ordinal) ? _dalamudUtil.GetWorldId() : null);
+        return GetUmbraProfile(data, charName, worldId);
     }
 
     public UmbraProfileData GetUmbraProfile(UserData data, string? charName, uint? worldId)
@@ -67,13 +73,23 @@ public class UmbraProfileManager : MediatorSubscriberBase
         return (profile);
     }
 
-    private async Task GetUmbraProfileFromService(UserData data, string? charName = null, uint? worldId = null)
+    public void SetPreviewProfile(UserData data, string? charName, uint? worldId, UmbraProfileData profileData)
+    {
+        var key = (data, charName, worldId);
+        _umbraProfiles[key] = profileData;
+    }
+
+    public async Task GetUmbraProfileFromService(UserData data, string? charName = null, uint? worldId = null)
     {
         var key = (data, charName, worldId);
         try
         {
             _umbraProfiles[key] = _loadingProfileData;
-            var profile = await _apiController.UserGetProfile(new API.Dto.User.UserDto(data)).ConfigureAwait(false);
+            var profile = await _apiController.UserGetProfile(new API.Dto.User.UserDto(data)
+            {
+                CharacterName = charName,
+                WorldId = worldId
+            }).ConfigureAwait(false);
             UmbraProfileData profileData = new(profile.Disabled, profile.IsNSFW ?? false,
                 string.IsNullOrEmpty(profile.ProfilePictureBase64) ? string.Empty : profile.ProfilePictureBase64,
                 string.IsNullOrEmpty(profile.Description) ? _noDescription : profile.Description,
@@ -81,7 +97,39 @@ public class UmbraProfileManager : MediatorSubscriberBase
                 profile.RpFirstName, profile.RpLastName, profile.RpTitle, profile.RpAge,
                 profile.RpHeight, profile.RpBuild, profile.RpOccupation, profile.RpAffiliation,
                 profile.RpAlignment, profile.RpAdditionalInfo);
-            if (profileData.IsNSFW && !_mareConfigService.Current.ProfilesAllowNsfw && !string.Equals(_apiController.UID, data.UID, StringComparison.Ordinal))
+
+            if (_apiController.IsConnected && string.Equals(_apiController.UID, data.UID, StringComparison.Ordinal) && charName != null && worldId != null)
+            {
+                var localRpProfile = _rpConfigService.GetCharacterProfile(charName, worldId.Value);
+                bool changed = false;
+                if (!string.Equals(localRpProfile.RpFirstName, profileData.RpFirstName, StringComparison.Ordinal)) { localRpProfile.RpFirstName = profileData.RpFirstName ?? string.Empty; changed = true; }
+                if (!string.Equals(localRpProfile.RpLastName, profileData.RpLastName, StringComparison.Ordinal)) { localRpProfile.RpLastName = profileData.RpLastName ?? string.Empty; changed = true; }
+                if (!string.Equals(localRpProfile.RpTitle, profileData.RpTitle, StringComparison.Ordinal)) { localRpProfile.RpTitle = profileData.RpTitle ?? string.Empty; changed = true; }
+                if (!string.Equals(localRpProfile.RpDescription, profileData.RpDescription, StringComparison.Ordinal)) { localRpProfile.RpDescription = profileData.RpDescription ?? string.Empty; changed = true; }
+                if (!string.Equals(localRpProfile.RpAge, profileData.RpAge, StringComparison.Ordinal)) { localRpProfile.RpAge = profileData.RpAge ?? string.Empty; changed = true; }
+                if (!string.Equals(localRpProfile.RpHeight, profileData.RpHeight, StringComparison.Ordinal)) { localRpProfile.RpHeight = profileData.RpHeight ?? string.Empty; changed = true; }
+                if (!string.Equals(localRpProfile.RpBuild, profileData.RpBuild, StringComparison.Ordinal)) { localRpProfile.RpBuild = profileData.RpBuild ?? string.Empty; changed = true; }
+                if (!string.Equals(localRpProfile.RpOccupation, profileData.RpOccupation, StringComparison.Ordinal)) { localRpProfile.RpOccupation = profileData.RpOccupation ?? string.Empty; changed = true; }
+                if (!string.Equals(localRpProfile.RpAffiliation, profileData.RpAffiliation, StringComparison.Ordinal)) { localRpProfile.RpAffiliation = profileData.RpAffiliation ?? string.Empty; changed = true; }
+                if (!string.Equals(localRpProfile.RpAlignment, profileData.RpAlignment, StringComparison.Ordinal)) { localRpProfile.RpAlignment = profileData.RpAlignment ?? string.Empty; changed = true; }
+                if (!string.Equals(localRpProfile.RpAdditionalInfo, profileData.RpAdditionalInfo, StringComparison.Ordinal)) { localRpProfile.RpAdditionalInfo = profileData.RpAdditionalInfo ?? string.Empty; changed = true; }
+                if (localRpProfile.IsRpNsfw != profileData.IsRpNSFW) { localRpProfile.IsRpNsfw = profileData.IsRpNSFW; changed = true; }
+                if (!string.Equals(localRpProfile.RpProfilePictureBase64, profileData.Base64RpProfilePicture, StringComparison.Ordinal)) { localRpProfile.RpProfilePictureBase64 = profileData.Base64RpProfilePicture ?? string.Empty; changed = true; }
+
+                if (changed)
+                {
+                    Logger.LogInformation("Local RP profile updated from server for {uid}", data.UID);
+                    _rpConfigService.Save();
+                    Mediator.Publish(new ClearProfileDataMessage(new UserData(_apiController.UID), charName, worldId));
+                }
+            }
+
+            bool isSelf = string.Equals(_apiController.UID, data.UID, StringComparison.Ordinal);
+            if (profileData.IsNSFW && !_mareConfigService.Current.ProfilesAllowNsfw && !isSelf)
+            {
+                _umbraProfiles[key] = _nsfwProfileData;
+            }
+            else if (profileData.IsRpNSFW && !_mareConfigService.Current.ProfilesAllowRpNsfw && !isSelf)
             {
                 _umbraProfiles[key] = _nsfwProfileData;
             }

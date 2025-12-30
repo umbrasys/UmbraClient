@@ -13,15 +13,20 @@ public class RpConfigService : ConfigurationServiceBase<RpConfig>
         _dalamudUtil = dalamudUtil;
     }
     public override string ConfigurationName => ConfigName;
-    public string CurrentCharacterKey => $"{_dalamudUtil.GetPlayerName()}@{_dalamudUtil.GetWorldId()}";
-    public CharacterRpProfile GetCurrentCharacterProfile()
+    public string GetCharacterKey(string charName, uint worldId) => $"{charName}@{worldId}";
+    public string CurrentCharacterKey => GetCharacterKey(_dalamudUtil.GetPlayerName(), _dalamudUtil.GetWorldId());
+    public CharacterRpProfile GetCharacterProfile(string charName, uint worldId)
     {
-        var key = CurrentCharacterKey;
+        var key = GetCharacterKey(charName, worldId);
         if (!Current.CharacterProfiles.TryGetValue(key, out var profile))
         {
             profile = new CharacterRpProfile();
             Current.CharacterProfiles[key] = profile;
         }
         return profile;
+    }
+    public CharacterRpProfile GetCurrentCharacterProfile()
+    {
+        return GetCharacterProfile(_dalamudUtil.GetPlayerName(), _dalamudUtil.GetWorldId());
     }
 }

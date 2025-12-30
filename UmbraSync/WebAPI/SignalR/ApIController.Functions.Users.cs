@@ -61,8 +61,24 @@ public partial class ApiController
 
     public async Task<UserProfileDto> UserGetProfile(UserDto dto)
     {
-        if (!IsConnected) return new UserProfileDto(dto.User, false, null, null, null);
-        return await _mareHub!.InvokeAsync<UserProfileDto>(nameof(UserGetProfile), dto).ConfigureAwait(false);
+        if (!IsConnected)
+        {
+            Logger.LogTrace("UserGetProfile: Not connected, returning empty profile");
+            return new UserProfileDto(dto.User, false, null, null, null);
+        }
+
+        try
+        {
+            Logger.LogTrace("Fetching profile for {uid}", dto.User.UID);
+            var result = await _mareHub!.InvokeAsync<UserProfileDto>(nameof(UserGetProfile), dto).ConfigureAwait(false);
+            Logger.LogTrace("Profile fetched successfully for {uid}", dto.User.UID);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error fetching profile for {uid}", dto.User.UID);
+            return new UserProfileDto(dto.User, false, null, null, null);
+        }
     }
 
     public async Task UserPushData(UserCharaDataMessageDto dto)
@@ -96,8 +112,24 @@ public partial class ApiController
 
     public async Task UserSetProfile(UserProfileDto userDescription)
     {
-        if (!IsConnected) return;
-        await _mareHub!.InvokeAsync(nameof(UserSetProfile), userDescription).ConfigureAwait(false);
+        if (!IsConnected)
+        {
+            Logger.LogWarning("Cannot set profile: Not connected to server");
+            return;
+        }
+
+        try
+        {
+            var json = System.Text.Json.JsonSerializer.Serialize(userDescription, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            Logger.LogInformation("Sending UserSetProfile to server for {uid}. Data: {json}", userDescription.User.UID, json);
+            await _mareHub!.InvokeAsync(nameof(UserSetProfile), userDescription).ConfigureAwait(false);
+            Logger.LogInformation("UserSetProfile successfully sent to server");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error during UserSetProfile");
+            throw;
+        }
     }
 
     public async Task UserSetAlias(string? alias)
