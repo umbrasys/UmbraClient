@@ -109,7 +109,7 @@ public class SlotPopupHandler : IPopupHandler
             ImGui.TextColored(iconColor, FontAwesomeIcon.MapMarkerAlt.ToIconString());
             ImGui.PopFont();
             ImGui.SameLine();
-            ImGui.TextColored(new Vector4(0.9f, 0.9f, 0.9f, 1.0f), Loc.Get("SlotPopup.VenueLocation"));
+            ImGui.TextColored(new Vector4(0.9f, 0.9f, 0.9f, 1.0f), Loc.Get("SlotPopup.SlotLocation"));
             ImGui.SameLine();
 
             string worldName = _dalamudUtilService.WorldData.Value.TryGetValue((ushort)_slotInfo.Location.ServerId, out var world) ? world : _slotInfo.Location.ServerId.ToString();
@@ -138,7 +138,7 @@ public class SlotPopupHandler : IPopupHandler
 
         // Titre de la section
         ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, 1.0f, 1.0f, 1.0f));
-        ImGui.Text(Loc.Get("SlotPopup.AboutVenue"));
+        ImGui.Text(Loc.Get("SlotPopup.AboutSlot"));
         ImGui.PopStyleColor();
         ImGui.Spacing();
 
@@ -180,7 +180,7 @@ public class SlotPopupHandler : IPopupHandler
             var infoColor = new Vector4(0.9f, 0.9f, 0.7f, 1.0f);
             ImGui.PushStyleColor(ImGuiCol.Text, infoColor);
             ImGui.PushTextWrapPos();
-            ImGui.Text(Loc.Get("SlotPopup.VenueRegistered"));
+            ImGui.Text(Loc.Get("SlotPopup.SlotRegistered"));
             ImGui.Spacing();
 
             if (!_joinPermanently)
@@ -252,8 +252,6 @@ public class SlotPopupHandler : IPopupHandler
             }
 
             ImGui.SameLine(0, spacing);
-
-            // Bouton Close avec style rouge
             var closeText = Loc.Get("SlotPopup.CloseButton");
             if (_uiSharedService.IconTextButton(FontAwesomeIcon.Times, closeText, buttonWidth, isInPopup: true, buttonColor: new Vector4(0.6f, 0.2f, 0.2f, 1.0f), height: buttonHeight))
             {

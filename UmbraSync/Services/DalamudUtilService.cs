@@ -326,6 +326,17 @@ public class DalamudUtilService : IHostedService, IMediatorSubscriber
         return IntPtr.Zero;
     }
 
+    public bool TryGetWorldIdByIdent(string ident, out ushort worldId)
+    {
+        if (_playerCharas.TryGetValue(ident, out var pchar))
+        {
+            worldId = (ushort)pchar.HomeWorldId;
+            return true;
+        }
+        worldId = 0;
+        return false;
+    }
+
     public bool TryGetPlayerCharacterByObjectId(uint objectId, out PlayerCharacter playerCharacter)
     {
         foreach (var entry in _playerCharas.Values)

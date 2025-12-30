@@ -883,6 +883,11 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         PlayerName = name;
         _charaHandler = _gameObjectHandlerFactory.Create(ObjectKind.Player, () => _dalamudUtil.GetPlayerCharacterFromCachedTableByIdent(Pair.Ident), isWatched: false).GetAwaiter().GetResult();
 
+        if (_dalamudUtil.TryGetWorldIdByIdent(Pair.Ident, out var worldId))
+        {
+            Pair.SetWorldId(worldId);
+        }
+
         Mediator.Subscribe<HonorificReadyMessage>(this, msg =>
         {
             if (string.IsNullOrEmpty(_cachedData?.HonorificData)) return;

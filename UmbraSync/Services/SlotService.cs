@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using UmbraSync.Services.Mediator;
+using UmbraSync.Services.Notification;
 using UmbraSync.WebAPI.SignalR;
 using UmbraSync.API.Dto.Slot;
 using UmbraSync.API.Dto.CharaData;
@@ -21,14 +22,15 @@ public class SlotService : MediatorSubscriberBase, IDisposable
     private readonly TransientConfigService _transientConfigService;
     private readonly PairManager _pairManager;
     private readonly ChatService _chatService;
+    private readonly NotificationTracker _notificationTracker;
     private SlotSyncshellDto? _currentSlotSyncshell;
     private bool _joinedViaSlot = false;
     private CancellationTokenSource? _leaveTimerCts;
     private readonly HashSet<Guid> _declinedSlots = [];
 
-    public SlotService(ILogger<SlotService> logger, MareMediator mediator, ApiController apiController, 
-        SyncshellDiscoveryService syncshellDiscoveryService, MareConfigService configService, TransientConfigService transientConfigService, 
-        PairManager pairManager, ChatService chatService) 
+    public SlotService(ILogger<SlotService> logger, MareMediator mediator, ApiController apiController,
+        SyncshellDiscoveryService syncshellDiscoveryService, MareConfigService configService, TransientConfigService transientConfigService,
+        PairManager pairManager, ChatService chatService, NotificationTracker notificationTracker)
         : base(logger, mediator)
     {
         _apiController = apiController;
@@ -36,6 +38,7 @@ public class SlotService : MediatorSubscriberBase, IDisposable
         _transientConfigService = transientConfigService;
         _pairManager = pairManager;
         _chatService = chatService;
+        _notificationTracker = notificationTracker;
 
         Mediator.Subscribe<ConnectedMessage>(this, (msg) =>
         {
@@ -300,8 +303,9 @@ public class SlotService : MediatorSubscriberBase, IDisposable
             var title = Loc.Get("SlotPopup.Title");
             var message = string.Format(Loc.Get("Slot.Toast.AutoLeaveStarting"), _currentSlotSyncshell.Name);
             Logger.LogDebug("Publishing leave notification: {title} - {message}", title, message);
-            
+
             Mediator.Publish(new DualNotificationMessage(title, message, MareConfiguration.Models.NotificationType.Warning));
+            _notificationTracker.Upsert(NotificationEntry.SlotConflict(_currentSlotSyncshell.Name));
 
             _leaveTimerCts = new CancellationTokenSource();
             _ = Task.Run(async () =>

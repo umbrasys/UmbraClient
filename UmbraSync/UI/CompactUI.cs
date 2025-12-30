@@ -1717,6 +1717,7 @@ public class CompactUi : WindowMediatorSubscriberBase
             if (!accepted)
             {
                 Mediator.Publish(new NotificationMessage(Loc.Get("CompactUi.Notifications.AutoDetectTitle"), string.Format(CultureInfo.CurrentCulture, Loc.Get("CompactUi.Notifications.AcceptFailed"), uid), NotificationType.Warning, TimeSpan.FromSeconds(5)));
+                _notificationTracker.Upsert(NotificationEntry.AcceptPairRequestFailed(uid));
             }
         });
     }

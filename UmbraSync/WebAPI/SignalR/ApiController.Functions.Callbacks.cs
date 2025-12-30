@@ -7,6 +7,7 @@ using UmbraSync.API.Dto.Group;
 using UmbraSync.API.Dto.User;
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.Services.Mediator;
+using UmbraSync.Services.Notification;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using static FFXIVClientStructs.FFXIV.Client.Game.UI.MapMarkerData.Delegates;
@@ -105,10 +106,12 @@ public partial class ApiController
         {
             case MessageSeverity.Error:
                 Mediator.Publish(new NotificationMessage("Warning from " + _serverManager.CurrentServer!.ServerName, message, NotificationType.Error, TimeSpan.FromSeconds(7.5)));
+                _notificationTracker.Upsert(NotificationEntry.ServerMessageError(_serverManager.CurrentServer!.ServerName, message));
                 break;
 
             case MessageSeverity.Warning:
                 Mediator.Publish(new NotificationMessage("Warning from " + _serverManager.CurrentServer!.ServerName, message, NotificationType.Warning, TimeSpan.FromSeconds(7.5)));
+                _notificationTracker.Upsert(NotificationEntry.ServerMessageWarning(_serverManager.CurrentServer!.ServerName, message));
                 break;
 
             case MessageSeverity.Information:

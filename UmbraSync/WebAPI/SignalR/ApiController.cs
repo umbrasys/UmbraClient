@@ -10,6 +10,7 @@ using UmbraSync.MareConfiguration.Models;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
+using UmbraSync.Services.Notification;
 using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.WebAPI.SignalR;
 using UmbraSync.WebAPI.SignalR.Utils;
@@ -25,13 +26,14 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
     public const string UmbraServer = "UmbraSync Main Server";
     public const string UmbraServiceUri = "wss://umbra-sync.net/";
     public const string UmbraServiceApiUri = "wss://umbra-sync.net/";
-    public const string UmbraServiceHubUri = "wss://umbra-sync.net/mare";  
+    public const string UmbraServiceHubUri = "wss://umbra-sync.net/mare";
 
     private readonly DalamudUtilService _dalamudUtil;
     private readonly HubFactory _hubFactory;
     private readonly PairManager _pairManager;
     private readonly ServerConfigurationManager _serverManager;
     private readonly TokenProvider _tokenProvider;
+    private readonly NotificationTracker _notificationTracker;
     private CancellationTokenSource _connectionCancellationTokenSource;
     private ConnectionDto? _connectionDto;
     private bool _doNotNotifyOnNextInfo = false;
@@ -43,13 +45,14 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
 
     public ApiController(ILogger<ApiController> logger, HubFactory hubFactory, DalamudUtilService dalamudUtil,
         PairManager pairManager, ServerConfigurationManager serverManager, MareMediator mediator,
-        TokenProvider tokenProvider) : base(logger, mediator)
+        TokenProvider tokenProvider, NotificationTracker notificationTracker) : base(logger, mediator)
     {
         _hubFactory = hubFactory;
         _dalamudUtil = dalamudUtil;
         _pairManager = pairManager;
         _serverManager = serverManager;
         _tokenProvider = tokenProvider;
+        _notificationTracker = notificationTracker;
         _connectionCancellationTokenSource = new CancellationTokenSource();
 
         Mediator.Subscribe<DalamudLoginMessage>(this, (_) => DalamudUtilOnLogIn());
@@ -193,11 +196,13 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
                 {
                     if (_connectionDto.CurrentClientVersion > currentClientVer)
                     {
+                        var currentVer = $"{currentClientVer.Major}.{currentClientVer.Minor}.{currentClientVer.Build}";
+                        var requiredVer = $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}";
                         Mediator.Publish(new NotificationMessage("Client incompatible",
-                            $"Your client is outdated ({currentClientVer.Major}.{currentClientVer.Minor}.{currentClientVer.Build}), current is: " +
-                            $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}. " +
+                            $"Your client is outdated ({currentVer}), current is: {requiredVer}. " +
                             $"This client version is incompatible and will not be able to connect. Please update your Umbra client.",
                             NotificationType.Error));
+                        _notificationTracker.Upsert(NotificationEntry.ClientIncompatible(currentVer, requiredVer));
                     }
                     await StopConnection(ServerState.VersionMisMatch).ConfigureAwait(false);
                     return;
@@ -205,11 +210,13 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
 
                 if (_connectionDto.CurrentClientVersion > currentClientVer)
                 {
+                    var currentVer = $"{currentClientVer.Major}.{currentClientVer.Minor}.{currentClientVer.Build}";
+                    var latestVer = $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}";
                     Mediator.Publish(new NotificationMessage("Client outdated",
-                        $"Your client is outdated ({currentClientVer.Major}.{currentClientVer.Minor}.{currentClientVer.Build}), current is: " +
-                        $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}. " +
+                        $"Your client is outdated ({currentVer}), current is: {latestVer}. " +
                         $"Please keep your Umbra client up-to-date.",
                         NotificationType.Warning, TimeSpan.FromSeconds(15)));
+                    _notificationTracker.Upsert(NotificationEntry.ClientOutdated(currentVer, latestVer));
                 }
 
                 if (_dalamudUtil.HasModifiedGameFiles)

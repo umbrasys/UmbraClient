@@ -34,6 +34,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
     private readonly RpConfigService _rpConfigService;
     private readonly UiSharedService _uiSharedService;
     private readonly DalamudUtilService _dalamudUtil;
+    private readonly NotificationTracker _notificationTracker;
     private string _descriptionText = string.Empty;
     private string _rpDescriptionText = string.Empty;
     private string _rpFirstNameText = string.Empty;
@@ -58,7 +59,8 @@ public class EditProfileUi : WindowMediatorSubscriberBase
     public EditProfileUi(ILogger<EditProfileUi> logger, MareMediator mediator,
         ApiController apiController, UiSharedService uiSharedService, FileDialogManager fileDialogManager,
         UmbraProfileManager umbraProfileManager, PairManager pairManager, PairFactory pairFactory,
-        RpConfigService rpConfigService, DalamudUtilService dalamudUtil, PerformanceCollectorService performanceCollectorService)
+        RpConfigService rpConfigService, DalamudUtilService dalamudUtil, NotificationTracker notificationTracker,
+        PerformanceCollectorService performanceCollectorService)
         : base(logger, mediator, $"{Loc.Get("EditProfile.WindowTitle")}###UmbraSyncEditProfileUI", performanceCollectorService)
     {
         IsOpen = false;
@@ -75,15 +77,14 @@ public class EditProfileUi : WindowMediatorSubscriberBase
         _pairFactory = pairFactory;
         _rpConfigService = rpConfigService;
         _dalamudUtil = dalamudUtil;
+        _notificationTracker = notificationTracker;
 
         Mediator.Subscribe<GposeStartMessage>(this, (_) => { _wasOpen = IsOpen; IsOpen = false; });
         Mediator.Subscribe<GposeEndMessage>(this, (_) => IsOpen = _wasOpen);
         Mediator.Subscribe<DisconnectedMessage>(this, (_) => IsOpen = false);
         Mediator.Subscribe<ClearProfileDataMessage>(this, (msg) =>
         {
-            if (msg.UserData != null && string.Equals(msg.UserData.UID, _apiController.UID, StringComparison.Ordinal) &&
-                (msg.CharacterName == null || string.Equals(msg.CharacterName, _dalamudUtil.GetPlayerName(), StringComparison.Ordinal)) &&
-                (msg.WorldId == null || msg.WorldId == _dalamudUtil.GetWorldId()))
+            if (msg.UserData != null && string.Equals(msg.UserData.UID, _apiController.UID, StringComparison.Ordinal))
             {
                 _pfpTextureWrap?.Dispose();
                 _pfpTextureWrap = null;
@@ -320,34 +321,33 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                 _profileDescription = _descriptionText;
             }
 
-            var charaName = _dalamudUtil.GetPlayerName();
-            var worldId = _dalamudUtil.GetWorldId();
+            var rpProfile = isRp ? _rpConfigService.GetCurrentCharacterProfile() : null;
             _ = Task.Run(async () =>
             {
                 try
                 {
                     var curProfile = await _apiController.UserGetProfile(new UserDto(new UserData(_apiController.UID))).ConfigureAwait(false);
-                    if (isRp)
+                    if (isRp && rpProfile != null)
                     {
-                        var profile = _rpConfigService.GetCurrentCharacterProfile();
                         await _apiController.UserSetProfile(new UserProfileDto(new UserData(_apiController.UID), curProfile.Disabled, curProfile.IsNSFW, curProfile.ProfilePictureBase64, curProfile.Description,
-                            profile.RpProfilePictureBase64, profile.RpDescription, profile.IsRpNsfw,
-                            profile.RpFirstName, profile.RpLastName, profile.RpTitle, profile.RpAge,
-                            profile.RpHeight, profile.RpBuild, profile.RpOccupation, profile.RpAffiliation,
-                            profile.RpAlignment, profile.RpAdditionalInfo)).ConfigureAwait(false);
+                            rpProfile.RpProfilePictureBase64, rpProfile.RpDescription, rpProfile.IsRpNsfw,
+                            rpProfile.RpFirstName, rpProfile.RpLastName, rpProfile.RpTitle, rpProfile.RpAge,
+                            rpProfile.RpHeight, rpProfile.RpBuild, rpProfile.RpOccupation, rpProfile.RpAffiliation,
+                            rpProfile.RpAlignment, rpProfile.RpAdditionalInfo)).ConfigureAwait(false);
                     }
                     else
                     {
                         await _apiController.UserSetProfile(new UserProfileDto(new UserData(_apiController.UID), curProfile.Disabled, _apiController.IsProfileNsfw, curProfile.ProfilePictureBase64, _descriptionText,
                             curProfile.RpProfilePictureBase64, curProfile.RpDescription, curProfile.IsRpNSFW)).ConfigureAwait(false);
                     }
-                    Mediator.Publish(new ClearProfileDataMessage(new UserData(_apiController.UID), charaName, worldId));
+                    Mediator.Publish(new ClearProfileDataMessage(new UserData(_apiController.UID), null, null));
                     Mediator.Publish(new NotificationMessage(Loc.Get("EditProfile.SaveSuccessTitle"), Loc.Get("EditProfile.SaveSuccessBody"), NotificationType.Info));
                 }
                 catch (Exception ex)
                 {
                     _logger.LogWarning(ex, "Failed to save profile");
                     Mediator.Publish(new NotificationMessage(Loc.Get("EditProfile.SaveErrorTitle"), Loc.Get("EditProfile.SaveErrorBody"), NotificationType.Error));
+                    _notificationTracker.Upsert(NotificationEntry.ProfileSaveFailed());
                 }
             });
         }
@@ -357,8 +357,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             _fileDialogManager.OpenFileDialog(Loc.Get("EditProfile.SelectImageButton"), "Image files{.png,.jpg,.jpeg}", (success, name) =>
             {
                 if (!success) return;
-                var charaName = _dalamudUtil.GetPlayerName();
-                var worldId = _dalamudUtil.GetWorldId();
+                var rpProfile = isRp ? _rpConfigService.GetCurrentCharacterProfile() : null;
                 _ = Task.Run(async () =>
                         {
                             try
@@ -371,29 +370,29 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                                 }
 
                                 var curProfile = await _apiController.UserGetProfile(new UserDto(new UserData(_apiController.UID))).ConfigureAwait(false);
-                                if (isRp)
+                                if (isRp && rpProfile != null)
                                 {
-                                    var profile = _rpConfigService.GetCurrentCharacterProfile();
-                                    profile.RpProfilePictureBase64 = Convert.ToBase64String(file);
+                                    rpProfile.RpProfilePictureBase64 = Convert.ToBase64String(file);
                                     _rpConfigService.Save();
                                     await _apiController.UserSetProfile(new UserProfileDto(new UserData(_apiController.UID), curProfile.Disabled, curProfile.IsNSFW, curProfile.ProfilePictureBase64, curProfile.Description,
-                                        profile.RpProfilePictureBase64, profile.RpDescription, profile.IsRpNsfw,
-                                        profile.RpFirstName, profile.RpLastName, profile.RpTitle, profile.RpAge,
-                                        profile.RpHeight, profile.RpBuild, profile.RpOccupation, profile.RpAffiliation,
-                                        profile.RpAlignment, profile.RpAdditionalInfo)).ConfigureAwait(false);
+                                        rpProfile.RpProfilePictureBase64, rpProfile.RpDescription, rpProfile.IsRpNsfw,
+                                        rpProfile.RpFirstName, rpProfile.RpLastName, rpProfile.RpTitle, rpProfile.RpAge,
+                                        rpProfile.RpHeight, rpProfile.RpBuild, rpProfile.RpOccupation, rpProfile.RpAffiliation,
+                                        rpProfile.RpAlignment, rpProfile.RpAdditionalInfo)).ConfigureAwait(false);
                                 }
                                 else
                                 {
                                     await _apiController.UserSetProfile(new UserProfileDto(new UserData(_apiController.UID), curProfile.Disabled, _apiController.IsProfileNsfw, Convert.ToBase64String(file), _descriptionText,
                                         curProfile.RpProfilePictureBase64, curProfile.RpDescription, curProfile.IsRpNSFW)).ConfigureAwait(false);
                                 }
-                                Mediator.Publish(new ClearProfileDataMessage(new UserData(_apiController.UID), charaName, worldId));
+                                Mediator.Publish(new ClearProfileDataMessage(new UserData(_apiController.UID), null, null));
                                 Mediator.Publish(new NotificationMessage(Loc.Get("EditProfile.SaveSuccessTitle"), Loc.Get("EditProfile.SaveSuccessBody"), NotificationType.Info));
                             }
                     catch (Exception ex)
                     {
                         _logger.LogWarning(ex, "Failed to upload profile image");
                         Mediator.Publish(new NotificationMessage(Loc.Get("EditProfile.SaveErrorTitle"), Loc.Get("EditProfile.SaveErrorBody"), NotificationType.Error));
+                        _notificationTracker.Upsert(NotificationEntry.ProfileSaveFailed());
                     }
                 });
             });

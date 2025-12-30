@@ -3,6 +3,7 @@ using UmbraSync.MareConfiguration.Models;
 using UmbraSync.PlayerData.Handlers;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
+using UmbraSync.Services.Notification;
 using Microsoft.Extensions.Logging;
 using Penumbra.Api.Enums;
 using Penumbra.Api.Helpers;
@@ -16,6 +17,7 @@ public sealed class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
     private readonly DalamudUtilService _dalamudUtil;
     private readonly MareMediator _mareMediator;
     private readonly RedrawManager _redrawManager;
+    private readonly NotificationTracker _notificationTracker;
     private bool _shownPenumbraUnavailable = false;
     private string? _penumbraModDirectory;
     public string? ModDirectory
@@ -56,11 +58,12 @@ public sealed class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
     private Version _pluginVersion;
 
     public IpcCallerPenumbra(ILogger<IpcCallerPenumbra> logger, IDalamudPluginInterface pi, DalamudUtilService dalamudUtil,
-        MareMediator mareMediator, RedrawManager redrawManager) : base(logger, mareMediator)
+        MareMediator mareMediator, RedrawManager redrawManager, NotificationTracker notificationTracker) : base(logger, mareMediator)
     {
         _dalamudUtil = dalamudUtil;
         _mareMediator = mareMediator;
         _redrawManager = redrawManager;
+        _notificationTracker = notificationTracker;
         _penumbraInit = Initialized.Subscriber(pi, PenumbraInit);
         _penumbraDispose = Disposed.Subscriber(pi, PenumbraDispose);
         _penumbraResolveModDir = new GetModDirectory(pi);
@@ -140,6 +143,7 @@ public sealed class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
                 _mareMediator.Publish(new NotificationMessage("Penumbra inactive",
                     "Your Penumbra installation is not active or out of date. Update Penumbra and/or the Enable Mods setting in Penumbra to continue to use Umbra. If you just updated Penumbra, ignore this message.",
                     NotificationType.Error));
+                _notificationTracker.Upsert(NotificationEntry.PenumbraInactive());
             }
         }
     }

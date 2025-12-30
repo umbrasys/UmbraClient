@@ -273,6 +273,10 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
             return;
         }
 
+        // Create cached player BEFORE sending notification to prevent duplicate notifications
+        // if this method is called multiple times rapidly for the same user
+        pair.CreateCachedPlayer(dto);
+
         if (sendNotif && _configurationService.Current.ShowOnlineNotifications
             && (_configurationService.Current.ShowOnlineNotificationsOnlyForIndividualPairs && pair.UserPair != null
             || !_configurationService.Current.ShowOnlineNotificationsOnlyForIndividualPairs)
@@ -286,7 +290,6 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
             Mediator.Publish(new NotificationMessage("User online", msg, NotificationType.Info, TimeSpan.FromSeconds(5)));
         }
 
-        pair.CreateCachedPlayer(dto);
         pair.ApplyLastReceivedData(forced: true);
 
         RecreateLazy();
