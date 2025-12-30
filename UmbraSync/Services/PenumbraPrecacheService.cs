@@ -353,6 +353,22 @@ public sealed class PenumbraPrecacheService : DisposableMediatorSubscriberBase, 
         // Note: UploadFiles itself checks for server presence and returns missing/forbidden list.
         try
         {
+            if (!_fileUploadManager.IsInitialized)
+            {
+                Logger.LogDebug("FileUploadManager not initialized; waiting for connection");
+                using (_stateLock.EnterScope())
+                {
+                    StatusText = Loc.Get("Settings.Transfer.Precache.Status.WaitingConnection");
+                }
+
+                while (!_fileUploadManager.IsInitialized && !token.IsCancellationRequested)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(1), token).ConfigureAwait(false);
+                }
+
+                if (token.IsCancellationRequested) return;
+            }
+
             var missingOrForbidden = await _fileUploadManager.UploadFiles(hashes, progress, token, byteProgress).ConfigureAwait(false);
             if (missingOrForbidden.Count > 0)
             {

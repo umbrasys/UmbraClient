@@ -37,6 +37,8 @@ public sealed class FileUploadManager : DisposableMediatorSubscriberBase
         });
     }
 
+    public bool IsInitialized => _orchestrator.IsInitialized;
+
     public List<FileTransfer> CurrentUploads { get; } = [];
     public bool IsUploading => CurrentUploads.Count > 0;
 

@@ -1256,7 +1256,22 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
                 Pitch = 1024
             }, cpuRead: false, cpuWrite: false);
         }
-        return _textureProvider.CreateFromImageAsync(imageData).Result;
+        try
+        {
+            Logger.LogTrace("Creating texture from image data, size: {size}", imageData.Length);
+            return _textureProvider.CreateFromImageAsync(imageData).Result;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to create texture from image data");
+            return _textureProvider.CreateEmpty(new()
+            {
+                Width = 256,
+                Height = 256,
+                DxgiFormat = 3,
+                Pitch = 1024
+            }, cpuRead: false, cpuWrite: false);
+        }
     }
 
     internal static void DistanceSeparator()

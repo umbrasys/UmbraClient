@@ -177,6 +177,9 @@
   <data name="Settings.Transfer.Precache.Status.CompletedSkipped" xml:space="preserve">
     <value>Completed with {0} skipped</value>
   </data>
+  <data name="Settings.Transfer.Precache.Status.WaitingConnection" xml:space="preserve">
+    <value>Waiting for server connection</value>
+  </data>
   
   <!-- AutoDetect notifications -->
   <data name="AutoDetect.Notification.IncomingTitle" xml:space="preserve">
@@ -444,7 +447,7 @@ Please keep a copy of your secret key in case you need to reset your plugins, or
     <value>AutoDetect</value>
   </data>
   <data name="CompactUi.Notifications.Clear" xml:space="preserve">
-    <value>Clear</value>
+    <value>Ok</value>
   </data>
   <data name="CompactUi.Notifications.Decline" xml:space="preserve">
     <value>Decline</value>
@@ -3367,6 +3370,12 @@ Click to change.</value>
   </data>
   <data name="UserProfile.NoRpDescription" xml:space="preserve">
     <value>User has no RP description set.</value>
+  </data>
+  <data name="UserProfile.RpDescription" xml:space="preserve">
+    <value>RP Description</value>
+  </data>
+  <data name="UserProfile.RpNsfwHelp" xml:space="preserve">
+    <value>If enabled, your RP profile will be hidden for users who have the "Show RP profiles marked as NSFW" option disabled.</value>
   </data>
   <data name="EditProfile.PreviewButton" xml:space="preserve">
     <value>Preview my profile</value>
