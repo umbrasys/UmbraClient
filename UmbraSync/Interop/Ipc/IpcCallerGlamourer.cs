@@ -6,6 +6,7 @@ using UmbraSync.MareConfiguration.Models;
 using UmbraSync.PlayerData.Handlers;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
+using UmbraSync.Services.Notification;
 using Microsoft.Extensions.Logging;
 
 namespace UmbraSync.Interop.Ipc;
@@ -16,6 +17,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     private readonly DalamudUtilService _dalamudUtil;
     private readonly MareMediator _mareMediator;
     private readonly RedrawManager _redrawManager;
+    private readonly NotificationTracker _notificationTracker;
 
     private readonly ApiVersion _glamourerApiVersions;
     private readonly ApplyState? _glamourerApplyAll;
@@ -33,8 +35,9 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     private readonly uint LockCode = 0x626E7579;
 
     public IpcCallerGlamourer(ILogger<IpcCallerGlamourer> logger, IDalamudPluginInterface pi, DalamudUtilService dalamudUtil, MareMediator mareMediator,
-        RedrawManager redrawManager) : base(logger, mareMediator)
+        RedrawManager redrawManager, NotificationTracker notificationTracker) : base(logger, mareMediator)
     {
+        _notificationTracker = notificationTracker;
         _glamourerApiVersions = new ApiVersion(pi);
         _glamourerGetAllCustomization = new GetStateBase64(pi);
         _glamourerApplyAll = new ApplyState(pi);
@@ -111,6 +114,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
                 _shownGlamourerUnavailable = true;
                 _mareMediator.Publish(new NotificationMessage("Glamourer inactive", "Your Glamourer installation is not active or out of date. Update Glamourer to continue to use Umbra. If you just updated Glamourer, ignore this message.",
                     NotificationType.Error));
+                _notificationTracker.Upsert(NotificationEntry.GlamourerInactive());
             }
         }
     }

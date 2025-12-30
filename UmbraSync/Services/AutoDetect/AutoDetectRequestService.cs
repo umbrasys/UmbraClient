@@ -9,6 +9,7 @@ using UmbraSync.WebAPI.AutoDetect;
 using UmbraSync.MareConfiguration;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
+using UmbraSync.Services.Notification;
 using NotificationType = UmbraSync.MareConfiguration.Models.NotificationType;
 using UmbraSync.WebAPI;
 using UmbraSync.API.Dto.User;
@@ -24,6 +25,7 @@ public class AutoDetectRequestService
     private readonly MareConfigService _configService;
     private readonly DalamudUtilService _dalamud;
     private readonly MareMediator _mediator;
+    private readonly NotificationTracker _notificationTracker;
     private readonly Lock _syncRoot = new();
     private readonly Dictionary<string, DateTime> _activeCooldowns = new(StringComparer.Ordinal);
     private readonly Dictionary<string, RefusalTracker> _refusalTrackers = new(StringComparer.Ordinal);
@@ -32,7 +34,7 @@ public class AutoDetectRequestService
     private static readonly TimeSpan RefusalLockDuration = TimeSpan.FromMinutes(15);
     private readonly Lazy<ApiController> _apiController;
 
-    public AutoDetectRequestService(ILogger<AutoDetectRequestService> logger, DiscoveryConfigProvider configProvider, DiscoveryApiClient client, MareConfigService configService, MareMediator mediator, DalamudUtilService dalamudUtilService, IServiceProvider serviceProvider)
+    public AutoDetectRequestService(ILogger<AutoDetectRequestService> logger, DiscoveryConfigProvider configProvider, DiscoveryApiClient client, MareConfigService configService, MareMediator mediator, DalamudUtilService dalamudUtilService, IServiceProvider serviceProvider, NotificationTracker notificationTracker)
     {
         _logger = logger;
         _configProvider = configProvider;
@@ -40,6 +42,7 @@ public class AutoDetectRequestService
         _configService = configService;
         _mediator = mediator;
         _dalamud = dalamudUtilService;
+        _notificationTracker = notificationTracker;
         _apiController = new Lazy<ApiController>(() => serviceProvider.GetRequiredService<ApiController>());
     }
 
@@ -104,6 +107,7 @@ public class AutoDetectRequestService
         {
             _logger.LogDebug("No request endpoint configured");
             _mediator.Publish(new NotificationMessage("Nearby request failed", "Server does not expose request endpoint.", NotificationType.Error));
+            _notificationTracker.Upsert(NotificationEntry.NearbyRequestFailed("Server does not expose request endpoint."));
             return false;
         }
         string? displayName = null;
@@ -176,6 +180,7 @@ public class AutoDetectRequestService
                 _pendingRequests.TryRemove(targetKey, out _);
             }
             _mediator.Publish(new NotificationMessage("Nearby request failed", "The server rejected the request. Try again soon.", NotificationType.Warning));
+            _notificationTracker.Upsert(NotificationEntry.NearbyRequestFailed("The server rejected the request."));
         }
         return ok;
     }
@@ -318,6 +323,7 @@ public class AutoDetectRequestService
             }
 
             _mediator.Publish(new NotificationMessage("Nearby request failed", "The server rejected the request. Try again soon.", NotificationType.Warning));
+            _notificationTracker.Upsert(NotificationEntry.NearbyRequestFailed("The server rejected the request."));
             return false;
         }
     }

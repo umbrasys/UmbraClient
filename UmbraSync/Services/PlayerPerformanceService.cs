@@ -4,6 +4,7 @@ using UmbraSync.MareConfiguration;
 using UmbraSync.PlayerData.Handlers;
 using UmbraSync.Services.Events;
 using UmbraSync.Services.Mediator;
+using UmbraSync.Services.Notification;
 using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.UI;
 using UmbraSync.WebAPI.Files.Models;
@@ -24,11 +25,12 @@ public class PlayerPerformanceService : DisposableMediatorSubscriberBase
     private readonly MareMediator _mediator;
     private readonly ServerConfigurationManager _serverConfigurationManager;
     private readonly PlayerPerformanceConfigService _playerPerformanceConfigService;
+    private readonly NotificationTracker _notificationTracker;
 
     public PlayerPerformanceService(ILogger<PlayerPerformanceService> logger, MareMediator mediator,
         ServerConfigurationManager serverConfigurationManager,
         PlayerPerformanceConfigService playerPerformanceConfigService, FileCacheManager fileCacheManager,
-        XivDataAnalyzer xivDataAnalyzer)
+        XivDataAnalyzer xivDataAnalyzer, NotificationTracker notificationTracker)
         : base(logger, mediator)
     {
         _logger = logger;
@@ -37,6 +39,7 @@ public class PlayerPerformanceService : DisposableMediatorSubscriberBase
         _playerPerformanceConfigService = playerPerformanceConfigService;
         _fileCacheManager = fileCacheManager;
         _xivDataAnalyzer = xivDataAnalyzer;
+        _notificationTracker = notificationTracker;
     }
 
     public async Task<bool> CheckBothThresholds(PairHandler pairHandler, CharacterData charaData)
@@ -91,6 +94,8 @@ public class PlayerPerformanceService : DisposableMediatorSubscriberBase
                     $"{triUsage}/{triUsageThreshold} triangles)" +
                     $" and has been automatically blocked.",
                     MareConfiguration.Models.NotificationType.Warning));
+                _notificationTracker.Upsert(NotificationEntry.PlayerAutoBlockedTriangles(
+                    pair.UserData.UID, pair.UserData.AliasOrUID, triUsage, triUsageThreshold));
             }
 
             _mediator.Publish(new EventMessage(new Event(pair.PlayerName, pair.UserData, nameof(PlayerPerformanceService), EventSeverity.Warning,
@@ -168,6 +173,8 @@ public class PlayerPerformanceService : DisposableMediatorSubscriberBase
                     $"{UiSharedService.ByteToString(vramUsage, addSuffix: true)}/{vramUsageThreshold}MiB)" +
                     $" and has been automatically blocked.",
                     MareConfiguration.Models.NotificationType.Warning));
+                _notificationTracker.Upsert(NotificationEntry.PlayerAutoBlockedVRAM(
+                    pair.UserData.UID, pair.UserData.AliasOrUID, UiSharedService.ByteToString(vramUsage, addSuffix: true), vramUsageThreshold));
             }
 
             _mediator.Publish(new EventMessage(new Event(pair.PlayerName, pair.UserData, nameof(PlayerPerformanceService), EventSeverity.Warning,

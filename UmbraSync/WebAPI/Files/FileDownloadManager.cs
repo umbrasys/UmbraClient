@@ -339,13 +339,28 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
             }
             catch (OperationCanceledException)
             {
-                Logger.LogDebug("{dlName}: Detected cancellation of download, partially extracting files for {id}", fi.Name, gameObjectHandler);
+                _orchestrator.ReleaseDownloadSlot();
+                if (File.Exists(blockFile))
+                    File.Delete(blockFile);
+                Logger.LogDebug("{dlName}: Detected cancellation of download for {id}, aborting file extraction", fi.Name, requestId);
+                ClearDownload();
+                return;
             }
             catch (Exception ex)
             {
                 _orchestrator.ReleaseDownloadSlot();
-                File.Delete(blockFile);
+                if (File.Exists(blockFile))
+                    File.Delete(blockFile);
                 Logger.LogError(ex, "{dlName}: Error during download of {id}", fi.Name, requestId);
+                ClearDownload();
+                return;
+            }
+
+            // Verify block file exists before attempting decompression
+            if (!File.Exists(blockFile))
+            {
+                Logger.LogError("{dlName}: Block file {blockFile} does not exist, cannot proceed with decompression for {id}", fi.Name, fi.Name, requestId);
+                _orchestrator.ReleaseDownloadSlot();
                 ClearDownload();
                 return;
             }

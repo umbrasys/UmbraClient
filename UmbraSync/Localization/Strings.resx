@@ -1029,29 +1029,29 @@ Click to change.</value>
   <data name="SlotPopup.DeclineButton" xml:space="preserve">
     <value>Decline</value>
   </data>
-  <data name="SlotPopup.VenueLocation" xml:space="preserve">
-    <value>Venue location:</value>
+  <data name="SlotPopup.SlotLocation" xml:space="preserve">
+    <value>Slot location:</value>
   </data>
   <data name="SlotPopup.Host" xml:space="preserve">
     <value>Host:</value>
   </data>
-  <data name="SlotPopup.AboutVenue" xml:space="preserve">
-    <value>About this venue</value>
+  <data name="SlotPopup.AboutSlot" xml:space="preserve">
+    <value>About this slot</value>
   </data>
-  <data name="SlotPopup.VenueRegistered" xml:space="preserve">
+  <data name="SlotPopup.SlotRegistered" xml:space="preserve">
     <value>This housing plot has a Syncshell associated with it.</value>
   </data>
   <data name="SlotPopup.CloseButton" xml:space="preserve">
     <value>Close</value>
   </data>
   <data name="SlotPopup.NoSyncshell" xml:space="preserve">
-    <value>No Syncshell is associated with this venue.</value>
+    <value>No Syncshell is associated with this slot.</value>
   </data>
   <data name="SlotPopup.JoinPermanentlyCheckbox" xml:space="preserve">
     <value>Join this Syncshell permanently</value>
   </data>
   <data name="SlotPopup.JoinPermanentlyTooltip" xml:space="preserve">
-    <value>If checked, you will remain in this Syncshell even after leaving the venue area. You will need to manually leave the Syncshell later.</value>
+    <value>If checked, you will remain in this Syncshell even after leaving the slot area. You will need to manually leave the Syncshell later.</value>
   </data>
   <data name="SlotPopup.PermanentJoinNotice" xml:space="preserve">
     <value>✓ You will stay in this Syncshell permanently (no auto-leave).</value>
@@ -1114,7 +1114,7 @@ Click to change.</value>
     <value>Enter the house (inside the plot) and click this button.</value>
   </data>
   <data name="SyncshellAdmin.Slot.MustBeInHousingEditMode" xml:space="preserve">
-    <value>⚠️ You must be in Housing Edit Mode (Layout Mode) to register this housing. Activate it by clicking the Housing menu → Layout Mode. This security measure ensures only the housing owner can register a slot.</value>
+    <value>⚠ You must be in Housing Edit Mode (Layout Mode) to register this housing. This security measure ensures only the housing owner can register a slot.</value>
   </data>
   <data name="SyncshellAdmin.Slot.HousingSummary" xml:space="preserve">
     <value>Housing Info: S:{0} | T:{1} | W:{2} | P:{3}</value>
@@ -3219,6 +3219,119 @@ Click to change.</value>
   <data name="Notification.AutoDetect.RequestBody" xml:space="preserve">
     <value>{0} requested pairing with you. UID: {1}</value>
   </data>
+
+  <!-- Performance Notifications -->
+  <data name="Notification.Performance.AutoBlockTriangles.Title" xml:space="preserve">
+    <value>Player Auto-Blocked: {0}</value>
+  </data>
+  <data name="Notification.Performance.AutoBlockTriangles.Body" xml:space="preserve">
+    <value>Exceeded triangle threshold: {0:N0}/{1:N0} triangles. Player has been automatically blocked.</value>
+  </data>
+  <data name="Notification.Performance.AutoBlockVRAM.Title" xml:space="preserve">
+    <value>Player Auto-Blocked: {0}</value>
+  </data>
+  <data name="Notification.Performance.AutoBlockVRAM.Body" xml:space="preserve">
+    <value>Exceeded VRAM threshold: {0}/{1} MiB. Player has been automatically blocked.</value>
+  </data>
+
+  <!-- Plugin Integration Notifications -->
+  <data name="Notification.PluginIntegration.PenumbraInactive.Title" xml:space="preserve">
+    <value>Penumbra Inactive</value>
+  </data>
+  <data name="Notification.PluginIntegration.PenumbraInactive.Body" xml:space="preserve">
+    <value>Your Penumbra installation is not active or out of date. Update Penumbra and enable mods to continue using Umbra.</value>
+  </data>
+  <data name="Notification.PluginIntegration.GlamourerInactive.Title" xml:space="preserve">
+    <value>Glamourer Inactive</value>
+  </data>
+  <data name="Notification.PluginIntegration.GlamourerInactive.Body" xml:space="preserve">
+    <value>Your Glamourer installation is not active or out of date. Update Glamourer to continue using Umbra.</value>
+  </data>
+  <data name="Notification.PluginIntegration.MissingPlugins.Title" xml:space="preserve">
+    <value>Missing Plugins for {0}</value>
+  </data>
+  <data name="Notification.PluginIntegration.MissingPlugins.Body" xml:space="preserve">
+    <value>Received data requiring: {0}. Install these plugins to experience their character fully.</value>
+  </data>
+
+  <!-- Connection Notifications -->
+  <data name="Notification.Connection.Lost.Title" xml:space="preserve">
+    <value>Connection Lost</value>
+  </data>
+  <data name="Notification.Connection.Lost.Body" xml:space="preserve">
+    <value>Lost connection to server. Reconnection will be attempted automatically.</value>
+  </data>
+  <data name="Notification.Connection.AuthFailed.Title" xml:space="preserve">
+    <value>Authentication Failed</value>
+  </data>
+  <data name="Notification.Connection.AuthFailed.Body" xml:space="preserve">
+    <value>Your authentication token could not be renewed. Try reconnecting manually.</value>
+  </data>
+
+  <!-- System Notifications -->
+  <data name="Notification.System.ClientIncompatible.Title" xml:space="preserve">
+    <value>Client Incompatible</value>
+  </data>
+  <data name="Notification.System.ClientIncompatible.Body" xml:space="preserve">
+    <value>Your client ({0}) is incompatible. Required version: {1}. Please update Umbra immediately.</value>
+  </data>
+  <data name="Notification.System.ClientOutdated.Title" xml:space="preserve">
+    <value>Client Outdated</value>
+  </data>
+  <data name="Notification.System.ClientOutdated.Body" xml:space="preserve">
+    <value>Your client ({0}) is outdated. Latest version: {1}. Please update Umbra.</value>
+  </data>
+  <data name="Notification.System.ServerError.Title" xml:space="preserve">
+    <value>Server Error: {0}</value>
+  </data>
+  <data name="Notification.System.ServerWarning.Title" xml:space="preserve">
+    <value>Server Warning: {0}</value>
+  </data>
+
+  <!-- Profile Notifications -->
+  <data name="Notification.Profile.SaveFailed.Title" xml:space="preserve">
+    <value>Profile Save Failed</value>
+  </data>
+  <data name="Notification.Profile.SaveFailed.Body" xml:space="preserve">
+    <value>Failed to save your profile. Please try again or check your connection.</value>
+  </data>
+
+  <!-- UserStatus Notifications -->
+  <data name="Notification.UserStatus.SyncshellJoinFailed.Title" xml:space="preserve">
+    <value>Failed to Join Syncshell</value>
+  </data>
+  <data name="Notification.UserStatus.SyncshellJoinFailed.Body" xml:space="preserve">
+    <value>Could not join "{0}". Reason: {1}</value>
+  </data>
+  <data name="Notification.UserStatus.AcceptFailed.Title" xml:space="preserve">
+    <value>Accept Request Failed</value>
+  </data>
+  <data name="Notification.UserStatus.AcceptFailed.Body" xml:space="preserve">
+    <value>Failed to accept pair request from {0}. Please try again.</value>
+  </data>
+  <data name="Notification.UserStatus.NearbyRequestFailed.Title" xml:space="preserve">
+    <value>Nearby Request Failed</value>
+  </data>
+  <data name="Notification.UserStatus.SlotConflict.Title" xml:space="preserve">
+    <value>Slot Conflict Warning</value>
+  </data>
+  <data name="Notification.UserStatus.SlotConflict.Body" xml:space="preserve">
+    <value>Starting auto-leave timer for syncshell "{0}" (5 minutes). Return to housing plot to cancel.</value>
+  </data>
+
+  <!-- Syncshell - Temp Expiring -->
+  <data name="Notification.Syncshell.TempExpiring.Title" xml:space="preserve">
+    <value>Temporary Syncshell Expiring</value>
+  </data>
+  <data name="Notification.Syncshell.TempExpiring.Body" xml:space="preserve">
+    <value>Syncshell "{0}" will be deleted in {1} minutes (at {2}).</value>
+  </data>
+
+  <!-- CompactUI Optional Button -->
+  <data name="CompactUi.Notifications.Reconnect" xml:space="preserve">
+    <value>Reconnect</value>
+  </data>
+
   <data name="UserProfile.RpFirstName" xml:space="preserve">
     <value>First Name</value>
   </data>

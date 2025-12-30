@@ -2,6 +2,7 @@
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
+using UmbraSync.Services.Notification;
 using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.Utils;
 using UmbraSync.API.Dto;
@@ -20,16 +21,18 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
     private readonly HttpClient _httpClient;
     private readonly ILogger<TokenProvider> _logger;
     private readonly ServerConfigurationManager _serverManager;
+    private readonly NotificationTracker _notificationTracker;
     private readonly ConcurrentDictionary<JwtIdentifier, string> _tokenCache = new();
     private readonly ConcurrentDictionary<string, string?> _wellKnownCache = new(StringComparer.Ordinal);
     private bool _secretKeyWarned;
 
     public TokenProvider(ILogger<TokenProvider> logger, ServerConfigurationManager serverManager,
-        DalamudUtilService dalamudUtil, MareMediator mareMediator)
+        DalamudUtilService dalamudUtil, MareMediator mareMediator, NotificationTracker notificationTracker)
     {
         _logger = logger;
         _serverManager = serverManager;
         _dalamudUtil = dalamudUtil;
+        _notificationTracker = notificationTracker;
         _httpClient = new(
             new HttpClientHandler
             {
@@ -89,6 +92,7 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
             if (!result.IsSuccessStatusCode)
             {
                 Mediator.Publish(new NotificationMessage("Error refreshing token", "Your authentication token could not be renewed. Try reconnecting manually.", NotificationType.Error));
+                _notificationTracker.Upsert(NotificationEntry.AuthTokenRefreshFailed());
                 Mediator.Publish(new DisconnectedMessage());
                 var textResponse = await result.Content.ReadAsStringAsync(token).ConfigureAwait(false) ?? string.Empty;
                 throw new MareAuthFailureException(textResponse);
@@ -109,6 +113,7 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
             if (ex.StatusCode == HttpStatusCode.Unauthorized)
             {
                 Mediator.Publish(new NotificationMessage("Error refreshing token", "Your authentication token could not be renewed. Try reconnecting manually.", NotificationType.Error));
+                _notificationTracker.Upsert(NotificationEntry.AuthTokenRefreshFailed());
                 Mediator.Publish(new DisconnectedMessage());
                 throw new MareAuthFailureException(ex.Message);
             }

@@ -27,6 +27,7 @@ public class Pair : DisposableMediatorSubscriberBase
     private readonly ServerConfigurationManager _serverConfigurationManager;
     private CancellationTokenSource _applicationCts = new();
     private OnlineUserIdentDto? _onlineUserIdentDto = null;
+    private ushort? _worldId = null;
 
     public Pair(ILogger<Pair> logger, UserData userData, PairHandlerFactory cachedPlayerFactory,
         MareMediator mediator, MareConfigService mareConfig, ServerConfigurationManager serverConfigurationManager)
@@ -108,7 +109,7 @@ public class Pair : DisposableMediatorSubscriberBase
     public IEnumerable<string> HoldApplicationReasons => Enumerable.Concat(HoldDownloadLocks.Keys, HoldApplicationLocks.Keys);
 
     public bool IsVisible => CachedPlayer?.IsVisible ?? false;
-    public uint WorldId => 0;
+    public uint WorldId => _worldId ?? 0;
     
     public CharacterData? LastReceivedCharacterData { get; set; }
 
@@ -277,6 +278,11 @@ public class Pair : DisposableMediatorSubscriberBase
         if (CachedPlayer != null)
             return CachedPlayer.PlayerCharacterId;
         return uint.MaxValue;
+    }
+
+    public void SetWorldId(ushort worldId)
+    {
+        _worldId = worldId;
     }
 
     public string? GetNoteOrName()

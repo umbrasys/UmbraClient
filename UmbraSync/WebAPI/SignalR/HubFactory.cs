@@ -1,6 +1,7 @@
 ﻿using UmbraSync.API.SignalR;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
+using UmbraSync.Services.Notification;
 using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.WebAPI.SignalR.Utils;
 using Microsoft.AspNetCore.Http.Connections;
@@ -18,18 +19,20 @@ public class HubFactory : MediatorSubscriberBase
     private readonly ILoggerProvider _loggingProvider;
     private readonly ServerConfigurationManager _serverConfigurationManager;
     private readonly TokenProvider _tokenProvider;
+    private readonly NotificationTracker _notificationTracker;
     private HubConnection? _instance;
     private string _cachedConfigFor = string.Empty;
     private HubConnectionConfig? _cachedConfig;
     private bool _isDisposed = false;
 
     public HubFactory(ILogger<HubFactory> logger, MareMediator mediator,
-        ServerConfigurationManager serverConfigurationManager, 
-        TokenProvider tokenProvider, ILoggerProvider pluginLog) : base(logger, mediator)
+        ServerConfigurationManager serverConfigurationManager,
+        TokenProvider tokenProvider, ILoggerProvider pluginLog, NotificationTracker notificationTracker) : base(logger, mediator)
     {
         _serverConfigurationManager = serverConfigurationManager;
         _tokenProvider = tokenProvider;
         _loggingProvider = pluginLog;
+        _notificationTracker = notificationTracker;
     }
 
     public async Task DisposeHubAsync()
@@ -170,15 +173,20 @@ public class HubFactory : MediatorSubscriberBase
                 options.AccessTokenProvider = () => _tokenProvider.GetOrUpdateToken(ct);
                 options.SkipNegotiation = hubConfig.SkipNegotiation && (transports == HttpTransportType.WebSockets);
                 options.Transports = transports;
+                options.CloseTimeout = TimeSpan.FromMinutes(5); 
             })
             .AddJsonProtocol()
-            .WithAutomaticReconnect(new ForeverRetryPolicy(Mediator))
+            .WithAutomaticReconnect(new ForeverRetryPolicy(Mediator, _notificationTracker))
             .ConfigureLogging(a =>
             {
                 a.ClearProviders().AddProvider(_loggingProvider);
                 a.SetMinimumLevel(LogLevel.Information);
             })
             .Build();
+
+        _instance.KeepAliveInterval = TimeSpan.FromSeconds(30);
+        _instance.ServerTimeout = TimeSpan.FromMinutes(5);
+        _instance.HandshakeTimeout = TimeSpan.FromSeconds(30);
 
         _instance.Closed += HubOnClosed;
         _instance.Reconnecting += HubOnReconnecting;

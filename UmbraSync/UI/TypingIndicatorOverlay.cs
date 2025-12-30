@@ -296,6 +296,9 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
             if (objectInfo.Value->GameObject->EntityId != objectId)
                 continue;
 
+            if ((byte)objectInfo.Value->GameObject->ObjectKind != 1)
+                continue;
+
             if (objectInfo.Value->GameObject->YalmDistanceFromPlayerX > 20f)
                 return false;
 
@@ -387,6 +390,9 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
             if (obj == null)
                 continue;
 
+            if (obj.ObjectKind != Dalamud.Game.ClientState.Objects.Enums.ObjectKind.Player)
+                continue;
+
             if (obj.EntityId == objectId)
             {
                 position = obj.Position;
@@ -454,6 +460,9 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         {
             var obj = _objectTable[i];
             if (obj == null)
+                continue;
+
+            if (obj.ObjectKind != Dalamud.Game.ClientState.Objects.Enums.ObjectKind.Player)
                 continue;
 
             if (obj.Name.TextValue.Equals(name, StringComparison.OrdinalIgnoreCase))

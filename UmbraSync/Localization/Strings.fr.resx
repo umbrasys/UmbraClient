@@ -911,16 +911,16 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="SlotPopup.DeclineButton" xml:space="preserve">
     <value>Refuser</value>
   </data>
-  <data name="SlotPopup.VenueLocation" xml:space="preserve">
+  <data name="SlotPopup.SlotLocation" xml:space="preserve">
     <value>Localisation du lieu :</value>
   </data>
   <data name="SlotPopup.Host" xml:space="preserve">
     <value>Hôte :</value>
   </data>
-  <data name="SlotPopup.AboutVenue" xml:space="preserve">
+  <data name="SlotPopup.AboutSlot" xml:space="preserve">
     <value>À propos de ce lieu</value>
   </data>
-  <data name="SlotPopup.VenueRegistered" xml:space="preserve">
+  <data name="SlotPopup.SlotRegistered" xml:space="preserve">
     <value>Ce housing possède une Syncshell associée.</value>
   </data>
   <data name="SlotPopup.CloseButton" xml:space="preserve">
@@ -996,7 +996,7 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value>Entrez dans la maison (à l'intérieur de la parcelle) et cliquez sur ce bouton.</value>
   </data>
   <data name="SyncshellAdmin.Slot.MustBeInHousingEditMode" xml:space="preserve">
-    <value>⚠️ Vous devez être en Mode Édition de Housing (Mode Aménagement) pour enregistrer ce housing. Activez-le via le menu Housing → Mode Aménagement. Cette mesure de sécurité garantit que seul le propriétaire du housing peut enregistrer un slot.</value>
+    <value>⚠ Vous devez être en Mode Édition de Housing (Mode Aménagement) pour enregistrer ce housing. Cette mesure de sécurité garantit que seul le propriétaire du housing peut enregistrer un slot.</value>
   </data>
   <data name="SyncshellAdmin.Slot.HousingSummary" xml:space="preserve">
     <value>Infos Housing : S:{0} | T:{1} | W:{2} | P:{3}</value>
@@ -3101,6 +3101,119 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="Notification.AutoDetect.RequestBody" xml:space="preserve">
     <value>{0} a demandé un appairage avec vous. UID : {1}</value>
   </data>
+
+  <!-- Notifications de performance -->
+  <data name="Notification.Performance.AutoBlockTriangles.Title" xml:space="preserve">
+    <value>Joueur auto-bloqué : {0}</value>
+  </data>
+  <data name="Notification.Performance.AutoBlockTriangles.Body" xml:space="preserve">
+    <value>Seuil de triangles dépassé : {0:N0}/{1:N0} triangles. Le joueur a été automatiquement bloqué.</value>
+  </data>
+  <data name="Notification.Performance.AutoBlockVRAM.Title" xml:space="preserve">
+    <value>Joueur auto-bloqué : {0}</value>
+  </data>
+  <data name="Notification.Performance.AutoBlockVRAM.Body" xml:space="preserve">
+    <value>Seuil VRAM dépassé : {0}/{1} MiB. Le joueur a été automatiquement bloqué.</value>
+  </data>
+
+  <!-- Notifications d'intégration de plugins -->
+  <data name="Notification.PluginIntegration.PenumbraInactive.Title" xml:space="preserve">
+    <value>Penumbra inactif</value>
+  </data>
+  <data name="Notification.PluginIntegration.PenumbraInactive.Body" xml:space="preserve">
+    <value>Votre installation Penumbra est inactive ou obsolète. Mettez à jour Penumbra et activez les mods pour continuer à utiliser Umbra.</value>
+  </data>
+  <data name="Notification.PluginIntegration.GlamourerInactive.Title" xml:space="preserve">
+    <value>Glamourer inactif</value>
+  </data>
+  <data name="Notification.PluginIntegration.GlamourerInactive.Body" xml:space="preserve">
+    <value>Votre installation Glamourer est inactive ou obsolète. Mettez à jour Glamourer pour continuer à utiliser Umbra.</value>
+  </data>
+  <data name="Notification.PluginIntegration.MissingPlugins.Title" xml:space="preserve">
+    <value>Plugins manquants pour {0}</value>
+  </data>
+  <data name="Notification.PluginIntegration.MissingPlugins.Body" xml:space="preserve">
+    <value>Données reçues nécessitant : {0}. Installez ces plugins pour profiter pleinement du personnage.</value>
+  </data>
+
+  <!-- Notifications de connexion -->
+  <data name="Notification.Connection.Lost.Title" xml:space="preserve">
+    <value>Connexion perdue</value>
+  </data>
+  <data name="Notification.Connection.Lost.Body" xml:space="preserve">
+    <value>Connexion au serveur perdue. Reconnexion automatique en cours.</value>
+  </data>
+  <data name="Notification.Connection.AuthFailed.Title" xml:space="preserve">
+    <value>Échec d'authentification</value>
+  </data>
+  <data name="Notification.Connection.AuthFailed.Body" xml:space="preserve">
+    <value>Impossible de renouveler votre jeton d'authentification. Reconnectez-vous manuellement.</value>
+  </data>
+
+  <!-- Notifications système -->
+  <data name="Notification.System.ClientIncompatible.Title" xml:space="preserve">
+    <value>Client incompatible</value>
+  </data>
+  <data name="Notification.System.ClientIncompatible.Body" xml:space="preserve">
+    <value>Votre client ({0}) est incompatible. Version requise : {1}. Veuillez mettre à jour Umbra immédiatement.</value>
+  </data>
+  <data name="Notification.System.ClientOutdated.Title" xml:space="preserve">
+    <value>Client obsolète</value>
+  </data>
+  <data name="Notification.System.ClientOutdated.Body" xml:space="preserve">
+    <value>Votre client ({0}) est obsolète. Dernière version : {1}. Veuillez mettre à jour Umbra.</value>
+  </data>
+  <data name="Notification.System.ServerError.Title" xml:space="preserve">
+    <value>Erreur serveur : {0}</value>
+  </data>
+  <data name="Notification.System.ServerWarning.Title" xml:space="preserve">
+    <value>Avertissement serveur : {0}</value>
+  </data>
+
+  <!-- Notifications de profil -->
+  <data name="Notification.Profile.SaveFailed.Title" xml:space="preserve">
+    <value>Échec de sauvegarde du profil</value>
+  </data>
+  <data name="Notification.Profile.SaveFailed.Body" xml:space="preserve">
+    <value>Impossible de sauvegarder votre profil. Veuillez réessayer ou vérifier votre connexion.</value>
+  </data>
+
+  <!-- Notifications de statut utilisateur -->
+  <data name="Notification.UserStatus.SyncshellJoinFailed.Title" xml:space="preserve">
+    <value>Échec de rejoindre la Syncshell</value>
+  </data>
+  <data name="Notification.UserStatus.SyncshellJoinFailed.Body" xml:space="preserve">
+    <value>Impossible de rejoindre "{0}". Raison : {1}</value>
+  </data>
+  <data name="Notification.UserStatus.AcceptFailed.Title" xml:space="preserve">
+    <value>Échec d'acceptation</value>
+  </data>
+  <data name="Notification.UserStatus.AcceptFailed.Body" xml:space="preserve">
+    <value>Échec de l'acceptation de la demande de {0}. Veuillez réessayer.</value>
+  </data>
+  <data name="Notification.UserStatus.NearbyRequestFailed.Title" xml:space="preserve">
+    <value>Échec de la demande Nearby</value>
+  </data>
+  <data name="Notification.UserStatus.SlotConflict.Title" xml:space="preserve">
+    <value>Avertissement de conflit de slot</value>
+  </data>
+  <data name="Notification.UserStatus.SlotConflict.Body" xml:space="preserve">
+    <value>Démarrage du minuteur de départ automatique pour "{0}" (5 minutes). Retournez à la parcelle pour annuler.</value>
+  </data>
+
+  <!-- Syncshell - Expire bientôt -->
+  <data name="Notification.Syncshell.TempExpiring.Title" xml:space="preserve">
+    <value>Syncshell temporaire expire bientôt</value>
+  </data>
+  <data name="Notification.Syncshell.TempExpiring.Body" xml:space="preserve">
+    <value>La Syncshell "{0}" sera supprimée dans {1} minutes (à {2}).</value>
+  </data>
+
+  <!-- Bouton CompactUI optionnel -->
+  <data name="CompactUi.Notifications.Reconnect" xml:space="preserve">
+    <value>Reconnecter</value>
+  </data>
+
   <data name="UserProfile.RpFirstName" xml:space="preserve">
     <value>Prénom</value>
   </data>

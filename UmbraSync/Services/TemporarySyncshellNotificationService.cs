@@ -4,6 +4,7 @@ using UmbraSync.API.Dto.Group;
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services.Mediator;
+using UmbraSync.Services.Notification;
 using UmbraSync.WebAPI;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -15,16 +16,19 @@ public sealed class TemporarySyncshellNotificationService : MediatorSubscriberBa
     private static readonly int[] NotificationThresholdMinutes = [30, 15, 5, 1];
     private readonly ApiController _apiController;
     private readonly PairManager _pairManager;
+    private readonly NotificationTracker _notificationTracker;
     private readonly Lock _stateLock = new();
     private readonly Dictionary<string, TrackedGroup> _trackedGroups = new(StringComparer.Ordinal);
     private CancellationTokenSource? _loopCts;
     private Task? _loopTask;
 
-    public TemporarySyncshellNotificationService(ILogger<TemporarySyncshellNotificationService> logger, MareMediator mediator, PairManager pairManager, ApiController apiController)
+    public TemporarySyncshellNotificationService(ILogger<TemporarySyncshellNotificationService> logger, MareMediator mediator, PairManager pairManager,
+        ApiController apiController, NotificationTracker notificationTracker)
         : base(logger, mediator)
     {
         _pairManager = pairManager;
         _apiController = apiController;
+        _notificationTracker = notificationTracker;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
@@ -190,6 +194,7 @@ public sealed class TemporarySyncshellNotificationService : MediatorSubscriberBa
 
         string message = $"La Syncshell temporaire \"{displayName}\" sera supprimee dans {threshold} (a {expiresLocal}).";
         Mediator.Publish(new NotificationMessage("Syncshell temporaire", message, NotificationType.Warning, TimeSpan.FromSeconds(6)));
+        _notificationTracker.Upsert(NotificationEntry.TemporarySyncshellExpiring(displayName, thresholdMinutes, expiresLocal));
     }
 
     private static DateTime NormalizeToUtc(DateTime expiresAt)
