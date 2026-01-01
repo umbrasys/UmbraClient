@@ -90,16 +90,16 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Préparation des DLL Dalamud pour l'analyse Qodana
+      - name: Préparation de l'environnement Dalamud pour l'analyse Qodana
         run: |
-          mkdir -p libs
+          mkdir -p dalamud
           curl -L https://goatcorp.github.io/dalamud-distrib/stg/latest.zip -o latest.zip
-          unzip -o latest.zip -d dalamud_temp
-          cp dalamud_temp/*.dll libs/
-          rm -rf dalamud_temp latest.zip
+          unzip -o latest.zip -d dalamud
+          rm -f latest.zip
+          echo "DALAMUD_DIR=$(pwd)/dalamud" >> $GITHUB_ENV
 
       - name: Restauration des dépendances
-        run: dotnet restore
+        run: dotnet restore UmbraSync.sln -p:DALAMUD_DIR="$DALAMUD_DIR"
 
       - name: Téléchargement de l'ancien report scan Qodana
         continue-on-error: true
@@ -117,13 +117,15 @@ jobs:
         env:
           QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
           QODANA_ENDPOINT: https://qodana.cloud
+          DALAMUD_DIR: ${{ env.DALAMUD_DIR }}
         run: |
           curl -fsSL https://jb.gg/qodana-cli/install | bash
           qodana scan \
             --linter jetbrains/qodana-dotnet:2025.2 \
             --baseline baseline.sarif.json \
             --results-dir .qodana/results \
-            --cache-dir .qodana/cache
+            --cache-dir .qodana/cache \
+            --property=DALAMUD_DIR="$DALAMUD_DIR"
 
       - name: Qodana envoi vers le Cloud
         env:
