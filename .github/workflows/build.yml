@@ -1,4 +1,4 @@
-name: Build & Qodana Code Quality
+name: Analyse Qodana & Compilation
 
 on:
   push:
@@ -33,14 +33,15 @@ jobs:
 
       - name: Préparation de l'environnement Dalamud
         run: |
-          mkdir -p dalamud
+          DALAMUD_PATH="$HOME/.xlcore/dalamud/Hooks/dev"
+          mkdir -p "$DALAMUD_PATH"
           curl -L https://goatcorp.github.io/dalamud-distrib/stg/latest.zip -o latest.zip
-          unzip -o latest.zip -d dalamud
+          unzip -o latest.zip -d "$DALAMUD_PATH"
           rm -f latest.zip
-          echo "DALAMUD_DIR=$(pwd)/dalamud" >> $GITHUB_ENV
+          echo "DALAMUD_DIR=$DALAMUD_PATH" >> $GITHUB_ENV
 
       - name: Restauration des dépendances
-        run: dotnet restore UmbraSync.sln -p:DALAMUD_DIR="$DALAMUD_DIR"
+        run: dotnet restore UmbraSync.sln --force
 
       - name: Téléchargement de l'ancien report scan Qodana
         continue-on-error: true
@@ -58,15 +59,13 @@ jobs:
         env:
           QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
           QODANA_ENDPOINT: https://qodana.cloud
-          DALAMUD_DIR: ${{ env.DALAMUD_DIR }}
         run: |
           curl -fsSL https://jb.gg/qodana-cli/install | bash
           qodana scan \
             --linter jetbrains/qodana-dotnet:2025.2 \
             --baseline baseline.sarif.json \
             --results-dir .qodana/results \
-            --cache-dir .qodana/cache \
-            --property=DALAMUD_DIR="$DALAMUD_DIR"
+            --cache-dir .qodana/cache
 
       - name: Qodana envoi vers le Cloud
         env:
@@ -88,7 +87,7 @@ jobs:
           fi
 
       - name: Compilation UmbraSync
-        run: dotnet build UmbraSync.sln -c Release --no-restore --nologo -p:DALAMUD_DIR="$DALAMUD_DIR" -p:ContinuousIntegrationBuild=true
+        run: dotnet build UmbraSync.sln -c Release --no-restore --nologo -p:ContinuousIntegrationBuild=true
 
       - name: Empaquetage de l'extension
         run: |
