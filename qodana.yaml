@@ -18,12 +18,9 @@ bootstrap: |
   export DALAMUD_DIR="$DALAMUD_PATH"
 
   echo "Restoring NuGet packages..."
-  dotnet restore UmbraSync.sln --verbosity minimal
+  dotnet restore UmbraSync.sln --verbosity minimal -p:DALAMUD_DIR="$DALAMUD_PATH"
 
   echo "=== Bootstrap complete ==="
-
-environment:
-  DALAMUD_DIR: /opt/dalamud
 
 dotnet:
   solution: UmbraSync.sln
