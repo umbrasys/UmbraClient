@@ -12,7 +12,7 @@ using System.Text;
 
 namespace UmbraSync.FileCache;
 
-public sealed class FileCacheManager : IHostedService
+public sealed class FileCacheManager : DisposableMediatorSubscriberBase, IHostedService
 {
     public const string CachePrefix = "{cache}";
     public const string CsvSplit = "|";
@@ -29,17 +29,34 @@ public sealed class FileCacheManager : IHostedService
     private readonly Lock _fileWriteLock = new();
     private readonly IpcManager _ipcManager;
     private readonly ILogger<FileCacheManager> _logger;
+    private bool _hasCheckedPenumbraOnLogin;
 
     public FileCacheManager(ILogger<FileCacheManager> logger, IpcManager ipcManager, MareConfigService configService, MareMediator mareMediator)
+        : base(logger, mareMediator)
     {
         _logger = logger;
         _ipcManager = ipcManager;
         _configService = configService;
         _mareMediator = mareMediator;
         _csvPath = Path.Combine(configService.ConfigurationDirectory, "FileCache.csv");
+
+        Mediator.Subscribe<DalamudLoginMessage>(this, _ => CheckPenumbraAndNotify());
     }
 
     private string CsvBakPath => _csvPath + ".bak";
+
+    private void CheckPenumbraAndNotify()
+    {
+        if (_hasCheckedPenumbraOnLogin) return;
+        _hasCheckedPenumbraOnLogin = true;
+
+        if (!_ipcManager.Penumbra.APIAvailable || string.IsNullOrEmpty(_ipcManager.Penumbra.ModDirectory))
+        {
+            Mediator.Publish(new NotificationMessage("Penumbra not connected",
+                "Could not load local file cache data. Penumbra is not connected or not properly set up. Please enable and/or configure Penumbra properly to use Umbra. After, reload Umbra in the Plugin installer.",
+                MareConfiguration.Models.NotificationType.Error));
+        }
+    }
 
     public FileCacheEntity? CreateCacheEntry(string path, string? hash = null)
     {
@@ -483,13 +500,6 @@ public sealed class FileCacheManager : IHostedService
 
         if (File.Exists(_csvPath))
         {
-            if (!_ipcManager.Penumbra.APIAvailable || string.IsNullOrEmpty(_ipcManager.Penumbra.ModDirectory))
-            {
-                _mareMediator.Publish(new NotificationMessage("Penumbra not connected",
-                    "Could not load local file cache data. Penumbra is not connected or not properly set up. Please enable and/or configure Penumbra properly to use Umbra. After, reload Umbra in the Plugin installer.",
-                    MareConfiguration.Models.NotificationType.Error));
-            }
-
             _logger.LogInformation("{csvPath} found, parsing", _csvPath);
 
             bool success = false;

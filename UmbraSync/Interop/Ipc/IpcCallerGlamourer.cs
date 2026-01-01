@@ -63,12 +63,14 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
              CheckAPI();
         });
 
-        CheckAPI();
-
         _glamourerStateChanged = StateChanged.Subscriber(pi, GlamourerChanged);
         _glamourerStateChanged.Enable();
 
-        Mediator.Subscribe<DalamudLoginMessage>(this, s => _shownGlamourerUnavailable = false);
+        Mediator.Subscribe<DalamudLoginMessage>(this, _ =>
+        {
+            _shownGlamourerUnavailable = false;
+            CheckAPI();
+        });
     }
 
     protected override void Dispose(bool disposing)

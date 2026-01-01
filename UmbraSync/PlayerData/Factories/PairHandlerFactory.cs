@@ -10,43 +10,26 @@ using Microsoft.Extensions.Logging;
 
 namespace UmbraSync.PlayerData.Factories;
 
-public class PairHandlerFactory
+public class PairHandlerFactory(ILoggerFactory loggerFactory, GameObjectHandlerFactory gameObjectHandlerFactory, IpcManager ipcManager,
+    FileDownloadManagerFactory fileDownloadManagerFactory, DalamudUtilService dalamudUtilService,
+    PluginWarningNotificationService pluginWarningNotificationManager, IHostApplicationLifetime hostApplicationLifetime,
+    FileCacheManager fileCacheManager, MareMediator mareMediator, PlayerPerformanceService playerPerformanceService,
+    PairAnalyzerFactory pairAnalyzerFactory,
+    MareConfigService configService, VisibilityService visibilityService)
 {
-    private readonly MareConfigService _configService;
-    private readonly DalamudUtilService _dalamudUtilService;
-    private readonly FileCacheManager _fileCacheManager;
-    private readonly FileDownloadManagerFactory _fileDownloadManagerFactory;
-    private readonly GameObjectHandlerFactory _gameObjectHandlerFactory;
-    private readonly IHostApplicationLifetime _hostApplicationLifetime;
-    private readonly IpcManager _ipcManager;
-    private readonly ILoggerFactory _loggerFactory;
-    private readonly MareMediator _mareMediator;
-    private readonly PlayerPerformanceService _playerPerformanceService;
-    private readonly PluginWarningNotificationService _pluginWarningNotificationManager;
-    private readonly PairAnalyzerFactory _pairAnalyzerFactory;
-    private readonly VisibilityService _visibilityService;
-
-    public PairHandlerFactory(ILoggerFactory loggerFactory, GameObjectHandlerFactory gameObjectHandlerFactory, IpcManager ipcManager,
-        FileDownloadManagerFactory fileDownloadManagerFactory, DalamudUtilService dalamudUtilService,
-        PluginWarningNotificationService pluginWarningNotificationManager, IHostApplicationLifetime hostApplicationLifetime,
-        FileCacheManager fileCacheManager, MareMediator mareMediator, PlayerPerformanceService playerPerformanceService,
-        PairAnalyzerFactory pairAnalyzerFactory,
-        MareConfigService configService, VisibilityService visibilityService)
-    {
-        _loggerFactory = loggerFactory;
-        _gameObjectHandlerFactory = gameObjectHandlerFactory;
-        _ipcManager = ipcManager;
-        _fileDownloadManagerFactory = fileDownloadManagerFactory;
-        _dalamudUtilService = dalamudUtilService;
-        _pluginWarningNotificationManager = pluginWarningNotificationManager;
-        _hostApplicationLifetime = hostApplicationLifetime;
-        _fileCacheManager = fileCacheManager;
-        _mareMediator = mareMediator;
-        _playerPerformanceService = playerPerformanceService;
-        _pairAnalyzerFactory = pairAnalyzerFactory;
-        _configService = configService;
-        _visibilityService = visibilityService;
-    }
+    private readonly MareConfigService _configService = configService;
+    private readonly DalamudUtilService _dalamudUtilService = dalamudUtilService;
+    private readonly FileCacheManager _fileCacheManager = fileCacheManager;
+    private readonly FileDownloadManagerFactory _fileDownloadManagerFactory = fileDownloadManagerFactory;
+    private readonly GameObjectHandlerFactory _gameObjectHandlerFactory = gameObjectHandlerFactory;
+    private readonly IHostApplicationLifetime _hostApplicationLifetime = hostApplicationLifetime;
+    private readonly IpcManager _ipcManager = ipcManager;
+    private readonly ILoggerFactory _loggerFactory = loggerFactory;
+    private readonly MareMediator _mareMediator = mareMediator;
+    private readonly PlayerPerformanceService _playerPerformanceService = playerPerformanceService;
+    private readonly PluginWarningNotificationService _pluginWarningNotificationManager = pluginWarningNotificationManager;
+    private readonly PairAnalyzerFactory _pairAnalyzerFactory = pairAnalyzerFactory;
+    private readonly VisibilityService _visibilityService = visibilityService;
 
     public PairHandler Create(Pair pair)
     {

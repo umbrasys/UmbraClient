@@ -23,8 +23,8 @@ public class GuiHookService : DisposableMediatorSubscriberBase
     private readonly IPartyList _partyList;
     private readonly PairManager _pairManager;
 
-    private bool _isModified = false;
-    private bool _namePlateRoleColorsEnabled = false;
+    private bool _isModified;
+    private bool _namePlateRoleColorsEnabled;
 
     public GuiHookService(ILogger<GuiHookService> logger, DalamudUtilService dalamudUtil, MareMediator mediator, MareConfigService configService,
         INamePlateGui namePlateGui, IGameConfig gameConfig, IPartyList partyList, PairManager pairManager)

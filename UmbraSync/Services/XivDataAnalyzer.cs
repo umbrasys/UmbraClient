@@ -17,21 +17,14 @@ using System.Globalization;
 
 namespace UmbraSync.Services;
 
-public sealed class XivDataAnalyzer
+public sealed class XivDataAnalyzer(ILogger<XivDataAnalyzer> logger, FileCacheManager fileCacheManager,
+    XivDataStorageService configService)
 {
-    private readonly ILogger<XivDataAnalyzer> _logger;
-    private readonly FileCacheManager _fileCacheManager;
-    private readonly XivDataStorageService _configService;
+    private readonly ILogger<XivDataAnalyzer> _logger = logger;
+    private readonly FileCacheManager _fileCacheManager = fileCacheManager;
+    private readonly XivDataStorageService _configService = configService;
     private readonly List<string> _failedCalculatedTris = [];
     private readonly List<string> _failedCalculatedTex = [];
-
-    public XivDataAnalyzer(ILogger<XivDataAnalyzer> logger, FileCacheManager fileCacheManager,
-        XivDataStorageService configService)
-    {
-        _logger = logger;
-        _fileCacheManager = fileCacheManager;
-        _configService = configService;
-    }
 
     public unsafe Dictionary<string, List<ushort>>? GetSkeletonBoneIndices(GameObjectHandler handler)
     {

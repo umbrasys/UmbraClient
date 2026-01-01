@@ -748,7 +748,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         var nonVisibleUsers = allUsers.Where(u => !u.IsVisible).ToList();
         var nearbyEntriesForDisplay = _configService.Current.EnableAutoDetectDiscovery
             ? GetNearbyEntriesForDisplay()
-            : new List<Services.Mediator.NearbyEntry>();
+            : [];
 
         ImGui.BeginChild("list", new Vector2(WindowContentWidth, ySize), border: false);
 
@@ -868,7 +868,7 @@ public class CompactUi : WindowMediatorSubscriberBase
     {
         if (_nearbyEntries.Count == 0)
         {
-            return new List<Services.Mediator.NearbyEntry>();
+            return [];
         }
 
         return _nearbyEntries
@@ -1336,7 +1336,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         // Dessiner Nearby juste SOUS la recherche GID/Alias dans la section Syncshell
         var nearbyEntriesForDisplay = _configService.Current.EnableAutoDetectDiscovery
             ? GetNearbyEntriesForDisplay()
-            : new List<Services.Mediator.NearbyEntry>();
+            : [];
 
         using (ImRaii.PushId("syncshells"))
             _groupPanel.DrawSyncshells(drawAfterAdd: () =>

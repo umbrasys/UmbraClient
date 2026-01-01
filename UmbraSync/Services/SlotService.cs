@@ -80,10 +80,10 @@ public class SlotService : MediatorSubscriberBase, IDisposable
         });
     }
 
-    private SlotInfoResponseDto? _detectedSlotByDistance = null;
-    private SlotInfoResponseDto? _lastNotifiedSlot = null;
+    private SlotInfoResponseDto? _detectedSlotByDistance;
+    private SlotInfoResponseDto? _lastNotifiedSlot;
     private Vector3 _lastQueryPosition = Vector3.Zero;
-    private LocationInfo? _currentPlot = null;
+    private LocationInfo? _currentPlot;
 
     private static bool IsResidentialArea(uint territoryId)
     {

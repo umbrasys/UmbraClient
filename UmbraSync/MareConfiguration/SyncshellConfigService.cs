@@ -2,13 +2,9 @@
 
 namespace UmbraSync.MareConfiguration;
 
-public class SyncshellConfigService : ConfigurationServiceBase<SyncshellConfig>
+public class SyncshellConfigService(string configDir) : ConfigurationServiceBase<SyncshellConfig>(configDir)
 {
     public const string ConfigName = "syncshells.json";
-
-    public SyncshellConfigService(string configDir) : base(configDir)
-    {
-    }
 
     public override string ConfigurationName => ConfigName;
 }

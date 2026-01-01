@@ -32,7 +32,7 @@ public class CharaDataGposeTogetherManager : DisposableMediatorSubscriberBase
     private WorldData? _lastWorldData;
     private CancellationTokenSource _lobbyCts = new();
     [SuppressMessage("Major Code Smell", "S1450:Remove the field '_poseGenerationExecutions'", Justification = "Tracks resend cadence across updates")]
-    private int _poseGenerationExecutions = 0;
+    private int _poseGenerationExecutions;
 
     public CharaDataGposeTogetherManager(ILogger<CharaDataGposeTogetherManager> logger, MareMediator mediator,
             ApiController apiController, IpcCallerBrio brio, DalamudUtilService dalamudUtil, VfxSpawnManager vfxSpawnManager,

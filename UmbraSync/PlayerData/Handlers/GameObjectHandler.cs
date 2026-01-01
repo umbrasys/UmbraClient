@@ -20,10 +20,10 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
     private readonly PerformanceCollectorService _performanceCollector;
     private CancellationTokenSource? _clearCts = new();
     private Task? _delayedZoningTask;
-    private bool _haltProcessing = false;
-    private bool _ignoreSendAfterRedraw = false;
-    private int _ptrNullCounter = 0;
-    private byte _classJob = 0;
+    private bool _haltProcessing;
+    private bool _ignoreSendAfterRedraw;
+    private int _ptrNullCounter;
+    private byte _classJob;
     private CancellationTokenSource _zoningCts = new();
 
     public GameObjectHandler(ILogger<GameObjectHandler> logger, PerformanceCollectorService performanceCollector,
@@ -317,11 +317,9 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
         for (int i = 0; i < customizeData.Length; i++)
         {
             var data = customizeData[i];
-            if (CustomizeData[i] != data)
-            {
-                CustomizeData[i] = data;
-                hasChanges = true;
-            }
+            if (CustomizeData[i] == data) continue;
+            CustomizeData[i] = data;
+            hasChanges = true;
         }
 
         return hasChanges;
@@ -333,11 +331,9 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
         for (int i = 0; i < EquipSlotData.Length; i++)
         {
             var data = equipSlotData[i];
-            if (EquipSlotData[i] != data)
-            {
-                EquipSlotData[i] = data;
-                hasChanges = true;
-            }
+            if (EquipSlotData[i] == data) continue;
+            EquipSlotData[i] = data;
+            hasChanges = true;
         }
 
         return hasChanges;

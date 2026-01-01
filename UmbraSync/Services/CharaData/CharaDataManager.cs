@@ -741,15 +741,6 @@ public sealed partial class CharaDataManager : DisposableMediatorSubscriberBase
         });
     }
 
-    internal void ApplyFullPoseDataToTarget(PoseEntry value, string targetName)
-    {
-        UiBlockingComputation = Task.Run(async () =>
-        {
-            await ApplyPoseData(value, targetName).ConfigureAwait(false);
-            await ApplyWorldDataToTarget(value, targetName).ConfigureAwait(false);
-        });
-    }
-
     internal void ApplyFullPoseDataToGposeTarget(PoseEntry value)
     {
         UiBlockingComputation = Task.Run(async () =>

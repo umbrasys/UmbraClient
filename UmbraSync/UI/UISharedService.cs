@@ -62,31 +62,31 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     private readonly ITextureProvider _textureProvider;
     private readonly Dictionary<string, object> _selectedComboItems = new(StringComparer.Ordinal);
     private readonly ServerConfigurationManager _serverConfigurationManager;
-    private bool _cacheDirectoryHasOtherFilesThanCache = false;
+    private bool _cacheDirectoryHasOtherFilesThanCache;
     private static readonly Stack<float> _fontScaleStack = new();
     private static float _currentWindowFontScale = 1f;
 
     private bool _cacheDirectoryIsValidPath = true;
 
-    private bool _customizePlusExists = false;
+    private bool _customizePlusExists;
 
     private string _customServerName = "";
 
     private string _customServerUri = "";
 
-    private bool _glamourerExists = false;
+    private bool _glamourerExists;
 
-    private bool _heelsExists = false;
+    private bool _heelsExists;
 
-    private bool _honorificExists = false;
-    private bool _isDirectoryWritable = false;
-    private bool _isOneDrive = false;
-    private bool _isPenumbraDirectory = false;
-    private bool _moodlesExists = false;
-    private bool _penumbraExists = false;
-    private bool _petNamesExists = false;
-    private bool _brioExists = false;
-    private bool _chatTwoExists = false;
+    private bool _honorificExists;
+    private bool _isDirectoryWritable;
+    private bool _isOneDrive;
+    private bool _isPenumbraDirectory;
+    private bool _moodlesExists;
+    private bool _penumbraExists;
+    private bool _petNamesExists;
+    private bool _brioExists;
+    private bool _chatTwoExists;
 
     private int _serverSelectionIndex = -1;
 

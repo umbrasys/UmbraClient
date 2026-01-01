@@ -42,21 +42,8 @@ public sealed class IpcCallerCustomize : IIpcCaller
         CheckAPI();
     }
 
-    public bool APIAvailable { get; private set; } = false;
+    public bool APIAvailable { get; private set; }
 
-    public async Task RevertAsync(nint character)
-    {
-        if (!APIAvailable) return;
-        await _dalamudUtil.RunOnFrameworkThread(() =>
-        {
-            var gameObj = _dalamudUtil.CreateGameObject(character);
-            if (gameObj is ICharacter c)
-            {
-                _logger.LogTrace("CustomizePlus reverting for {chara}", c.Address.ToString("X", CultureInfo.InvariantCulture));
-                _customizePlusRevertCharacter.InvokeFunc(c.ObjectIndex);
-            }
-        }).ConfigureAwait(false);
-    }
 
     public async Task<Guid?> SetBodyScaleAsync(nint character, string scale)
     {

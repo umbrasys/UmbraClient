@@ -33,8 +33,8 @@ public partial class IntroUi : WindowMediatorSubscriberBase
     private string _secretKey = string.Empty;
     private string _timeoutLabel = string.Empty;
     private Task? _timeoutTask;
-    private bool _registrationInProgress = false;
-    private bool _registrationSuccess = false;
+    private bool _registrationInProgress;
+    private bool _registrationSuccess;
     private string? _registrationMessage;
     private RegisterReplyDto? _registrationReply;
 
