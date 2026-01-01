@@ -46,7 +46,7 @@ jobs:
         run: dotnet nuget locals all --clear
 
       - name: Restauration des dépendances
-        run: dotnet restore UmbraSync.sln -p:RestorePackagesWithLockFile=false --force-evaluate
+        run: dotnet restore UmbraSync.sln --locked-mode
 
       - name: Téléchargement de l'ancien report scan Qodana
         continue-on-error: true

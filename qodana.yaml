@@ -18,7 +18,7 @@ bootstrap: |
   ls -la "$DALAMUD_PATH" | head -10
 
   echo "Restoring NuGet packages..."
-  dotnet restore UmbraSync.sln -p:RestorePackagesWithLockFile=false --force-evaluate --verbosity minimal
+  dotnet restore UmbraSync.sln --locked-mode --verbosity minimal
 
   echo "=== Bootstrap complete ==="
 
