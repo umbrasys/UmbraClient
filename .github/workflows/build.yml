@@ -40,8 +40,11 @@ jobs:
           rm -f latest.zip
           echo "DALAMUD_DIR=$DALAMUD_PATH" >> $GITHUB_ENV
 
+      - name: Nettoyage du cache NuGet
+        run: dotnet nuget locals all --clear
+
       - name: Restauration des dépendances
-        run: dotnet restore UmbraSync.sln --force
+        run: dotnet restore UmbraSync.sln -p:ContinuousIntegrationBuild=true --force-evaluate
 
       - name: Téléchargement de l'ancien report scan Qodana
         continue-on-error: true
