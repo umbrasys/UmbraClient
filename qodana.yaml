@@ -3,10 +3,17 @@ linter: jetbrains/qodana-dotnet:2025.2
 
 dotnet:
   solution: UmbraSync.sln
+  frameworks:
+    - net10.0-windows
 
 exclude:
   - name: Exclude build artifacts
     paths:
       - bin
       - obj
-      - libs
+      - dalamud
+  - name: Exclude submodules
+    paths:
+      - OtterGui
+      - Penumbra.Api
+      - Glamourer.Api
