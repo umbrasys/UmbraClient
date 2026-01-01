@@ -13,7 +13,7 @@ public class RpConfigService : ConfigurationServiceBase<RpConfig>
         _dalamudUtil = dalamudUtil;
     }
     public override string ConfigurationName => ConfigName;
-    public string GetCharacterKey(string charName, uint worldId) => $"{charName}@{worldId}";
+    public static string GetCharacterKey(string charName, uint worldId) => $"{charName}@{worldId}";
     public string CurrentCharacterKey => GetCharacterKey(_dalamudUtil.GetPlayerName(), _dalamudUtil.GetWorldId());
     public CharacterRpProfile GetCharacterProfile(string charName, uint worldId)
     {

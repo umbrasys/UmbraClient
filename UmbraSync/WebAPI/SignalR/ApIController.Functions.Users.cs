@@ -127,7 +127,7 @@ public partial class ApiController
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error during UserSetProfile");
+            Logger.LogError(ex, "Error during UserSetProfile for {uid}", userDescription.User.UID);
             throw;
         }
     }

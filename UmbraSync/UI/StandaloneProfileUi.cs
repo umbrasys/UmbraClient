@@ -110,8 +110,6 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
 
             var drawList = ImGui.GetWindowDrawList();
             var rectMin = drawList.GetClipRectMin();
-            var rectMax = drawList.GetClipRectMax();
-            var headerSize = ImGui.GetCursorPosY() - ImGui.GetStyle().WindowPadding.Y;
 
             using (_uiSharedService.UidFont.Push())
                 UiSharedService.ColorText(Pair.UserData.AliasOrUID + (_isRpTab ? " (RP)" : " (HRP)"), UiSharedService.AccentColor);
@@ -135,7 +133,6 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
             ImGui.BeginGroup();
             ImGuiHelpers.ScaledDummy(new Vector2(imageSize / ImGuiHelpers.GlobalScale, imageSize / ImGuiHelpers.GlobalScale + spacing.Y));
             ImGui.EndGroup();
-            var postDummy = ImGui.GetCursorPosY();
             ImGui.SameLine();
 
             if (isNsfw && !_isRpTab) // HRP NSFW check (legacy)
