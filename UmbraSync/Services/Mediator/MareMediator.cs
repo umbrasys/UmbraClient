@@ -17,7 +17,7 @@ public sealed class MareMediator : IHostedService, IDisposable
     private readonly PerformanceCollectorService _performanceCollector;
     private readonly MareConfigService _mareConfigService;
     private readonly ConcurrentDictionary<(Type, string?), HashSet<SubscriberAction>> _subscriberDict = [];
-    private bool _processQueue = false;
+    private bool _processQueue;
     private readonly ConcurrentDictionary<(Type, string?), MethodInfo?> _genericExecuteMethods = new();
     public MareMediator(ILogger<MareMediator> logger, PerformanceCollectorService performanceCollector, MareConfigService mareConfigService)
     {

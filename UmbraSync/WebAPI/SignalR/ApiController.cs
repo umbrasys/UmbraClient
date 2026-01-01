@@ -36,7 +36,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
     private readonly NotificationTracker _notificationTracker;
     private CancellationTokenSource _connectionCancellationTokenSource;
     private ConnectionDto? _connectionDto;
-    private bool _doNotNotifyOnNextInfo = false;
+    private bool _doNotNotifyOnNextInfo;
     private CancellationTokenSource? _healthCheckTokenSource = new();
     private bool _initialized;
     private HubConnection? _mareHub;

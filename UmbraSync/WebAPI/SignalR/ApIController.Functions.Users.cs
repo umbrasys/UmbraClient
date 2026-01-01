@@ -36,11 +36,6 @@ public partial class ApiController
         await _mareHub!.SendAsync(nameof(UserAddPair), user).ConfigureAwait(false);
     }
 
-    public async Task UserChatSendMsg(UserDto user, ChatMessage message)
-    {
-        CheckConnection();
-        await _mareHub!.SendAsync(nameof(UserChatSendMsg), user, message).ConfigureAwait(false);
-    }
 
     public async Task UserDelete()
     {
@@ -131,19 +126,6 @@ public partial class ApiController
         }
     }
 
-    public async Task UserSetAlias(string? alias)
-    {
-        if (!IsConnected) return;
-        try
-        {
-            await _mareHub!.InvokeAsync(nameof(UserSetAlias), alias).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "Failed to set custom ID");
-            throw new InvalidOperationException("Failed to set custom ID via SignalR call to UserSetAlias", ex);
-        }
-    }
 
     public async Task UserSetTypingState(bool isTyping)
     {

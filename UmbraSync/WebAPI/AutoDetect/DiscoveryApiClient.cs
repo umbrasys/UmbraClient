@@ -161,16 +161,16 @@ public class DiscoveryApiClient
             var body = JsonSerializer.Serialize(bodyObj);
             req.Content = new StringContent(body, Encoding.UTF8, "application/json");
             var resp = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
-            if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            {
-                var jwt2 = await _tokenProvider.ForceRefreshToken(ct).ConfigureAwait(false);
-                if (string.IsNullOrEmpty(jwt2)) return false;
-                using var req2 = new HttpRequestMessage(HttpMethod.Post, endpoint);
-                req2.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt2);
-                var body2 = JsonSerializer.Serialize(bodyObj);
-                req2.Content = new StringContent(body2, Encoding.UTF8, "application/json");
-                resp = await _httpClient.SendAsync(req2, ct).ConfigureAwait(false);
-            }
+            if (resp.IsSuccessStatusCode) return true;
+            if (resp.StatusCode != System.Net.HttpStatusCode.Unauthorized) return false;
+
+            var jwt2 = await _tokenProvider.ForceRefreshToken(ct).ConfigureAwait(false);
+            if (string.IsNullOrEmpty(jwt2)) return false;
+            using var req2 = new HttpRequestMessage(HttpMethod.Post, endpoint);
+            req2.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt2);
+            var body2 = JsonSerializer.Serialize(bodyObj);
+            req2.Content = new StringContent(body2, Encoding.UTF8, "application/json");
+            resp = await _httpClient.SendAsync(req2, ct).ConfigureAwait(false);
             return resp.IsSuccessStatusCode;
         }
         catch (OperationCanceledException oce) when (LogCancellation(oce, ct, "Discovery publish"))

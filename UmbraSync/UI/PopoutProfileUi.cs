@@ -28,7 +28,7 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
     private IDalamudTextureWrap? _supporterTextureWrap;
     private IDalamudTextureWrap? _textureWrap;
     private IDalamudTextureWrap? _rpTextureWrap;
-    private bool _isRpTab = false;
+    private bool _isRpTab;
 
     public PopoutProfileUi(ILogger<PopoutProfileUi> logger, MareMediator mediator, UiSharedService uiSharedService,
         ServerConfigurationManager serverManager, MareConfigService mareConfigService,

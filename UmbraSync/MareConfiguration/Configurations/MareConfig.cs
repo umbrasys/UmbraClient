@@ -21,7 +21,7 @@ public class MareConfig : IMareConfiguration
     public bool ShowUidInDtrTooltip { get; set; } = true;
     public bool PreferNoteInDtrTooltip { get; set; }
     public bool UseColorsInDtr { get; set; } = true;
-    public DtrEntry.Colors DtrColorsDefault { get; set; } = default;
+    public DtrEntry.Colors DtrColorsDefault { get; set; }
     public DtrEntry.Colors DtrColorsNotConnected { get; set; } = new(Glow: 0x0428FFu);
     public DtrEntry.Colors DtrColorsPairsInRange { get; set; } = new(Glow: 0x8D37C0u);
     public bool UseNameColors { get; set; }
@@ -30,7 +30,6 @@ public class MareConfig : IMareConfiguration
     public bool EnableRightClickMenus { get; set; } = true;
     public NotificationLocation ErrorNotification { get; set; } = NotificationLocation.Both;
     public string ExportFolder { get; set; } = string.Empty;
-    public bool FileScanPaused { get; set; }
     public NotificationLocation InfoNotification { get; set; } = NotificationLocation.Toast;
     public bool InitialScanComplete { get; set; }
     public LogLevel LogLevel { get; set; } = LogLevel.Information;
@@ -44,24 +43,14 @@ public class MareConfig : IMareConfiguration
     public bool EnableDownloadQueue { get; set; }
     public int DownloadSpeedLimitInBytes { get; set; }
     public DownloadSpeeds DownloadSpeedType { get; set; } = DownloadSpeeds.MBps;
-    [SuppressMessage("Major Code Smell", "S1133:Do not forget to remove this deprecated code someday", Justification = "Legacy config needed for migration")]
-    [SuppressMessage("Major Code Smell", "S1123:Add an explanation", Justification = "Legacy config needed for migration")]
-    [Obsolete("Use ShowCharacterNames and related note display options instead", false)]
-    public bool PreferNotesOverNamesForVisible { get; set; }
     public float ProfileDelay { get; set; } = 1.5f;
     public bool ProfilePopoutRight { get; set; }
     public bool ProfilesAllowNsfw { get; set; }
     public bool ProfilesAllowRpNsfw { get; set; }
     public bool ProfilesShow { get; set; }
-    public bool ShowSyncshellUsersInVisible { get; set; } = true;
-    [SuppressMessage("Major Code Smell", "S1133:Do not forget to remove this deprecated code someday", Justification = "Legacy config needed for migration")]
-    [SuppressMessage("Major Code Smell", "S1123:Add an explanation", Justification = "Legacy config needed for migration")]
-    [Obsolete("Use PreferNotesOverNamesForVisible / ShowCharacterNames settings instead", false)]
-    public bool ShowCharacterNameInsteadOfNotesForVisible { get; set; }
     public bool ShowCharacterNames { get; set; } = true;
     public bool ShowOfflineUsersSeparately { get; set; } = true;
     public bool ShowSyncshellOfflineUsersSeparately { get; set; } = true;
-    public bool GroupUpSyncshells { get; set; } = true;
     public bool SerialApplication { get; set; }
     public bool ShowOnlineNotifications { get; set; }
     public bool ShowOnlineNotificationsOnlyForIndividualPairs { get; set; } = true;

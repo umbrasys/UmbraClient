@@ -74,7 +74,7 @@ public class MarePlugin : MediatorSubscriberBase, IHostedService
     private readonly ServerConfigurationManager _serverConfigurationManager;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private IServiceScope? _runtimeServiceScope;
-    private Task? _launchTask = null;
+    private Task? _launchTask;
 
     public MarePlugin(ILogger<MarePlugin> logger, MareConfigService mareConfigService,
         ServerConfigurationManager serverConfigurationManager,

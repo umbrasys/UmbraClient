@@ -13,31 +13,21 @@ using Microsoft.Extensions.Logging;
 
 namespace UmbraSync.Services;
 
-public class PartyListTypingService : DisposableMediatorSubscriberBase
+public class PartyListTypingService(ILogger<PartyListTypingService> logger,
+    MareMediator mediator,
+    IPartyList partyList,
+    PairManager pairManager,
+    MareConfigService configService,
+    TypingIndicatorStateService typingStateService)
+    : DisposableMediatorSubscriberBase(logger, mediator)
 {
-    private readonly ILogger<PartyListTypingService> _logger;
-    private readonly IPartyList _partyList;
-    private readonly MareConfigService _configService;
-    private readonly PairManager _pairManager;
-    private readonly TypingIndicatorStateService _typingStateService;
+    private readonly ILogger<PartyListTypingService> _logger = logger;
+    private readonly IPartyList _partyList = partyList;
+    private readonly MareConfigService _configService = configService;
+    private readonly PairManager _pairManager = pairManager;
+    private readonly TypingIndicatorStateService _typingStateService = typingStateService;
     private static readonly TimeSpan TypingDisplayTime = TimeSpan.FromSeconds(2);
     private static readonly TimeSpan TypingDisplayFade = TypingDisplayTime;
-
-    public PartyListTypingService(ILogger<PartyListTypingService> logger,
-        MareMediator mediator,
-        IPartyList partyList,
-        PairManager pairManager,
-        MareConfigService configService,
-        TypingIndicatorStateService typingStateService)
-        : base(logger, mediator)
-    {
-        _logger = logger;
-        _partyList = partyList;
-        _pairManager = pairManager;
-        _configService = configService;
-        _typingStateService = typingStateService;
-
-    }
 
     public void Draw()
     {

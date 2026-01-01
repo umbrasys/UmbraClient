@@ -149,35 +149,38 @@ public sealed class ChatTypingDetectionService : IDisposable
                 _notifyingRemote = false;
             }
 
-            if (!_isTyping || !string.Equals(chatText, _lastChatText, StringComparison.Ordinal))
+            if (_isTyping && string.Equals(chatText, _lastChatText, StringComparison.Ordinal))
             {
-                // Keep server channel memberships up to date (party/alliance/etc.)
-                RefreshTypingChannelsIfChanged();
-
-                if (notifyRemote)
-                {
-                    var scope = GetCurrentTypingScope();
-                    if (scope == TypingScope.Unknown)
-                    {
-                        scope = TypingScope.Proximity; // fallback when chat type cannot be resolved
-                    }
-                    // Resolve channelId for scoped routing when available
-                    string? channelId = ResolveChannelIdForScope(scope);
-                    _logger.LogDebug("TypingDetection: notify remote scope={scope} channelId={channel} textLength={length}", scope, channelId, chatText.Length);
-                    if (!string.IsNullOrEmpty(channelId))
-                    {
-                        _chatService.NotifyTypingKeystroke(scope, channelId, targetUid: null);
-                    }
-                    else
-                    {
-                        _chatService.NotifyTypingKeystroke(scope);
-                    }
-                    _notifyingRemote = true;
-                }
-
-                _typingStateService.SetSelfTypingLocal(true);
-                _isTyping = true;
+                _lastChatText = chatText;
+                return;
             }
+
+            // Keep server channel memberships up to date (party/alliance/etc.)
+            RefreshTypingChannelsIfChanged();
+
+            if (notifyRemote)
+            {
+                var scope = GetCurrentTypingScope();
+                if (scope == TypingScope.Unknown)
+                {
+                    scope = TypingScope.Proximity; // fallback when chat type cannot be resolved
+                }
+                // Resolve channelId for scoped routing when available
+                string? channelId = ResolveChannelIdForScope(scope);
+                _logger.LogDebug("TypingDetection: notify remote scope={scope} channelId={channel} textLength={length}", scope, channelId, chatText.Length);
+                if (!string.IsNullOrEmpty(channelId))
+                {
+                    _chatService.NotifyTypingKeystroke(scope, channelId, targetUid: null);
+                }
+                else
+                {
+                    _chatService.NotifyTypingKeystroke(scope);
+                }
+                _notifyingRemote = true;
+            }
+
+            _typingStateService.SetSelfTypingLocal(true);
+            _isTyping = true;
 
             _lastChatText = chatText;
         }

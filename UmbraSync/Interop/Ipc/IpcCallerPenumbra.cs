@@ -18,7 +18,7 @@ public sealed class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
     private readonly MareMediator _mareMediator;
     private readonly RedrawManager _redrawManager;
     private readonly NotificationTracker _notificationTracker;
-    private bool _shownPenumbraUnavailable = false;
+    private bool _shownPenumbraUnavailable;
     private string? _penumbraModDirectory;
     public string? ModDirectory
     {
@@ -101,7 +101,6 @@ public sealed class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
              CheckAPI();
         });
 
-        CheckAPI();
         CheckModDirectory();
 
         Mediator.Subscribe<PenumbraRedrawCharacterMessage>(this, (msg) =>
@@ -109,10 +108,14 @@ public sealed class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
             _penumbraRedraw.Invoke(msg.Character.ObjectIndex, RedrawType.AfterGPose);
         });
 
-        Mediator.Subscribe<DalamudLoginMessage>(this, (msg) => _shownPenumbraUnavailable = false);
+        Mediator.Subscribe<DalamudLoginMessage>(this, _ =>
+        {
+            _shownPenumbraUnavailable = false;
+            CheckAPI();
+        });
     }
 
-    public bool APIAvailable { get; private set; } = false;
+    public bool APIAvailable { get; private set; }
 
     public void CheckAPI()
     {
