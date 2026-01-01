@@ -1,5 +1,26 @@
 version: "1.0"
-linter: jetbrains/qodana-dotnet:2025.2
+linter: jetbrains/qodana-dotnet:2025.3
+
+bootstrap: |
+  set -e
+  echo "=== Preparing Dalamud environment for Qodana ==="
+
+  # Create Dalamud directory in the default Linux path
+  DALAMUD_PATH="$HOME/.xlcore/dalamud/Hooks/dev"
+  mkdir -p "$DALAMUD_PATH"
+
+  echo "Downloading Dalamud..."
+  curl -L https://goatcorp.github.io/dalamud-distrib/stg/latest.zip -o /tmp/dalamud.zip
+  unzip -q -o /tmp/dalamud.zip -d "$DALAMUD_PATH"
+  rm -f /tmp/dalamud.zip
+
+  echo "Dalamud installed to: $DALAMUD_PATH"
+  ls -la "$DALAMUD_PATH" | head -10
+
+  echo "Restoring NuGet packages..."
+  dotnet restore UmbraSync.sln -p:ContinuousIntegrationBuild=true --force-evaluate --verbosity minimal
+
+  echo "=== Bootstrap complete ==="
 
 dotnet:
   solution: UmbraSync.sln
