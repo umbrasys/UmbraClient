@@ -598,7 +598,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
             }
             catch (Exception ex)
             {
-                var snippet = body?.Length > 2048 ? body[..2048] + "…" : body ?? string.Empty;
+                var snippet = body.Length > 2048 ? body[..2048] + "…" : body;
                 // Re-throw with context to satisfy analyzers and aid diagnostics
                 throw new System.Text.Json.JsonException($"Failed to parse getFileSizes response. Snippet: {snippet}", ex);
             }

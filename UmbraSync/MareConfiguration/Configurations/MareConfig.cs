@@ -12,70 +12,70 @@ namespace UmbraSync.MareConfiguration.Configurations;
 public class MareConfig : IMareConfiguration
 {
     public int ExpectedTOSVersion = 2;
-    public int AcceptedTOSVersion { get; set; } = 0;
-    public bool AcceptedAgreement { get; set; } = false;
+    public int AcceptedTOSVersion { get; set; }
+    public bool AcceptedAgreement { get; set; }
     public string CacheFolder { get; set; } = string.Empty;
-    public bool DisableOptionalPluginWarnings { get; set; } = false;
+    public bool DisableOptionalPluginWarnings { get; set; }
     public bool EnableDtrEntry { get; set; } = true;
-    public int DtrStyle { get; set; } = 0;
+    public int DtrStyle { get; set; }
     public bool ShowUidInDtrTooltip { get; set; } = true;
-    public bool PreferNoteInDtrTooltip { get; set; } = false;
+    public bool PreferNoteInDtrTooltip { get; set; }
     public bool UseColorsInDtr { get; set; } = true;
     public DtrEntry.Colors DtrColorsDefault { get; set; } = default;
     public DtrEntry.Colors DtrColorsNotConnected { get; set; } = new(Glow: 0x0428FFu);
     public DtrEntry.Colors DtrColorsPairsInRange { get; set; } = new(Glow: 0x8D37C0u);
-    public bool UseNameColors { get; set; } = false;
+    public bool UseNameColors { get; set; }
     public DtrEntry.Colors NameColors { get; set; } = new(Foreground: 0x67EBF5u, Glow: 0x00303Cu);
     public DtrEntry.Colors BlockedNameColors { get; set; } = new(Foreground: 0x8AADC7, Glow: 0x000080u);
     public bool EnableRightClickMenus { get; set; } = true;
     public NotificationLocation ErrorNotification { get; set; } = NotificationLocation.Both;
     public string ExportFolder { get; set; } = string.Empty;
-    public bool FileScanPaused { get; set; } = false;
+    public bool FileScanPaused { get; set; }
     public NotificationLocation InfoNotification { get; set; } = NotificationLocation.Toast;
-    public bool InitialScanComplete { get; set; } = false;
+    public bool InitialScanComplete { get; set; }
     public LogLevel LogLevel { get; set; } = LogLevel.Information;
-    public bool LogPerformance { get; set; } = false;
+    public bool LogPerformance { get; set; }
     public bool LogEvents { get; set; } = true;
-    public bool HoldCombatApplication { get; set; } = false;
+    public bool HoldCombatApplication { get; set; }
     public double MaxLocalCacheInGiB { get; set; } = 100;
-    public bool OpenGposeImportOnGposeStart { get; set; } = false;
+    public bool OpenGposeImportOnGposeStart { get; set; }
     public bool OpenPopupOnAdd { get; set; } = true;
     public int ParallelDownloads { get; set; } = 10;
-    public bool EnableDownloadQueue { get; set; } = true;
-    public int DownloadSpeedLimitInBytes { get; set; } = 0;
+    public bool EnableDownloadQueue { get; set; }
+    public int DownloadSpeedLimitInBytes { get; set; }
     public DownloadSpeeds DownloadSpeedType { get; set; } = DownloadSpeeds.MBps;
     [SuppressMessage("Major Code Smell", "S1133:Do not forget to remove this deprecated code someday", Justification = "Legacy config needed for migration")]
     [SuppressMessage("Major Code Smell", "S1123:Add an explanation", Justification = "Legacy config needed for migration")]
     [Obsolete("Use ShowCharacterNames and related note display options instead", false)]
-    public bool PreferNotesOverNamesForVisible { get; set; } = false;
+    public bool PreferNotesOverNamesForVisible { get; set; }
     public float ProfileDelay { get; set; } = 1.5f;
-    public bool ProfilePopoutRight { get; set; } = false;
-    public bool ProfilesAllowNsfw { get; set; } = false;
-    public bool ProfilesAllowRpNsfw { get; set; } = false;
-    public bool ProfilesShow { get; set; } = false;
+    public bool ProfilePopoutRight { get; set; }
+    public bool ProfilesAllowNsfw { get; set; }
+    public bool ProfilesAllowRpNsfw { get; set; }
+    public bool ProfilesShow { get; set; }
     public bool ShowSyncshellUsersInVisible { get; set; } = true;
     [SuppressMessage("Major Code Smell", "S1133:Do not forget to remove this deprecated code someday", Justification = "Legacy config needed for migration")]
     [SuppressMessage("Major Code Smell", "S1123:Add an explanation", Justification = "Legacy config needed for migration")]
     [Obsolete("Use PreferNotesOverNamesForVisible / ShowCharacterNames settings instead", false)]
-    public bool ShowCharacterNameInsteadOfNotesForVisible { get; set; } = false;
+    public bool ShowCharacterNameInsteadOfNotesForVisible { get; set; }
     public bool ShowCharacterNames { get; set; } = true;
     public bool ShowOfflineUsersSeparately { get; set; } = true;
     public bool ShowSyncshellOfflineUsersSeparately { get; set; } = true;
     public bool GroupUpSyncshells { get; set; } = true;
-    public bool SerialApplication { get; set; } = false;
-    public bool ShowOnlineNotifications { get; set; } = false;
+    public bool SerialApplication { get; set; }
+    public bool ShowOnlineNotifications { get; set; }
     public bool ShowOnlineNotificationsOnlyForIndividualPairs { get; set; } = true;
-    public bool ShowOnlineNotificationsOnlyForNamedPairs { get; set; } = false;
+    public bool ShowOnlineNotificationsOnlyForNamedPairs { get; set; }
     public bool ShowTransferBars { get; set; } = true;
-    public bool ShowTransferWindow { get; set; } = false;
+    public bool ShowTransferWindow { get; set; }
     public bool ShowUploading { get; set; } = true;
     public bool ShowUploadingBigText { get; set; } = true;
     public bool ShowVisibleUsersSeparately { get; set; } = true;
     public string UiLanguage { get; set; } = "fr";
     public string LastChangelogVersionSeen { get; set; } = string.Empty;
-    public bool DefaultDisableSounds { get; set; } = false;
-    public bool DefaultDisableAnimations { get; set; } = false;
-    public bool DefaultDisableVfx { get; set; } = false;
+    public bool DefaultDisableSounds { get; set; }
+    public bool DefaultDisableAnimations { get; set; }
+    public bool DefaultDisableVfx { get; set; }
     public Dictionary<string, SyncOverrideEntry> PairSyncOverrides { get; set; } = new(StringComparer.Ordinal);
     public Dictionary<string, SyncOverrideEntry> GroupSyncOverrides { get; set; } = new(StringComparer.Ordinal);
     public bool EnableAutoDetectDiscovery { get; set; } = true;
@@ -87,19 +87,18 @@ public class MareConfig : IMareConfiguration
     public int TransferBarsHeight { get; set; } = 12;
     public bool TransferBarsShowText { get; set; } = true;
     public int TransferBarsWidth { get; set; } = 250;
-    public bool UseAlternativeFileUpload { get; set; } = false;
-    public bool UseCompactor { get; set; } = false;
-    public bool EnablePenumbraPrecache { get; set; } = false;
-    public int PrecacheSpeedLimitInBytes { get; set; } = 0;
+    public bool UseAlternativeFileUpload { get; set; }
+    public bool UseCompactor { get; set; }
+    public bool EnablePenumbraPrecache { get; set; }
+    public int PrecacheSpeedLimitInBytes { get; set; }
     public List<string> PrecacheExcludePatterns { get; set; } = new();
     public int Version { get; set; } = 1;
     public NotificationLocation WarningNotification { get; set; } = NotificationLocation.Both;
-
-    public bool DisableSyncshellChat { get; set; } = false;
-    public int ChatColor { get; set; } = 0; // 0 means "use plugin default"
+    public bool DisableSyncshellChat { get; set; }
+    public int ChatColor { get; set; } // 0 means "use plugin default"
     public int ChatLogKind { get; set; } = 1; // XivChatType.Debug
-    public bool ExtraChatAPI { get; set; } = false;
-    public bool ExtraChatTags { get; set; } = false;
+    public bool ExtraChatAPI { get; set; }
+    public bool ExtraChatTags { get; set; }
     public bool TypingIndicatorShowOnNameplates { get; set; } = true;
     public bool TypingIndicatorShowOnPartyList { get; set; } = true;
     public bool TypingIndicatorEnabled { get; set; } = true;

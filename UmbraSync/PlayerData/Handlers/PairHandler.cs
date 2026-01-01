@@ -220,7 +220,8 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             return;
         }
 
-        Logger.LogDebug("[BASE-{appbase}] Applying data for {player}, forceApplyCustomization: {forced}, forceApplyMods: {forceMods}", applicationBase, this, forceApplyCustomization, _forceApplyMods);
+        if (Logger.IsEnabled(LogLevel.Debug))
+            Logger.LogDebug("[BASE-{appbase}] Applying data for {player}, forceApplyCustomization: {forced}, forceApplyMods: {forceMods}", applicationBase, this, forceApplyCustomization, _forceApplyMods);
         Logger.LogDebug("[BASE-{appbase}] Hash for data is {newHash}, current cache hash is {oldHash}", applicationBase, characterData.DataHash.Value, _cachedData?.DataHash.Value ?? "NODATA");
 
         if (string.Equals(characterData.DataHash.Value, _cachedData?.DataHash.Value ?? string.Empty, StringComparison.Ordinal) && !forceApplyCustomization) return;
@@ -229,7 +230,8 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         {
             Mediator.Publish(new EventMessage(new Event(PlayerName, Pair.UserData, nameof(PairHandler), EventSeverity.Warning,
                 "Cannot apply character data: you are in GPose, a Cutscene or Penumbra/Glamourer is not available. Deferring application.")));
-            Logger.LogInformation("[BASE-{appbase}] Application of data for {player} while in cutscene/gpose or Penumbra/Glamourer unavailable, deferring", applicationBase, this);
+            if (Logger.IsEnabled(LogLevel.Information))
+                Logger.LogInformation("[BASE-{appbase}] Application of data for {player} while in cutscene/gpose or Penumbra/Glamourer unavailable, deferring", applicationBase, this);
             _forceApplyMods = characterData.CheckUpdatedData(applicationBase, _cachedData, Logger,
                 this, forceApplyCustomization, forceApplyMods: false)
                 .Any(p => p.Value.Contains(PlayerChanges.ModManip) || p.Value.Contains(PlayerChanges.ModFiles));
@@ -263,7 +265,8 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             _pluginWarningNotificationManager.NotifyForMissingPlugins(Pair.UserData, PlayerName!, playerChanges);
         }
 
-        Logger.LogDebug("[BASE-{appbase}] Downloading and applying character for {name}", applicationBase, this);
+        if (Logger.IsEnabled(LogLevel.Debug))
+            Logger.LogDebug("[BASE-{appbase}] Downloading and applying character for {name}", applicationBase, this);
 
         DownloadAndApplyCharacter(applicationBase, characterData.DeepClone(), charaDataToUpdate);
     }
@@ -275,7 +278,8 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
 
     internal void SetUploading(bool isUploading = true)
     {
-        Logger.LogTrace("Setting {this} uploading {uploading}", this, isUploading);
+        if (Logger.IsEnabled(LogLevel.Trace))
+            Logger.LogTrace("Setting {pairHandler} uploading {uploading}", this, isUploading);
         if (_charaHandler != null)
         {
             Mediator.Publish(new PlayerUploadingMessage(_charaHandler, isUploading));
@@ -292,7 +296,8 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
 
         SetUploading(isUploading: false);
         var name = PlayerName;
-        Logger.LogDebug("Disposing {name} ({user})", name, Pair);
+            if (Logger.IsEnabled(LogLevel.Debug))
+                Logger.LogDebug("Disposing {name} ({user})", name, Pair.UserData.AliasOrUID);
         try
         {
             Guid applicationId = Guid.NewGuid();
@@ -371,9 +376,9 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
                     using var cts = new CancellationTokenSource();
                     cts.CancelAfter(TimeSpan.FromSeconds(60));
 
-                    Logger.LogInformation("[{applicationId}] CachedData is null {isNull}, contains things: {contains}", applicationId, _cachedData == null, _cachedData?.FileReplacements.Any() ?? false);
+                    Logger.LogInformation("[{applicationId}] CachedData is null {isNull}, contains things: {contains}", applicationId, _cachedData == null, (_cachedData?.FileReplacements.Values.Count ?? 0) > 0);
 
-                    if (_cachedData != null && _cachedData.FileReplacements.Any())
+                    if (_cachedData != null && _cachedData.FileReplacements.Values.Count > 0)
                     {
                         foreach (KeyValuePair<ObjectKind, List<FileReplacementData>> item in _cachedData.FileReplacements)
                         {
@@ -512,7 +517,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
 
     private void DownloadAndApplyCharacter(Guid applicationBase, CharacterData charaData, Dictionary<ObjectKind, HashSet<PlayerChanges>> updatedData)
     {
-        if (!updatedData.Any())
+        if (updatedData.Count == 0)
         {
             Logger.LogDebug("[BASE-{appBase}] Nothing to update for {obj}", applicationBase, this);
             return;
@@ -728,7 +733,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
 
         if (downloadToken.IsCancellationRequested || (appToken?.IsCancellationRequested ?? false)) return;
 
-        _applicationCancellationTokenSource = _applicationCancellationTokenSource.CancelRecreate() ?? new CancellationTokenSource();
+        _applicationCancellationTokenSource = _applicationCancellationTokenSource.CancelRecreate();
         var token = _applicationCancellationTokenSource.Token;
 
         _applicationTask = ApplyCharacterDataAsync(applicationBase, charaData, updatedData, updateModdedPaths, updateManip, moddedPaths, token);
@@ -816,9 +821,11 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         {
             var pc = _dalamudUtil.FindPlayerByNameHash(Pair.Ident);
             if (pc.ObjectId == 0) return;
-            Logger.LogDebug("One-Time Initializing {this}", this);
+            if (Logger.IsEnabled(LogLevel.Debug))
+                Logger.LogDebug("One-Time Initializing {pairHandler}", this);
             Initialize(pc.Name);
-            Logger.LogDebug("One-Time Initialized {this}", this);
+            if (Logger.IsEnabled(LogLevel.Debug))
+                Logger.LogDebug("One-Time Initialized {pairHandler}", this);
             Mediator.Publish(new EventMessage(new Event(PlayerName, Pair.UserData, nameof(PairHandler), EventSeverity.Informational,
                 $"Initializing User For Character {pc.Name}")));
         }
@@ -832,9 +839,11 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             _charaHandler?.Invalidate();
             _downloadCancellationTokenSource?.CancelDispose();
             _downloadCancellationTokenSource = null;
-            if (wasVisible)
-                Logger.LogTrace("{this} visibility changed, now: {visi}", this, IsVisible);
-            Logger.LogDebug("Invalidating {this}", this);
+            if (wasVisible && Logger.IsEnabled(LogLevel.Trace))
+                Logger.LogTrace("{pairHandler} visibility changed, now: {visi}", this, IsVisible);
+
+            if (Logger.IsEnabled(LogLevel.Debug))
+                Logger.LogDebug("Invalidating {pairHandler}", this);
             UndoApplication();
             return;
         }
@@ -856,7 +865,8 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             if (_cachedData != null)
             {
                 Guid appData = Guid.NewGuid();
-                Logger.LogTrace("[BASE-{appBase}] {this} visibility changed, now: {visi}, cached data exists", appData, this, IsVisible);
+                if (Logger.IsEnabled(LogLevel.Trace))
+                    Logger.LogTrace("[BASE-{appBase}] {pairHandler} visibility changed, now: {visi}, cached data exists", appData, this, IsVisible);
 
                 _ = Task.Run(() =>
                 {
@@ -874,7 +884,8 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             _charaHandler?.Invalidate();
             _downloadCancellationTokenSource?.CancelDispose();
             _downloadCancellationTokenSource = null;
-            Logger.LogTrace("{this} visibility changed, now: {visi}", this, IsVisible);
+            if (Logger.IsEnabled(LogLevel.Trace))
+                Logger.LogTrace("{pairHandler} visibility changed, now: {visi}", this, IsVisible);
         }
     }
 

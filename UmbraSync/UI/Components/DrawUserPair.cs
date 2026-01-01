@@ -173,7 +173,12 @@ public class DrawUserPair : DrawPairBase
         // when multiple list items call BeginPopup with the same name in the same frame.
         var popupId = $"User Flyout Menu##{_pair.UserData.UID}";
 
-        if (_uiSharedService.IconButton(FontAwesomeIcon.Bars))
+        bool buttonClicked;
+        using (ImRaii.PushId($"info-{_pair.UserData.UID}"))
+        {
+            buttonClicked = _uiSharedService.IconButton(FontAwesomeIcon.Bars);
+        }
+        if (buttonClicked)
         {
             ImGui.OpenPopup(popupId);
         }
@@ -186,12 +191,15 @@ public class DrawUserPair : DrawPairBase
         rightSidePos -= pauseIconSize.X + spacingX;
         ImGui.SameLine(rightSidePos);
         ImGui.SetCursorPosY(originalY);
-        if (pauseIcon == FontAwesomeIcon.Pause ? _uiSharedService.IconPauseButtonCentered() : _uiSharedService.IconButtonCentered(pauseIcon))
+        using (ImRaii.PushId($"pause-{_pair.UserData.UID}"))
         {
-            _ = _apiController.Pause(_pair.UserData);
+            if (pauseIcon == FontAwesomeIcon.Pause ? _uiSharedService.IconPauseButtonCentered() : _uiSharedService.IconButtonCentered(pauseIcon))
+            {
+                _apiController.Pause(_pair.UserData);
+            }
+            var pauseKey = !_pair.IsPaused ? "DrawUserPair.Pause" : "DrawUserPair.Resume";
+            UiSharedService.AttachToolTip(AppendSeenInfo(string.Format(CultureInfo.CurrentCulture, Loc.Get(pauseKey), entryUID)));
         }
-        var pauseKey = !_pair.IsPaused ? "DrawUserPair.Pause" : "DrawUserPair.Resume";
-        UiSharedService.AttachToolTip(AppendSeenInfo(string.Format(CultureInfo.CurrentCulture, Loc.Get(pauseKey), entryUID)));
 
 
         var individualSoundsDisabled = (_pair.UserPair?.OwnPermissions.IsDisableSounds() ?? false) || (_pair.UserPair?.OtherPermissions.IsDisableSounds() ?? false);
@@ -320,9 +328,7 @@ public class DrawUserPair : DrawPairBase
 
         if (_uiSharedService.IconTextButton(FontAwesomeIcon.PlayCircle, Loc.Get("DrawUserPair.Menu.CyclePause")))
         {
-            // Ancien comportement: CyclePause entraînait un délai (timer) avant application.
-            // On remplace par une pause immédiate pour supprimer toute attente perçue.
-            _ = _apiController.Pause(entry.UserData);
+            _apiController.Pause(entry.UserData);
             ImGui.CloseCurrentPopup();
         }
         var entryUID = entry.UserData.AliasOrUID;

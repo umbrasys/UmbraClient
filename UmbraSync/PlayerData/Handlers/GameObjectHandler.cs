@@ -253,7 +253,7 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
                 return;
             }
 
-            bool customizeDiff = false;
+            bool customizeDiff;
 
             if (((DrawObject*)DrawObjectAddress)->Object.GetObjectType() == ObjectType.CharacterBase
                 && ((CharacterBase*)DrawObjectAddress)->GetModelType() == CharacterBase.ModelType.Human)
@@ -436,7 +436,6 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
             if (modelInSlotLoaded) return DrawCondition.ModelInSlotLoaded;
             var modelFilesInSlotLoaded = (((CharacterBase*)drawObj)->HasModelFilesInSlotLoaded != 0);
             if (modelFilesInSlotLoaded) return DrawCondition.ModelFilesInSlotLoaded;
-            return DrawCondition.None;
         }
 
         return DrawCondition.None;

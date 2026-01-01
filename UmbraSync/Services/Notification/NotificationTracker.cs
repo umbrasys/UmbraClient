@@ -230,7 +230,7 @@ public sealed class NotificationTracker
     {
         try
         {
-            var list = _configService.Current.Notifications ?? new List<StoredNotification>();
+            var list = _configService.Current.Notifications;
             foreach (var s in list)
             {
                 if (!Enum.TryParse<NotificationCategory>(s.Category, out var cat)) continue;

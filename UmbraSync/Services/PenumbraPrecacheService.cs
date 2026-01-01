@@ -175,7 +175,7 @@ public sealed class PenumbraPrecacheService : DisposableMediatorSubscriberBase, 
     {
         var ext = Path.GetExtension(path);
         if (!CacheMonitor.AllowedFileExtensions.Contains(ext, StringComparer.OrdinalIgnoreCase)) return false;
-        var exclusions = _configService.Current.PrecacheExcludePatterns ?? new List<string>();
+        var exclusions = _configService.Current.PrecacheExcludePatterns;
         if (exclusions.Any(ex => !string.IsNullOrWhiteSpace(ex) && path.Contains(ex, StringComparison.OrdinalIgnoreCase))) return false;
         return true;
     }
@@ -457,7 +457,7 @@ public sealed class PenumbraPrecacheService : DisposableMediatorSubscriberBase, 
         }
 
         var allowed = CacheMonitor.AllowedFileExtensions;
-        var exclusions = _configService.Current.PrecacheExcludePatterns ?? new List<string>();
+        var exclusions = _configService.Current.PrecacheExcludePatterns;
 
         return GetAllFilesSafe(root)
             .Where(p => allowed.Contains(Path.GetExtension(p), StringComparer.OrdinalIgnoreCase))

@@ -60,10 +60,9 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         Mediator.Subscribe<HubClosedMessage>(this, (msg) => MareHubOnClosed(msg.Exception));
         Mediator.Subscribe<HubReconnectedMessage>(this, (msg) => _ = MareHubOnReconnected());
         Mediator.Subscribe<HubReconnectingMessage>(this, (msg) => MareHubOnReconnecting(msg.Exception));
-        // Rediriger CyclePauseMessage vers une pause immédiate afin d'éviter le délai perçu
-        Mediator.Subscribe<CyclePauseMessage>(this, (msg) => _ = Pause(msg.UserData));
+        Mediator.Subscribe<CyclePauseMessage>(this, (msg) => Pause(msg.UserData));
         Mediator.Subscribe<CensusUpdateMessage>(this, (msg) => _lastCensus = msg);
-        Mediator.Subscribe<PauseMessage>(this, (msg) => _ = Pause(msg.UserData));
+        Mediator.Subscribe<PauseMessage>(this, (msg) => Pause(msg.UserData));
 
         ServerState = ServerState.Offline;
 
@@ -269,9 +268,8 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         }
     }
 
-    // CyclePause supprimé: entraînait un délai perceptible. Utiliser Pause(UserData) pour une action immédiate.
 
-    public async Task Pause(UserData userData)
+    public void Pause(UserData userData)
     {
         var pair = _pairManager.GetPairByUID(userData.UID);
         if (pair == null)
@@ -285,11 +283,9 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
 
         Logger.LogInformation("Toggling pause for {uid}: {isCurrentlyPaused} -> {shouldPause}", userData.UID, isCurrentlyPaused, shouldPause);
 
-        // 1. Pause locale
         if (shouldPause) _serverManager.AddPausedUid(userData.UID);
         else _serverManager.RemovePausedUid(userData.UID);
 
-        // 2. Pause individuelle (si appairé)
         if (pair.UserPair != null)
         {
             var perm = pair.UserPair.OwnPermissions;
@@ -299,8 +295,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
             _ = UserSetPairPermissions(new UserPermissionsDto(userData, perm));
         }
 
-        // 3. Pause de groupe (pour chaque Syncshell)
-        if (pair.GroupPair.Any())
+        if (pair.GroupPair.Count > 0)
         {
             foreach (var groupEntry in pair.GroupPair)
             {
@@ -312,7 +307,6 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
             }
         }
 
-        // 4. Action immédiate en local pour fluidité (Snowcloak-style)
         if (shouldPause)
         {
             Mediator.Publish(new PlayerVisibilityMessage(pair.Ident, IsVisible: false, Invalidate: true));

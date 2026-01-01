@@ -421,9 +421,6 @@ public sealed class ChatTwoCompatibilityService : MediatorSubscriberBase, IHoste
 
             foreach (var pair in _pairManager.GetOnlineUserPairs())
             {
-                if (pair == null)
-                    continue;
-
                 var objectId = pair.PlayerCharacterId;
                 if (objectId != 0 && objectId != uint.MaxValue && allianceMembers.Any(m => m.EntityId == objectId))
                     return true;
@@ -462,7 +459,7 @@ public sealed class ChatTwoCompatibilityService : MediatorSubscriberBase, IHoste
                 if (member == null)
                     continue;
 
-                var name = member.Name?.TextValue ?? string.Empty;
+                var name = member.Name.TextValue;
                 var entityId = member.EntityId;
                 if (entityId == 0 && string.IsNullOrEmpty(name))
                     continue;

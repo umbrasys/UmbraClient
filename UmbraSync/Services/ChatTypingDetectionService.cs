@@ -257,7 +257,7 @@ public sealed class ChatTypingDetectionService : IDisposable
         try
         {
             var party = _partyList;
-            if (party != null && party.Length > 0)
+            if (party.Length > 0)
             {
                 // Build a stable party ID based on the smallest non-zero ContentId among party members
                 // This avoids relying on a Leader property that may not exist across platforms/APIs
@@ -510,9 +510,6 @@ public sealed class ChatTypingDetectionService : IDisposable
 
             foreach (var pair in _pairManager.GetOnlineUserPairs())
             {
-                if (pair == null)
-                    continue;
-
                 var objectId = pair.PlayerCharacterId;
                 if (objectId != 0 && objectId != uint.MaxValue && allianceMembers.Any(m => m.EntityId == objectId))
                 {
@@ -555,7 +552,7 @@ public sealed class ChatTypingDetectionService : IDisposable
                 if (member == null)
                     continue;
 
-                var name = member.Name?.TextValue ?? string.Empty;
+                var name = member.Name.TextValue;
                 var entityId = member.EntityId;
                 if (entityId == 0 && string.IsNullOrEmpty(name))
                     continue;

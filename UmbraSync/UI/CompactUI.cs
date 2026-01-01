@@ -584,7 +584,7 @@ public class CompactUi : WindowMediatorSubscriberBase
     {
         ImGui.Dummy(new(10));
         var keys = _serverManager.CurrentServer!.SecretKeys;
-        if (keys.Any())
+        if (keys.Count > 0)
         {
             if (_secretKeyIdx == -1) _secretKeyIdx = keys.First().Key;
             if (_uiSharedService.IconTextButton(FontAwesomeIcon.Plus, Loc.Get("CompactUi.AddCharacter.AddCurrentWithKey")))
@@ -623,7 +623,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         ImGui.SetNextItemWidth(MathF.Max(0, availWidth - buttonWidth - style.ItemSpacing.X));
         ImGui.InputTextWithHint("##otheruid", Loc.Get("CompactUi.AddPair.OtherUidPlaceholder"), ref _pairToAdd, 20);
         ImGui.SameLine();
-        var canAdd = !_pairManager.DirectPairs.Any(p => string.Equals(p.UserData.UID, _pairToAdd, StringComparison.Ordinal) || string.Equals(p.UserData.Alias, _pairToAdd, StringComparison.Ordinal));
+        var canAdd = !_pairManager.DirectPairs.Exists(p => string.Equals(p.UserData.UID, _pairToAdd, StringComparison.Ordinal) || string.Equals(p.UserData.Alias, _pairToAdd, StringComparison.Ordinal));
         using (ImRaii.Disabled(!canAdd))
         {
             if (_uiSharedService.IconPlusButtonCentered(height: buttonHeight))
@@ -657,16 +657,16 @@ public class CompactUi : WindowMediatorSubscriberBase
         var pausedUsers = users.Where(u => u.UserPair!.OwnPermissions.IsPaused() && u.UserPair.OtherPermissions.IsPaired()).ToList();
         var resumedUsers = users.Where(u => !u.UserPair!.OwnPermissions.IsPaused() && u.UserPair.OtherPermissions.IsPaired()).ToList();
 
-        if (!pausedUsers.Any() && !resumedUsers.Any()) return;
+        if (pausedUsers.Count == 0 && resumedUsers.Count == 0) return;
         ImGui.SameLine();
 
         switch (_buttonState)
         {
-            case true when !pausedUsers.Any():
+            case true when pausedUsers.Count == 0:
                 _buttonState = false;
                 break;
 
-            case false when !resumedUsers.Any():
+            case false when resumedUsers.Count == 0:
                 _buttonState = true;
                 break;
 
@@ -990,7 +990,7 @@ public class CompactUi : WindowMediatorSubscriberBase
                         var availX = ImGui.GetContentRegionAvail().X; // width of the action column
                         ImGui.SetCursorPosX(curX + MathF.Max(0, availX - actionButtonSize.X));
 
-                        using (ImRaii.PushId(e.Token ?? e.Uid ?? e.Name ?? string.Empty))
+                        using (ImRaii.PushId(e.Token ?? e.Uid ?? e.Name))
                         {
                             if (alreadyPaired)
                             {
@@ -1809,7 +1809,7 @@ public class CompactUi : WindowMediatorSubscriberBase
                 return true;
             }
 
-            var key = (entry.DisplayName ?? entry.Name) ?? string.Empty;
+            var key = entry.DisplayName ?? entry.Name;
             if (string.IsNullOrEmpty(key)) return false;
 
             return _pairManager.DirectPairs.Any(p => string.Equals(p.UserData.AliasOrUID, key, StringComparison.OrdinalIgnoreCase));
@@ -1858,7 +1858,7 @@ public class CompactUi : WindowMediatorSubscriberBase
     {
         var currentUploads = _fileTransferManager.CurrentUploads.ToList();
 
-        if (currentUploads.Any())
+        if (currentUploads.Count > 0)
         {
             ImGui.AlignTextToFramePadding();
             _uiSharedService.IconText(FontAwesomeIcon.Upload);
@@ -1879,7 +1879,7 @@ public class CompactUi : WindowMediatorSubscriberBase
 
         var currentDownloads = _currentDownloads.SelectMany(d => d.Value.Values).ToList();
 
-        if (currentDownloads.Any())
+        if (currentDownloads.Count > 0)
         {
             ImGui.AlignTextToFramePadding();
             _uiSharedService.IconText(FontAwesomeIcon.Download);

@@ -225,17 +225,17 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             if (!_rpLoaded)
             {
                 var profile = _rpConfigService.GetCurrentCharacterProfile();
-                _rpDescriptionText = profile.RpDescription ?? string.Empty;
-                _rpFirstNameText = profile.RpFirstName ?? string.Empty;
-                _rpLastNameText = profile.RpLastName ?? string.Empty;
-                _rpTitleText = profile.RpTitle ?? string.Empty;
-                _rpAgeText = profile.RpAge ?? string.Empty;
-                _rpHeightText = profile.RpHeight ?? string.Empty;
-                _rpBuildText = profile.RpBuild ?? string.Empty;
-                _rpOccupationText = profile.RpOccupation ?? string.Empty;
-                _rpAffiliationText = profile.RpAffiliation ?? string.Empty;
-                _rpAlignmentText = profile.RpAlignment ?? string.Empty;
-                _rpAdditionalInfoText = profile.RpAdditionalInfo ?? string.Empty;
+                _rpDescriptionText = profile.RpDescription;
+                _rpFirstNameText = profile.RpFirstName;
+                _rpLastNameText = profile.RpLastName;
+                _rpTitleText = profile.RpTitle;
+                _rpAgeText = profile.RpAge;
+                _rpHeightText = profile.RpHeight;
+                _rpBuildText = profile.RpBuild;
+                _rpOccupationText = profile.RpOccupation;
+                _rpAffiliationText = profile.RpAffiliation;
+                _rpAlignmentText = profile.RpAlignment;
+                _rpAdditionalInfoText = profile.RpAdditionalInfo;
 
                 try
                 {

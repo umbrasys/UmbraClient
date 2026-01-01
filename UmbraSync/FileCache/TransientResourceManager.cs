@@ -108,7 +108,7 @@ public sealed class TransientResourceManager : DisposableMediatorSubscriberBase
     {
         if (SemiTransientResources.TryGetValue(objectKind, out var result))
         {
-            return result ?? new HashSet<string>(StringComparer.Ordinal);
+            return result;
         }
 
         return new HashSet<string>(StringComparer.Ordinal);

@@ -102,7 +102,7 @@ public class GuiHookService : DisposableMediatorSubscriberBase
 
         foreach (var handler in handlers)
         {
-            if (handler != null && visibleUsersIds.Contains(handler.GameObjectId))
+            if (visibleUsersIds.Contains(handler.GameObjectId))
             {
                 if (_namePlateRoleColorsEnabled)
                 {

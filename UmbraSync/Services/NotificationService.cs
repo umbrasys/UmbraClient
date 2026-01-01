@@ -225,7 +225,7 @@ public class NotificationService : DisposableMediatorSubscriberBase, IHostedServ
 
         _notificationManager.AddNotification(new DalamudNotification()
         {
-            Content = msg.Message ?? string.Empty,
+            Content = msg.Message,
             Title = msg.Title,
             Type = dalamudType,
             Minimized = false,

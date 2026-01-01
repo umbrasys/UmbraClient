@@ -45,7 +45,8 @@ public sealed class FileCacheManager : IHostedService
     {
         FileInfo fi = new(path);
         if (!fi.Exists) return null;
-        _logger.LogTrace("Creating cache entry for {path}", path);
+        if (_logger.IsEnabled(LogLevel.Trace))
+            _logger.LogTrace("Creating cache entry for {path}", path);
         var fullName = fi.FullName.ToLowerInvariant();
         if (!fullName.Contains(_configService.Current.CacheFolder.ToLowerInvariant(), StringComparison.Ordinal)) return null;
         string prefixedPath = fullName.Replace(_configService.Current.CacheFolder.ToLowerInvariant(), CachePrefix + "\\", StringComparison.Ordinal).Replace("\\\\", "\\", StringComparison.Ordinal);
@@ -59,7 +60,8 @@ public sealed class FileCacheManager : IHostedService
     {
         FileInfo fi = new(path);
         if (!fi.Exists) return null;
-        _logger.LogTrace("Creating substitute entry for {path}", path);
+        if (_logger.IsEnabled(LogLevel.Trace))
+            _logger.LogTrace("Creating substitute entry for {path}", path);
         var fullName = fi.FullName.ToLowerInvariant();
         if (!fullName.Contains(SubstFolder, StringComparison.Ordinal)) return null;
         string prefixedPath = fullName.Replace(SubstFolder, SubstPrefix + "\\", StringComparison.Ordinal).Replace("\\\\", "\\", StringComparison.Ordinal);
@@ -72,7 +74,8 @@ public sealed class FileCacheManager : IHostedService
     {
         FileInfo fi = new(path);
         if (!fi.Exists) return null;
-        _logger.LogTrace("Creating file entry for {path}", path);
+        if (_logger.IsEnabled(LogLevel.Trace))
+            _logger.LogTrace("Creating file entry for {path}", path);
         var fullName = fi.FullName.ToLowerInvariant();
         if (!fullName.Contains(_ipcManager.Penumbra.ModDirectory!.ToLowerInvariant(), StringComparison.Ordinal)) return null;
         string prefixedPath = fullName.Replace(_ipcManager.Penumbra.ModDirectory!.ToLowerInvariant(), PenumbraPrefix + "\\", StringComparison.Ordinal).Replace("\\\\", "\\", StringComparison.Ordinal);
@@ -121,7 +124,8 @@ public sealed class FileCacheManager : IHostedService
             if (cancellationToken.IsCancellationRequested) break;
             if (fileCache.IsSubstEntry) continue;
 
-            _logger.LogInformation("Validating {file}", fileCache.ResolvedFilepath);
+            if (_logger.IsEnabled(LogLevel.Information))
+                _logger.LogInformation("Validating {file}", fileCache.ResolvedFilepath);
 
             progress.Report((i, cacheEntries.Count, fileCache));
             i++;
@@ -136,13 +140,15 @@ public sealed class FileCacheManager : IHostedService
                 var computedHash = Crypto.GetFileHash(fileCache.ResolvedFilepath);
                 if (!string.Equals(computedHash, fileCache.Hash, StringComparison.Ordinal))
                 {
-                    _logger.LogInformation("Failed to validate {file}, got hash {hash}, expected hash {expectedHash}", fileCache.ResolvedFilepath, computedHash, fileCache.Hash);
+                    if (_logger.IsEnabled(LogLevel.Information))
+                        _logger.LogInformation("Failed to validate {file}, got hash {hash}, expected hash {expectedHash}", fileCache.ResolvedFilepath, computedHash, fileCache.Hash);
                     brokenEntities.Add(fileCache);
                 }
             }
             catch (Exception e)
             {
-                _logger.LogWarning(e, "Error during validation of {file}", fileCache.ResolvedFilepath);
+                if (_logger.IsEnabled(LogLevel.Warning))
+                    _logger.LogWarning(e, "Error during validation of {file}", fileCache.ResolvedFilepath);
                 brokenEntities.Add(fileCache);
             }
         }

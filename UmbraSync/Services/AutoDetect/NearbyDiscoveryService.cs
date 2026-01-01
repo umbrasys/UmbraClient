@@ -514,7 +514,7 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
         {
             var slice = hashes.Skip(i).Take(batch).ToArray();
             var res = await _api.QueryAsync(_configProvider.QueryEndpoint!, slice, ct).ConfigureAwait(false);
-            if (res != null && res.Count > 0) allMatches.AddRange(res);
+            if (res.Count > 0) allMatches.AddRange(res);
         }
 
         if (allMatches.Count > 0)

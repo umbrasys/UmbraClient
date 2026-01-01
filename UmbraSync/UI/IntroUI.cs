@@ -257,7 +257,7 @@ public partial class IntroUi : WindowMediatorSubscriberBase
                                 return;
                             }
                             _registrationMessage = Loc.Get("CompactUi.IntroUi.Service.RegisterSuccess");
-                            _secretKey = reply.SecretKey ?? "";
+                            _secretKey = reply.SecretKey;
                             _registrationReply = reply;
                             _registrationSuccess = true;
                         }

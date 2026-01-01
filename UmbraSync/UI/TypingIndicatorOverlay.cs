@@ -176,7 +176,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         iconPos += iconOffset;
 
         var texture = _textureProvider.GetFromGame("ui/uld/charamake_dataimport.tex").GetWrapOrEmpty();
-        if (texture == null) return;
+        if (texture.Handle == IntPtr.Zero) return;
 
         drawList.AddImage(texture.Handle, iconPos, iconPos + iconSize, Vector2.Zero, Vector2.One,
             ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0.9f)));
@@ -186,7 +186,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         bool selfActive, DateTime now, DateTime selfStart, DateTime selfLast)
     {
         var iconWrap = _textureProvider.GetFromGameIcon(NameplateIconId).GetWrapOrEmpty();
-        if (iconWrap == null || iconWrap.Handle == IntPtr.Zero)
+        if (iconWrap.Handle == IntPtr.Zero)
             return;
 
         var showSelf = _configService.Current.TypingIndicatorShowSelf;
@@ -213,7 +213,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
 
             var pair = _pairManager.GetPairByUID(uid);
             var objectId = pair?.PlayerCharacterId ?? 0;
-            var pairName = pair?.PlayerName ?? entry.User.AliasOrUID ?? string.Empty;
+            var pairName = pair?.PlayerName ?? entry.User.AliasOrUID;
             var pairIdent = pair?.Ident ?? string.Empty;
             var isPartyMember = IsPartyMember(objectId, pairName);
             var isRelevantMember = IsPlayerRelevant(pair, isPartyMember);
@@ -269,7 +269,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
 
     private unsafe bool TryDrawNameplateBubble(ImDrawListPtr drawList, IDalamudTextureWrap textureWrap, uint objectId)
     {
-        if (textureWrap == null || textureWrap.Handle == IntPtr.Zero)
+        if (textureWrap.Handle == IntPtr.Zero)
             return false;
 
         var framework = Framework.Instance();
