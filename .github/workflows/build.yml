@@ -66,6 +66,7 @@ jobs:
           QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
         with:
           args: --baseline,baseline.sarif.json
+          use-shell: true
 
       - name: Compilation
         run: |
