@@ -67,7 +67,7 @@ public sealed class CacheMonitor : DisposableMediatorSubscriberBase
         }
 
         var token = _periodicCalculationTokenSource.Token;
-        _ = Task.Run(async () =>
+        _ = Task.Run((Func<Task>)(async () =>
         {
             Logger.LogInformation("Starting Periodic Storage Directory Calculation Task");
             var token = _periodicCalculationTokenSource.Token;
@@ -88,7 +88,7 @@ public sealed class CacheMonitor : DisposableMediatorSubscriberBase
                 }
                 await Task.Delay(TimeSpan.FromMinutes(1), token).ConfigureAwait(false);
             }
-        }, token);
+        }), token);
     }
 
     public long CurrentFileProgress => _currentFileProgress;
@@ -537,7 +537,7 @@ public sealed class CacheMonitor : DisposableMediatorSubscriberBase
         _currentFileProgress = 0;
         _scanCancellationTokenSource = _scanCancellationTokenSource.CancelRecreate();
         var token = _scanCancellationTokenSource.Token;
-        _ = Task.Run(async () =>
+        _ = Task.Run((Func<Task>)(async () =>
         {
             Logger.LogDebug("Starting Full File Scan");
             TotalFiles = 0;
@@ -570,7 +570,7 @@ public sealed class CacheMonitor : DisposableMediatorSubscriberBase
             }
             TotalFiles = 0;
             _currentFileProgress = 0;
-        }, token);
+        }), token);
     }
 
     public void RecalculateFileCacheSize(CancellationToken token)

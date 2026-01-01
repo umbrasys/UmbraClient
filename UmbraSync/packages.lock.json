@@ -529,7 +529,7 @@
       "umbrasync.api": {
         "type": "Project",
         "dependencies": {
-          "MessagePack.Annotations": "[2.5.129, )"
+          "MessagePack": "[2.5.129, )"
         }
       }
     }

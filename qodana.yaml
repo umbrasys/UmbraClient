@@ -5,8 +5,8 @@ bootstrap: |
   set -e
   echo "=== Preparing Dalamud environment for Qodana ==="
 
-  # Create Dalamud directory in the default Linux path
-  DALAMUD_PATH="$HOME/.xlcore/dalamud/Hooks/dev"
+  # Use a location that persists or is easily accessible
+  DALAMUD_PATH="/opt/dalamud"
   mkdir -p "$DALAMUD_PATH"
 
   echo "Downloading Dalamud..."
@@ -15,14 +15,15 @@ bootstrap: |
   rm -f /tmp/dalamud.zip
 
   echo "Dalamud installed to: $DALAMUD_PATH"
-  ls -la "$DALAMUD_PATH" | head -10
-
   export DALAMUD_DIR="$DALAMUD_PATH"
 
   echo "Restoring NuGet packages..."
-  dotnet restore UmbraSync.sln --locked-mode --verbosity minimal
+  dotnet restore UmbraSync.sln --verbosity minimal
 
   echo "=== Bootstrap complete ==="
+
+environment:
+  DALAMUD_DIR: /opt/dalamud
 
 dotnet:
   solution: UmbraSync.sln
@@ -33,8 +34,3 @@ exclude:
       - bin
       - obj
       - dalamud
-  - name: Exclude submodules
-    paths:
-      - OtterGui
-      - Penumbra.Api
-      - Glamourer.Api

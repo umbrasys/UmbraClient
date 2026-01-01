@@ -6,7 +6,7 @@
         <AssemblyName>UmbraSync</AssemblyName>
         <RootNamespace>UmbraSync</RootNamespace>
         <Version>2.1.0.0</Version>
-        <DALAMUD_DIR>/Volumes/Data/dev/ressources/dalamud/Hooks/dev</DALAMUD_DIR>
+        <DALAMUD_DIR Condition="'$(DALAMUD_DIR)' == ''">/Volumes/Data/dev/ressources/dalamud/Hooks/dev</DALAMUD_DIR>
     </PropertyGroup>
 
     <ItemGroup>
