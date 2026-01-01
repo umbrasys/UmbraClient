@@ -49,8 +49,6 @@ public class EditProfileUi : WindowMediatorSubscriberBase
     private string _rpAdditionalInfoText = string.Empty;
     private IDalamudTextureWrap? _pfpTextureWrap;
     private IDalamudTextureWrap? _rpPfpTextureWrap;
-    private string _profileDescription = string.Empty;
-    private string _rpProfileDescription = string.Empty;
     private byte[] _profileImage = [];
     private byte[] _rpProfileImage = [];
     private bool _showFileDialogError = false;
@@ -227,8 +225,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             if (!_rpLoaded)
             {
                 var profile = _rpConfigService.GetCurrentCharacterProfile();
-                _rpProfileDescription = profile.RpDescription ?? string.Empty;
-                _rpDescriptionText = _rpProfileDescription;
+                _rpDescriptionText = profile.RpDescription ?? string.Empty;
                 _rpFirstNameText = profile.RpFirstName ?? string.Empty;
                 _rpLastNameText = profile.RpLastName ?? string.Empty;
                 _rpTitleText = profile.RpTitle ?? string.Empty;
@@ -261,8 +258,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
         {
             if (!_hrpLoaded)
             {
-                _profileDescription = umbraProfile.Description;
-                _descriptionText = _profileDescription;
+                _descriptionText = umbraProfile.Description;
 
                 try
                 {
@@ -531,7 +527,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             }
             else
             {
-                _profileDescription = _descriptionText;
+                // Nothing to do
             }
 
             var charName = _dalamudUtil.GetPlayerName();

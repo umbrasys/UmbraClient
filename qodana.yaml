@@ -17,6 +17,8 @@ bootstrap: |
   echo "Dalamud installed to: $DALAMUD_PATH"
   ls -la "$DALAMUD_PATH" | head -10
 
+  export DALAMUD_DIR="$DALAMUD_PATH"
+
   echo "Restoring NuGet packages..."
   dotnet restore UmbraSync.sln --locked-mode --verbosity minimal
 
