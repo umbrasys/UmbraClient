@@ -261,7 +261,8 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
 
         if (!_allClientPairs.TryGetValue(dto.User, out var pair))
         {
-            Logger.LogDebug("No user found for {dto}, creating temporary pair for online signal", dto);
+            if (Logger.IsEnabled(LogLevel.Debug))
+                Logger.LogDebug("No user found for {uid}, creating temporary pair for online signal", dto.User.UID);
             pair = _pairFactory.Create(dto.User);
             _allClientPairs[dto.User] = pair;
         }
@@ -270,7 +271,8 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
 
         if (pair.HasCachedPlayer)
         {
-            Logger.LogTrace("Player {uid} already has cached player, forcing reapplication of data", dto.User.UID);
+            if (Logger.IsEnabled(LogLevel.Trace))
+                Logger.LogTrace("Player {uid} already has cached player, forcing reapplication of data", dto.User.UID);
             pair.ApplyLastReceivedData(forced: true);
             RecreateLazy();
             return;
@@ -302,7 +304,8 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
     {
         if (!_allClientPairs.TryGetValue(dto.User, out var pair))
         {
-            Logger.LogDebug("No user found for {user}, creating temporary pair for character data", dto.User);
+            if (Logger.IsEnabled(LogLevel.Debug))
+                Logger.LogDebug("No user found for {uid}, creating temporary pair for character data", dto.User.UID);
             pair = _pairFactory.Create(dto.User);
             _allClientPairs[dto.User] = pair;
         }
@@ -387,7 +390,8 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
     {
         if (!_allClientPairs.TryGetValue(dto.User, out var pair))
         {
-            Logger.LogDebug("No user found for {dto}, ignoring permission update", dto);
+            if (Logger.IsEnabled(LogLevel.Debug))
+                Logger.LogDebug("No user found for {uid}, ignoring permission update", dto.User.UID);
             return;
         }
 
@@ -441,7 +445,8 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
     {
         if (!_allClientPairs.TryGetValue(dto.User, out var pair))
         {
-            Logger.LogDebug("No user found for {dto}, ignoring self permission update", dto);
+            if (Logger.IsEnabled(LogLevel.Debug))
+                Logger.LogDebug("No user found for {uid}, ignoring self permission update", dto.User.UID);
             return;
         }
 
@@ -493,7 +498,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
 
     internal void ReceiveUploadStatus(UserDto dto)
     {
-        if (_allClientPairs.TryGetValue(dto.User, out var existingPair) && existingPair.IsVisible)
+        if (_allClientPairs.TryGetValue(dto.User, out var existingPair) && existingPair.IsVisible && !existingPair.IsPaused)
         {
             existingPair.SetIsUploading();
         }
@@ -509,7 +514,8 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
 
         if (!_allClientPairs.TryGetValue(dto.User, out var pair))
         {
-            Logger.LogDebug("No user found for {dto}, ignoring status info", dto);
+            if (Logger.IsEnabled(LogLevel.Debug))
+                Logger.LogDebug("No user found for {uid}, ignoring status info", dto.User.UID);
             return;
         }
 
@@ -546,8 +552,9 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         var prevPermissions = groupPair.GroupUserPermissions;
         groupPair.GroupUserPermissions = dto.GroupPairPermissions;
 
-        Logger.LogTrace("SetGroupPairUserPermissions: Group {gid}, User {uid}. Paused: {paused}, Global IsPaused: {global}",
-            dto.Group.GID, pair.UserData.UID, groupPair.GroupUserPermissions.IsPaused(), pair.IsPaused);
+        if (Logger.IsEnabled(LogLevel.Trace))
+            Logger.LogTrace("SetGroupPairUserPermissions: Group {gid}, User {uid}. Paused: {paused}, Global IsPaused: {global}",
+                dto.Group.GID, pair.UserData.UID, groupPair.GroupUserPermissions.IsPaused(), pair.IsPaused);
 
         bool pauseChanged = prevPermissions.IsPaused() != dto.GroupPairPermissions.IsPaused();
         bool filterChanged = prevPermissions.IsDisableAnimations() != dto.GroupPairPermissions.IsDisableAnimations()
@@ -675,7 +682,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         if (!_configurationService.Current.EnableRightClickMenus) return;
         try
         {
-            Logger.LogDebug("[ContextMenu] Opened: Type={type}, TargetType={tgtType}", args.MenuType, args.Target?.GetType().Name ?? "null");
+            Logger.LogDebug("[ContextMenu] Opened: Type={type}, TargetType={tgtType}", args.MenuType, args.Target.GetType().Name);
         }
         catch { /* logging should never break menu */ }
 
@@ -691,7 +698,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
     {
         if (!_configurationService.Current.EnableAutoDetectDiscovery) { Logger.LogDebug("[ContextMenu] Skipped pair request: AutoDetectDiscovery disabled"); return; }
         if (!_configurationService.Current.AllowAutoDetectPairRequests) { Logger.LogDebug("[ContextMenu] Skipped pair request: PairRequests not allowed"); return; }
-        if (args.Target is not MenuTargetDefault target) { Logger.LogDebug("[ContextMenu] Skipped pair request: Target not MenuTargetDefault (was {t})", args.Target?.GetType().Name ?? "null"); return; }
+        if (args.Target is not MenuTargetDefault target) { Logger.LogDebug("[ContextMenu] Skipped pair request: Target not MenuTargetDefault (was {t})", args.Target.GetType().Name); return; }
 
         uint targetObjectId = (uint)target.TargetObjectId;
         if (targetObjectId == 0 || targetObjectId == uint.MaxValue) { Logger.LogDebug("[ContextMenu] Skipped pair request: invalid targetObjectId={id}", targetObjectId); return; }
@@ -709,7 +716,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         }
 
         var entries = _nearbyDiscoveryService.SnapshotEntries();
-        var clickedPlayerName = clickedPlayer.Name ?? string.Empty;
+        var clickedPlayerName = clickedPlayer.Name;
 
         static bool NamesEqual(string left, string right)
         {

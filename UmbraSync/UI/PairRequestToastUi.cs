@@ -215,7 +215,7 @@ public sealed class PairRequestToastUi : WindowMediatorSubscriberBase
     {
         try
         {
-            var nearby = _nearbyDiscoveryService?.SnapshotEntries()
+            var nearby = _nearbyDiscoveryService.SnapshotEntries()
                 .FirstOrDefault(e => e.IsMatch && string.Equals(e.Uid, uid, StringComparison.OrdinalIgnoreCase));
             if (nearby != null && !string.IsNullOrWhiteSpace(nearby.Name))
                 return nearby.Name;

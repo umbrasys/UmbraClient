@@ -1875,7 +1875,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                                 selectedServer.SecretKeys.Add(selectedServer.SecretKeys.Any() ? selectedServer.SecretKeys.Max(p => p.Key) + 1 : 0, new SecretKey()
                                 {
                                     FriendlyName = reply.UID + $" (registered {DateTime.Now:yyyy-MM-dd})",
-                                    Key = reply.SecretKey ?? ""
+                                    Key = reply.SecretKey
                                 });
                                 _serverConfigurationManager.Save();
                             }

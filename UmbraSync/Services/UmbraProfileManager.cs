@@ -120,7 +120,6 @@ public class UmbraProfileManager : MediatorSubscriberBase
                 {
                     Logger.LogInformation("Local RP profile updated from server for {uid}", data.UID);
                     _rpConfigService.Save();
-                    Mediator.Publish(new ClearProfileDataMessage(new UserData(_apiController.UID), charName, worldId));
                 }
             }
 
@@ -140,7 +139,6 @@ public class UmbraProfileManager : MediatorSubscriberBase
         }
         catch (Exception ex)
         {
-            // if fails save DefaultProfileData to dict
             Logger.LogWarning(ex, "Failed to get Profile from service for user {user}", data);
             _umbraProfiles[key] = _defaultProfileData;
         }

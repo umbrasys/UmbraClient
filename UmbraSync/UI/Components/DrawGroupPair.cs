@@ -9,6 +9,7 @@ using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 using UmbraSync.API.Data;
 using UmbraSync.API.Data.Enum;
 using UmbraSync.API.Data.Extensions;
@@ -417,26 +418,36 @@ public class DrawGroupPair : DrawPairBase
         ImGui.SetCursorPosY(originalY);
         if (showPause)
         {
-            if (pauseIcon == FontAwesomeIcon.Pause ? _uiSharedService.IconPauseButtonCentered() : _uiSharedService.IconButtonCentered(pauseIcon))
+            using (ImRaii.PushId($"pause-{_pair.UserData.UID}"))
             {
-                _ = _apiController.Pause(_pair.UserData);
+                if (pauseIcon == FontAwesomeIcon.Pause ? _uiSharedService.IconPauseButtonCentered() : _uiSharedService.IconButtonCentered(pauseIcon))
+                {
+                    _apiController.Pause(_pair.UserData);
+                }
+                UiSharedService.AttachToolTip(AppendSeenInfo((_pair.IsPaused ? "Resume" : "Pause") + " syncing with " + entryUID));
             }
-            UiSharedService.AttachToolTip(AppendSeenInfo((_pair.IsPaused ? "Resume" : "Pause") + " syncing with " + entryUID));
         }
         currentX += pauseMaxW + spacing;
         ImGui.SetCursorPosX(currentX);
         if (showBars)
         {
             ImGui.SetCursorPosY(originalY);
-            if (_uiSharedService.IconButtonCentered(FontAwesomeIcon.Bars))
+            var popupId = $"Syncshell Flyout Menu##{_pair.UserData.UID}";
+            bool buttonClicked;
+            using (ImRaii.PushId($"info-{_pair.UserData.UID}"))
             {
-                ImGui.OpenPopup("Syncshell Flyout Menu");
+                buttonClicked = _uiSharedService.IconButtonCentered(FontAwesomeIcon.Bars);
+            }
+            if (buttonClicked)
+            {
+                ImGui.OpenPopup(popupId);
             }
         }
         currentX += barsW; // avance quand même pour cohérence interne
         ImGui.SetCursorPosX(currentX);
         // Must match the ID used in OpenPopup above
-        if (ImGui.BeginPopup("Syncshell Flyout Menu"))
+        var popupMenuId = $"Syncshell Flyout Menu##{_pair.UserData.UID}";
+        if (ImGui.BeginPopup(popupMenuId))
         {
             if ((userIsModerator || userIsOwner) && !(entryIsMod || entryIsOwner))
             {
@@ -586,7 +597,7 @@ public class DrawGroupPair : DrawPairBase
 
     private static string EncodeInviteField(string value)
     {
-        var bytes = Encoding.UTF8.GetBytes(value ?? string.Empty);
+        var bytes = Encoding.UTF8.GetBytes(value);
         return Convert.ToBase64String(bytes);
     }
 }

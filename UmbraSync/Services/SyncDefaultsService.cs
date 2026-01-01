@@ -146,7 +146,7 @@ public sealed class SyncDefaultsService : DisposableMediatorSubscriberBase
 
     private void OnPairOverrideChanged(PairSyncOverrideChanged message)
     {
-        var overrides = _configService.Current.PairSyncOverrides ??= new(StringComparer.Ordinal);
+        var overrides = _configService.Current.PairSyncOverrides;
         var entry = overrides.TryGetValue(message.Uid, out var existing) ? existing : new SyncOverrideEntry();
         bool changed = false;
 
@@ -198,7 +198,7 @@ public sealed class SyncDefaultsService : DisposableMediatorSubscriberBase
 
     private void OnGroupOverrideChanged(GroupSyncOverrideChanged message)
     {
-        var overrides = _configService.Current.GroupSyncOverrides ??= new(StringComparer.Ordinal);
+        var overrides = _configService.Current.GroupSyncOverrides;
         var entry = overrides.TryGetValue(message.Gid, out var existing) ? existing : new SyncOverrideEntry();
         bool changed = false;
 

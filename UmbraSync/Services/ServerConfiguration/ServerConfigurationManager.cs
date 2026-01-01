@@ -82,7 +82,7 @@ public class ServerConfigurationManager
 
         var charaName = _dalamudUtil.GetPlayerNameAsync().GetAwaiter().GetResult();
         var worldId = _dalamudUtil.GetHomeWorldIdAsync().GetAwaiter().GetResult();
-        if (!currentServer.Authentications.Any() && currentServer.SecretKeys.Any())
+        if (currentServer.Authentications.Count == 0 && currentServer.SecretKeys.Count > 0)
         {
             currentServer.Authentications.Add(new Authentication()
             {
@@ -145,7 +145,7 @@ public class ServerConfigurationManager
 
     public bool HasValidConfig()
     {
-        return CurrentServer.SecretKeys.Any();
+        return CurrentServer.SecretKeys.Count > 0;
     }
 
     public void Save()
@@ -186,7 +186,7 @@ public class ServerConfigurationManager
         var server = GetServerByIndex(serverSelectionIndex);
         server.Authentications.Add(new Authentication()
         {
-            SecretKeyIdx = server.SecretKeys.Any() ? server.SecretKeys.First().Key : -1,
+            SecretKeyIdx = server.SecretKeys.Count > 0 ? server.SecretKeys.First().Key : -1,
         });
         Save();
     }
@@ -323,7 +323,7 @@ public class ServerConfigurationManager
     {
         if (CurrentServerTagStorage().UidServerPairedUserTags.TryGetValue(uid, out var tags))
         {
-            return tags.Any();
+            return tags.Count > 0;
         }
 
         return false;

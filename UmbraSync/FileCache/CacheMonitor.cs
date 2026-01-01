@@ -19,7 +19,7 @@ public sealed class CacheMonitor : DisposableMediatorSubscriberBase
     private readonly FileCacheManager _fileDbManager;
     private readonly IpcManager _ipcManager;
     private readonly PerformanceCollectorService _performanceCollector;
-    private long _currentFileProgress = 0;
+    private long _currentFileProgress;
     private CancellationTokenSource _scanCancellationTokenSource = new();
     private readonly CancellationTokenSource _periodicCalculationTokenSource = new();
     public static readonly IImmutableList<string> AllowedFileExtensions = [".mdl", ".tex", ".mtrl", ".tmb", ".pap", ".avfx", ".atex", ".sklb", ".eid", ".phyb", ".pbd", ".scd", ".skp", ".shpk"];
@@ -198,7 +198,8 @@ public sealed class CacheMonitor : DisposableMediatorSubscriberBase
 
     private void MareWatcher_FileChanged(object sender, FileSystemEventArgs e)
     {
-        Logger.LogTrace("Umbra FSW: FileChanged: {change} => {path}", e.ChangeType, e.FullPath);
+        if (Logger.IsEnabled(LogLevel.Trace))
+            Logger.LogTrace("Umbra FSW: FileChanged: {change} => {path}", e.ChangeType, e.FullPath);
 
         if (!AllowedFileExtensions.Any(ext => e.FullPath.EndsWith(ext, StringComparison.OrdinalIgnoreCase))) return;
 
@@ -212,7 +213,8 @@ public sealed class CacheMonitor : DisposableMediatorSubscriberBase
 
     private void SubstWatcher_FileChanged(object sender, FileSystemEventArgs e)
     {
-        Logger.LogTrace("Subst FSW: FileChanged: {change} => {path}", e.ChangeType, e.FullPath);
+        if (Logger.IsEnabled(LogLevel.Trace))
+            Logger.LogTrace("Subst FSW: FileChanged: {change} => {path}", e.ChangeType, e.FullPath);
 
         if (!AllowedFileExtensions.Any(ext => e.FullPath.EndsWith(ext, StringComparison.OrdinalIgnoreCase))) return;
 
@@ -268,7 +270,8 @@ public sealed class CacheMonitor : DisposableMediatorSubscriberBase
             _watcherChanges[e.FullPath] = new(e.ChangeType);
         }
 
-        Logger.LogTrace("FSW {event}: {path}", e.ChangeType, e.FullPath);
+        if (Logger.IsEnabled(LogLevel.Trace))
+            Logger.LogTrace("FSW {event}: {path}", e.ChangeType, e.FullPath);
 
         _ = PenumbraWatcherExecution();
     }
@@ -287,7 +290,8 @@ public sealed class CacheMonitor : DisposableMediatorSubscriberBase
 
                     _watcherChanges.Remove(oldPath);
                     _watcherChanges[file] = new(WatcherChangeTypes.Renamed, oldPath);
-                    Logger.LogTrace("FSW Renamed: {path} -> {new}", oldPath, file);
+                    if (Logger.IsEnabled(LogLevel.Trace))
+                        Logger.LogTrace("FSW Renamed: {path} -> {new}", oldPath, file);
 
                 }
             }
@@ -302,7 +306,8 @@ public sealed class CacheMonitor : DisposableMediatorSubscriberBase
                 _watcherChanges[e.FullPath] = new(WatcherChangeTypes.Renamed, e.OldFullPath);
             }
 
-            Logger.LogTrace("FSW Renamed: {path} -> {new}", e.OldFullPath, e.FullPath);
+            if (Logger.IsEnabled(LogLevel.Trace))
+                Logger.LogTrace("FSW Renamed: {path} -> {new}", e.OldFullPath, e.FullPath);
         }
 
         _ = PenumbraWatcherExecution();
@@ -390,7 +395,11 @@ public sealed class CacheMonitor : DisposableMediatorSubscriberBase
         if (SubstWatcher != null)
             SubstWatcher.EnableRaisingEvents = false;
 
-        Dictionary<string, WatcherChange> changes = _substChanges.ToDictionary(t => t.Key, t => new WatcherChange(WatcherChangeTypes.Deleted, t.Key), StringComparer.Ordinal);
+        Dictionary<string, WatcherChange> changes;
+        lock (_substChanges)
+        {
+            changes = _substChanges.ToDictionary(t => t.Key, t => new WatcherChange(WatcherChangeTypes.Deleted, t.Key), StringComparer.Ordinal);
+        }
 
         foreach (var file in allSubstFiles)
         {

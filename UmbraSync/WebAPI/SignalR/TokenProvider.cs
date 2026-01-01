@@ -94,7 +94,7 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
                 Mediator.Publish(new NotificationMessage("Error refreshing token", "Your authentication token could not be renewed. Try reconnecting manually.", NotificationType.Error));
                 _notificationTracker.Upsert(NotificationEntry.AuthTokenRefreshFailed());
                 Mediator.Publish(new DisconnectedMessage());
-                var textResponse = await result.Content.ReadAsStringAsync(token).ConfigureAwait(false) ?? string.Empty;
+                var textResponse = await result.Content.ReadAsStringAsync(token).ConfigureAwait(false);
                 throw new MareAuthFailureException(textResponse);
             }
 

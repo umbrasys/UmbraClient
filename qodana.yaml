@@ -31,3 +31,34 @@ exclude:
       - bin
       - obj
       - dalamud
+  - name: Exclude external dependencies
+    paths:
+      - OtterGui
+      - OtterGuiInternal
+      - Penumbra.Api
+      - Glamourer.Api
+      - UmbraServer
+      - UmbraAPI/UmbraSyncAPI/bin
+      - UmbraAPI/UmbraSyncAPI/obj
+  - name: Exclude localization files
+    paths:
+      - UmbraSync/Localization/
+      - "**/*.resx"
+      - "**/*.Designer.cs"
+      - ".compare/**/Localization/"
+      - ".compare/**/Localisation/"
+  - name: All
+    paths:
+      - UmbraSync/Localization/
+  - name: NotOverriddenInSpecificCulture
+  - name: LocalizableElement
+  - name: CA1303
+  - name: OverriddenWithEmptyValue
+  - name: AsmDefWarnings
+  - name: CSharpHints
+  - name: RazorWarnings
+  - name: RegExpErrors
+  - name: UnityGutterMarks
+  - name: UnityPerformanceHighlighting
+  - name: WebConfigErrors
+  - name: XAMLErrors

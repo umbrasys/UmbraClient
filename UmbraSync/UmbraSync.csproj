@@ -27,6 +27,7 @@
         </PackageReference>
         <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.8" />
         <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="9.0.8" />
+        <PackageReference Include="MessagePack" Version="2.5.187" />
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.8" />
         <PackageReference Include="SonarAnalyzer.CSharp" Version="10.15.0.120848">
             <PrivateAssets>all</PrivateAssets>

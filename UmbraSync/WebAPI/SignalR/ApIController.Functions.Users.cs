@@ -127,8 +127,7 @@ public partial class ApiController
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error during UserSetProfile for {uid}", userDescription.User.UID);
-            throw;
+            throw new InvalidOperationException($"Error during UserSetProfile for {userDescription.User.UID}", ex);
         }
     }
 

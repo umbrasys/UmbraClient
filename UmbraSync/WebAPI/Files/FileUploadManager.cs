@@ -44,7 +44,7 @@ public sealed class FileUploadManager : DisposableMediatorSubscriberBase
 
     public bool CancelUpload()
     {
-        if (CurrentUploads.Any())
+        if (CurrentUploads.Count > 0)
         {
             Logger.LogDebug("Cancelling current upload");
             _uploadCancellationTokenSource?.Cancel();
@@ -69,7 +69,7 @@ public sealed class FileUploadManager : DisposableMediatorSubscriberBase
         Logger.LogDebug("Trying to upload files");
         var filesPresentLocally = hashesToUpload.Where(h => _fileDbManager.GetFileCacheByHash(h) != null).ToHashSet(StringComparer.Ordinal);
         var locallyMissingFiles = hashesToUpload.Except(filesPresentLocally, StringComparer.Ordinal).ToList();
-        if (locallyMissingFiles.Any())
+        if (locallyMissingFiles.Count > 0)
         {
             return locallyMissingFiles;
         }
@@ -125,7 +125,7 @@ public sealed class FileUploadManager : DisposableMediatorSubscriberBase
         Logger.LogDebug("Sending Character data {hash} to service {url}", data.DataHash.Value, _serverManager.CurrentRealApiUrl);
 
         HashSet<string> unverifiedUploads = GetUnverifiedFiles(data);
-        if (unverifiedUploads.Any())
+        if (unverifiedUploads.Count > 0)
         {
             await UploadUnverifiedFiles(unverifiedUploads, visiblePlayers, uploadToken).ConfigureAwait(false);
             Logger.LogInformation("Upload complete for {hash}", data.DataHash.Value);
@@ -283,7 +283,7 @@ public sealed class FileUploadManager : DisposableMediatorSubscriberBase
             uploadToken.ThrowIfCancellationRequested();
         }
 
-        if (CurrentUploads.Any())
+        if (CurrentUploads.Count > 0)
         {
             await uploadTask.ConfigureAwait(false);
 

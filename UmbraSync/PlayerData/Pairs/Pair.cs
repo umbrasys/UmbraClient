@@ -54,7 +54,8 @@ public class Pair : DisposableMediatorSubscriberBase
         {
             if (_serverConfigurationManager.IsUidPaused(UserData.UID))
             {
-                _logger.LogTrace("IsPaused: true (LocalPaused) for {uid}", UserData.UID);
+                if (_logger.IsEnabled(LogLevel.Trace))
+                    _logger.LogTrace("IsPaused: true (LocalPaused) for {uid}", UserData.UID);
                 return true;
             }
 
@@ -62,33 +63,38 @@ public class Pair : DisposableMediatorSubscriberBase
             {
                 if (UserPair.OtherPermissions.IsPaused())
                 {
-                    _logger.LogTrace("IsPaused: true (Individual OtherPaused) for {uid}", UserData.UID);
+                    if (_logger.IsEnabled(LogLevel.Trace))
+                        _logger.LogTrace("IsPaused: true (Individual OtherPaused) for {uid}", UserData.UID);
                     return true;
                 }
                 if (UserPair.OwnPermissions.IsPaused())
                 {
-                    _logger.LogTrace("IsPaused: true (Individual OwnPaused) for {uid}", UserData.UID);
+                    if (_logger.IsEnabled(LogLevel.Trace))
+                        _logger.LogTrace("IsPaused: true (Individual OwnPaused) for {uid}", UserData.UID);
                     return true;
                 }
             }
 
-            if (GroupPair.Any())
+            if (GroupPair.Count > 0)
             {
                 foreach (var p in GroupPair)
                 {
                     if (p.Key.GroupUserPermissions.IsPaused())
                     {
-                        _logger.LogTrace("IsPaused: true (Group {gid} OwnPaused) for {uid}", p.Key.Group.GID, UserData.UID);
+                        if (_logger.IsEnabled(LogLevel.Trace))
+                            _logger.LogTrace("IsPaused: true (Group {gid} OwnPaused) for {uid}", p.Key.Group.GID, UserData.UID);
                         return true;
                     }
                     if (p.Value.GroupUserPermissions.IsPaused())
                     {
-                        _logger.LogTrace("IsPaused: true (Group {gid} OtherPaused) for {uid}", p.Key.Group.GID, UserData.UID);
+                        if (_logger.IsEnabled(LogLevel.Trace))
+                            _logger.LogTrace("IsPaused: true (Group {gid} OtherPaused) for {uid}", p.Key.Group.GID, UserData.UID);
                         return true;
                     }
                     if (p.Key.GroupPermissions.IsPaused())
                     {
-                        _logger.LogTrace("IsPaused: true (Group {gid} GroupPaused) for {uid}", p.Key.Group.GID, UserData.UID);
+                        if (_logger.IsEnabled(LogLevel.Trace))
+                            _logger.LogTrace("IsPaused: true (Group {gid} GroupPaused) for {uid}", p.Key.Group.GID, UserData.UID);
                         return true;
                     }
                 }
@@ -102,8 +108,8 @@ public class Pair : DisposableMediatorSubscriberBase
     private ConcurrentDictionary<string, int> HoldDownloadLocks { get; set; } = new(StringComparer.Ordinal);
     private ConcurrentDictionary<string, int> HoldApplicationLocks { get; set; } = new(StringComparer.Ordinal);
 
-    public bool IsDownloadBlocked => HoldDownloadLocks.Any(f => f.Value > 0);
-    public bool IsApplicationBlocked => HoldApplicationLocks.Any(f => f.Value > 0) || IsDownloadBlocked;
+    public bool IsDownloadBlocked => HoldDownloadLocks.Values.Any(f => f > 0);
+    public bool IsApplicationBlocked => HoldApplicationLocks.Values.Any(f => f > 0) || IsDownloadBlocked;
 
     public IEnumerable<string> HoldDownloadReasons => HoldDownloadLocks.Keys;
     public IEnumerable<string> HoldApplicationReasons => Enumerable.Concat(HoldDownloadLocks.Keys, HoldApplicationLocks.Keys);
@@ -196,7 +202,8 @@ public class Pair : DisposableMediatorSubscriberBase
 
         if (CachedPlayer == null)
         {
-            _logger.LogDebug("Received Data for {uid} but CachedPlayer does not exist, waiting", data.User.UID);
+            if (_logger.IsEnabled(LogLevel.Debug))
+                _logger.LogDebug("Received Data for {uid} but CachedPlayer does not exist, waiting", data.User.UID);
             _ = Task.Run(async () =>
             {
                 using var timeoutCts = new CancellationTokenSource();
@@ -210,7 +217,8 @@ public class Pair : DisposableMediatorSubscriberBase
 
                 if (!combined.IsCancellationRequested)
                 {
-                    _logger.LogDebug("Applying delayed data for {uid}", data.User.UID);
+                    if (_logger.IsEnabled(LogLevel.Debug))
+                        _logger.LogDebug("Applying delayed data for {uid}", data.User.UID);
                     ApplyLastReceivedData();
                 }
             });
@@ -311,7 +319,7 @@ public class Pair : DisposableMediatorSubscriberBase
 
     public bool HasAnyConnection()
     {
-        return UserPair != null || GroupPair.Any();
+        return UserPair != null || GroupPair.Count > 0;
     }
 
     public void MarkOffline(bool wait = true)
