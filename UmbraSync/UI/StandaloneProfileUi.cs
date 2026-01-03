@@ -4,14 +4,13 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using UmbraSync.API.Data.Extensions;
+using Microsoft.Extensions.Logging;
+using System.Numerics;
+using UmbraSync.Localization;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.ServerConfiguration;
-using UmbraSync.Localization;
-using Microsoft.Extensions.Logging;
-using System.Numerics;
 
 namespace UmbraSync.UI;
 

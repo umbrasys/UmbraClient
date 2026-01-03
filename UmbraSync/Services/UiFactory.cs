@@ -1,13 +1,11 @@
-﻿using UmbraSync.API.Dto.Group;
+﻿using Microsoft.Extensions.Logging;
+using UmbraSync.API.Dto.Group;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services.AutoDetect;
 using UmbraSync.Services.Mediator;
-using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.Services.Notification;
+using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.UI;
-using UmbraSync.UI.Components.Popup;
-using UmbraSync.WebAPI;
-using Microsoft.Extensions.Logging;
 
 namespace UmbraSync.Services;
 

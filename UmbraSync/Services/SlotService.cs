@@ -1,17 +1,15 @@
 using Microsoft.Extensions.Logging;
-using UmbraSync.Services.Mediator;
-using UmbraSync.Services.Notification;
-using UmbraSync.WebAPI.SignalR;
-using UmbraSync.API.Dto.Slot;
+using System.Numerics;
+using UmbraSync.API.Data;
 using UmbraSync.API.Dto.CharaData;
 using UmbraSync.API.Dto.Group;
-using UmbraSync.Services.AutoDetect;
-using UmbraSync.API.Data;
+using UmbraSync.API.Dto.Slot;
+using UmbraSync.Localization;
 using UmbraSync.MareConfiguration;
 using UmbraSync.PlayerData.Pairs;
-using UmbraSync.Localization;
-
-using System.Numerics;
+using UmbraSync.Services.AutoDetect;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Services.Notification;
 
 namespace UmbraSync.Services;
 
@@ -97,13 +95,13 @@ public class SlotService : MediatorSubscriberBase, IDisposable
     private async void OnHousingPositionUpdate(uint serverId, uint territoryId, Vector3 position)
     {
         if (!_configService.Current.EnableSlotNotifications) return;
-        if (!IsResidentialArea(territoryId)) 
+        if (!IsResidentialArea(territoryId))
         {
             Logger.LogTrace("OnHousingPositionUpdate: Not in a residential area (Territory: {id})", territoryId);
             return;
         }
         if (Vector3.Distance(position, _lastQueryPosition) < 2.0f) return;
-        
+
         if (!_apiController.IsConnected) return;
 
         _lastQueryPosition = position;
@@ -120,7 +118,7 @@ public class SlotService : MediatorSubscriberBase, IDisposable
             {
                 Logger.LogTrace("SlotGetNearby: No slot found at {x}, {y}, {z}", position.X, position.Y, position.Z);
             }
-            
+
             // Si on détecte un slot à proximité
             if (slotInfo != null)
             {
@@ -139,7 +137,7 @@ public class SlotService : MediatorSubscriberBase, IDisposable
                 // Si on n'avait pas encore détecté ce slot par distance
                 if (_detectedSlotByDistance == null)
                 {
-                    if (_declinedSlots.Contains(slotInfo.SlotId)) 
+                    if (_declinedSlots.Contains(slotInfo.SlotId))
                     {
                         Logger.LogDebug("Slot {id} is in declined list, ignoring", slotInfo.SlotId);
                         return;
@@ -255,7 +253,7 @@ public class SlotService : MediatorSubscriberBase, IDisposable
 
         if (slotInfo != null)
         {
-            if (_declinedSlots.Contains(slotInfo.SlotId)) 
+            if (_declinedSlots.Contains(slotInfo.SlotId))
             {
                 Logger.LogDebug("Slot {id} is in declined list, ignoring", slotInfo.SlotId);
                 return;

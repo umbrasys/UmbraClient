@@ -4,36 +4,31 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Utility;
+using Microsoft.Extensions.Logging;
 using OtterGui.Text;
-using OtterGuiImGuiClip = OtterGui.ImGuiClip;
+using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Globalization;
+using System.Numerics;
+using System.Reflection;
 using UmbraSync.API.Data.Extensions;
 using UmbraSync.API.Dto.User;
+using UmbraSync.Localization;
 using UmbraSync.MareConfiguration;
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.PlayerData.Handlers;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
-using UmbraSync.Services.Mediator;
-using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.Services.AutoDetect;
+using UmbraSync.Services.Mediator;
 using UmbraSync.Services.Notification;
+using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.UI.Components;
 using UmbraSync.UI.Handlers;
-using UmbraSync.WebAPI;
-using System.Globalization;
-using UmbraSync.Localization;
 using UmbraSync.WebAPI.Files;
 using UmbraSync.WebAPI.Files.Models;
 using UmbraSync.WebAPI.SignalR.Utils;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Numerics;
-using System.Reflection;
-using System.Threading.Tasks;
-using System.Linq;
+using OtterGuiImGuiClip = OtterGui.ImGuiClip;
 
 namespace UmbraSync.UI;
 
@@ -1262,7 +1257,7 @@ public class CompactUi : WindowMediatorSubscriberBase
             ImGui.AlignTextToFramePadding();
             ImGui.TextColored(UiSharedService.AccentColor, unsupported);
         }
-        
+
         var revision = ver.Revision >= 0 ? ver.Revision : 0;
         var version = $"{ver.Major}.{ver.Minor}.{ver.Build}.{revision}";
         UiSharedService.ColorTextWrapped(
@@ -2007,7 +2002,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         };
     }
 
-     private Vector4 GetUidColor()
+    private Vector4 GetUidColor()
     {
         return _apiController.ServerState switch
         {

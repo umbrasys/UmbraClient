@@ -2,18 +2,15 @@
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Plugin.Services;
-using Dalamud.Interface;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using System.Globalization;
+using System.Runtime.InteropServices;
+using UmbraSync.Localization;
 using UmbraSync.MareConfiguration;
-using UmbraSync.MareConfiguration.Configurations;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services.AutoDetect;
 using UmbraSync.Services.Mediator;
-using UmbraSync.WebAPI;
-using UmbraSync.Localization;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using System.Runtime.InteropServices;
-using System.Globalization;
 
 namespace UmbraSync.UI;
 
@@ -22,7 +19,6 @@ public sealed class DtrEntry : IDisposable, IHostedService
     public const string DefaultGlyph = "\u25CB";
     private enum DtrStyle
     {
-        Default,
         Style1,
         Style2,
         Style3,

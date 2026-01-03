@@ -3,24 +3,19 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using System;
-using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
+using System.Globalization;
 using System.Numerics;
 using UmbraSync.API.Data.Enum;
 using UmbraSync.API.Data.Extensions;
 using UmbraSync.API.Dto.Group;
 using UmbraSync.API.Dto.Slot;
+using UmbraSync.Localization;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
 using UmbraSync.Services.AutoDetect;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.Notification;
-using UmbraSync.WebAPI;
-using UmbraSync.Localization;
-using Microsoft.Extensions.Logging;
-using System.Globalization;
-using System.Threading;
-using System.Threading.Tasks;
 using NotificationType = UmbraSync.MareConfiguration.Models.NotificationType;
 
 namespace UmbraSync.UI;
@@ -484,8 +479,8 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
             var capacityTab = ImRaii.TabItem(Loc.Get("SyncshellAdmin.Tab.Capacity"));
             if (capacityTab)
             {
-                if (!_capacityApplyInFlight 
-                    && _desiredCapacity != GroupFullInfo.MaxUserCount 
+                if (!_capacityApplyInFlight
+                    && _desiredCapacity != GroupFullInfo.MaxUserCount
                     && (_desiredCapacity < 1 || _desiredCapacity > _apiController.ServerInfo.MaxGroupUserCount))
                 {
                     _desiredCapacity = GroupFullInfo.MaxUserCount;
@@ -732,7 +727,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                     _slotX = player.Position.X;
                     _slotY = player.Position.Y;
                     _slotZ = player.Position.Z;
-                    
+
                     var mapData = _dalamudUtilService.GetMapData();
                     _slotTerritoryId = mapData.TerritoryId;
                     _slotServerId = mapData.ServerId;

@@ -1,10 +1,9 @@
 ﻿using Dalamud.Game.ClientState.Objects.Types;
+using Microsoft.Extensions.Logging;
+using System.Text.Json;
 using UmbraSync.API.Data;
 using UmbraSync.API.Data.Enum;
 using UmbraSync.PlayerData.Handlers;
-using UmbraSync.PlayerData.Pairs;
-using Microsoft.Extensions.Logging;
-using System.Text.Json;
 using PlayerChanges = UmbraSync.PlayerData.Data.PlayerChanges;
 
 namespace UmbraSync.Utils;

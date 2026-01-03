@@ -1,12 +1,10 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
 using UmbraSync.API.Data;
 using UmbraSync.API.Data.Enum;
 using UmbraSync.FileCache;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services.Mediator;
 using UmbraSync.UI;
-using UmbraSync.Utils;
-using Microsoft.Extensions.Logging;
 
 namespace UmbraSync.Services;
 

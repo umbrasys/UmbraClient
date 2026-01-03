@@ -1,20 +1,13 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
+using System.Text.RegularExpressions;
 using UmbraSync.FileCache;
 using UmbraSync.Interop.Ipc;
+using UmbraSync.Localization;
 using UmbraSync.MareConfiguration;
-using UmbraSync.MareConfiguration.Configurations;
 using UmbraSync.Services.Mediator;
 using UmbraSync.WebAPI.Files;
-using System.Collections.Concurrent;
-using UmbraSync.Localization;
-using System.Text.RegularExpressions;
 
 namespace UmbraSync.Services;
 

@@ -1,8 +1,8 @@
-﻿using UmbraSync.API.Data.Enum;
+﻿using Microsoft.Extensions.Logging;
+using UmbraSync.API.Data.Enum;
 using UmbraSync.PlayerData.Handlers;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
-using Microsoft.Extensions.Logging;
 
 namespace UmbraSync.PlayerData.Factories;
 

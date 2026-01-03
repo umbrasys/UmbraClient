@@ -1,20 +1,15 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
+using Dalamud.Game.Text;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
-using Dalamud.Game.Text;
-using FFXIVClientStructs.FFXIV.Component.GUI;
 using FFXIVClientStructs.FFXIV.Client.UI.Shell;
+using FFXIVClientStructs.FFXIV.Component.GUI;
 using Microsoft.Extensions.Logging;
-using UmbraSync.PlayerData.Pairs;
-using UmbraSync.WebAPI;
-using UmbraSync.MareConfiguration;
+using System.Globalization;
+using System.Runtime.CompilerServices;
 using UmbraSync.API.Data.Enum;
 using UmbraSync.API.Dto.User;
-using Dalamud.Game.ClientState.Party;
-using System.Globalization;
+using UmbraSync.MareConfiguration;
+using UmbraSync.PlayerData.Pairs;
 
 namespace UmbraSync.Services;
 
@@ -415,12 +410,12 @@ public sealed class ChatTypingDetectionService : IDisposable
 
             _serverSupportWarnLogged = false;
 
-        var shellModule = RaptureShellModule.Instance();
-        if (shellModule == null)
-        {
-            _logger.LogDebug("TypingDetection: shell module null");
-            return true;
-        }
+            var shellModule = RaptureShellModule.Instance();
+            if (shellModule == null)
+            {
+                _logger.LogDebug("TypingDetection: shell module null");
+                return true;
+            }
 
             var chatType = (XivChatType)shellModule->ChatType;
             switch (chatType)
@@ -465,8 +460,8 @@ public sealed class ChatTypingDetectionService : IDisposable
 
             if (pairedNames.Count == 0)
             {
-            _logger.LogDebug("TypingDetection: no paired names online");
-            return false;
+                _logger.LogDebug("TypingDetection: no paired names online");
+                return false;
             }
 
             for (var i = 0; i < _partyList.Count; ++i)

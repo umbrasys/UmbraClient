@@ -1,13 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
 using System.Globalization;
 using UmbraSync.Localization;
-using UmbraSync.Services.Mediator;
 using UmbraSync.MareConfiguration;
-using UmbraSync.MareConfiguration.Configurations;
 using UmbraSync.MareConfiguration.Models;
+using UmbraSync.Services.Mediator;
 
 namespace UmbraSync.Services.Notification;
 

@@ -1,15 +1,10 @@
-using System;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Dalamud.Plugin.Services;
 using Lumina.Excel.Sheets;
-using UmbraSync.MareConfiguration;
-using UmbraSync.MareConfiguration.Models;
-using UmbraSync.Services;
-using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using UmbraSync.MareConfiguration;
+using UmbraSync.MareConfiguration.Models;
+using UmbraSync.Services.Mediator;
 
 namespace UmbraSync.Services.AutoDetect;
 

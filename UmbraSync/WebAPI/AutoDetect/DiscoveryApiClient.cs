@@ -1,9 +1,8 @@
+using Microsoft.Extensions.Logging;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.Extensions.Logging;
-using UmbraSync.WebAPI.SignalR;
 using UmbraSync.Services.AutoDetect;
 
 namespace UmbraSync.WebAPI.AutoDetect;

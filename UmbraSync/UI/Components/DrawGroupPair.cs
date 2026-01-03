@@ -1,26 +1,22 @@
-﻿using System;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
-using System.Globalization;
-using UmbraSync.Localization;
+﻿using Dalamud.Bindings.ImGui;
 using Dalamud.Game.Text.SeStringHandling;
-using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using System.Globalization;
+using System.Numerics;
+using System.Text;
 using UmbraSync.API.Data;
 using UmbraSync.API.Data.Enum;
 using UmbraSync.API.Data.Extensions;
 using UmbraSync.API.Dto.Group;
+using UmbraSync.Localization;
 using UmbraSync.PlayerData.Pairs;
-using UmbraSync.Services;
 using UmbraSync.Services.AutoDetect;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.UI.Handlers;
-using UmbraSync.WebAPI;
 
 namespace UmbraSync.UI.Components;
 
@@ -83,7 +79,7 @@ public class DrawGroupPair : DrawPairBase
                 : FontAwesomeIcon.InfoCircle;
             width += UiSharedService.GetIconSize(icon).X + spacing * 0.5f;
         }
-        
+
         width += spacing * 1.2f;
         return width;
     }

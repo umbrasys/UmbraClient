@@ -1,9 +1,9 @@
-﻿using UmbraSync.MareConfiguration.Configurations;
-using Microsoft.Extensions.Hosting;
+﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
-using System.Globalization;
+using UmbraSync.MareConfiguration.Configurations;
 
 namespace UmbraSync.MareConfiguration;
 

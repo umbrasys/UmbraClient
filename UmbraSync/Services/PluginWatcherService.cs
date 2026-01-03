@@ -1,7 +1,7 @@
 using Dalamud.Plugin;
-using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using UmbraSync.Services.Mediator;
 using CapturedPluginState = (string InternalName, System.Version Version, bool IsLoaded);
 
 namespace UmbraSync.Services;

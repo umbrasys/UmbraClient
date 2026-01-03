@@ -1,5 +1,5 @@
-﻿using UmbraSync.API.Dto.CharaData;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
+using UmbraSync.API.Dto.CharaData;
 
 namespace UmbraSync.Services.CharaData.Models;
 

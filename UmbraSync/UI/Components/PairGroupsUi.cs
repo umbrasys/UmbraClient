@@ -2,15 +2,11 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using UmbraSync.API.Data.Extensions;
+using UmbraSync.Localization;
 using UmbraSync.MareConfiguration;
 using UmbraSync.UI.Handlers;
-using UmbraSync.WebAPI;
-using UmbraSync.Localization;
 
 namespace UmbraSync.UI.Components;
 

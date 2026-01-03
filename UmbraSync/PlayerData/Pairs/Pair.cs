@@ -1,8 +1,8 @@
 ﻿using Dalamud.Game.Gui.ContextMenu;
-using Dalamud.Game.Text.SeStringHandling;
+using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 using UmbraSync.API.Data;
 using UmbraSync.API.Data.Comparer;
-using UmbraSync.API.Data.Enum;
 using UmbraSync.API.Data.Extensions;
 using UmbraSync.API.Dto.Group;
 using UmbraSync.API.Dto.User;
@@ -13,8 +13,6 @@ using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.Utils;
-using Microsoft.Extensions.Logging;
-using System.Collections.Concurrent;
 
 namespace UmbraSync.PlayerData.Pairs;
 
@@ -116,7 +114,7 @@ public class Pair : DisposableMediatorSubscriberBase
 
     public bool IsVisible => CachedPlayer?.IsVisible ?? false;
     public uint WorldId => _worldId ?? 0;
-    
+
     public CharacterData? LastReceivedCharacterData { get; set; }
 
     public string? PlayerName => GetPlayerName();
@@ -162,25 +160,29 @@ public class Pair : DisposableMediatorSubscriberBase
         Add(IsPaused ? "Resume syncing" : "Pause immediately", _ => Mediator.Publish(new PauseMessage(UserData)));
 
         if (!isBlocked && !isBlacklisted)
-            Add("Always Block Modded Appearance", _ => {
-                    _serverConfigurationManager.AddBlacklistUid(UserData.UID);
-                    HoldApplication("Blacklist", maxValue: 1);
-                    ApplyLastReceivedData(forced: true);
-                });
+            Add("Always Block Modded Appearance", _ =>
+            {
+                _serverConfigurationManager.AddBlacklistUid(UserData.UID);
+                HoldApplication("Blacklist", maxValue: 1);
+                ApplyLastReceivedData(forced: true);
+            });
         else if (isBlocked && !isWhitelisted)
-            Add("Always Allow Modded Appearance", _ => {
-                    _serverConfigurationManager.AddWhitelistUid(UserData.UID);
-                    UnholdApplication("Blacklist", skipApplication: true);
-                    ApplyLastReceivedData(forced: true);
-                });
+            Add("Always Allow Modded Appearance", _ =>
+            {
+                _serverConfigurationManager.AddWhitelistUid(UserData.UID);
+                UnholdApplication("Blacklist", skipApplication: true);
+                ApplyLastReceivedData(forced: true);
+            });
 
         if (isWhitelisted)
-            Add("Remove from Whitelist", _ => {
+            Add("Remove from Whitelist", _ =>
+            {
                 _serverConfigurationManager.RemoveWhitelistUid(UserData.UID);
                 ApplyLastReceivedData(forced: true);
             });
         else if (isBlacklisted)
-            Add("Remove from Blacklist", _ => {
+            Add("Remove from Blacklist", _ =>
+            {
                 _serverConfigurationManager.RemoveBlacklistUid(UserData.UID);
                 UnholdApplication("Blacklist", skipApplication: true);
                 ApplyLastReceivedData(forced: true);

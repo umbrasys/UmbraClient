@@ -1,4 +1,5 @@
 ﻿using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using Microsoft.Extensions.Logging;
 using UmbraSync.API.Data.Enum;
 using UmbraSync.FileCache;
 using UmbraSync.Interop.Ipc;
@@ -7,7 +8,6 @@ using UmbraSync.PlayerData.Data;
 using UmbraSync.PlayerData.Handlers;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
-using Microsoft.Extensions.Logging;
 using CharacterData = UmbraSync.PlayerData.Data.CharacterData;
 #pragma warning disable CS8500
 

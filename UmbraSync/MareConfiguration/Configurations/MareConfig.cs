@@ -1,10 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Microsoft.Extensions.Logging;
+using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.UI;
-using Microsoft.Extensions.Logging;
-using System.Text.Json.Serialization;
-using System.Diagnostics.CodeAnalysis;
 
 namespace UmbraSync.MareConfiguration.Configurations;
 

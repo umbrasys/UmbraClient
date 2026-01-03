@@ -1,12 +1,11 @@
 ﻿using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
-using UmbraSync.API.Dto.Group;
-using UmbraSync.PlayerData.Pairs;
-using UmbraSync.Localization;
-using UmbraSync.Services.Mediator;
-using UmbraSync.WebAPI;
 using System.Globalization;
 using System.Numerics;
+using UmbraSync.API.Dto.Group;
+using UmbraSync.Localization;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.Services.Mediator;
 
 namespace UmbraSync.UI.Components.Popup;
 

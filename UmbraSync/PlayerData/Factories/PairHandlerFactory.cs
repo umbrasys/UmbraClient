@@ -1,12 +1,12 @@
-﻿using UmbraSync.FileCache;
+﻿using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using UmbraSync.FileCache;
 using UmbraSync.Interop.Ipc;
 using UmbraSync.MareConfiguration;
 using UmbraSync.PlayerData.Handlers;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace UmbraSync.PlayerData.Factories;
 

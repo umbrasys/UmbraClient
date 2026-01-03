@@ -1,15 +1,8 @@
-using UmbraSync.MareConfiguration;
-using System.Collections.Generic;
-using UmbraSync.PlayerData.Pairs;
-using System;
-using System.Linq;
-using Dalamud.Game.Text;
-using Dalamud.Game.Text.SeStringHandling;
-using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Plugin.Services;
-using UmbraSync.API.Dto.User;
-using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Logging;
+using UmbraSync.MareConfiguration;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.Services.Mediator;
 
 namespace UmbraSync.Services;
 

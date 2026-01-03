@@ -1,17 +1,15 @@
 ﻿using Dalamud.Game.ClientState.Objects.SubKinds;
 using K4os.Compression.LZ4.Legacy;
+using Microsoft.Extensions.Logging;
 using UmbraSync.API.Data;
 using UmbraSync.API.Data.Enum;
 using UmbraSync.API.Dto.CharaData;
 using UmbraSync.FileCache;
 using UmbraSync.PlayerData.Factories;
 using UmbraSync.PlayerData.Handlers;
-using UmbraSync.Services.CharaData;
 using UmbraSync.Services.CharaData.Models;
 using UmbraSync.Utils;
 using UmbraSync.WebAPI.Files;
-using Microsoft.Extensions.Logging;
-using System.Threading;
 
 namespace UmbraSync.Services.CharaData;
 
@@ -276,7 +274,7 @@ public sealed class CharaDataFileHandler(
                 {
                     using var br = new BinaryReader(fsRead);
                     byte[] buffer = new byte[item.Length];
-                    br.Read(buffer, 0, item.Length);
+                    br.ReadExactly(buffer);
                     writer.Write(buffer);
                 }
             }

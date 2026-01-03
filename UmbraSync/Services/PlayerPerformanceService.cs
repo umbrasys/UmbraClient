@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using System.Text;
 using UmbraSync.API.Data;
 using UmbraSync.FileCache;
 using UmbraSync.MareConfiguration;
@@ -8,8 +10,6 @@ using UmbraSync.Services.Notification;
 using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.UI;
 using UmbraSync.WebAPI.Files.Models;
-using Microsoft.Extensions.Logging;
-using System.Text;
 
 namespace UmbraSync.Services;
 
@@ -207,7 +207,8 @@ public class PlayerPerformanceService : DisposableMediatorSubscriberBase
 
         await Parallel.ForEachAsync(moddedTextureHashes,
             token,
-            async (hash, token) => {
+            async (hash, ct) =>
+            {
                 var fileEntry = _fileCacheManager.GetFileCacheByHash(hash, preferSubst: true);
                 if (fileEntry == null) return;
                 if (fileEntry.IsSubstEntry) return;
@@ -302,7 +303,7 @@ public class PlayerPerformanceService : DisposableMediatorSubscriberBase
                         outFile.Position = 80;
                         inFile.Position = 80 + offsetDelta;
 
-                        await inFile.CopyToAsync(outFile, 81920, token).ConfigureAwait(false);
+                        await inFile.CopyToAsync(outFile, 81920, ct).ConfigureAwait(false);
                     }
                 }
                 catch (Exception e)

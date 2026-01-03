@@ -10,8 +10,8 @@ using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using FFXIVClientStructs.FFXIV.Client.UI.Shell;
 using FFXIVClientStructs.FFXIV.Component.Shell;
-using UmbraSync.Services;
 using Microsoft.Extensions.Logging;
+using UmbraSync.Services;
 
 #pragma warning disable CS8500 // using pointers to Dalamud native structs containing managed fields
 
@@ -31,7 +31,7 @@ public unsafe sealed class GameChatHooks : IDisposable
     private readonly Action<int, byte[]> _ssCommandHandler;
 
     #region signatures
-    #pragma warning disable CS0649
+#pragma warning disable CS0649
     // I do not know what kind of black magic this function performs
     // Client::UI::Misc::PronounModule::???
     [Signature("E8 ?? ?? ?? ?? 44 88 74 24 ?? 4C 8D 45")]
@@ -94,7 +94,7 @@ public unsafe sealed class GameChatHooks : IDisposable
         DetourName = nameof(UnfocusTickDetour)
     )]
     private Hook<UnfocusTickDelegate>? UnfocusTickHook { get; init; }
-    #pragma warning restore CS0649
+#pragma warning restore CS0649
     #endregion
 
     private ChatChannelOverride? _chatChannelOverride;
@@ -106,7 +106,8 @@ public unsafe sealed class GameChatHooks : IDisposable
     public ChatChannelOverride? ChatChannelOverride
     {
         get => _chatChannelOverride;
-        set {
+        set
+        {
             _chatChannelOverride = value;
             _shouldForceNameLookup = true;
         }

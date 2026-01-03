@@ -5,14 +5,13 @@ using FFXIVClientStructs.Havok.Common.Base.Types;
 using FFXIVClientStructs.Havok.Common.Serialize.Resource;
 using FFXIVClientStructs.Havok.Common.Serialize.Util;
 using Lumina.Data;
+using Microsoft.Extensions.Logging;
+using System.Globalization;
+using System.Text;
 using UmbraSync.FileCache;
 using UmbraSync.Interop.GameModel;
 using UmbraSync.MareConfiguration;
 using UmbraSync.PlayerData.Handlers;
-using Microsoft.Extensions.Logging;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Globalization;
 #pragma warning disable CS8500 // direct pointer access into Havok structures
 
 namespace UmbraSync.Services;

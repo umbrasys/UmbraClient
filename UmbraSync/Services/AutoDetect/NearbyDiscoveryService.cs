@@ -1,23 +1,13 @@
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Numerics;
-using System.Threading.Channels;
 using Dalamud.Plugin.Services;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
+using System.Numerics;
 using UmbraSync.MareConfiguration;
 using UmbraSync.MareConfiguration.Configurations;
 using UmbraSync.Services.Mediator;
-using UmbraSync.Services.Notification;
-using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.Utils;
-using UmbraSync.WebAPI;
 using UmbraSync.WebAPI.AutoDetect;
-using UmbraSync.WebAPI.Files;
-using UmbraSync.WebAPI.Files.Models;
 
 namespace UmbraSync.Services.AutoDetect;
 
@@ -188,10 +178,10 @@ public class NearbyDiscoveryService(ILogger<NearbyDiscoveryService> logger, Mare
 
                             var ep = _configProvider.PublishEndpoint;
                             var saltBytes = _configProvider.Salt;
-                        if (!string.IsNullOrEmpty(ep) && saltBytes is { Length: > 0 })
-                        {
-                            await ImmediatePublishAsync(ep, saltBytes, ct).ConfigureAwait(false);
-                        }
+                            if (!string.IsNullOrEmpty(ep) && saltBytes is { Length: > 0 })
+                            {
+                                await ImmediatePublishAsync(ep, saltBytes, ct).ConfigureAwait(false);
+                            }
                         }
                         catch (Exception ex)
                         {

@@ -1,13 +1,11 @@
-using System;
+using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Text.RegularExpressions;
-using UmbraSync.MareConfiguration.Models;
 using UmbraSync.Localization;
+using UmbraSync.MareConfiguration.Models;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.Notification;
-using UmbraSync.WebAPI;
-using Microsoft.Extensions.Logging;
-using System.Globalization;
 
 namespace UmbraSync.Services.AutoDetect;
 

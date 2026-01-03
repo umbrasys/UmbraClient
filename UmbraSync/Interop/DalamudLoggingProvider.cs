@@ -1,8 +1,7 @@
 ﻿using Dalamud.Plugin.Services;
-using UmbraSync.MareConfiguration;
 using Microsoft.Extensions.Logging;
-
 using System.Collections.Concurrent;
+using UmbraSync.MareConfiguration;
 
 namespace UmbraSync.Interop;
 
@@ -40,6 +39,5 @@ public sealed class DalamudLoggingProvider : ILoggerProvider
     public void Dispose()
     {
         _loggers.Clear();
-        GC.SuppressFinalize(this);
     }
 }

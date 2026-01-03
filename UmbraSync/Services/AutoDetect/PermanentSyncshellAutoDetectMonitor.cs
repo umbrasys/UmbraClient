@@ -1,16 +1,11 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using UmbraSync.API.Dto.Group;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services.Mediator;
-using UmbraSync.WebAPI;
 
 namespace UmbraSync.Services.AutoDetect;
+
 public sealed class PermanentSyncshellAutoDetectMonitor : MediatorSubscriberBase, IHostedService
 {
     private readonly ApiController _apiController;
@@ -81,8 +76,10 @@ public sealed class PermanentSyncshellAutoDetectMonitor : MediatorSubscriberBase
             }
             var slept = TimeSpan.Zero;
             while (slept < delay && !ct.IsCancellationRequested)
-            { if (Interlocked.Exchange(ref _immediateCheckRequested, 0) == 1)
-                { break;
+            {
+                if (Interlocked.Exchange(ref _immediateCheckRequested, 0) == 1)
+                {
+                    break;
                 }
 
                 try

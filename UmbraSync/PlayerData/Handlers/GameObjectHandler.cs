@@ -1,11 +1,11 @@
 ﻿using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
+using Microsoft.Extensions.Logging;
+using System.Globalization;
+using System.Runtime.CompilerServices;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Utils;
-using Microsoft.Extensions.Logging;
-using System.Runtime.CompilerServices;
-using System.Globalization;
 using static FFXIVClientStructs.FFXIV.Client.Game.Character.DrawDataContainer;
 using ObjectKind = UmbraSync.API.Data.Enum.ObjectKind;
 #pragma warning disable CS8500 // Interacting with native FFXIV structs that contain reference-like fields

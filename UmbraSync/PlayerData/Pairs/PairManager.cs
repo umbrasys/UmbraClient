@@ -1,14 +1,15 @@
-﻿using System;
+﻿using Dalamud.Game.Gui.ContextMenu;
+using Dalamud.Plugin.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Globalization;
-using System.Linq;
-using Dalamud.Game.Gui.ContextMenu;
-using Dalamud.Plugin.Services;
 using UmbraSync.API.Data;
 using UmbraSync.API.Data.Comparer;
 using UmbraSync.API.Data.Extensions;
 using UmbraSync.API.Dto.Group;
 using UmbraSync.API.Dto.User;
+using UmbraSync.Localization;
 using UmbraSync.MareConfiguration;
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.PlayerData.Factories;
@@ -16,10 +17,6 @@ using UmbraSync.Services;
 using UmbraSync.Services.AutoDetect;
 using UmbraSync.Services.Events;
 using UmbraSync.Services.Mediator;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using UmbraSync.Localization;
-using UmbraSync.WebAPI;
 
 namespace UmbraSync.PlayerData.Pairs;
 
@@ -774,7 +771,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
                 IsSubmenu = false,
                 IsReturn = false,
                 Priority = 1,
-                OnClicked = args =>
+                OnClicked = clickedArgs =>
                 {
                     _ = _autoDetectRequestService.SendRequestAsync(
                         nearbyEntry.Token!,
@@ -796,7 +793,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
                 IsSubmenu = false,
                 IsReturn = false,
                 Priority = 0,
-                OnClicked = args =>
+                OnClicked = clickedArgs =>
                 {
                     _ = _apiController.Value.UserAddPair(new UserDto(new UserData(nearbyEntry.Uid!)));
                 }

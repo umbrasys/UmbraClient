@@ -1,5 +1,4 @@
 ﻿using Dalamud.Game.ClientState.Conditions;
-using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Plugin.Services;
@@ -10,21 +9,20 @@ using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Lumina.Excel.Sheets;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Text;
 using UmbraSync.API.Dto.CharaData;
 using UmbraSync.Interop;
 using UmbraSync.PlayerData.Handlers;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Utils;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using System.Numerics;
-using System.Globalization;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using GameObject = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
 using DalamudGameObject = Dalamud.Game.ClientState.Objects.Types.IGameObject;
+using GameObject = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
 #pragma warning disable CS8500 // required pointer interop with Dalamud/FFXIV structs
 
 namespace UmbraSync.Services;
@@ -73,7 +71,7 @@ public class DalamudUtilService : IHostedService, IMediatorSubscriber
 
 
     public DalamudUtilService(ILogger<DalamudUtilService> logger, IClientState clientState, IObjectTable objectTable, IFramework framework,
-        IGameGui gameGui, IToastGui toastGui,ICondition condition, IDataManager gameData, ITargetManager targetManager,
+        IGameGui gameGui, IToastGui toastGui, ICondition condition, IDataManager gameData, ITargetManager targetManager,
         BlockedCharacterHandler blockedCharacterHandler, MareMediator mediator, PerformanceCollectorService performanceCollector)
     {
         _logger = logger;

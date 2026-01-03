@@ -1,19 +1,12 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+using Microsoft.Extensions.Logging;
+using System.Globalization;
 using System.Security.Cryptography;
-using System.Threading;
-using System.Threading.Tasks;
 using UmbraSync.API.Dto.McdfShare;
-using UmbraSync.MareConfiguration.Models;
 using UmbraSync.Localization;
+using UmbraSync.MareConfiguration.Models;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.Notification;
 using UmbraSync.Services.ServerConfiguration;
-using UmbraSync.WebAPI;
-using Microsoft.Extensions.Logging;
-using System.Globalization;
 
 namespace UmbraSync.Services.CharaData;
 

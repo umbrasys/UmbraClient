@@ -1,22 +1,19 @@
-﻿using Dalamud.Utility;
+﻿using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.Logging;
+using System.Reflection;
 using UmbraSync.API.Data;
 using UmbraSync.API.Data.Extensions;
 using UmbraSync.API.Dto;
-using UmbraSync.API.Dto.User;
 using UmbraSync.API.Dto.Group;
+using UmbraSync.API.Dto.User;
 using UmbraSync.API.SignalR;
-using UmbraSync.MareConfiguration;
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.Notification;
 using UmbraSync.Services.ServerConfiguration;
-using UmbraSync.WebAPI.SignalR;
 using UmbraSync.WebAPI.SignalR.Utils;
-using Microsoft.AspNetCore.SignalR.Client;
-using Microsoft.Extensions.Logging;
-using System.Reflection;
 
 namespace UmbraSync.WebAPI.SignalR;
 
@@ -184,7 +181,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
                 InitializeApiHooks();
 
                 await _mareHub.StartAsync(token).ConfigureAwait(false);
-                
+
                 _connectionDto = await GetConnectionDto().ConfigureAwait(false);
 
                 ServerState = ServerState.Connected;
@@ -419,7 +416,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         {
             var users = await GroupsGetUsersInGroup(group).ConfigureAwait(false);
             foreach (var user in users)
-        {
+            {
                 Logger.LogDebug("Group Pair: {user}", user);
                 _pairManager.AddGroupPair(user, isInitialLoad: true);
             }

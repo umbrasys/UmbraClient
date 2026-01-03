@@ -1,10 +1,9 @@
-﻿using UmbraSync.API.Data;
-using UmbraSync.API.Dto.Group;
+﻿using Microsoft.Extensions.Logging;
+using UmbraSync.API.Data;
 using UmbraSync.MareConfiguration;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.ServerConfiguration;
-using Microsoft.Extensions.Logging;
 
 namespace UmbraSync.PlayerData.Factories;
 

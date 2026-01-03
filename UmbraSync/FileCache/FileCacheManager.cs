@@ -1,14 +1,14 @@
 ﻿using Dalamud.Utility;
 using K4os.Compression.LZ4.Streams;
-using UmbraSync.Interop.Ipc;
-using UmbraSync.MareConfiguration;
-using UmbraSync.Services.Mediator;
-using UmbraSync.Utils;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text;
+using UmbraSync.Interop.Ipc;
+using UmbraSync.MareConfiguration;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Utils;
 
 namespace UmbraSync.FileCache;
 
@@ -203,7 +203,7 @@ public sealed class FileCacheManager : DisposableMediatorSubscriberBase, IHosted
         var fileCache = GetFileCacheByHash(fileHash)!;
         using var fs = File.OpenRead(fileCache.ResolvedFilepath);
         var ms = new MemoryStream(64 * 1024);
-        using var encstream = LZ4Stream.Encode(ms, new LZ4EncoderSettings(){CompressionLevel=K4os.Compression.LZ4.LZ4Level.L09_HC});
+        using var encstream = LZ4Stream.Encode(ms, new LZ4EncoderSettings() { CompressionLevel = K4os.Compression.LZ4.LZ4Level.L09_HC });
         await fs.CopyToAsync(encstream, uploadToken).ConfigureAwait(false);
         encstream.Close();
         fileCache.CompressedSize = encstream.Length;
@@ -406,7 +406,7 @@ public sealed class FileCacheManager : DisposableMediatorSubscriberBase, IHosted
 
         if (!entries.Exists(u => string.Equals(u.PrefixedFilePath, fileCache.PrefixedFilePath, StringComparison.OrdinalIgnoreCase)))
         {
-                        entries.Add(fileCache);
+            entries.Add(fileCache);
         }
     }
 
