@@ -1,9 +1,9 @@
-﻿using UmbraSync.API.Data;
-using UmbraSync.API.Dto.User;
-using Microsoft.AspNetCore.SignalR.Client;
+﻿using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
-using System.Text;
 using System.Globalization;
+using System.Text;
+using UmbraSync.API.Data;
+using UmbraSync.API.Dto.User;
 
 namespace UmbraSync.WebAPI.SignalR;
 

@@ -1,9 +1,8 @@
-﻿using Dalamud.Game.ClientState.Objects.SubKinds;
-using Dalamud.Plugin;
+﻿using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
+using Microsoft.Extensions.Logging;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
-using Microsoft.Extensions.Logging;
 
 namespace UmbraSync.Interop.Ipc;
 

@@ -1,5 +1,10 @@
 ﻿using Dalamud.Utility;
 using K4os.Compression.LZ4.Streams;
+using Microsoft.Extensions.Logging;
+using System.Globalization;
+using System.Net;
+using System.Net.Http.Json;
+using System.Security.Cryptography;
 using UmbraSync.API.Data;
 using UmbraSync.API.Dto.Files;
 using UmbraSync.API.Routes;
@@ -9,12 +14,6 @@ using UmbraSync.PlayerData.Handlers;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Utils;
 using UmbraSync.WebAPI.Files.Models;
-using Microsoft.Extensions.Logging;
-using System.Net;
-using System.Net.Http.Json;
-using System.Security.Cryptography;
-using System.Globalization;
-using System.Threading;
 
 namespace UmbraSync.WebAPI.Files;
 
@@ -391,7 +390,8 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
 
                     Logger.LogDebug("{dlName}: Decompressing {file}:{le} => {dest}", fi.Name, fileHash, fileLengthBytes, filePath);
 
-                    tasks.Add(Task.Run(() => {
+                    tasks.Add(Task.Run(() =>
+                    {
                         try
                         {
                             using var tmpFileStream = new HashingStream(new FileStream(tmpPath, new FileStreamOptions()
@@ -451,7 +451,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
                     }, CancellationToken.None));
                 }
 
-                Task.WaitAll([..tasks], CancellationToken.None);
+                Task.WaitAll([.. tasks], CancellationToken.None);
             }
             catch (EndOfStreamException)
             {
@@ -463,7 +463,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
             }
             finally
             {
-                Task.WaitAll([..tasks], CancellationToken.None);
+                Task.WaitAll([.. tasks], CancellationToken.None);
                 _orchestrator.ReleaseDownloadSlot();
                 if (fileBlockStream != null)
                     await fileBlockStream.DisposeAsync().ConfigureAwait(false);

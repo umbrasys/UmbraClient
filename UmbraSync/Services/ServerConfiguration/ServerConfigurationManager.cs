@@ -1,10 +1,7 @@
-﻿using UmbraSync.MareConfiguration;
-using UmbraSync.MareConfiguration.Models;
-using UmbraSync.Services.Mediator;
-using UmbraSync.Utils;
-using UmbraSync.WebAPI;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using UmbraSync.MareConfiguration;
+using UmbraSync.MareConfiguration.Models;
 
 namespace UmbraSync.Services.ServerConfiguration;
 
@@ -294,7 +291,8 @@ public class ServerConfigurationManager
         // Pick the next higher syncshell number that is available
         int newShellNumber = CurrentSyncshellStorage().GidShellConfig.Count > 0 ? CurrentSyncshellStorage().GidShellConfig.Select(x => x.Value.ShellNumber).Max() + 1 : 1;
 
-        var shellConfig = new ShellConfig{
+        var shellConfig = new ShellConfig
+        {
             ShellNumber = newShellNumber
         };
 

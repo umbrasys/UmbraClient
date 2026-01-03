@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.SignalR.Client;
-using UmbraSync.API.Dto.Slot;
-using UmbraSync.API.Dto.Group;
 using Microsoft.Extensions.Logging;
+using UmbraSync.API.Dto.Group;
+using UmbraSync.API.Dto.Slot;
 
 namespace UmbraSync.WebAPI.SignalR;
 

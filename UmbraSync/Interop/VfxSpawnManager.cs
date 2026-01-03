@@ -1,11 +1,11 @@
 ﻿using Dalamud.Memory;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility.Signatures;
-using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Logging;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
+using UmbraSync.Services.Mediator;
 
 namespace UmbraSync.Interop;
 
@@ -17,7 +17,7 @@ public unsafe class VfxSpawnManager : DisposableMediatorSubscriberBase
     private static readonly byte[] _pool = "Client.System.Scheduler.Instance.VfxObject\0"u8.ToArray();
 
     #region signatures
-    #pragma warning disable CS0649
+#pragma warning disable CS0649
     [Signature("E8 ?? ?? ?? ?? F3 0F 10 35 ?? ?? ?? ?? 48 89 43 08")]
     private readonly delegate* unmanaged<byte*, byte*, VfxStruct*> _staticVfxCreate;
 
@@ -26,7 +26,7 @@ public unsafe class VfxSpawnManager : DisposableMediatorSubscriberBase
 
     [Signature("40 53 48 83 EC 20 48 8B D9 48 8B 89 ?? ?? ?? ?? 48 85 C9 74 28 33 D2 E8 ?? ?? ?? ?? 48 8B 8B ?? ?? ?? ?? 48 85 C9")]
     private readonly delegate* unmanaged<VfxStruct*, nint> _staticVfxRemove;
-    #pragma warning restore CS0649
+#pragma warning restore CS0649
     #endregion
 
     public VfxSpawnManager(ILogger<VfxSpawnManager> logger, IGameInteropProvider gameInteropProvider, MareMediator mareMediator)

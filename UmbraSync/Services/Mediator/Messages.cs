@@ -1,4 +1,5 @@
 ﻿using Dalamud.Game.ClientState.Objects.Types;
+using System.Numerics;
 using UmbraSync.API.Data;
 using UmbraSync.API.Dto;
 using UmbraSync.API.Dto.CharaData;
@@ -10,7 +11,6 @@ using UmbraSync.PlayerData.Handlers;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services.Events;
 using UmbraSync.WebAPI.Files.Models;
-using System.Numerics;
 
 namespace UmbraSync.Services.Mediator;
 

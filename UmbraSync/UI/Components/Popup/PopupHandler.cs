@@ -2,11 +2,11 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using Microsoft.Extensions.Logging;
+using System.Numerics;
 using UmbraSync.Localization;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
-using Microsoft.Extensions.Logging;
-using System.Numerics;
 
 namespace UmbraSync.UI.Components.Popup;
 

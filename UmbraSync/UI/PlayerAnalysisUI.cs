@@ -2,15 +2,15 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
+using Microsoft.Extensions.Logging;
+using System.Globalization;
+using System.Numerics;
 using UmbraSync.API.Data.Enum;
+using UmbraSync.Localization;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Utils;
-using UmbraSync.Localization;
-using Microsoft.Extensions.Logging;
-using System.Numerics;
-using System.Globalization;
 
 namespace UmbraSync.UI;
 
@@ -121,12 +121,12 @@ public class PlayerAnalysisUI : WindowMediatorSubscriberBase
         }
         ImGui.TextUnformatted(Loc.Get("PlayerAnalysis.TotalSizeActual"));
         ImGui.SameLine();
-        ImGui.TextUnformatted(UiSharedService.ByteToString(cachedAnalysis.Sum(c => c.Value.Sum(c => c.Value.OriginalSize))));
+        ImGui.TextUnformatted(UiSharedService.ByteToString(cachedAnalysis.Sum(c => c.Value.Sum(f => f.Value.OriginalSize))));
         ImGui.TextUnformatted(Loc.Get("PlayerAnalysis.TotalSizeCompressed"));
         ImGui.SameLine();
         using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudYellow, needAnalysis))
         {
-            ImGui.TextUnformatted(UiSharedService.ByteToString(cachedAnalysis.Sum(c => c.Value.Sum(c => c.Value.CompressedSize))));
+            ImGui.TextUnformatted(UiSharedService.ByteToString(cachedAnalysis.Sum(c => c.Value.Sum(f => f.Value.CompressedSize))));
             if (needAnalysis && !isAnalyzing)
             {
                 ImGui.SameLine();

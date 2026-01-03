@@ -1,17 +1,12 @@
-using Dalamud.Interface.Colors;
-using Dalamud.Interface.Utility.Raii;
-using System.Numerics;
-using Dalamud.Interface;
-using Dalamud.Interface.Utility;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface;
+using System.Numerics;
+using UmbraSync.API.Data;
+using UmbraSync.API.Dto.Group;
 using UmbraSync.API.Dto.Slot;
 using UmbraSync.Localization;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
-using UmbraSync.WebAPI.SignalR;
-using UmbraSync.API.Dto.Group;
-using UmbraSync.API.Data;
-using System.Threading.Tasks;
 
 namespace UmbraSync.UI.Components.Popup;
 
@@ -80,7 +75,7 @@ public class SlotPopupHandler : IPopupHandler
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();
-        
+
         DrawInfoSection();
 
         ImGui.Spacing();

@@ -1,11 +1,10 @@
 ﻿using Dalamud.Interface;
 using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Windowing;
+using Microsoft.Extensions.Logging;
 using UmbraSync.MareConfiguration;
 using UmbraSync.Services.Mediator;
 using UmbraSync.UI;
-using UmbraSync.UI.Components.Popup;
-using Microsoft.Extensions.Logging;
 
 namespace UmbraSync.Services;
 

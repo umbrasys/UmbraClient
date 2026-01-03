@@ -1,7 +1,7 @@
-using Microsoft.Extensions.Logging;
-using UmbraSync.Services.Mediator;
-using UmbraSync.API.Dto.CharaData;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using UmbraSync.API.Dto.CharaData;
+using UmbraSync.Services.Mediator;
 
 namespace UmbraSync.Services;
 
@@ -64,10 +64,10 @@ public class HousingMonitorService : IHostedService, IMediatorSubscriber
 
                 if (hasChanged)
                 {
-                    _logger.LogDebug("Location changed from {lastServer}:{lastTerritory}:{lastWard}:{lastHouse} to {currentServer}:{currentTerritory}:{currentWard}:{currentHouse}", 
+                    _logger.LogDebug("Location changed from {lastServer}:{lastTerritory}:{lastWard}:{lastHouse} to {currentServer}:{currentTerritory}:{currentWard}:{currentHouse}",
                         _lastLocation.ServerId, _lastLocation.TerritoryId, _lastLocation.WardId, _lastLocation.HouseId,
                         currentLocation.ServerId, currentLocation.TerritoryId, currentLocation.WardId, currentLocation.HouseId);
-                    
+
                     bool wasInHousing = _lastLocation.HouseId != 0;
                     bool isInHousing = currentLocation.HouseId != 0;
 

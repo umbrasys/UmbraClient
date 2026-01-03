@@ -65,3 +65,4 @@ exclude:
   - name: UnityPerformanceHighlighting
   - name: WebConfigErrors
   - name: XAMLErrors
+  - name: MA0009  # Regex DoS false positive - simple patterns without backtracking risk

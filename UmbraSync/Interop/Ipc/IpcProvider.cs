@@ -1,15 +1,11 @@
 ﻿using Dalamud.Game.ClientState.Objects.Types;
-using System;
-using System.Linq;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
-using UmbraSync.MareConfiguration;
-using UmbraSync.PlayerData.Handlers;
-using UmbraSync.Services;
-using UmbraSync.Services.Mediator;
-using UmbraSync.Utils;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using UmbraSync.MareConfiguration;
+using UmbraSync.PlayerData.Handlers;
+using UmbraSync.Services.Mediator;
 
 namespace UmbraSync.Interop.Ipc;
 

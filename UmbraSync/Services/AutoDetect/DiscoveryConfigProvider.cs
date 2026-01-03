@@ -1,13 +1,10 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
-using UmbraSync.Services.Mediator;
-using UmbraSync.Services.ServerConfiguration;
-using UmbraSync.WebAPI.SignalR;
-using System.Net.Http;
+using System.Globalization;
 using System.Net.Http.Headers;
 using System.Reflection;
-using System.Globalization;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using UmbraSync.Services.ServerConfiguration;
 
 namespace UmbraSync.Services.AutoDetect;
 

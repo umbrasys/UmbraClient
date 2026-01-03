@@ -1,12 +1,9 @@
-﻿using UmbraSync.API.Data;
-using UmbraSync.API.Data.Comparer;
-using UmbraSync.MareConfiguration;
-using UmbraSync.Services.Mediator;
-using UmbraSync.WebAPI;
-using UmbraSync.PlayerData.Pairs;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
-using API = UmbraSync.API;
+using UmbraSync.API.Data;
+using UmbraSync.MareConfiguration;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.Services.Mediator;
 
 namespace UmbraSync.Services;
 
@@ -39,8 +36,8 @@ public class UmbraProfileManager : MediatorSubscriberBase
         {
             if (msg.UserData != null)
             {
-                foreach (var k in _umbraProfiles.Keys.Where(k => 
-                    string.Equals(k.User.UID, msg.UserData.UID, StringComparison.Ordinal) && 
+                foreach (var k in _umbraProfiles.Keys.Where(k =>
+                    string.Equals(k.User.UID, msg.UserData.UID, StringComparison.Ordinal) &&
                     (msg.CharacterName == null || string.Equals(k.CharName, msg.CharacterName, StringComparison.Ordinal)) &&
                     (msg.WorldId == null || k.WorldId == msg.WorldId)).ToList())
                 {

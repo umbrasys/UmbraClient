@@ -2,12 +2,12 @@
 using Dalamud.Plugin;
 using Glamourer.Api.Helpers;
 using Glamourer.Api.IpcSubscribers;
+using Microsoft.Extensions.Logging;
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.PlayerData.Handlers;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.Notification;
-using Microsoft.Extensions.Logging;
 
 namespace UmbraSync.Interop.Ipc;
 
@@ -58,9 +58,9 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
 
         Mediator.SubscribeKeyed<PluginChangeMessage>(this, "Glamourer", (msg) =>
         {
-             _pluginLoaded = msg.IsLoaded;
-             _pluginVersion = msg.Version;
-             CheckAPI();
+            _pluginLoaded = msg.IsLoaded;
+            _pluginVersion = msg.Version;
+            CheckAPI();
         });
 
         _glamourerStateChanged = StateChanged.Subscriber(pi, GlamourerChanged);

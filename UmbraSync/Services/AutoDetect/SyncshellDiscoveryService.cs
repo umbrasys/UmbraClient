@@ -1,17 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using System.Globalization;
 using UmbraSync.API.Data;
+using UmbraSync.API.Data.Enum;
 using UmbraSync.API.Dto.Group;
 using UmbraSync.Services.Mediator;
-using UmbraSync.WebAPI;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using UmbraSync.API.Data.Enum;
 
 namespace UmbraSync.Services.AutoDetect;
 

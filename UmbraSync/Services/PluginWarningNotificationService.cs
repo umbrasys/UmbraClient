@@ -1,12 +1,12 @@
-﻿using UmbraSync.API.Data;
+﻿using System.Collections.Concurrent;
+using UmbraSync.API.Data;
 using UmbraSync.API.Data.Comparer;
 using UmbraSync.Interop.Ipc;
 using UmbraSync.MareConfiguration;
 using UmbraSync.MareConfiguration.Models;
+using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.Notification;
-using UmbraSync.PlayerData.Pairs;
-using System.Collections.Concurrent;
 using PlayerChanges = UmbraSync.PlayerData.Data.PlayerChanges;
 
 namespace UmbraSync.Services;

@@ -3,15 +3,15 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using Microsoft.Extensions.Logging;
+using System.Numerics;
 using UmbraSync.API.Data.Extensions;
+using UmbraSync.Localization;
 using UmbraSync.MareConfiguration;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.ServerConfiguration;
-using UmbraSync.Localization;
-using Microsoft.Extensions.Logging;
-using System.Numerics;
 
 namespace UmbraSync.UI;
 
@@ -187,7 +187,7 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
             _uiSharedService.GameFont.Push();
             var remaining = ImGui.GetWindowContentRegionMax().Y - ImGui.GetCursorPosY();
             var descText = _isRpTab ? (umbraProfile.RpDescription ?? Loc.Get("UserProfile.NoRpDescription")) : umbraProfile.Description;
-            
+
             if (_isRpTab)
             {
                 var rpInfo = string.Empty;

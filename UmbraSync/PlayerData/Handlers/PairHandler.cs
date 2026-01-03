@@ -1,4 +1,8 @@
-﻿using UmbraSync.API.Data;
+﻿using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
+using System.Diagnostics;
+using UmbraSync.API.Data;
 using UmbraSync.FileCache;
 using UmbraSync.Interop.Ipc;
 using UmbraSync.MareConfiguration;
@@ -9,11 +13,6 @@ using UmbraSync.Services.Events;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Utils;
 using UmbraSync.WebAPI.Files;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using System.Collections.Concurrent;
-using System.Diagnostics;
-using System.Linq;
 using ObjectKind = UmbraSync.API.Data.Enum.ObjectKind;
 using PlayerChanges = UmbraSync.PlayerData.Data.PlayerChanges;
 
@@ -296,8 +295,8 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
 
         SetUploading(isUploading: false);
         var name = PlayerName;
-            if (Logger.IsEnabled(LogLevel.Debug))
-                Logger.LogDebug("Disposing {name} ({user})", name, Pair.UserData.AliasOrUID);
+        if (Logger.IsEnabled(LogLevel.Debug))
+            Logger.LogDebug("Disposing {name} ({user})", name, Pair.UserData.AliasOrUID);
         try
         {
             Guid applicationId = Guid.NewGuid();
@@ -332,7 +331,8 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
 
     public void UndoApplication(Guid applicationId = default)
     {
-        _ = Task.Run(async () => {
+        _ = Task.Run(async () =>
+        {
             await UndoApplicationAsync(applicationId).ConfigureAwait(false);
         });
     }
@@ -557,7 +557,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
                     await ApplyModChangesOnlyAsync(applicationBase, charaData, updatedData, updateModdedPaths, updateManip, downloadToken).ConfigureAwait(false);
                     return;
                 }
-                
+
                 _currentProcessingHash = charaData.DataHash.Value;
                 await DownloadAndApplyCharacterAsync(applicationBase, charaData, updatedData, updateModdedPaths, updateManip, downloadToken).ConfigureAwait(false);
             }
@@ -571,17 +571,17 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     /// <summary>
     /// Apply only mod changes without forcing a full redraw when possible.
     /// </summary>
-    private async Task ApplyModChangesOnlyAsync(Guid applicationBase, CharacterData charaData, 
+    private async Task ApplyModChangesOnlyAsync(Guid applicationBase, CharacterData charaData,
         Dictionary<ObjectKind, HashSet<PlayerChanges>> updatedData, bool updateModdedPaths, bool updateManip, CancellationToken token)
     {
         Logger.LogDebug("[BASE-{applicationBase}] Applying mod changes only", applicationBase);
-        
+
         try
         {
             // For mod-only changes, we can use a simplified approach
             // Create a minimal updatedData with only mod changes
             var modOnlyUpdatedData = new Dictionary<ObjectKind, HashSet<PlayerChanges>>();
-            
+
             foreach (var kvp in updatedData)
             {
                 var modChanges = new HashSet<PlayerChanges>();
@@ -593,32 +593,32 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
                 {
                     modChanges.Add(PlayerChanges.ModManip);
                 }
-                
+
                 // Only add if we have mod changes for this object kind
                 if (modChanges.Count > 0)
                 {
                     modOnlyUpdatedData[kvp.Key] = modChanges;
                 }
             }
-            
+
             if (modOnlyUpdatedData.Count == 0)
             {
                 Logger.LogDebug("[BASE-{applicationBase}] No mod changes to apply", applicationBase);
                 return;
             }
-            
+
             // Use the existing mechanism but without forcing a redraw
             // Remove ForcedRedraw from the changes
             foreach (var changes in modOnlyUpdatedData.Values)
             {
                 changes.Remove(PlayerChanges.ForcedRedraw);
             }
-            
+
             Logger.LogDebug("[BASE-{applicationBase}] Applying mod changes using simplified mechanism", applicationBase);
-            
+
             // Use the existing download and apply mechanism
             await DownloadAndApplyCharacterAsync(applicationBase, charaData, modOnlyUpdatedData, updateModdedPaths, updateManip, token).ConfigureAwait(false);
-            
+
             Logger.LogDebug("[BASE-{applicationBase}] Mod changes applied without forced redraw", applicationBase);
         }
         catch (Exception ex)

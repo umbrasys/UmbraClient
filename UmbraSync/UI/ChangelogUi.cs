@@ -1,17 +1,13 @@
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Numerics;
-using System.Reflection;
 using Dalamud.Bindings.ImGui;
-using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
+using Microsoft.Extensions.Logging;
+using System.Globalization;
+using System.Reflection;
 using UmbraSync.Localization;
 using UmbraSync.MareConfiguration;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
-using Microsoft.Extensions.Logging;
 
 namespace UmbraSync.UI;
 
@@ -205,11 +201,11 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
             {
                 new("Passage au .NET SDK 10.0.101."),
                 new("Mise à jour vers Dalamud.NET.Sdk 14.0.1."),
-                new("Compatible avec la version 7.4 de FFXIV."),  
-                new("Adaptations internes pour les changements de structure de l'API Dalamud."),   
-                new("Correction de l'affichage de la bulle en fonction du canal utilisé."),  
+                new("Compatible avec la version 7.4 de FFXIV."),
+                new("Adaptations internes pour les changements de structure de l'API Dalamud."),
+                new("Correction de l'affichage de la bulle en fonction du canal utilisé."),
                 new("Correction d'un problème en mettant un utilisateur en pause pouvant mettre en pause temporairement d'autres utilisateurs."),
-                new("Correction d'un problème pouvant provoquer des erreurs de doublon de collection temporaire Penumbra empêchant l'utilisateur d'être vue avec ses mods.")               
+                new("Correction d'un problème pouvant provoquer des erreurs de doublon de collection temporaire Penumbra empêchant l'utilisateur d'être vue avec ses mods.")
             }),
             new(new Version(2, 0, 2, 0), "2.0.2.0", new List<ChangelogLine>
             {
@@ -217,14 +213,14 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
                 new("Correction du problème de freeze quand l'on redimensionne trop vite la fenêtre UmbraSync"),
                 new("Correction de l'affichage pré-maturé des états Glamourer empêchant Glamourer de fonctionner correctement."),
                 new("Correction de l'affichage des animations/compagnons/montures moddé avec un squelette spécifique."),
-                
+
             }),
             new(new Version(2, 0, 1, 0), "2.0.1.0", new List<ChangelogLine>
             {
                 new("Réécriture de l'AutoDetect pour de meilleurs performances"),
                 new("Possibilité de définir un ID personnalisé dans votre profil"),
                 new("Définir la limite des membres de la syncshell"),
-                
+
             }),
             new(new Version(2, 0, 0, 2), "2.0.0.2", new List<ChangelogLine>
             {
@@ -246,7 +242,7 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
                 new("Compatibilité de la bulle d'écriture avec le plugin ChatTwo"),
                 new("D'autres ajustement visuel, modérnisation du code source"),
             }),
-            
+
             new(new Version(0, 1, 9, 6), "0.1.9.6", new List<ChangelogLine>
             {
                 new("Possibilité de désactiver l'alerte self-analysis (Settings => Performance)."),

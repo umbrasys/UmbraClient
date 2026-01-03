@@ -1,16 +1,15 @@
-﻿using UmbraSync.API.Data;
+﻿using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.Logging;
+using UmbraSync.API.Data;
 using UmbraSync.API.Data.Enum;
 using UmbraSync.API.Dto;
-using UmbraSync.API.Dto.Chat;
 using UmbraSync.API.Dto.CharaData;
+using UmbraSync.API.Dto.Chat;
 using UmbraSync.API.Dto.Group;
 using UmbraSync.API.Dto.User;
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.Notification;
-using Microsoft.AspNetCore.SignalR.Client;
-using Microsoft.Extensions.Logging;
-using static FFXIVClientStructs.FFXIV.Client.Game.UI.MapMarkerData.Delegates;
 
 namespace UmbraSync.WebAPI.SignalR;
 

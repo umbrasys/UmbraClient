@@ -1,16 +1,12 @@
-using System;
 using Dalamud.Game.Gui.NamePlate;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Plugin.Services;
-using UmbraSync.API.Dto.User;
+using Microsoft.Extensions.Logging;
 using UmbraSync.MareConfiguration;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services.Mediator;
 using UmbraSync.UI;
-using UmbraSync.WebAPI;
-using Microsoft.Extensions.Logging;
-using Dalamud.Game.Text;
 
 namespace UmbraSync.Services;
 
@@ -57,7 +53,8 @@ public class GuiHookService : DisposableMediatorSubscriberBase
             _isModified = false;
         }
 
-        _ = Task.Run(async () => {
+        _ = Task.Run(async () =>
+        {
             await _dalamudUtil.RunOnFrameworkThread(() => _namePlateGui.RequestRedraw()).ConfigureAwait(false);
         });
     }
@@ -67,7 +64,8 @@ public class GuiHookService : DisposableMediatorSubscriberBase
         base.Dispose(disposing);
         _namePlateGui.OnNamePlateUpdate -= OnNamePlateUpdate;
 
-        _ = Task.Run(async () => {
+        _ = Task.Run(async () =>
+        {
             await _dalamudUtil.RunOnFrameworkThread(() => _namePlateGui.RequestRedraw()).ConfigureAwait(false);
         });
     }

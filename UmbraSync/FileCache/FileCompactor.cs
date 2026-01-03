@@ -1,7 +1,7 @@
-﻿using UmbraSync.MareConfiguration;
-using UmbraSync.Services;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using System.Runtime.InteropServices;
+using UmbraSync.MareConfiguration;
+using UmbraSync.Services;
 
 namespace UmbraSync.FileCache;
 
@@ -33,12 +33,7 @@ public sealed class FileCompactor
 
     private enum CompressionAlgorithm
     {
-        NO_COMPRESSION = -2,
-        LZNT1 = -1,
-        XPRESS4K = 0,
-        LZX = 1,
-        XPRESS8K = 2,
-        XPRESS16K = 3
+        XPRESS8K = 2
     }
 
     public bool MassCompactRunning { get; private set; } = false;

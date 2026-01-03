@@ -1,8 +1,8 @@
-﻿using UmbraSync.FileCache;
+﻿using Microsoft.Extensions.Logging;
+using UmbraSync.FileCache;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
-using Microsoft.Extensions.Logging;
 
 namespace UmbraSync.PlayerData.Factories;
 

@@ -1,7 +1,7 @@
-﻿using UmbraSync.MareConfiguration.Models;
+﻿using Microsoft.AspNetCore.SignalR.Client;
+using UmbraSync.MareConfiguration.Models;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.Notification;
-using Microsoft.AspNetCore.SignalR.Client;
 
 namespace UmbraSync.WebAPI.SignalR.Utils;
 

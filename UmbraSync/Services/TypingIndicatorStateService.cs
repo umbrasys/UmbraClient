@@ -1,10 +1,7 @@
-using System;
-using System.Collections.Concurrent;
-using System.Linq;
-using UmbraSync.Services.Mediator;
-using UmbraSync.WebAPI;
 using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 using UmbraSync.API.Data;
+using UmbraSync.Services.Mediator;
 
 namespace UmbraSync.Services;
 

@@ -1,10 +1,10 @@
-﻿using UmbraSync.API.Data.Enum;
+﻿using Microsoft.Extensions.Logging;
+using UmbraSync.API.Data.Enum;
 using UmbraSync.Interop.Ipc;
 using UmbraSync.PlayerData.Factories;
 using UmbraSync.PlayerData.Handlers;
 using UmbraSync.Services.CharaData.Models;
 using UmbraSync.Services.Mediator;
-using Microsoft.Extensions.Logging;
 
 namespace UmbraSync.Services.CharaData;
 

@@ -1,11 +1,9 @@
-﻿using System;
-using System.Numerics;
-using Dalamud.Bindings.ImGui;
+﻿using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
+using System.Numerics;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.UI.Handlers;
-using UmbraSync.WebAPI;
 
 namespace UmbraSync.UI.Components;
 
@@ -86,7 +84,7 @@ public abstract class DrawPairBase
 
         ImGui.SetCursorPos(new Vector2(rowStartCursor.X + padding.X, iconTop));
         DrawLeftSide(iconTop, iconTop);
-        
+
         float leftReserved = GetLeftSideReservedWidth();
         float nameStartX = rowStartCursor.X + padding.X + leftReserved;
 

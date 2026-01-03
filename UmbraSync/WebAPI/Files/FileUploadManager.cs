@@ -1,15 +1,14 @@
-﻿using UmbraSync.API.Data;
+﻿using Microsoft.Extensions.Logging;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using UmbraSync.API.Data;
 using UmbraSync.API.Dto.Files;
 using UmbraSync.API.Routes;
 using UmbraSync.FileCache;
-using UmbraSync.MareConfiguration;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.UI;
 using UmbraSync.WebAPI.Files.Models;
-using Microsoft.Extensions.Logging;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
 
 
 namespace UmbraSync.WebAPI.Files;

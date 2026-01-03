@@ -3,9 +3,9 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using System.Globalization;
 using UmbraSync.Localization;
 using UmbraSync.Services.CharaData.Models;
-using System.Globalization;
 
 namespace UmbraSync.UI;
 
@@ -91,7 +91,7 @@ public sealed partial class CharaDataHubUi
             }
             UiSharedService.DistanceSeparator();
             ImGui.TextUnformatted(Loc.Get("CharaDataHub.GposeTogether.UsersInLobby"));
-            var gposeCharas = _dalamudUtilService.GetGposeCharactersFromObjectTable();
+            var gposeCharas = _dalamudUtilService.GetGposeCharactersFromObjectTable().ToList();
             var self = _dalamudUtilService.GetPlayerCharacter();
             if (self != null)
             {
@@ -118,7 +118,7 @@ public sealed partial class CharaDataHubUi
     }
 
     private void DrawLobbyUser(GposeLobbyUserData user,
-        IEnumerable<Dalamud.Game.ClientState.Objects.Types.ICharacter?> gposeCharas)
+        List<Dalamud.Game.ClientState.Objects.Types.ICharacter?> gposeCharas)
     {
         using var id = ImRaii.PushId(user.UserData.UID);
         using var indent = ImRaii.PushIndent(5f);

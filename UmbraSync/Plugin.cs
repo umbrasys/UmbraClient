@@ -1,11 +1,14 @@
-﻿using Dalamud.Game.ClientState.Objects;
-using Dalamud.Interface.ImGuiFileDialog;
+﻿using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using UmbraSync.FileCache;
 using UmbraSync.Interop;
 using UmbraSync.Interop.Ipc;
+using UmbraSync.Localization;
 using UmbraSync.MareConfiguration;
 using UmbraSync.MareConfiguration.Configurations;
 using UmbraSync.PlayerData.Factories;
@@ -14,22 +17,13 @@ using UmbraSync.PlayerData.Services;
 using UmbraSync.Services;
 using UmbraSync.Services.Events;
 using UmbraSync.Services.Mediator;
-using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.Services.Notification;
+using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.UI;
-using UmbraSync.UI.Components;
 using UmbraSync.UI.Components.Popup;
 using UmbraSync.UI.Handlers;
 using UmbraSync.WebAPI;
 using UmbraSync.WebAPI.Files;
-using UmbraSync.WebAPI.SignalR;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using UmbraSync.Services.CharaData;
-using UmbraSync.Localization;
-
-using UmbraSync;
 
 namespace UmbraSync;
 
@@ -271,7 +265,8 @@ public sealed class Plugin : IDalamudPlugin
             pluginLog.Warning(e, "Failed to initialize PartyListTypingService draw hook");
         }
 
-        _ = Task.Run(async () => {
+        _ = Task.Run(async () =>
+        {
             try
             {
                 await _host.StartAsync().ConfigureAwait(false);

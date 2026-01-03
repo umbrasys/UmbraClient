@@ -1,5 +1,8 @@
 ﻿using Dalamud.Game.ClientState.Objects.Types;
 using K4os.Compression.LZ4.Legacy;
+using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
+using System.Text;
 using UmbraSync.API.Data;
 using UmbraSync.API.Dto.CharaData;
 using UmbraSync.Interop.Ipc;
@@ -10,12 +13,6 @@ using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services.CharaData.Models;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Utils;
-using UmbraSync.WebAPI;
-using Microsoft.Extensions.Logging;
-using System.Collections.Concurrent;
-using System.IO;
-using System.Text;
-using System.Threading;
 
 namespace UmbraSync.Services.CharaData;
 

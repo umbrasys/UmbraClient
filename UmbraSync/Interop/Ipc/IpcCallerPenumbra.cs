@@ -1,14 +1,14 @@
 ﻿using Dalamud.Plugin;
-using UmbraSync.MareConfiguration.Models;
-using UmbraSync.PlayerData.Handlers;
-using UmbraSync.Services;
-using UmbraSync.Services.Mediator;
-using UmbraSync.Services.Notification;
 using Microsoft.Extensions.Logging;
 using Penumbra.Api.Enums;
 using Penumbra.Api.Helpers;
 using Penumbra.Api.IpcSubscribers;
 using System.Collections.Concurrent;
+using UmbraSync.MareConfiguration.Models;
+using UmbraSync.PlayerData.Handlers;
+using UmbraSync.Services;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Services.Notification;
 
 namespace UmbraSync.Interop.Ipc;
 
@@ -96,9 +96,9 @@ public sealed class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
 
         Mediator.SubscribeKeyed<PluginChangeMessage>(this, "Penumbra", (msg) =>
         {
-             _pluginLoaded = msg.IsLoaded;
-             _pluginVersion = msg.Version;
-             CheckAPI();
+            _pluginLoaded = msg.IsLoaded;
+            _pluginVersion = msg.Version;
+            CheckAPI();
         });
 
         CheckModDirectory();
@@ -239,10 +239,10 @@ public sealed class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
             var collName = "UmbraSync_" + uid + random.Next().ToString();
             PenumbraApiEc penEC = _penumbraCreateNamedTemporaryCollection.Invoke(uid + random.Next().ToString(), collName, out collId);
             logger.LogTrace("Creating Temp Collection {collName}, GUID: {collId}", collName, collId);
-            if (penEC != PenumbraApiEc.Success) 
+            if (penEC != PenumbraApiEc.Success)
             {
                 logger.LogError("Failed to create temporary collection for {collName} with error code {penEC}. Please include this line in any error reports", collName, penEC);
-                return Guid.Empty; 
+                return Guid.Empty;
             }
             return collId;
 
@@ -315,7 +315,7 @@ public sealed class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
     {
         return await _penumbraResolvePaths.Invoke(forward, reverse).ConfigureAwait(false);
     }
-    
+
     public Task<HashSet<string>?> GetEnabledModRootsAsync()
     {
         if (!APIAvailable || string.IsNullOrEmpty(ModDirectory)) return Task.FromResult<HashSet<string>?>(null);

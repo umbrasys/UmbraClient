@@ -1,7 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Microsoft.AspNetCore.SignalR.Client;
 using UmbraSync.API.Dto.Group;
-using UmbraSync.API.Data.Enum;
-using Microsoft.AspNetCore.SignalR.Client;
 
 namespace UmbraSync.WebAPI.SignalR;
 

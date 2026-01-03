@@ -1,16 +1,14 @@
-﻿using System;
-using System.Linq;
-using Dalamud.Game.Text.SeStringHandling;
+﻿using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Plugin.Services;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using UmbraSync.Localization;
 using UmbraSync.MareConfiguration;
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.Services.Mediator;
-using UmbraSync.Localization;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using NotificationType = UmbraSync.MareConfiguration.Models.NotificationType;
 using DalamudNotification = Dalamud.Interface.ImGuiNotification.Notification;
 using DalamudNotificationType = Dalamud.Interface.ImGuiNotification.NotificationType;
+using NotificationType = UmbraSync.MareConfiguration.Models.NotificationType;
 
 namespace UmbraSync.Services;
 

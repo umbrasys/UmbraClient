@@ -10,6 +10,11 @@ using Dalamud.Interface.Utility.Raii;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
+using Microsoft.Extensions.Logging;
+using System.Numerics;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Text.RegularExpressions;
 using UmbraSync.FileCache;
 using UmbraSync.Interop.Ipc;
 using UmbraSync.MareConfiguration;
@@ -18,14 +23,6 @@ using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.ServerConfiguration;
-using UmbraSync.WebAPI;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Numerics;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Text.RegularExpressions;
 
 namespace UmbraSync.UI;
 
@@ -543,7 +540,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
         return result;
     }
-    
+
     public bool IconButtonCentered(FontAwesomeIcon icon, float? height = null, float xOffset = 0f, float yOffset = 0f, bool square = false)
     {
         string text = icon.ToIconString();
@@ -666,19 +663,19 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         float totalContentWidth = iconSize.X + spacing + textSize.X;
         float x = width ?? totalContentWidth + ImGui.GetStyle().FramePadding.X * 2f;
         float h = height ?? ImGui.GetFrameHeight();
-        
+
         bool result = ImGui.Button(string.Empty, new Vector2(x, h));
-        
+
         float offsetX = (x - totalContentWidth) / 2f;
         float offsetY = (h - MathF.Max(iconSize.Y, textSize.Y)) / 2f;
-        
+
         Vector2 iconPos = new Vector2(cursorScreenPos.X + offsetX, cursorScreenPos.Y + offsetY);
         using (IconFont.Push())
             windowDrawList.AddText(iconPos, ImGui.GetColorU32(ImGuiCol.Text), icon.ToIconString());
-            
+
         Vector2 textPos = new Vector2(iconPos.X + iconSize.X + spacing, cursorScreenPos.Y + offsetY);
         windowDrawList.AddText(textPos, ImGui.GetColorU32(ImGuiCol.Text), text);
-        
+
         ImGui.PopID();
         if (colorsPushed > 0)
         {

@@ -1,8 +1,8 @@
-﻿using UmbraSync.API.Data;
+﻿using System.Text;
+using System.Text.Json;
+using UmbraSync.API.Data;
 using UmbraSync.API.Data.Enum;
 using UmbraSync.FileCache;
-using System.Text;
-using System.Text.Json;
 
 namespace UmbraSync.Services.CharaData.Models;
 
