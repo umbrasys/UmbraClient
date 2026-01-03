@@ -108,11 +108,33 @@ public sealed class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
             _penumbraRedraw.Invoke(msg.Character.ObjectIndex, RedrawType.AfterGPose);
         });
 
-        Mediator.Subscribe<DalamudLoginMessage>(this, _ =>
+        Mediator.Subscribe<DalamudLoginMessage>(this, (msg) =>
         {
             _shownPenumbraUnavailable = false;
-            CheckAPI();
+            _ = Task.Run(CheckAPIWithRetryAsync);
         });
+    }
+
+    private async Task CheckAPIWithRetryAsync()
+    {
+        const int maxRetries = 5;
+        const int delayBetweenRetries = 2000;
+
+        for (int attempt = 1; attempt <= maxRetries; attempt++)
+        {
+            await Task.Delay(delayBetweenRetries).ConfigureAwait(false);
+            CheckAPI();
+
+            if (APIAvailable)
+            {
+                Logger.LogDebug("Penumbra API available after {attempt} attempt(s)", attempt);
+                return;
+            }
+
+            Logger.LogDebug("Penumbra API not available, attempt {attempt}/{maxRetries}", attempt, maxRetries);
+        }
+
+        Logger.LogWarning("Penumbra API still not available after {maxRetries} attempts", maxRetries);
     }
 
     public bool APIAvailable { get; private set; }

@@ -66,11 +66,33 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         _glamourerStateChanged = StateChanged.Subscriber(pi, GlamourerChanged);
         _glamourerStateChanged.Enable();
 
-        Mediator.Subscribe<DalamudLoginMessage>(this, _ =>
+        Mediator.Subscribe<DalamudLoginMessage>(this, (msg) =>
         {
             _shownGlamourerUnavailable = false;
-            CheckAPI();
+            _ = Task.Run(CheckAPIWithRetryAsync);
         });
+    }
+
+    private async Task CheckAPIWithRetryAsync()
+    {
+        const int maxRetries = 5;
+        const int delayBetweenRetries = 2000;
+
+        for (int attempt = 1; attempt <= maxRetries; attempt++)
+        {
+            await Task.Delay(delayBetweenRetries).ConfigureAwait(false);
+            CheckAPI();
+
+            if (APIAvailable)
+            {
+                _logger.LogDebug("Glamourer API available after {attempt} attempt(s)", attempt);
+                return;
+            }
+
+            _logger.LogDebug("Glamourer API not available, attempt {attempt}/{maxRetries}", attempt, maxRetries);
+        }
+
+        _logger.LogWarning("Glamourer API still not available after {maxRetries} attempts", maxRetries);
     }
 
     protected override void Dispose(bool disposing)
