@@ -190,6 +190,11 @@ public class CompactUi : WindowMediatorSubscriberBase
             }
         });
         Mediator.Subscribe<NotificationStateChanged>(this, msg => _notificationCount = msg.TotalCount);
+        Mediator.Subscribe<DisconnectedMessage>(this, (_) =>
+        {
+            _drawUserPairCache.Clear();
+            _groupPanel.ClearCache();
+        });
         _notificationCount = _notificationTracker.Count;
 
         Flags |= ImGuiWindowFlags.NoDocking;

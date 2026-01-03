@@ -108,10 +108,11 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             var pair = _pairManager.GetPairByUID(_apiController.UID) ?? _pairFactory.Create(myUserData);
 
             var currentProfile = _rpConfigService.GetCurrentCharacterProfile();
+            var hrpImageBase64 = _profileImage.Length > 0 ? Convert.ToBase64String(_profileImage) : string.Empty;
             var previewProfileData = new UmbraProfileData(
                 IsFlagged: false,
                 IsNSFW: _apiController.IsProfileNsfw,
-                Base64ProfilePicture: string.Empty,
+                Base64ProfilePicture: hrpImageBase64,
                 Description: _descriptionText,
                 Base64RpProfilePicture: currentProfile.RpProfilePictureBase64,
                 RpDescription: _rpDescriptionText,
@@ -161,10 +162,11 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             var pair = _pairManager.GetPairByUID(_apiController.UID) ?? _pairFactory.Create(myUserData);
 
             var currentProfile = _rpConfigService.GetCurrentCharacterProfile();
+            var hrpImageBase64 = _profileImage.Length > 0 ? Convert.ToBase64String(_profileImage) : string.Empty;
             var previewProfileData = new UmbraProfileData(
                 IsFlagged: false,
                 IsNSFW: _apiController.IsProfileNsfw,
-                Base64ProfilePicture: string.Empty,
+                Base64ProfilePicture: hrpImageBase64,
                 Description: _descriptionText,
                 Base64RpProfilePicture: currentProfile.RpProfilePictureBase64,
                 RpDescription: _rpDescriptionText,
@@ -218,24 +220,23 @@ public class EditProfileUi : WindowMediatorSubscriberBase
 
         if (isRp)
         {
-            if (!_rpLoaded)
+            if (!_rpLoaded && !string.Equals(umbraProfile.Description, "Loading Data from server...", StringComparison.Ordinal))
             {
-                var profile = _rpConfigService.GetCurrentCharacterProfile();
-                _rpDescriptionText = profile.RpDescription;
-                _rpFirstNameText = profile.RpFirstName;
-                _rpLastNameText = profile.RpLastName;
-                _rpTitleText = profile.RpTitle;
-                _rpAgeText = profile.RpAge;
-                _rpHeightText = profile.RpHeight;
-                _rpBuildText = profile.RpBuild;
-                _rpOccupationText = profile.RpOccupation;
-                _rpAffiliationText = profile.RpAffiliation;
-                _rpAlignmentText = profile.RpAlignment;
-                _rpAdditionalInfoText = profile.RpAdditionalInfo;
+                _rpDescriptionText = umbraProfile.RpDescription ?? string.Empty;
+                _rpFirstNameText = umbraProfile.RpFirstName ?? string.Empty;
+                _rpLastNameText = umbraProfile.RpLastName ?? string.Empty;
+                _rpTitleText = umbraProfile.RpTitle ?? string.Empty;
+                _rpAgeText = umbraProfile.RpAge ?? string.Empty;
+                _rpHeightText = umbraProfile.RpHeight ?? string.Empty;
+                _rpBuildText = umbraProfile.RpBuild ?? string.Empty;
+                _rpOccupationText = umbraProfile.RpOccupation ?? string.Empty;
+                _rpAffiliationText = umbraProfile.RpAffiliation ?? string.Empty;
+                _rpAlignmentText = umbraProfile.RpAlignment ?? string.Empty;
+                _rpAdditionalInfoText = umbraProfile.RpAdditionalInfo ?? string.Empty;
 
                 try
                 {
-                    _rpProfileImage = !string.IsNullOrEmpty(profile.RpProfilePictureBase64) ? Convert.FromBase64String(profile.RpProfilePictureBase64) : [];
+                    _rpProfileImage = !string.IsNullOrEmpty(umbraProfile.Base64RpProfilePicture) ? Convert.FromBase64String(umbraProfile.Base64RpProfilePicture) : [];
                     _rpPfpTextureWrap?.Dispose();
                     _rpPfpTextureWrap = _rpProfileImage.Length > 0 ? _uiSharedService.LoadImage(_rpProfileImage) : null;
                     _logger.LogDebug("Loaded RP profile image, size: {size}", _rpProfileImage.Length);
@@ -252,7 +253,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
         }
         else
         {
-            if (!_hrpLoaded)
+            if (!_hrpLoaded && !string.Equals(umbraProfile.Description, "Loading Data from server...", StringComparison.Ordinal))
             {
                 _descriptionText = umbraProfile.Description;
 
@@ -436,13 +437,12 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             DrawLabeledInput(Loc.Get("UserProfile.RpAlignment"), ref _rpAlignmentText, 100);
             ImGui.EndGroup();
         }
-
-        if (!isRp)
+        else
         {
             using (_uiSharedService.GameFont.Push())
             {
                 using var _ = ImRaii.PushId("hrp_desc");
-                ImGui.TextUnformatted(Loc.Get("EditProfile.Description"));
+                ImGui.TextUnformatted(Loc.Get("PopoutProfile.DescriptionLabel"));
                 ImGui.InputTextMultiline("##description_multi", ref _descriptionText, 1000,
                         new Vector2(-1, 150 * ImGuiHelpers.GlobalScale));
             }
@@ -492,14 +492,6 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                     }).ConfigureAwait(false);
                     Mediator.Publish(new ClearProfileDataMessage(new UserData(_apiController.UID), charName, worldId));
                 });
-            }
-        }
-        else
-        {
-            var isHrpNsfw = _apiController.IsProfileNsfw;
-            if (ImGui.Checkbox(Loc.Get("EditProfile.IsNsfw"), ref isHrpNsfw))
-            {
-                _apiController.IsProfileNsfw = isHrpNsfw;
             }
         }
 
@@ -629,41 +621,6 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                 });
             }
             _uiSharedService.DrawHelpText(Loc.Get("EditProfile.ProfileIsNsfwHelp"));
-
-            var isRpNsfw = umbraProfile.IsRpNSFW;
-            if (ImGui.Checkbox(Loc.Get("UserProfile.RpNsfw"), ref isRpNsfw))
-            {
-                var charName = _dalamudUtil.GetPlayerName();
-                var worldId = _dalamudUtil.GetWorldId();
-                _ = Task.Run(async () =>
-                {
-                    var curProfile = await _apiController.UserGetProfile(new UserDto(new UserData(_apiController.UID, _apiController.DisplayName))).ConfigureAwait(false);
-                    _logger.LogInformation("Setting RP NSFW flag to {flag} for {uid} (via HRP tab)", isRpNsfw, _apiController.UID);
-                    var localProfile = _rpConfigService.GetCharacterProfile(charName, worldId);
-                    localProfile.IsRpNsfw = isRpNsfw;
-                    _rpConfigService.Save();
-                    await _apiController.UserSetProfile(new UserProfileDto(new UserData(_apiController.UID, _apiController.DisplayName), curProfile.Disabled, curProfile.IsNSFW, curProfile.ProfilePictureBase64, curProfile.Description)
-                    {
-                        CharacterName = charName,
-                        WorldId = worldId,
-                        RpProfilePictureBase64 = curProfile.RpProfilePictureBase64,
-                        RpDescription = curProfile.RpDescription,
-                        IsRpNSFW = isRpNsfw,
-                        RpFirstName = curProfile.RpFirstName,
-                        RpLastName = curProfile.RpLastName,
-                        RpTitle = curProfile.RpTitle,
-                        RpAge = curProfile.RpAge,
-                        RpHeight = curProfile.RpHeight,
-                        RpBuild = curProfile.RpBuild,
-                        RpOccupation = curProfile.RpOccupation,
-                        RpAffiliation = curProfile.RpAffiliation,
-                        RpAlignment = curProfile.RpAlignment,
-                        RpAdditionalInfo = curProfile.RpAdditionalInfo
-                    }).ConfigureAwait(false);
-                    Mediator.Publish(new ClearProfileDataMessage(new UserData(_apiController.UID), charName, worldId));
-                });
-            }
-            _uiSharedService.DrawHelpText(Loc.Get("UserProfile.RpNsfwHelp"));
         }
         ImGui.Separator();
     }

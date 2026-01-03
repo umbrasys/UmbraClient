@@ -253,15 +253,12 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
 
     public void MarkPairOnline(OnlineUserIdentDto dto, bool sendNotif = true)
     {
-        // Cancel any pending offline debounce for this UID (come back online immediately)
         CancelPendingOffline(dto.User.UID);
-
         if (!_allClientPairs.TryGetValue(dto.User, out var pair))
         {
             if (Logger.IsEnabled(LogLevel.Debug))
-                Logger.LogDebug("No user found for {uid}, creating temporary pair for online signal", dto.User.UID);
-            pair = _pairFactory.Create(dto.User);
-            _allClientPairs[dto.User] = pair;
+                Logger.LogDebug("No user found for {uid}, ignoring online signal (no existing pair)", dto.User.UID);
+            return;
         }
 
         Mediator.Publish(new ClearProfileDataMessage(dto.User));
@@ -274,9 +271,6 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
             RecreateLazy();
             return;
         }
-
-        // Create cached player BEFORE sending notification to prevent duplicate notifications
-        // if this method is called multiple times rapidly for the same user
         pair.CreateCachedPlayer(dto);
 
         if (sendNotif && _configurationService.Current.ShowOnlineNotifications
@@ -302,9 +296,8 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         if (!_allClientPairs.TryGetValue(dto.User, out var pair))
         {
             if (Logger.IsEnabled(LogLevel.Debug))
-                Logger.LogDebug("No user found for {uid}, creating temporary pair for character data", dto.User.UID);
-            pair = _pairFactory.Create(dto.User);
-            _allClientPairs[dto.User] = pair;
+                Logger.LogDebug("No user found for {uid}, ignoring character data (no existing pair)", dto.User.UID);
+            return;
         }
 
         Mediator.Publish(new EventMessage(new Event(pair.UserData, nameof(PairManager), EventSeverity.Informational, "Received Character Data")));

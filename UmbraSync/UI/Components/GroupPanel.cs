@@ -88,11 +88,17 @@ internal sealed class GroupPanel
 
     private ApiController ApiController => _uiShared.ApiController;
 
+    public void ClearCache()
+    {
+        _drawGroupPairCache.Clear();
+        _sortedPairsCache.Clear();
+        _sortedPairsLastUpdate.Clear();
+    }
+
     public void DrawSyncshells(Action? drawAfterAdd = null)
     {
         using var fontScale = UiSharedService.PushFontScale(UiSharedService.ContentFontScale);
         using (ImRaii.PushId("addsyncshell")) DrawAddSyncshell();
-        // Contenu optionnel à afficher juste sous le champ de recherche GID/Alias (ex: Nearby)
         drawAfterAdd?.Invoke();
         using (ImRaii.PushId("syncshelllist")) DrawSyncshellList();
         _mainUi.TransferPartHeight = ImGui.GetCursorPosY();

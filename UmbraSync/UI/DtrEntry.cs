@@ -207,7 +207,10 @@ public sealed class DtrEntry : IDisposable, IHostedService
 
     public static string RenderDtrStyle(int styleNum, string text)
     {
-        var style = (DtrStyle)styleNum;
+        if (styleNum == 0)
+            return DefaultGlyph + " " + text;
+
+        var style = (DtrStyle)(styleNum - 1);
 
         return style switch
         {
