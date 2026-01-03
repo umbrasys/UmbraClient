@@ -953,6 +953,9 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="Slot.Toast.AutoLeaveStarting" xml:space="preserve">
     <value>Vous quittez les alentours de {0}. Vous serez exclu de la Syncshell dans 5 minutes si vous ne revenez pas dans la zone.</value>
   </data>
+  <data name="Slot.Toast.Joined" xml:space="preserve">
+    <value>Vous avez rejoint la Syncshell de {0}</value>
+  </data>
   <data name="SyncshellAdmin.Tab.Slot" xml:space="preserve">
     <value>Slot</value>
   </data>
