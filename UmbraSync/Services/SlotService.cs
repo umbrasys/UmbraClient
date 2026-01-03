@@ -62,7 +62,7 @@ public class SlotService : MediatorSubscriberBase, IDisposable
             _ = ClearState();
         });
         Mediator.Subscribe<GroupLeftMessage>(this, (msg) =>
-        {
+        { 
             if (_currentSlotSyncshell != null && string.Equals(msg.Gid, _currentSlotSyncshell.Gid, StringComparison.Ordinal))
             {
                 Logger.LogInformation("Leaving slot syncshell {name} because user left the group", _currentSlotSyncshell.Name);
@@ -71,6 +71,20 @@ public class SlotService : MediatorSubscriberBase, IDisposable
                 var uid = _apiController.UID;
                 if (!string.IsNullOrEmpty(uid))
                 {
+                    _transientConfigService.Current.LastJoinedSlotSyncshellPerUid.Remove(uid);
+                    _transientConfigService.Save();
+                }
+            }
+            else
+            {
+                var uid = _apiController.UID;
+                if (!string.IsNullOrEmpty(uid) &&
+                    _transientConfigService.Current.LastJoinedSlotSyncshellPerUid.TryGetValue(uid, out var savedSlot) &&
+                    string.Equals(msg.Gid, savedSlot.Gid, StringComparison.Ordinal))
+                {
+                    Logger.LogInformation("Clearing saved slot syncshell {name} because user left the group", savedSlot.Name);
+                    _currentSlotSyncshell = null;
+                    _joinedViaSlot = false;
                     _transientConfigService.Current.LastJoinedSlotSyncshellPerUid.Remove(uid);
                     _transientConfigService.Save();
                 }
@@ -288,10 +302,27 @@ public class SlotService : MediatorSubscriberBase, IDisposable
         {
             if (_leaveTimerCts != null) return; // Déjà en cours
 
-            // Si l'utilisateur est le propriétaire de la Syncshell, on ne l'éjecte pas
+            // Vérifier si l'utilisateur est toujours membre de la syncshell
             var gid = _currentSlotSyncshell.Gid;
             var group = _pairManager.Groups.Values.FirstOrDefault(g => string.Equals(g.Group.GID, gid, StringComparison.Ordinal));
-            if (group != null && string.Equals(group.Owner.UID, _apiController.UID, StringComparison.Ordinal))
+            
+            // Si l'utilisateur n'est plus membre de la syncshell, nettoyer l'état et ne pas démarrer le timer
+            if (group == null)
+            {
+                Logger.LogInformation("User is no longer a member of syncshell {name}, clearing slot state", _currentSlotSyncshell.Name);
+                _currentSlotSyncshell = null;
+                _joinedViaSlot = false;
+                var uid = _apiController.UID;
+                if (!string.IsNullOrEmpty(uid))
+                {
+                    _transientConfigService.Current.LastJoinedSlotSyncshellPerUid.Remove(uid);
+                    _transientConfigService.Save();
+                }
+                return;
+            }
+            
+            // Si l'utilisateur est le propriétaire de la Syncshell, on ne l'éjecte pas
+            if (string.Equals(group.Owner.UID, _apiController.UID, StringComparison.Ordinal))
             {
                 Logger.LogInformation("User is owner of syncshell {name}, skipping leave timer", _currentSlotSyncshell.Name);
                 return;

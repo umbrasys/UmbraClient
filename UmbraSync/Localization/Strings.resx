@@ -1071,6 +1071,9 @@ Click to change.</value>
   <data name="Slot.Toast.AutoLeaveStarting" xml:space="preserve">
     <value>You are leaving the vicinity of {0}. You will be removed from the Syncshell in 5 minutes if you do not return to the area.</value>
   </data>
+  <data name="Slot.Toast.Joined" xml:space="preserve">
+    <value>You have joined the Syncshell of {0}</value>
+  </data>
   <data name="SyncshellAdmin.Tab.Slot" xml:space="preserve">
     <value>Slot</value>
   </data>
