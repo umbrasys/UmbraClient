@@ -1,432 +1,155 @@
-﻿using Dalamud.Plugin;
+using Dalamud.Plugin;
 using Microsoft.Extensions.Logging;
-using Penumbra.Api.Enums;
-using Penumbra.Api.Helpers;
-using Penumbra.Api.IpcSubscribers;
-using System.Collections.Concurrent;
+using UmbraSync.Interop.Ipc.Penumbra;
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.PlayerData.Handlers;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.Notification;
 
+// Aliases pour les IPC qui restent dans la facade
+using PenumbraIpc = global::Penumbra.Api.IpcSubscribers;
+
 namespace UmbraSync.Interop.Ipc;
 
+/// <summary>
+/// Facade pour l'intégration Penumbra.
+/// Délègue aux modules spécialisés pour une architecture modulaire et maintenable.
+/// Architecture inspirée de Lightless mais avec les innovations UmbraSync (debouncing, etc.)
+/// </summary>
 public sealed class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCaller
 {
-    private readonly DalamudUtilService _dalamudUtil;
-    private readonly MareMediator _mareMediator;
-    private readonly RedrawManager _redrawManager;
-    private readonly NotificationTracker _notificationTracker;
-    private bool _shownPenumbraUnavailable;
-    private string? _penumbraModDirectory;
-    public string? ModDirectory
+    // Modules spécialisés
+    private readonly PenumbraCore _core;
+    private readonly PenumbraModSettings _modSettings;
+    private readonly PenumbraRedraw _redraw;
+    private readonly PenumbraCollections _collections;
+    private readonly PenumbraResources _resources;
+    private readonly PenumbraTextures _textures;
+    private readonly PenumbraTemporaryMods _temporaryMods;
+
+    // IPC non déléguées (spécifiques à la facade)
+    private readonly PenumbraIpc.ResolvePlayerPathsAsync _penumbraResolvePaths;
+    private readonly PenumbraIpc.GetPlayerMetaManipulations _penumbraGetMetaManipulations;
+
+    public IpcCallerPenumbra(
+        ILogger<IpcCallerPenumbra> logger,
+        IDalamudPluginInterface pi,
+        DalamudUtilService dalamudUtil,
+        MareMediator mareMediator,
+        RedrawManager redrawManager,
+        NotificationTracker notificationTracker) : base(logger, mareMediator)
     {
-        get => _penumbraModDirectory;
-        private set
-        {
-            if (!string.Equals(_penumbraModDirectory, value, StringComparison.Ordinal))
-            {
-                _penumbraModDirectory = value;
-                _mareMediator.Publish(new PenumbraDirectoryChangedMessage(_penumbraModDirectory));
-            }
-        }
-    }
+        // Initialiser le core
+        _core = new PenumbraCore(logger, pi, dalamudUtil, mareMediator, redrawManager, notificationTracker);
 
-    private readonly EventSubscriber _penumbraDispose;
-    private readonly EventSubscriber<nint, string, string> _penumbraGameObjectResourcePathResolved;
-    private readonly EventSubscriber _penumbraInit;
-    private readonly EventSubscriber<ModSettingChange, Guid, string, bool> _penumbraModSettingChanged;
-    private readonly EventSubscriber<nint, int> _penumbraObjectIsRedrawn;
+        // Initialiser les modules spécialisés
+        _modSettings = new PenumbraModSettings(_core);
+        _redraw = new PenumbraRedraw(_core);
+        _collections = new PenumbraCollections(_core);
+        _resources = new PenumbraResources(_core);
+        _textures = new PenumbraTextures(_core);
+        _temporaryMods = new PenumbraTemporaryMods(_core);
 
-    private readonly AddTemporaryMod _penumbraAddTemporaryMod;
-    private readonly AssignTemporaryCollection _penumbraAssignTemporaryCollection;
-    private readonly ConvertTextureFile _penumbraConvertTextureFile;
-    private readonly CreateTemporaryCollection _penumbraCreateNamedTemporaryCollection;
-    private readonly GetEnabledState _penumbraEnabled;
-    private readonly GetCollection _penumbraGetCollection;
-    private readonly GetAllModSettings _penumbraGetAllModSettings;
-    private readonly GetPlayerMetaManipulations _penumbraGetMetaManipulations;
-    private readonly RedrawObject _penumbraRedraw;
-    private readonly DeleteTemporaryCollection _penumbraRemoveTemporaryCollection;
-    private readonly RemoveTemporaryMod _penumbraRemoveTemporaryMod;
-    private readonly GetModDirectory _penumbraResolveModDir;
-    private readonly ResolvePlayerPathsAsync _penumbraResolvePaths;
-    private readonly GetGameObjectResourcePaths _penumbraResourcePaths;
+        // IPC spécifiques à la facade
+        _penumbraResolvePaths = new PenumbraIpc.ResolvePlayerPathsAsync(pi);
+        _penumbraGetMetaManipulations = new PenumbraIpc.GetPlayerMetaManipulations(pi);
 
-    private bool _pluginLoaded;
-    private Version _pluginVersion;
-
-    public IpcCallerPenumbra(ILogger<IpcCallerPenumbra> logger, IDalamudPluginInterface pi, DalamudUtilService dalamudUtil,
-        MareMediator mareMediator, RedrawManager redrawManager, NotificationTracker notificationTracker) : base(logger, mareMediator)
-    {
-        _dalamudUtil = dalamudUtil;
-        _mareMediator = mareMediator;
-        _redrawManager = redrawManager;
-        _notificationTracker = notificationTracker;
-        _penumbraInit = Initialized.Subscriber(pi, PenumbraInit);
-        _penumbraDispose = Disposed.Subscriber(pi, PenumbraDispose);
-        _penumbraResolveModDir = new GetModDirectory(pi);
-        _penumbraRedraw = new RedrawObject(pi);
-        _penumbraObjectIsRedrawn = GameObjectRedrawn.Subscriber(pi, RedrawEvent);
-        _penumbraGetMetaManipulations = new GetPlayerMetaManipulations(pi);
-        _penumbraRemoveTemporaryMod = new RemoveTemporaryMod(pi);
-        _penumbraAddTemporaryMod = new AddTemporaryMod(pi);
-        _penumbraCreateNamedTemporaryCollection = new CreateTemporaryCollection(pi);
-        _penumbraRemoveTemporaryCollection = new DeleteTemporaryCollection(pi);
-        _penumbraAssignTemporaryCollection = new AssignTemporaryCollection(pi);
-        _penumbraResolvePaths = new ResolvePlayerPathsAsync(pi);
-        _penumbraEnabled = new GetEnabledState(pi);
-        _penumbraGetCollection = new GetCollection(pi);
-        _penumbraGetAllModSettings = new GetAllModSettings(pi);
-        _penumbraModSettingChanged = ModSettingChanged.Subscriber(pi, (change, arg1, arg, b) =>
-        {
-            if (change == ModSettingChange.EnableState)
-                _mareMediator.Publish(new PenumbraModSettingChangedMessage());
-        });
-        _penumbraConvertTextureFile = new ConvertTextureFile(pi);
-        _penumbraResourcePaths = new GetGameObjectResourcePaths(pi);
-
-        _penumbraGameObjectResourcePathResolved = GameObjectResourcePathResolved.Subscriber(pi, ResourceLoaded);
-
-        var plugin = PluginWatcherService.GetInitialPluginState(pi, "Penumbra");
-
-        _pluginLoaded = plugin?.IsLoaded ?? false;
-        _pluginVersion = plugin?.Version ?? new(0, 0, 0, 0);
-
-        Mediator.SubscribeKeyed<PluginChangeMessage>(this, "Penumbra", (msg) =>
-        {
-            _pluginLoaded = msg.IsLoaded;
-            _pluginVersion = msg.Version;
-            CheckAPI();
-        });
-
-        CheckModDirectory();
-
+        // S'abonner au message de redraw de personnage
         Mediator.Subscribe<PenumbraRedrawCharacterMessage>(this, (msg) =>
         {
-            _penumbraRedraw.Invoke(msg.Character.ObjectIndex, RedrawType.AfterGPose);
-        });
-
-        Mediator.Subscribe<DalamudLoginMessage>(this, (msg) =>
-        {
-            _shownPenumbraUnavailable = false;
-            _ = Task.Run(CheckAPIWithRetryAsync);
+            _redraw.RedrawCharacter(msg.Character);
         });
     }
 
-    private async Task CheckAPIWithRetryAsync()
+    // === Propriétés déléguées au Core ===
+
+    public bool APIAvailable => _core.APIAvailable;
+
+    public string? ModDirectory => _core.ModDirectory;
+
+    // === Méthodes déléguées au Core ===
+
+    public void CheckAPI() => _core.CheckAPI();
+
+    public void CheckModDirectory() => _core.CheckModDirectory();
+
+    // === Méthodes déléguées à ModSettings ===
+
+    public Task<HashSet<string>?> GetEnabledModRootsAsync() => _modSettings.GetEnabledModRootsAsync();
+
+    // === Méthodes déléguées à Redraw ===
+
+    public Task RedrawAsync(ILogger logger, GameObjectHandler handler, Guid applicationId, CancellationToken token)
+        => _redraw.RedrawAsync(logger, handler, applicationId, token);
+
+    public void RedrawNow(ILogger logger, Guid applicationId, int objectIndex)
+        => _redraw.RedrawNow(logger, applicationId, objectIndex);
+
+    // === Méthodes déléguées à Collections ===
+
+    public Task AssignTemporaryCollectionAsync(ILogger logger, Guid collName, int idx)
+        => _collections.AssignTemporaryCollectionAsync(logger, collName, idx);
+
+    public Task<Guid> CreateTemporaryCollectionAsync(ILogger logger, string uid)
+        => _collections.CreateTemporaryCollectionAsync(logger, uid);
+
+    public Task RemoveTemporaryCollectionAsync(ILogger logger, Guid applicationId, Guid collId)
+        => _collections.RemoveTemporaryCollectionAsync(logger, applicationId, collId);
+
+    public void RemoveTemporaryCollection(ILogger logger, Guid applicationId, Guid collId)
+        => _collections.RemoveTemporaryCollection(logger, applicationId, collId);
+
+    // === Méthodes déléguées à Resources ===
+
+    public Task<Dictionary<string, HashSet<string>>?> GetCharacterData(ILogger logger, GameObjectHandler handler)
+        => _resources.GetCharacterData(logger, handler);
+
+    // === Méthodes déléguées à Textures ===
+
+    public Task ConvertTextureFiles(ILogger logger, Dictionary<string, string[]> textures, IProgress<(string, int)> progress, CancellationToken token)
+        => _textures.ConvertTextureFiles(logger, textures, progress, token);
+
+    // === Méthodes déléguées à TemporaryMods ===
+
+    public Task SetManipulationDataAsync(ILogger logger, Guid applicationId, Guid collId, string manipulationData)
+        => _temporaryMods.SetManipulationDataAsync(logger, applicationId, collId, manipulationData);
+
+    public Task SetTemporaryModsAsync(ILogger logger, Guid applicationId, Guid collId, Dictionary<string, string> modPaths)
+        => _temporaryMods.SetTemporaryModsAsync(logger, applicationId, collId, modPaths);
+
+    // === Méthodes spécifiques à la facade (non déléguées) ===
+
+    /// <summary>
+    /// Résout les chemins de fichiers via Penumbra (forward et reverse).
+    /// </summary>
+    public async Task<(string[] forward, string[][] reverse)> ResolvePathsAsync(string[] forward, string[] reverse)
     {
-        const int maxRetries = 5;
-        const int delayBetweenRetries = 2000;
+        if (!APIAvailable) return ([], []);
 
-        for (int attempt = 1; attempt <= maxRetries; attempt++)
-        {
-            await Task.Delay(delayBetweenRetries).ConfigureAwait(false);
-            CheckAPI();
-
-            if (APIAvailable)
-            {
-                Logger.LogDebug("Penumbra API available after {attempt} attempt(s)", attempt);
-                return;
-            }
-
-            Logger.LogDebug("Penumbra API not available, attempt {attempt}/{maxRetries}", attempt, maxRetries);
-        }
-
-        Logger.LogWarning("Penumbra API still not available after {maxRetries} attempts", maxRetries);
+        Logger.LogTrace("Calling on IPC: Penumbra.ResolvePlayerPaths");
+        return await _penumbraResolvePaths.Invoke(forward, reverse).ConfigureAwait(false);
     }
 
-    public bool APIAvailable { get; private set; }
-
-    public void CheckAPI()
+    /// <summary>
+    /// Récupère les manipulations metadata du joueur.
+    /// </summary>
+    public string GetMetaManipulations()
     {
-        bool penumbraAvailable = false;
-        try
-        {
-            penumbraAvailable = _pluginLoaded && _pluginVersion >= new Version(1, 5, 1, 0);
-            try
-            {
-                penumbraAvailable &= _penumbraEnabled.Invoke();
-            }
-            catch
-            {
-                penumbraAvailable = false;
-            }
-            _shownPenumbraUnavailable = _shownPenumbraUnavailable && !penumbraAvailable;
-            APIAvailable = penumbraAvailable;
-        }
-        catch
-        {
-            APIAvailable = penumbraAvailable;
-        }
-        finally
-        {
-            if (!penumbraAvailable && !_shownPenumbraUnavailable)
-            {
-                _shownPenumbraUnavailable = true;
-                _mareMediator.Publish(new NotificationMessage("Penumbra inactive",
-                    "Your Penumbra installation is not active or out of date. Update Penumbra and/or the Enable Mods setting in Penumbra to continue to use Umbra. If you just updated Penumbra, ignore this message.",
-                    NotificationType.Error));
-                _notificationTracker.Upsert(NotificationEntry.PenumbraInactive());
-            }
-        }
+        return APIAvailable ? _penumbraGetMetaManipulations.Invoke() : string.Empty;
     }
 
-    public void CheckModDirectory()
-    {
-        if (!APIAvailable)
-        {
-            ModDirectory = string.Empty;
-        }
-        else
-        {
-            ModDirectory = _penumbraResolveModDir!.Invoke().ToLowerInvariant();
-        }
-    }
+    // === Dispose ===
 
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
-
-        _redrawManager.Cancel();
-
-        _penumbraModSettingChanged.Dispose();
-        _penumbraGameObjectResourcePathResolved.Dispose();
-        _penumbraDispose.Dispose();
-        _penumbraInit.Dispose();
-        _penumbraObjectIsRedrawn.Dispose();
-    }
-
-    public async Task AssignTemporaryCollectionAsync(ILogger logger, Guid collName, int idx)
-    {
-        if (!APIAvailable) return;
-
-        await _dalamudUtil.RunOnFrameworkThread(() =>
+        if (disposing)
         {
-            var retAssign = _penumbraAssignTemporaryCollection.Invoke(collName, idx, forceAssignment: true);
-            logger.LogTrace("Assigning Temp Collection {collName} to index {idx}, Success: {ret}", collName, idx, retAssign);
-            return collName;
-        }).ConfigureAwait(false);
-    }
-
-    public async Task ConvertTextureFiles(ILogger logger, Dictionary<string, string[]> textures, IProgress<(string, int)> progress, CancellationToken token)
-    {
-        if (!APIAvailable) return;
-
-        _mareMediator.Publish(new HaltScanMessage(nameof(ConvertTextureFiles)));
-        int currentTexture = 0;
-        foreach (var texture in textures)
-        {
-            if (token.IsCancellationRequested) break;
-
-            progress.Report((texture.Key, ++currentTexture));
-
-            logger.LogInformation("Converting Texture {path} to {type}", texture.Key, TextureType.Bc7Tex);
-            var convertTask = _penumbraConvertTextureFile.Invoke(texture.Key, texture.Key, TextureType.Bc7Tex, mipMaps: true);
-            await convertTask.ConfigureAwait(false);
-            if (convertTask.IsCompletedSuccessfully && texture.Value.Any())
-            {
-                foreach (var duplicatedTexture in texture.Value)
-                {
-                    logger.LogInformation("Migrating duplicate {dup}", duplicatedTexture);
-                    try
-                    {
-                        File.Copy(texture.Key, duplicatedTexture, overwrite: true);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, "Failed to copy duplicate {dup}", duplicatedTexture);
-                    }
-                }
-            }
+            _core.Dispose();
+            _modSettings.Dispose();
+            _redraw.Dispose();
+            _resources.Dispose();
         }
-        _mareMediator.Publish(new ResumeScanMessage(nameof(ConvertTextureFiles)));
-
-        await _dalamudUtil.RunOnFrameworkThread(async () =>
-        {
-            var gameObject = await _dalamudUtil.CreateGameObjectAsync(await _dalamudUtil.GetPlayerPointerAsync().ConfigureAwait(false)).ConfigureAwait(false);
-            _penumbraRedraw.Invoke(gameObject!.ObjectIndex, setting: RedrawType.Redraw);
-        }).ConfigureAwait(false);
-    }
-
-    public async Task<Guid> CreateTemporaryCollectionAsync(ILogger logger, string uid)
-    {
-        if (!APIAvailable) return Guid.Empty;
-
-        return await _dalamudUtil.RunOnFrameworkThread(() =>
-        {
-            Guid collId;
-            var random = new Random();
-            var collName = "UmbraSync_" + uid + random.Next().ToString();
-            PenumbraApiEc penEC = _penumbraCreateNamedTemporaryCollection.Invoke(uid + random.Next().ToString(), collName, out collId);
-            logger.LogTrace("Creating Temp Collection {collName}, GUID: {collId}", collName, collId);
-            if (penEC != PenumbraApiEc.Success)
-            {
-                logger.LogError("Failed to create temporary collection for {collName} with error code {penEC}. Please include this line in any error reports", collName, penEC);
-                return Guid.Empty;
-            }
-            return collId;
-
-        }).ConfigureAwait(false);
-    }
-
-    public async Task<Dictionary<string, HashSet<string>>?> GetCharacterData(ILogger logger, GameObjectHandler handler)
-    {
-        if (!APIAvailable) return null;
-
-        return await _dalamudUtil.RunOnFrameworkThread(() =>
-        {
-            logger.LogTrace("Calling On IPC: Penumbra.GetGameObjectResourcePaths");
-            var idx = handler.GetGameObject()?.ObjectIndex;
-            if (idx == null) return null;
-            return _penumbraResourcePaths.Invoke(idx.Value)[0];
-        }).ConfigureAwait(false);
-    }
-
-    public string GetMetaManipulations()
-    {
-        if (!APIAvailable) return string.Empty;
-        return _penumbraGetMetaManipulations.Invoke();
-    }
-
-    public async Task RedrawAsync(ILogger logger, GameObjectHandler handler, Guid applicationId, CancellationToken token)
-    {
-        if (!APIAvailable || _dalamudUtil.IsZoning) return;
-        try
-        {
-            await _redrawManager.RedrawSemaphore.WaitAsync(token).ConfigureAwait(false);
-            await _redrawManager.PenumbraRedrawInternalAsync(logger, handler, applicationId, (chara) =>
-            {
-                logger.LogDebug("[{appid}] Calling on IPC: PenumbraRedraw", applicationId);
-                _penumbraRedraw!.Invoke(chara.ObjectIndex, setting: RedrawType.Redraw);
-
-            }, token).ConfigureAwait(false);
-        }
-        finally
-        {
-            _redrawManager.RedrawSemaphore.Release();
-        }
-    }
-
-    public void RedrawNow(ILogger logger, Guid applicationId, int objectIndex)
-    {
-        if (!APIAvailable || _dalamudUtil.IsZoning) return;
-        logger.LogTrace("[{applicationId}] Immediately redrawing object index {objId}", applicationId, objectIndex);
-        _penumbraRedraw.Invoke(objectIndex);
-    }
-
-    public async Task RemoveTemporaryCollectionAsync(ILogger logger, Guid applicationId, Guid collId)
-    {
-        if (!APIAvailable) return;
-        await _dalamudUtil.RunOnFrameworkThread(() =>
-        {
-            RemoveTemporaryCollection(logger, applicationId, collId);
-        }).ConfigureAwait(false);
-    }
-
-    public void RemoveTemporaryCollection(ILogger logger, Guid applicationId, Guid collId)
-    {
-        if (!APIAvailable) return;
-        logger.LogTrace("[{applicationId}] Removing temp collection for {collId}", applicationId, collId);
-        var ret2 = _penumbraRemoveTemporaryCollection.Invoke(collId);
-        logger.LogTrace("[{applicationId}] RemoveTemporaryCollection: {ret2}", applicationId, ret2);
-    }
-
-    public async Task<(string[] forward, string[][] reverse)> ResolvePathsAsync(string[] forward, string[] reverse)
-    {
-        return await _penumbraResolvePaths.Invoke(forward, reverse).ConfigureAwait(false);
-    }
-
-    public Task<HashSet<string>?> GetEnabledModRootsAsync()
-    {
-        if (!APIAvailable || string.IsNullOrEmpty(ModDirectory)) return Task.FromResult<HashSet<string>?>(null);
-
-        try
-        {
-            var coll = _penumbraGetCollection.Invoke(ApiCollectionType.Current);
-            if (coll == null) return Task.FromResult<HashSet<string>?>(null);
-            var collId = coll.Value.Id;
-
-            var (ec, all) = _penumbraGetAllModSettings.Invoke(collId, ignoreInheritance: false, ignoreTemporary: true, key: 0);
-            if (ec != Penumbra.Api.Enums.PenumbraApiEc.Success || all == null || all.Count == 0)
-                return Task.FromResult<HashSet<string>?>(null);
-
-            HashSet<string> result = new(StringComparer.OrdinalIgnoreCase);
-            foreach (var kv in all)
-            {
-                var modDirName = kv.Key; // Penumbra mod directory name (folder under ModDirectory)
-                var settings = kv.Value; // (enabled, priority, options, inherited, temporary)
-                var isEnabled = settings.Item1;
-                if (!isEnabled) continue;
-
-                var abs = System.IO.Path.Combine(ModDirectory!, modDirName);
-                if (Directory.Exists(abs))
-                    result.Add(abs);
-            }
-
-            return Task.FromResult<HashSet<string>?>(result);
-        }
-        catch
-        {
-            return Task.FromResult<HashSet<string>?>(null);
-        }
-    }
-
-    public async Task SetManipulationDataAsync(ILogger logger, Guid applicationId, Guid collId, string manipulationData)
-    {
-        if (!APIAvailable) return;
-
-        await _dalamudUtil.RunOnFrameworkThread(() =>
-        {
-            logger.LogTrace("[{applicationId}] Manip: {data}", applicationId, manipulationData);
-            var retAdd = _penumbraAddTemporaryMod.Invoke("MareChara_Meta", collId, [], manipulationData, 0);
-            logger.LogTrace("[{applicationId}] Setting temp meta mod for {collId}, Success: {ret}", applicationId, collId, retAdd);
-        }).ConfigureAwait(false);
-    }
-
-    public async Task SetTemporaryModsAsync(ILogger logger, Guid applicationId, Guid collId, Dictionary<string, string> modPaths)
-    {
-        if (!APIAvailable) return;
-
-        await _dalamudUtil.RunOnFrameworkThread(() =>
-        {
-            foreach (var mod in modPaths)
-            {
-                logger.LogTrace("[{applicationId}] Change: {from} => {to}", applicationId, mod.Key, mod.Value);
-            }
-            var retRemove = _penumbraRemoveTemporaryMod.Invoke("MareChara_Files", collId, 0);
-            logger.LogTrace("[{applicationId}] Removing temp files mod for {collId}, Success: {ret}", applicationId, collId, retRemove);
-            var retAdd = _penumbraAddTemporaryMod.Invoke("MareChara_Files", collId, modPaths, string.Empty, 0);
-            logger.LogTrace("[{applicationId}] Setting temp files mod for {collId}, Success: {ret}", applicationId, collId, retAdd);
-        }).ConfigureAwait(false);
-    }
-
-    private void RedrawEvent(IntPtr objectAddress, int objectTableIndex)
-    {
-        bool wasRequested = false;
-        _mareMediator.Publish(new PenumbraRedrawMessage(objectAddress, objectTableIndex, wasRequested));
-    }
-
-    private void ResourceLoaded(IntPtr ptr, string arg1, string arg2)
-    {
-        if (ptr != IntPtr.Zero && string.Compare(arg1, arg2, ignoreCase: true, System.Globalization.CultureInfo.InvariantCulture) != 0)
-        {
-            _mareMediator.Publish(new PenumbraResourceLoadMessage(ptr, arg1, arg2));
-        }
-    }
-
-    private void PenumbraDispose()
-    {
-        _redrawManager.Cancel();
-        _mareMediator.Publish(new PenumbraDisposedMessage());
-    }
-
-    private void PenumbraInit()
-    {
-        APIAvailable = true;
-        ModDirectory = _penumbraResolveModDir.Invoke();
-        _mareMediator.Publish(new PenumbraInitializedMessage());
-        _penumbraRedraw!.Invoke(0, setting: RedrawType.Redraw);
     }
 }
