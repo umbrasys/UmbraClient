@@ -54,7 +54,7 @@ public sealed class ApplicationSemaphoreService : DisposableMediatorSubscriberBa
         Logger.LogDebug("Disposing ApplicationSemaphoreService");
         _semaphore.Dispose();
     }
-
+    
     private sealed class Releaser : IAsyncDisposable
     {
         private ApplicationSemaphoreService? _owner;
@@ -71,8 +71,6 @@ public sealed class ApplicationSemaphoreService : DisposableMediatorSubscriberBa
             return ValueTask.CompletedTask;
         }
     }
-
-
     private sealed class NoopReleaser : IAsyncDisposable
     {
         public static readonly NoopReleaser Instance = new();

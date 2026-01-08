@@ -38,7 +38,7 @@ public class MareConfig : IMareConfiguration
     public bool OpenGposeImportOnGposeStart { get; set; }
     public bool OpenPopupOnAdd { get; set; } = true;
     public int ParallelDownloads { get; set; } = 10;
-    public bool EnableDownloadQueue { get; set; }
+    public bool EnableDownloadQueue { get; set; } = true;
     public int DownloadSpeedLimitInBytes { get; set; }
     public DownloadSpeeds DownloadSpeedType { get; set; } = DownloadSpeeds.MBps;
     public float ProfileDelay { get; set; } = 1.5f;

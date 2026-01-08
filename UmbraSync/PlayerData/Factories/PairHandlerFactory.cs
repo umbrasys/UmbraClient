@@ -15,7 +15,8 @@ public class PairHandlerFactory(ILoggerFactory loggerFactory, GameObjectHandlerF
     PluginWarningNotificationService pluginWarningNotificationManager, IHostApplicationLifetime hostApplicationLifetime,
     FileCacheManager fileCacheManager, MareMediator mareMediator, PlayerPerformanceService playerPerformanceService,
     PairAnalyzerFactory pairAnalyzerFactory,
-    MareConfigService configService, VisibilityService visibilityService)
+    MareConfigService configService, VisibilityService visibilityService,
+    ApplicationSemaphoreService applicationSemaphoreService)
 {
     private readonly MareConfigService _configService = configService;
     private readonly DalamudUtilService _dalamudUtilService = dalamudUtilService;
@@ -30,11 +31,12 @@ public class PairHandlerFactory(ILoggerFactory loggerFactory, GameObjectHandlerF
     private readonly PluginWarningNotificationService _pluginWarningNotificationManager = pluginWarningNotificationManager;
     private readonly PairAnalyzerFactory _pairAnalyzerFactory = pairAnalyzerFactory;
     private readonly VisibilityService _visibilityService = visibilityService;
+    private readonly ApplicationSemaphoreService _applicationSemaphoreService = applicationSemaphoreService;
 
     public PairHandler Create(Pair pair)
     {
         return new PairHandler(_loggerFactory.CreateLogger<PairHandler>(), pair, _pairAnalyzerFactory.Create(pair), _gameObjectHandlerFactory,
             _ipcManager, _fileDownloadManagerFactory.Create(), _pluginWarningNotificationManager, _dalamudUtilService, _hostApplicationLifetime,
-            _fileCacheManager, _mareMediator, _playerPerformanceService, _configService, _visibilityService);
+            _fileCacheManager, _mareMediator, _playerPerformanceService, _configService, _visibilityService, _applicationSemaphoreService);
     }
 }
