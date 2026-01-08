@@ -155,7 +155,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
 
     private SemaphoreSlim GetQueueSemaphore()
     {
-        var desiredCapacity = Math.Clamp(_mareConfigService.Current.ParallelDownloads, 1, 10);
+        var desiredCapacity = Math.Clamp(_mareConfigService.Current.ParallelDownloads, 1, 50);
 
         using (_queueLock.EnterScope())
         {

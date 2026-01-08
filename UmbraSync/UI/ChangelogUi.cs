@@ -173,7 +173,9 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
         {
             new(new Version(2, 0, 3, 5), "2.0.3.5", new List<ChangelogLine>
             {
-                new("Ajustement de la gestion des redraws Penumbra pour permettre l'empilement des requêtes."),
+                new("Correction du crash lors de rassemblements importants (50+ personnes) et amélioration de la stabilité de la synchronisation."),
+                new("Amélioration de la file de téléchargement : toujours active par défaut, limite augmentée à 50 téléchargements simultanés."),
+
             }),
             new(new Version(2, 0, 3, 4), "2.0.3.4", new List<ChangelogLine>
             {

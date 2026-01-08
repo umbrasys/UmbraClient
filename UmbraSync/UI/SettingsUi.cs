@@ -262,24 +262,13 @@ public class SettingsUi : WindowMediatorSubscriberBase
         ImGui.SameLine();
         ImGui.AlignTextToFramePadding();
         ImGui.TextUnformatted("0 = No limit/infinite");
-
-        bool enableDownloadQueue = _configService.Current.EnableDownloadQueue;
-        if (ImGui.Checkbox(Loc.Get("Settings.DownloadQueue.Enable"), ref enableDownloadQueue))
-        {
-            _configService.Current.EnableDownloadQueue = enableDownloadQueue;
-            _configService.Save();
-        }
-        UiSharedService.AttachToolTip(Loc.Get("Settings.DownloadQueue.EnableTooltip"));
-
         ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
-        if (ImGui.SliderInt("Maximum Parallel Downloads", ref maxParallelDownloads, 1, 10))
+        if (ImGui.SliderInt("Maximum Parallel Downloads", ref maxParallelDownloads, 1, 50))
         {
             _configService.Current.ParallelDownloads = maxParallelDownloads;
             _configService.Save();
         }
-        UiSharedService.AttachToolTip(enableDownloadQueue
-            ? Loc.Get("Settings.DownloadQueue.MaxWhenEnabled")
-            : Loc.Get("Settings.DownloadQueue.MaxStreams"));
+        UiSharedService.AttachToolTip("Limite le nombre de téléchargements simultanés pour éviter la surcharge. Recommandé : 10 (défaut: 10, max: 50)");
 
         ImGui.Separator();
         _uiShared.BigText("AutoDetect");
@@ -291,11 +280,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             {
                 _configService.Current.EnableAutoDetectDiscovery = enableDiscovery;
                 _configService.Save();
-
-                // notify services of toggle
                 Mediator.Publish(new NearbyDetectionToggled(enableDiscovery));
-
-                // if Nearby is turned OFF, force Allow Pair Requests OFF as well
                 if (!enableDiscovery && _configService.Current.AllowAutoDetectPairRequests)
                 {
                     _configService.Current.AllowAutoDetectPairRequests = false;
@@ -308,8 +293,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 UiSharedService.AttachToolTip(Loc.Get("Settings.AutoDetect.SuppressedTooltip"));
             }
         }
-
-        // Allow Pair Requests is disabled when Nearby is OFF
         using (ImRaii.Disabled(isAutoDetectSuppressed || !enableDiscovery))
         {
             bool allowRequests = _configService.Current.AllowAutoDetectPairRequests;
@@ -317,11 +300,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             {
                 _configService.Current.AllowAutoDetectPairRequests = allowRequests;
                 _configService.Save();
-
-                // notify services of toggle
                 Mediator.Publish(new AllowPairRequestsToggled(allowRequests));
-
-                // user-facing info toast
                 Mediator.Publish(new NotificationMessage(
                     "AutoDetect",
                     allowRequests ? Loc.Get("Settings.AutoDetect.InvitesEnabled") : Loc.Get("Settings.AutoDetect.InvitesDisabled"),

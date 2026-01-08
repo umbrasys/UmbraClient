@@ -95,6 +95,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton<ServerConfigurationManager>();
             collection.AddSingleton<ApiController>();
             collection.AddSingleton<PerformanceCollectorService>();
+            collection.AddSingleton<ApplicationSemaphoreService>();
             collection.AddSingleton<HubFactory>();
             collection.AddSingleton<FileUploadManager>();
             collection.AddSingleton<FileTransferOrchestrator>();
