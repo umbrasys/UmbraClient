@@ -71,7 +71,6 @@ public class CompactUi : WindowMediatorSubscriberBase
     private bool _showModalForUserAddition;
     private bool _wasOpen;
     private bool _nearbyOpen = true;
-    private bool _visibleOpen = true;
     private bool _selfAnalysisOpen = false;
     private List<Services.Mediator.NearbyEntry> _nearbyEntries = new();
     private int _notificationCount;
@@ -98,7 +97,6 @@ public class CompactUi : WindowMediatorSubscriberBase
 
     private enum CompactUiSection
     {
-        VisiblePairs,
         Notifications,
         Social,
         AutoDetect,
@@ -112,12 +110,6 @@ public class CompactUi : WindowMediatorSubscriberBase
     {
         IndividualPairs,
         Syncshells
-    }
-
-    private enum PairContentMode
-    {
-        All,
-        VisibleOnly
     }
 
     private readonly Dictionary<string, DrawUserPair> _drawUserPairCache = new(StringComparer.Ordinal);
@@ -350,7 +342,6 @@ public class CompactUi : WindowMediatorSubscriberBase
     {
         using (ImRaii.PushId("self-analysis"))
         {
-            // Déterminer si l'encadré doit être mis en évidence (jaune) lorsqu'on dépasse le seuil d'avertissement
             var headerSummary = _characterAnalyzer.CurrentSummary;
             bool highlightWarning = !headerSummary.IsEmpty
                                      && !headerSummary.HasUncomputedEntries
@@ -360,7 +351,6 @@ public class CompactUi : WindowMediatorSubscriberBase
             Vector4? cardBorder = null;
             if (highlightWarning)
             {
-                // Utilise une nuance de jaune douce pour le fond, avec une bordure plus marquée
                 var y = ImGuiColors.DalamudYellow;
                 cardBg = new Vector4(y.X, y.Y, y.Z, 0.12f);
                 cardBorder = new Vector4(y.X, y.Y, y.Z, 0.75f);
@@ -714,19 +704,16 @@ public class CompactUi : WindowMediatorSubscriberBase
         }
     }
 
-    private void DrawPairList(PairContentMode mode)
+    private void DrawPairList()
     {
-        if (mode == PairContentMode.All)
-        {
-            using (ImRaii.PushId("addpair")) DrawAddPair();
-        }
+        using (ImRaii.PushId("addpair")) DrawAddPair();
 
-        using (ImRaii.PushId("pairs")) DrawPairs(mode);
+        using (ImRaii.PushId("pairs")) DrawPairs();
         TransferPartHeight = ImGui.GetCursorPosY();
         using (ImRaii.PushId("filter")) DrawFilter();
     }
 
-    private void DrawPairs(PairContentMode mode)
+    private void DrawPairs()
     {
         float availableHeight = ImGui.GetContentRegionAvail().Y;
         float ySize;
@@ -752,60 +739,32 @@ public class CompactUi : WindowMediatorSubscriberBase
 
         ImGui.BeginChild("list", new Vector2(WindowContentWidth, ySize), border: false);
 
-        if (mode == PairContentMode.All)
+        var pendingCount = _nearbyPending.Pending.Count;
+        if (pendingCount > 0)
         {
-            var pendingCount = _nearbyPending.Pending.Count;
-            if (pendingCount > 0)
-            {
-                UiSharedService.ColorTextWrapped(Loc.Get("CompactUi.AutoDetect.PendingInvitation"), ImGuiColors.DalamudYellow);
-                ImGuiHelpers.ScaledDummy(4);
-            }
+            UiSharedService.ColorTextWrapped(Loc.Get("CompactUi.AutoDetect.PendingInvitation"), ImGuiColors.DalamudYellow);
+            ImGuiHelpers.ScaledDummy(4);
         }
 
-        if (mode == PairContentMode.VisibleOnly)
+        var visibleUsers = visibleUsersSource.Select(c =>
         {
-            var visibleUsers = visibleUsersSource.Select(c =>
+            var cacheKey = "Visible" + c.UserData.UID;
+            if (!_drawUserPairCache.TryGetValue(cacheKey, out var drawPair))
             {
-                var cacheKey = "Visible" + c.UserData.UID;
-                if (!_drawUserPairCache.TryGetValue(cacheKey, out var drawPair))
-                {
-                    drawPair = new DrawUserPair(cacheKey, c, _uidDisplayHandler, _apiController, Mediator, _selectGroupForPairUi, _uiSharedService, _charaDataManager, _serverManager);
-                    _drawUserPairCache[cacheKey] = drawPair;
-                }
-                else
-                {
-                    drawPair.UpdateData();
-                }
-                return drawPair;
-            }).ToList();
-            bool showVisibleCard = visibleUsers.Count > 0;
-            bool showNearbyCard = nearbyEntriesForDisplay.Count > 0;
-            var visibleHeader = string.Format(CultureInfo.CurrentCulture, Loc.Get("CompactUi.Pairs.VisibleHeader"), visibleUsersSource.Count);
-
-            if (showVisibleCard)
-            {
-                DrawVisibleCard(visibleUsers);
+                drawPair = new DrawUserPair(cacheKey, c, _uidDisplayHandler, _apiController, Mediator, _selectGroupForPairUi, _uiSharedService, _charaDataManager, _serverManager);
+                _drawUserPairCache[cacheKey] = drawPair;
             }
             else
             {
-                DrawEmptySectionCard(
-                    "visible-card-empty",
-                    visibleHeader,
-                    Loc.Get("CompactUi.Pairs.VisibleEmpty"),
-                    Loc.Get("CompactUi.Pairs.VisibleEmptyTooltip"));
+                drawPair.UpdateData();
             }
+            return drawPair;
+        }).ToList();
 
-            if (showNearbyCard)
+        var onlineUsers = nonVisibleUsers.Where(u => u.UserPair!.OtherPermissions.IsPaired() && (u.IsOnline || u.UserPair!.OwnPermissions.IsPaused()))
+            .Select(c =>
             {
-                DrawNearbyCard(nearbyEntriesForDisplay);
-            }
-        }
-        else
-        {
-            // Build lists for Visible, Online and Offline (Individual Pairs view)
-            var visibleUsers = visibleUsersSource.Select(c =>
-            {
-                var cacheKey = "Visible" + c.UserData.UID;
+                var cacheKey = "Online" + c.UserData.UID;
                 if (!_drawUserPairCache.TryGetValue(cacheKey, out var drawPair))
                 {
                     drawPair = new DrawUserPair(cacheKey, c, _uidDisplayHandler, _apiController, Mediator, _selectGroupForPairUi, _uiSharedService, _charaDataManager, _serverManager);
@@ -818,48 +777,30 @@ public class CompactUi : WindowMediatorSubscriberBase
                 return drawPair;
             }).ToList();
 
-            var onlineUsers = nonVisibleUsers.Where(u => u.UserPair!.OtherPermissions.IsPaired() && (u.IsOnline || u.UserPair!.OwnPermissions.IsPaused()))
-                .Select(c =>
-                {
-                    var cacheKey = "Online" + c.UserData.UID;
-                    if (!_drawUserPairCache.TryGetValue(cacheKey, out var drawPair))
-                    {
-                        drawPair = new DrawUserPair(cacheKey, c, _uidDisplayHandler, _apiController, Mediator, _selectGroupForPairUi, _uiSharedService, _charaDataManager, _serverManager);
-                        _drawUserPairCache[cacheKey] = drawPair;
-                    }
-                    else
-                    {
-                        drawPair.UpdateData();
-                    }
-                    return drawPair;
-                }).ToList();
-
-            var offlineUsers = nonVisibleUsers.Where(u => !u.UserPair!.OtherPermissions.IsPaired() || (!u.IsOnline && !u.UserPair!.OwnPermissions.IsPaused()))
-                .Select(c =>
-                {
-                    var cacheKey = "Offline" + c.UserData.UID;
-                    if (!_drawUserPairCache.TryGetValue(cacheKey, out var drawPair))
-                    {
-                        drawPair = new DrawUserPair(cacheKey, c, _uidDisplayHandler, _apiController, Mediator, _selectGroupForPairUi, _uiSharedService, _charaDataManager, _serverManager);
-                        _drawUserPairCache[cacheKey] = drawPair;
-                    }
-                    else
-                    {
-                        drawPair.UpdateData();
-                    }
-                    return drawPair;
-                }).ToList();
-
-            Action? drawVisibleExtras = null;
-            if (nearbyEntriesForDisplay.Count > 0)
+        var offlineUsers = nonVisibleUsers.Where(u => !u.UserPair!.OtherPermissions.IsPaired() || (!u.IsOnline && !u.UserPair!.OwnPermissions.IsPaused()))
+            .Select(c =>
             {
-                var entriesForExtras = nearbyEntriesForDisplay;
-                drawVisibleExtras = () => DrawNearbyCard(entriesForExtras);
-            }
+                var cacheKey = "Offline" + c.UserData.UID;
+                if (!_drawUserPairCache.TryGetValue(cacheKey, out var drawPair))
+                {
+                    drawPair = new DrawUserPair(cacheKey, c, _uidDisplayHandler, _apiController, Mediator, _selectGroupForPairUi, _uiSharedService, _charaDataManager, _serverManager);
+                    _drawUserPairCache[cacheKey] = drawPair;
+                }
+                else
+                {
+                    drawPair.UpdateData();
+                }
+                return drawPair;
+            }).ToList();
 
-            // Pass visible users to the groups UI so group headers can reflect visible counts
-            _pairGroupsUi.Draw(visibleUsers, onlineUsers, offlineUsers, drawVisibleExtras);
+        Action? drawVisibleExtras = null;
+        if (nearbyEntriesForDisplay.Count > 0)
+        {
+            var entriesForExtras = nearbyEntriesForDisplay;
+            drawVisibleExtras = () => DrawNearbyCard(entriesForExtras);
         }
+
+        _pairGroupsUi.Draw(visibleUsers, onlineUsers, offlineUsers, drawVisibleExtras);
 
         ImGui.EndChild();
     }
@@ -875,48 +816,6 @@ public class CompactUi : WindowMediatorSubscriberBase
             .Where(e => e.IsMatch && e.AcceptPairRequests && !string.IsNullOrEmpty(e.Token) && !IsAlreadyPairedQuickMenu(e))
             .OrderBy(e => e.Distance)
             .ToList();
-    }
-
-    private void DrawVisibleCard(List<DrawUserPair> visibleUsers)
-    {
-        if (visibleUsers.Count == 0)
-        {
-            return;
-        }
-
-        ImGuiHelpers.ScaledDummy(4f);
-        using (ImRaii.PushId("group-Visible"))
-        {
-            UiSharedService.DrawCard("visible-card", () =>
-            {
-                bool visibleState = _visibleOpen;
-                UiSharedService.DrawArrowToggle(ref visibleState, "##visible-toggle");
-                _visibleOpen = visibleState;
-
-                ImGui.SameLine(0f, 6f * ImGuiHelpers.GlobalScale);
-                ImGui.AlignTextToFramePadding();
-                ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("CompactUi.Pairs.VisibleHeader"), visibleUsers.Count));
-                if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
-                {
-                    _visibleOpen = !_visibleOpen;
-                }
-
-                if (!_visibleOpen)
-                {
-                    return;
-                }
-
-                ImGuiHelpers.ScaledDummy(4f);
-                var indent = 18f * ImGuiHelpers.GlobalScale;
-                ImGui.Indent(indent);
-                foreach (var visibleUser in visibleUsers)
-                {
-                    visibleUser.DrawPairedClient();
-                }
-                ImGui.Unindent(indent);
-            }, stretchWidth: true);
-        }
-        ImGuiHelpers.ScaledDummy(4f);
     }
 
     private void DrawNearbyCard(IReadOnlyList<Services.Mediator.NearbyEntry> nearbyEntries)
@@ -952,13 +851,9 @@ public class CompactUi : WindowMediatorSubscriberBase
                 ImGuiHelpers.ScaledDummy(4f);
                 var indent = 18f * ImGuiHelpers.GlobalScale;
                 ImGui.Indent(indent);
-
-                // Snapshot pending invites to gray-out buttons if already invited
                 var pending = _autoDetectRequestService.GetPendingRequestsSnapshot();
                 var pendingUids = new HashSet<string>(pending.Select(p => p.Uid!).Where(s => !string.IsNullOrEmpty(s)), StringComparer.Ordinal);
                 var pendingTokens = new HashSet<string>(pending.Select(p => p.Token!).Where(s => !string.IsNullOrEmpty(s)), StringComparer.Ordinal);
-
-                // Use a table to guarantee right-aligned action within the card content area
                 var actionButtonSize = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.UserPlus);
                 using var table = ImUtf8.Table("nearby-table", 2, ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.RowBg | ImGuiTableFlags.PadOuterX | ImGuiTableFlags.BordersInnerV);
                 if (table)
@@ -983,8 +878,6 @@ public class CompactUi : WindowMediatorSubscriberBase
                         var name = e.DisplayName ?? e.Name;
                         ImGui.AlignTextToFramePadding();
                         ImGui.TextUnformatted(name);
-
-                        // Right column: action button, aligned to the right within the column
                         ImGui.TableSetColumnIndex(1);
                         var curX = ImGui.GetCursorPosX();
                         var availX = ImGui.GetContentRegionAvail().X; // width of the action column
@@ -1027,7 +920,6 @@ public class CompactUi : WindowMediatorSubscriberBase
     {
         bool isConnected = _apiController.ServerState is ServerState.Connected;
         bool hasNotifications = _notificationCount > 0;
-        bool hasVisiblePairs = _pairManager.DirectPairs.Any(p => p.IsVisible);
 
         var drawList = ImGui.GetWindowDrawList();
         drawList.ChannelsSplit(2);
@@ -1041,12 +933,6 @@ public class CompactUi : WindowMediatorSubscriberBase
             ? Loc.Get("CompactUi.Sidebar.Notifications")
             : Loc.Get("CompactUi.Sidebar.NotificationsEmpty");
         DrawSidebarButton(FontAwesomeIcon.Bell, notificationsTooltip, CompactUiSection.Notifications, hasNotifications, hasNotifications, _notificationCount, null, ImGuiColors.DalamudOrange);
-        ImGuiHelpers.ScaledDummy(3f);
-
-        string visibleTooltip = hasVisiblePairs
-            ? Loc.Get("CompactUi.Sidebar.VisiblePairs")
-            : Loc.Get("CompactUi.Sidebar.VisiblePairsEmpty");
-        DrawSidebarButton(FontAwesomeIcon.Eye, visibleTooltip, CompactUiSection.VisiblePairs, isConnected && hasVisiblePairs);
         ImGuiHelpers.ScaledDummy(3f);
         DrawSidebarButton(FontAwesomeIcon.GlobeEurope, "Social", CompactUiSection.Social, isConnected);
         ImGuiHelpers.ScaledDummy(3f);
@@ -1289,9 +1175,6 @@ public class CompactUi : WindowMediatorSubscriberBase
 
         switch (_activeSection)
         {
-            case CompactUiSection.VisiblePairs:
-                DrawPairSection(PairContentMode.VisibleOnly);
-                break;
             case CompactUiSection.Notifications:
                 DrawNotificationsSection();
                 break;
@@ -1314,16 +1197,10 @@ public class CompactUi : WindowMediatorSubscriberBase
         DrawNewUserNoteModal();
     }
 
-    private void DrawPairSection(PairContentMode mode)
-    {
-        DrawDefaultSyncSettings();
-        DrawPairSectionBody(mode);
-    }
-
-    private void DrawPairSectionBody(PairContentMode mode)
+    private void DrawPairSectionBody()
     {
         using var font = UiSharedService.PushFontScale(UiSharedService.ContentFontScale);
-        using (ImRaii.PushId("pairlist")) DrawPairList(mode);
+        using (ImRaii.PushId("pairlist")) DrawPairList();
         ImGui.Separator();
         using (ImRaii.PushId("transfers")) DrawTransfers();
         TransferPartHeight = ImGui.GetCursorPosY() - TransferPartHeight;
@@ -1364,7 +1241,7 @@ public class CompactUi : WindowMediatorSubscriberBase
             ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
         if (_socialSubSection == SocialSubSection.IndividualPairs)
         {
-            DrawPairSectionBody(PairContentMode.All);
+            DrawPairSectionBody();
         }
         else
         {
@@ -1791,8 +1668,7 @@ public class CompactUi : WindowMediatorSubscriberBase
 
     private static bool RequiresServerConnection(CompactUiSection section)
     {
-        return section is CompactUiSection.VisiblePairs
-            or CompactUiSection.Notifications
+        return section is CompactUiSection.Notifications
             or CompactUiSection.Social
             or CompactUiSection.AutoDetect
             or CompactUiSection.CharacterAnalysis

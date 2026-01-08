@@ -262,24 +262,13 @@ public class SettingsUi : WindowMediatorSubscriberBase
         ImGui.SameLine();
         ImGui.AlignTextToFramePadding();
         ImGui.TextUnformatted("0 = No limit/infinite");
-
-        bool enableDownloadQueue = _configService.Current.EnableDownloadQueue;
-        if (ImGui.Checkbox(Loc.Get("Settings.DownloadQueue.Enable"), ref enableDownloadQueue))
-        {
-            _configService.Current.EnableDownloadQueue = enableDownloadQueue;
-            _configService.Save();
-        }
-        UiSharedService.AttachToolTip(Loc.Get("Settings.DownloadQueue.EnableTooltip"));
-
         ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
-        if (ImGui.SliderInt("Maximum Parallel Downloads", ref maxParallelDownloads, 1, 10))
+        if (ImGui.SliderInt("Maximum Parallel Downloads", ref maxParallelDownloads, 1, 50))
         {
             _configService.Current.ParallelDownloads = maxParallelDownloads;
             _configService.Save();
         }
-        UiSharedService.AttachToolTip(enableDownloadQueue
-            ? Loc.Get("Settings.DownloadQueue.MaxWhenEnabled")
-            : Loc.Get("Settings.DownloadQueue.MaxStreams"));
+        UiSharedService.AttachToolTip("Limite le nombre de téléchargements simultanés pour éviter la surcharge. Recommandé : 10 (défaut: 10, max: 50)");
 
         ImGui.Separator();
         _uiShared.BigText("Transfer UI");
