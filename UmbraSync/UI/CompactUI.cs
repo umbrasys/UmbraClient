@@ -227,7 +227,8 @@ public class CompactUi : WindowMediatorSubscriberBase
         var drawList = ImGui.GetWindowDrawList();
         var start = ImGui.GetCursorScreenPos();
         var end = new Vector2(start.X, start.Y + separatorHeight);
-        drawList.AddLine(start, end, ImGui.GetColorU32(new Vector4(1f, 1f, 1f, 0.08f)), 1f * ImGuiHelpers.GlobalScale);
+        var separatorColor = UiSharedService.AccentColor with { W = 0.6f };
+        drawList.AddLine(start, end, ImGui.GetColorU32(separatorColor), 1f * ImGuiHelpers.GlobalScale);
         ImGui.SetCursorPos(new Vector2(separatorX + 6f * ImGuiHelpers.GlobalScale, separatorY));
 
         ImGui.BeginChild("compact-content", Vector2.Zero, false);
@@ -240,9 +241,16 @@ public class CompactUi : WindowMediatorSubscriberBase
         }
 
         using (ImRaii.PushId("header")) DrawUIDHeader();
-        ImGui.Separator();
         using (ImRaii.PushId("serverstatus")) DrawServerStatus();
-        ImGui.Separator();
+        {
+            var hSepColor = UiSharedService.AccentColor with { W = 0.6f };
+            var hSepDrawList = ImGui.GetWindowDrawList();
+            var hSepCursor = ImGui.GetCursorScreenPos();
+            var hSepStart = new Vector2(hSepCursor.X, hSepCursor.Y);
+            var hSepEnd = new Vector2(hSepCursor.X + WindowContentWidth, hSepCursor.Y);
+            hSepDrawList.AddLine(hSepStart, hSepEnd, ImGui.GetColorU32(hSepColor), 1f * ImGuiHelpers.GlobalScale);
+            ImGuiHelpers.ScaledDummy(2f);
+        }
 
         DrawMainContent();
 
@@ -335,7 +343,6 @@ public class CompactUi : WindowMediatorSubscriberBase
 
             DrawSelfAnalysisPreview();
         }
-        ImGui.Separator();
     }
 
     private void DrawSelfAnalysisPreview()
@@ -1201,7 +1208,6 @@ public class CompactUi : WindowMediatorSubscriberBase
     {
         using var font = UiSharedService.PushFontScale(UiSharedService.ContentFontScale);
         using (ImRaii.PushId("pairlist")) DrawPairList();
-        ImGui.Separator();
         using (ImRaii.PushId("transfers")) DrawTransfers();
         TransferPartHeight = ImGui.GetCursorPosY() - TransferPartHeight;
         using (ImRaii.PushId("group-user-popup")) _selectPairsForGroupUi.Draw(_pairManager.DirectPairs);
@@ -1223,7 +1229,6 @@ public class CompactUi : WindowMediatorSubscriberBase
                     using (ImRaii.PushId("syncshell-nearby")) DrawNearbyCard(nearbyEntriesForDisplay);
                 }
             });
-        ImGui.Separator();
         using (ImRaii.PushId("transfers")) DrawTransfers();
         TransferPartHeight = ImGui.GetCursorPosY() - TransferPartHeight;
         using (ImRaii.PushId("group-user-popup")) _selectPairsForGroupUi.Draw(_pairManager.DirectPairs);
@@ -1417,8 +1422,6 @@ public class CompactUi : WindowMediatorSubscriberBase
                 UiSharedService.AttachToolTip(syncshellLabel);
             }
         }
-
-        ImGui.Separator();
     }
 
     // Note: ancienne méthode DrawToggleButton supprimée (plus utilisée)

@@ -180,7 +180,24 @@
   <data name="Settings.Transfer.Precache.Status.WaitingConnection" xml:space="preserve">
     <value>Waiting for server connection</value>
   </data>
-  
+
+  <!-- Pair Processing settings -->
+  <data name="Settings.Transfer.PairProcessing.Title" xml:space="preserve">
+    <value>Pair Processing</value>
+  </data>
+  <data name="Settings.Transfer.PairProcessing.Enable" xml:space="preserve">
+    <value>Enable parallel pair processing</value>
+  </data>
+  <data name="Settings.Transfer.PairProcessing.Enable.Help" xml:space="preserve">
+    <value>When enabled, multiple pairs can be processed simultaneously (faster but uses more CPU). When disabled, pairs are processed one at a time (slower but more stable). Recommended: disabled for lower-end PCs.</value>
+  </data>
+  <data name="Settings.Transfer.PairProcessing.MaxConcurrent" xml:space="preserve">
+    <value>Max concurrent pairs</value>
+  </data>
+  <data name="Settings.Transfer.PairProcessing.MaxConcurrent.Help" xml:space="preserve">
+    <value>Maximum number of pairs that can be processed at the same time. Higher values are faster but use more resources. Recommended: 4 (default: 4, max: 16)</value>
+  </data>
+
   <!-- AutoDetect notifications -->
   <data name="AutoDetect.Notification.IncomingTitle" xml:space="preserve">
     <value>New invitation</value>

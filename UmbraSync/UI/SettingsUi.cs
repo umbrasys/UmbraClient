@@ -270,6 +270,32 @@ public class SettingsUi : WindowMediatorSubscriberBase
         }
         UiSharedService.AttachToolTip("Limite le nombre de téléchargements simultanés pour éviter la surcharge. Recommandé : 10 (défaut: 10, max: 50)");
 
+        ImGui.Spacing();
+        _uiShared.BigText(Loc.Get("Settings.Transfer.PairProcessing.Title"));
+
+        bool enableParallelPairProcessing = _configService.Current.EnableParallelPairProcessing;
+        if (ImGui.Checkbox(Loc.Get("Settings.Transfer.PairProcessing.Enable"), ref enableParallelPairProcessing))
+        {
+            _configService.Current.EnableParallelPairProcessing = enableParallelPairProcessing;
+            _configService.Save();
+            Mediator.Publish(new PairProcessingLimitChangedMessage());
+        }
+        _uiShared.DrawHelpText(Loc.Get("Settings.Transfer.PairProcessing.Enable.Help"));
+
+        if (!enableParallelPairProcessing) ImGui.BeginDisabled();
+        ImGui.Indent();
+        int maxConcurrentPairApplications = _configService.Current.MaxConcurrentPairApplications;
+        ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
+        if (ImGui.SliderInt(Loc.Get("Settings.Transfer.PairProcessing.MaxConcurrent"), ref maxConcurrentPairApplications, 2, 16))
+        {
+            _configService.Current.MaxConcurrentPairApplications = maxConcurrentPairApplications;
+            _configService.Save();
+            Mediator.Publish(new PairProcessingLimitChangedMessage());
+        }
+        _uiShared.DrawHelpText(Loc.Get("Settings.Transfer.PairProcessing.MaxConcurrent.Help"));
+        ImGui.Unindent();
+        if (!enableParallelPairProcessing) ImGui.EndDisabled();
+
         ImGui.Separator();
         _uiShared.BigText("Transfer UI");
 
