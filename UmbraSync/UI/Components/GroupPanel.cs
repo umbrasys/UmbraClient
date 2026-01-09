@@ -650,14 +650,12 @@ internal sealed class GroupPanel
                 if (visibleUsers.Count > 0)
                 {
                     ImGui.TextUnformatted("Visible");
-                    ImGui.Separator();
                     UidDisplayHandler.RenderPairList(visibleUsers);
                 }
 
                 if (onlineUsers.Count > 0)
                 {
                     ImGui.TextUnformatted("Online");
-                    ImGui.Separator();
                     UidDisplayHandler.RenderPairList(onlineUsers);
                 }
 
@@ -666,7 +664,6 @@ internal sealed class GroupPanel
                     ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudGrey);
                     ImGui.TextUnformatted("Offline/Unknown");
                     ImGui.PopStyleColor();
-                    ImGui.Separator();
                     if (hideOfflineUsers)
                     {
                         UiSharedService.ColorText($"    {offlineUsers.Count} offline users omitted from display.", ImGuiColors.DalamudGrey);
@@ -676,8 +673,6 @@ internal sealed class GroupPanel
                         UidDisplayHandler.RenderPairList(offlineUsers);
                     }
                 }
-
-                ImGui.Separator();
             }
             ImGui.Unindent(20);
         }, padding: cardPadding, stretchWidth: true);

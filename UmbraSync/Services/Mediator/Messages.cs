@@ -85,6 +85,7 @@ public record OpenSlotPromptMessage(SlotInfoResponseDto SlotInfo) : MessageBase;
 public record OpenPermissionWindow(Pair Pair) : MessageBase;
 public record OpenPairAnalysisWindow(Pair Pair) : MessageBase;
 public record DownloadLimitChangedMessage() : SameThreadMessage;
+public record PairProcessingLimitChangedMessage() : MessageBase;
 public record CensusUpdateMessage(byte Gender, byte RaceId, byte TribeId) : MessageBase;
 public record TargetPairMessage(Pair Pair) : MessageBase;
 public record CombatOrPerformanceStartMessage : MessageBase;

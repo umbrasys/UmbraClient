@@ -180,7 +180,24 @@
   <data name="Settings.Transfer.Precache.Status.WaitingConnection" xml:space="preserve">
     <value>En attente de connexion au serveur</value>
   </data>
-  
+
+  <!-- Paramètres de traitement des pairs -->
+  <data name="Settings.Transfer.PairProcessing.Title" xml:space="preserve">
+    <value>Traitement des pairs</value>
+  </data>
+  <data name="Settings.Transfer.PairProcessing.Enable" xml:space="preserve">
+    <value>Activer le traitement parallèle des pairs</value>
+  </data>
+  <data name="Settings.Transfer.PairProcessing.Enable.Help" xml:space="preserve">
+    <value>Lorsqu'activé, plusieurs pairs peuvent être traités simultanément (plus rapide mais utilise plus de CPU). Lorsque désactivé, les pairs sont traités un par un (plus lent mais plus stable). Recommandé : désactivé pour les PC moins puissants.</value>
+  </data>
+  <data name="Settings.Transfer.PairProcessing.MaxConcurrent" xml:space="preserve">
+    <value>Pairs simultanés max</value>
+  </data>
+  <data name="Settings.Transfer.PairProcessing.MaxConcurrent.Help" xml:space="preserve">
+    <value>Nombre maximum de pairs pouvant être traités en même temps. Des valeurs plus élevées sont plus rapides mais utilisent plus de ressources. Recommandé : 4 (défaut : 4, max : 16)</value>
+  </data>
+
   <!-- Vanity / Custom ID in Edit Profile (FR) -->
   <data name="EditProfile.SetCustomId.Button" xml:space="preserve">
     <value>Définir l'ID personnalisé</value>
