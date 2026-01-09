@@ -178,9 +178,10 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
                 if (token.IsCancellationRequested) break;
 
                 _mareHub = await _hubFactory.GetOrCreate(token).ConfigureAwait(false);
-                InitializeApiHooks();
 
                 await _mareHub.StartAsync(token).ConfigureAwait(false);
+
+                InitializeApiHooks();
 
                 _connectionDto = await GetConnectionDto().ConfigureAwait(false);
 
@@ -344,9 +345,9 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
     {
         while (!ct.IsCancellationRequested && _mareHub != null)
         {
-            await Task.Delay(TimeSpan.FromSeconds(30), ct).ConfigureAwait(false);
             Logger.LogDebug("Checking Client Health State");
             _ = await CheckClientHealth().ConfigureAwait(false);
+            await Task.Delay(TimeSpan.FromSeconds(15), ct).ConfigureAwait(false);
         }
     }
 
