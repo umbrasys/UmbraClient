@@ -279,10 +279,9 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         bool shouldPause = !isCurrentlyPaused;
 
         Logger.LogInformation("Toggling pause for {uid}: {isCurrentlyPaused} -> {shouldPause}", userData.UID, isCurrentlyPaused, shouldPause);
-
         if (shouldPause) _serverManager.AddPausedUid(userData.UID);
         else _serverManager.RemovePausedUid(userData.UID);
-
+        
         if (pair.UserPair != null)
         {
             var perm = pair.UserPair.OwnPermissions;
@@ -303,15 +302,23 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
                 _ = GroupChangeIndividualPermissionState(new GroupPairUserPermissionDto(groupEntry.Key.Group, userData, groupPerm));
             }
         }
-
-        if (shouldPause)
+        if (pair.Handler != null)
         {
-            Mediator.Publish(new PlayerVisibilityMessage(pair.Ident, IsVisible: false, Invalidate: true));
+            Logger.LogDebug("Using SetPaused mechanism for {uid}", userData.UID);
+            pair.Handler.SetPaused(shouldPause);
         }
         else
         {
-            _pairManager.CancelPendingOffline(userData.UID);
-            pair.ApplyLastReceivedData(forced: true);
+            Logger.LogWarning("Handler not available for {uid}, using fallback pause method", userData.UID);
+            if (shouldPause)
+            {
+                Mediator.Publish(new PlayerVisibilityMessage(pair.Ident, IsVisible: false, Invalidate: true));
+            }
+            else
+            {
+                _pairManager.CancelPendingOffline(userData.UID);
+                pair.ApplyLastReceivedData(forced: true);
+            }
         }
     }
 

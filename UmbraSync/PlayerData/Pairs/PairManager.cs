@@ -226,11 +226,23 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
             {
                 // ignored: offline was canceled due to online signal
             }
+            catch (ObjectDisposedException)
+            {
+                // ignored: CTS was disposed by a concurrent call - this is expected during rapid pause/unpause
+                Logger.LogTrace("CancellationTokenSource disposed during MarkPairOffline for {uid}", uid);
+            }
             finally
             {
                 // Clean up token only if it's still our CTS
                 _pendingOffline.TryRemove(KeyValuePair.Create(uid, cts));
-                cts.Dispose();
+                try
+                {
+                    cts.Dispose();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Already disposed - safe to ignore
+                }
             }
         });
     }
