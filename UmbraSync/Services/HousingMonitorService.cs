@@ -49,12 +49,10 @@ public class HousingMonitorService : IHostedService, IMediatorSubscriber
                     await Task.Delay(5000, ct).ConfigureAwait(false);
                     continue;
                 }
-
-                // Toujours envoyer la position si on est dans un territoire de housing (TerritoryId change ou position change assez)
                 var player = await _dalamudUtil.GetPlayerCharacterAsync().ConfigureAwait(false);
                 if (player != null)
                 {
-                    _mediator.Publish(new HousingPositionUpdateMessage(currentLocation.ServerId, currentLocation.TerritoryId, player.Position));
+                    _mediator.Publish(new HousingPositionUpdateMessage(currentLocation.ServerId, currentLocation.TerritoryId, currentLocation.DivisionId, currentLocation.WardId, player.Position));
                 }
 
                 bool hasChanged = currentLocation.ServerId != _lastLocation.ServerId ||

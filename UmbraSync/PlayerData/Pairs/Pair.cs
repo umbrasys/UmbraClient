@@ -124,12 +124,10 @@ public class Pair : DisposableMediatorSubscriberBase
     public long LastAppliedApproximateVRAMBytes { get; set; } = -1;
     public string Ident => _onlineUserIdentDto?.Ident ?? string.Empty;
     public PairAnalyzer? PairAnalyzer => CachedPlayer?.PairAnalyzer;
-
     public UserData UserData { get; init; }
-
     public UserPairDto? UserPair { get; set; }
-
     private PairHandler? CachedPlayer { get; set; }
+    public PairHandler? Handler => CachedPlayer;
 
     public void AddContextMenu(IMenuOpenedArgs args)
     {

@@ -123,7 +123,7 @@ public record SyncshellAutoDetectStateChanged(string Gid, bool Visible, bool Pas
 public record GroupLeftMessage(string Gid) : MessageBase;
 public record HousingPlotEnteredMessage(LocationInfo LocationInfo) : MessageBase;
 public record HousingPlotLeftMessage : MessageBase;
-public record HousingPositionUpdateMessage(uint ServerId, uint TerritoryId, Vector3 Position) : MessageBase;
+public record HousingPositionUpdateMessage(uint ServerId, uint TerritoryId, uint DivisionId, uint WardId, Vector3 Position) : MessageBase;
 public record ManualPairInviteMessage(string SourceUid, string SourceAlias, string TargetUid, string? DisplayName, string InviteId) : MessageBase;
 public record ApplyDefaultPairPermissionsMessage(UserPairDto Pair) : MessageBase;
 public record ApplyDefaultGroupPermissionsMessage(GroupPairFullInfoDto GroupPair) : MessageBase;

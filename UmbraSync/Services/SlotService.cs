@@ -56,7 +56,7 @@ public class SlotService : MediatorSubscriberBase, IDisposable
 
         Mediator.Subscribe<HousingPlotEnteredMessage>(this, (msg) => _ = OnHousingPlotEntered(msg.LocationInfo));
         Mediator.Subscribe<HousingPlotLeftMessage>(this, (msg) => OnHousingPlotLeft());
-        Mediator.Subscribe<HousingPositionUpdateMessage>(this, (msg) => OnHousingPositionUpdate(msg.ServerId, msg.TerritoryId, msg.Position));
+        Mediator.Subscribe<HousingPositionUpdateMessage>(this, (msg) => OnHousingPositionUpdate(msg.ServerId, msg.TerritoryId, msg.DivisionId, msg.WardId, msg.Position));
         Mediator.Subscribe<DisconnectedMessage>(this, (msg) =>
         {
             _ = ClearState();
@@ -106,7 +106,7 @@ public class SlotService : MediatorSubscriberBase, IDisposable
         };
     }
 
-    private async void OnHousingPositionUpdate(uint serverId, uint territoryId, Vector3 position)
+    private async void OnHousingPositionUpdate(uint serverId, uint territoryId, uint divisionId, uint wardId, Vector3 position)
     {
         if (!_configService.Current.EnableSlotNotifications) return;
         if (!IsResidentialArea(territoryId))
@@ -120,10 +120,19 @@ public class SlotService : MediatorSubscriberBase, IDisposable
 
         _lastQueryPosition = position;
 
-        Logger.LogTrace("Querying SlotGetNearby (2D Distance) at {serverId}:{territoryId} Pos: {x},{y},{z}", serverId, territoryId, position.X, position.Y, position.Z);
+        Logger.LogTrace("Querying SlotGetNearby (2D Distance) at {serverId}:{territoryId}:{divisionId}:{wardId} Pos: {x},{y},{z}", serverId, territoryId, divisionId, wardId, position.X, position.Y, position.Z);
         try
         {
-            var slotInfo = await _apiController.SlotGetNearby(serverId, territoryId, position.X, position.Y, position.Z).ConfigureAwait(false);
+            var slotInfo = await _apiController.SlotGetNearby(serverId, territoryId, divisionId, wardId, position.X, position.Y, position.Z).ConfigureAwait(false);
+
+            // Vérification côté client: s'assurer que le slot correspond à notre ward/division actuel
+            if (slotInfo?.Location != null && wardId > 0 &&
+                (slotInfo.Location.WardId != wardId || slotInfo.Location.DivisionId != divisionId))
+            {
+                Logger.LogDebug("SlotGetNearby returned slot for Ward {slotWard}/Div {slotDiv}, but we are in Ward {currentWard}/Div {currentDiv}. Ignoring.",
+                    slotInfo.Location.WardId, slotInfo.Location.DivisionId, wardId, divisionId);
+                slotInfo = null;
+            }
             if (slotInfo != null)
             {
                 Logger.LogDebug("SlotGetNearby result: {name} (ID: {id})", slotInfo.SlotName, slotInfo.SlotId);
@@ -251,6 +260,7 @@ public class SlotService : MediatorSubscriberBase, IDisposable
         {
             ServerId = location.ServerId,
             TerritoryId = location.TerritoryId,
+            DivisionId = location.DivisionId,
             WardId = location.WardId,
             PlotId = location.HouseId
         };

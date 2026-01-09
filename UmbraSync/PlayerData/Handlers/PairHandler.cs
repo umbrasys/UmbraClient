@@ -46,6 +46,9 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     private Guid _deferred = Guid.Empty;
     private Guid _penumbraCollection = Guid.Empty;
     private bool _redrawOnNextApplication = false;
+    private readonly object _pauseLock = new();
+    private Task _pauseTransitionTask = Task.CompletedTask;
+    private bool _pauseRequested = false;
 
     public PairHandler(ILogger<PairHandler> logger, Pair pair, PairAnalyzer pairAnalyzer,
         GameObjectHandlerFactory gameObjectHandlerFactory,
@@ -411,6 +414,194 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Error on undoing application of {name}", name);
+        }
+    }
+    
+    private async Task RevertToRestoredAsync(Guid applicationId)
+    {
+        var name = PlayerName;
+        Logger.LogDebug("[{applicationId}] Reverting to restored state for {name} ({user})", applicationId, name, Pair.UserData.UID);
+
+        if (_charaHandler is null || _charaHandler.Address == nint.Zero)
+        {
+            Logger.LogDebug("[{applicationId}] Character handler is null or invalid, skipping revert", applicationId);
+            return;
+        }
+
+        try
+        {
+            var gameObject = await _dalamudUtil.RunOnFrameworkThread(() => _charaHandler.GetGameObject()).ConfigureAwait(false);
+            if (gameObject is not Dalamud.Game.ClientState.Objects.Types.ICharacter character)
+            {
+                Logger.LogDebug("[{applicationId}] Game object is not a character, skipping revert", applicationId);
+                return;
+            }
+            if (_ipcManager.Penumbra.APIAvailable && _penumbraCollection != Guid.Empty)
+            {
+                Logger.LogDebug("[{applicationId}] Clearing Penumbra mods for {name}", applicationId, name);
+                try
+                {
+                    await _ipcManager.Penumbra.AssignTemporaryCollectionAsync(Logger, _penumbraCollection, character.ObjectIndex).ConfigureAwait(false);
+                    await _ipcManager.Penumbra.SetTemporaryModsAsync(Logger, applicationId, _penumbraCollection, new Dictionary<string, string>(StringComparer.Ordinal)).ConfigureAwait(false);
+                    await _ipcManager.Penumbra.SetManipulationDataAsync(Logger, applicationId, _penumbraCollection, string.Empty).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "[{applicationId}] Failed to clear Penumbra mods for {name}", applicationId, name);
+                }
+            }
+            var kinds = new HashSet<ObjectKind>(_customizeIds.Keys);
+            if (_cachedData is not null)
+            {
+                foreach (var kind in _cachedData.FileReplacements.Keys)
+                {
+                    kinds.Add(kind);
+                }
+            }
+            kinds.Add(ObjectKind.Player);
+            var characterName = character.Name.TextValue;
+            if (string.IsNullOrEmpty(characterName))
+            {
+                characterName = character.Name.ToString();
+            }
+            if (string.IsNullOrEmpty(characterName))
+            {
+                Logger.LogWarning("[{applicationId}] Failed to determine character name for {handler}, using fallback", applicationId, name);
+                characterName = name ?? Pair.UserData.UID;
+            }
+
+            using var cts = new CancellationTokenSource();
+            cts.CancelAfter(TimeSpan.FromSeconds(60));
+
+            Logger.LogDebug("[{applicationId}] Reverting {count} ObjectKinds for {name}", applicationId, kinds.Count, characterName);
+            foreach (var kind in kinds)
+            {
+                try
+                {
+                    await RevertCustomizationDataAsync(kind, characterName, applicationId, cts.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    Logger.LogWarning("[{applicationId}] Revert operation timed out for {kind} on {name}", applicationId, kind, characterName);
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "[{applicationId}] Failed to revert {kind} for {name}", applicationId, kind, characterName);
+                }
+            }
+
+            _cachedData = null;
+            Mediator.Publish(new PairDataAppliedMessage(Pair.UserData.UID, null));
+
+            Logger.LogInformation("[{applicationId}] Revert to restored state complete for {name}", applicationId, characterName);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "[{applicationId}] Failed to revert handler {name} during pause", applicationId, name);
+        }
+    }
+    
+    private void DisableSync()
+    {
+        Logger.LogDebug("Disabling sync for {name} ({user})", PlayerName, Pair.UserData.UID);
+        _downloadCancellationTokenSource = _downloadCancellationTokenSource?.CancelRecreate();
+        _applicationCancellationTokenSource = _applicationCancellationTokenSource?.CancelRecreate();
+    }
+    
+    private void EnableSync()
+    {
+        Logger.LogDebug("Enabling sync for {name} ({user})", PlayerName, Pair.UserData.UID);
+        if (_dataReceivedInDowntime is not null && IsVisible)
+        {
+            var pending = _dataReceivedInDowntime;
+            _dataReceivedInDowntime = null;
+
+            Logger.LogDebug("Applying queued data for {name} ({user})", PlayerName, Pair.UserData.UID);
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    Task.Delay(100).Wait(); // Small delay to ensure state is ready
+                    ApplyCharacterData(pending.ApplicationId, pending.CharacterData, pending.Forced);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Failed applying queued data for {name} ({user})", PlayerName, Pair.UserData.UID);
+                }
+            });
+        }
+    }
+    private async Task PauseInternalAsync()
+    {
+        try
+        {
+            Logger.LogInformation("Pausing handler for {name} ({user})", PlayerName, Pair.UserData.UID);
+            DisableSync();
+            if (_charaHandler is not null && _charaHandler.Address != nint.Zero)
+            {
+                var applicationId = Guid.NewGuid();
+                await RevertToRestoredAsync(applicationId).ConfigureAwait(false);
+            }
+            Mediator.Publish(new PlayerVisibilityMessage(Pair.Ident, IsVisible: false, Invalidate: true));
+
+            Logger.LogInformation("Pause complete for {name} ({user})", PlayerName, Pair.UserData.UID);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to pause handler for {name} ({user})", PlayerName, Pair.UserData.UID);
+        }
+    }
+    
+    private async Task ResumeInternalAsync()
+    {
+        try
+        {
+            Logger.LogInformation("Resuming handler for {name} ({user})", PlayerName, Pair.UserData.UID);
+
+            if (_charaHandler is null || _charaHandler.Address == nint.Zero)
+            {
+                Logger.LogDebug("Character handler is null or invalid, skipping resume");
+                return;
+            }
+
+            if (!IsVisible)
+            {
+                Mediator.Publish(new PlayerVisibilityMessage(Pair.Ident, IsVisible: true, Invalidate: false));
+            }
+
+            EnableSync();
+
+            if (_cachedData is not null)
+            {
+                Logger.LogDebug("Applying last received data for {name} ({user})", PlayerName, Pair.UserData.UID);
+                Pair.ApplyLastReceivedData(forced: true);
+            }
+
+            Logger.LogInformation("Resume complete for {name} ({user})", PlayerName, Pair.UserData.UID);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to resume handler for {name} ({user})", PlayerName, Pair.UserData.UID);
+        }
+    }
+    
+    public void SetPaused(bool paused)
+    {
+        lock (_pauseLock)
+        {
+            if (_pauseRequested == paused)
+            {
+                Logger.LogTrace("Pause state already {state} for {name} ({user}), skipping", paused ? "paused" : "unpaused", PlayerName, Pair.UserData.UID);
+                return;
+            }
+
+            _pauseRequested = paused;
+            Logger.LogDebug("Queueing pause transition to {state} for {name} ({user})", paused ? "paused" : "unpaused", PlayerName, Pair.UserData.UID);
+
+            _pauseTransitionTask = _pauseTransitionTask
+                .ContinueWith(_ => paused ? PauseInternalAsync() : ResumeInternalAsync(), TaskScheduler.Default)
+                .Unwrap();
         }
     }
 

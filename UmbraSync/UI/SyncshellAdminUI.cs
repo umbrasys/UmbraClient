@@ -61,6 +61,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
     private string _slotDescription = string.Empty;
     private uint _slotServerId;
     private uint _slotTerritoryId;
+    private uint _slotDivisionId;
     private uint _slotWardId;
     private uint _slotPlotId;
     private float _slotX;
@@ -647,6 +648,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                     _slotDescription = slot.SlotDescription ?? string.Empty;
                     _slotServerId = slot.Location?.ServerId ?? 0;
                     _slotTerritoryId = slot.Location?.TerritoryId ?? 0;
+                    _slotDivisionId = slot.Location?.DivisionId ?? 0;
                     _slotWardId = slot.Location?.WardId ?? 0;
                     _slotPlotId = slot.Location?.PlotId ?? 0;
                     _slotX = slot.Location?.X ?? 0;
@@ -687,6 +689,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                 _slotDescription = string.Empty;
                 _slotServerId = 0;
                 _slotTerritoryId = 0;
+                _slotDivisionId = 0;
                 _slotWardId = 0;
                 _slotPlotId = 0;
                 _slotX = 0;
@@ -750,9 +753,10 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                 {
                     var currentMapData = _dalamudUtilService.GetMapData();
                     _slotServerId = currentMapData.ServerId;
+                    _slotDivisionId = currentMapData.DivisionId;
                     _slotWardId = currentMapData.WardId;
                     _slotPlotId = currentMapData.HouseId;
-                    _logger.LogInformation("Captured housing info: S:{s} T:{t} W:{w} P:{p}", _slotServerId, _slotTerritoryId, _slotWardId, _slotPlotId);
+                    _logger.LogInformation("Captured housing info: S:{s} T:{t} D:{d} W:{w} P:{p}", _slotServerId, _slotTerritoryId, _slotDivisionId, _slotWardId, _slotPlotId);
                 }
             }
 
@@ -789,6 +793,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                             {
                                 ServerId = _slotServerId,
                                 TerritoryId = _slotTerritoryId,
+                                DivisionId = _slotDivisionId,
                                 WardId = _slotWardId,
                                 PlotId = _slotPlotId,
                                 X = _slotX,
