@@ -105,6 +105,27 @@ public partial class ApiController
         await _mareHub!.SendAsync(nameof(UserSetPairPermissions), userPermissions).ConfigureAwait(false);
     }
 
+    public async Task UserSetAlias(string? alias)
+    {
+        if (!IsConnected)
+        {
+            Logger.LogWarning("Cannot set alias: Not connected to server");
+            throw new InvalidOperationException("Not connected to server");
+        }
+
+        try
+        {
+            Logger.LogInformation("Sending UserSetAlias to server. Alias: {alias}", alias ?? "(null/clearing)");
+            await _mareHub!.InvokeAsync(nameof(UserSetAlias), alias).ConfigureAwait(false);
+            Logger.LogInformation("UserSetAlias successfully sent to server");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error during UserSetAlias");
+            throw;
+        }
+    }
+
     public async Task UserSetProfile(UserProfileDto userDescription)
     {
         if (!IsConnected)
