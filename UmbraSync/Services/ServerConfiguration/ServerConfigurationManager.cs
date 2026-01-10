@@ -278,6 +278,16 @@ public class ServerConfigurationManager
         return null;
     }
 
+    internal uint? GetWorldIdForUid(string uid)
+    {
+        if (CurrentNotesStorage().UidLastSeenWorldIds.TryGetValue(uid, out var worldId))
+        {
+            if (worldId == 0) return null;
+            return worldId;
+        }
+        return null;
+    }
+
     internal HashSet<string> GetServerAvailablePairTags()
     {
         return CurrentServerTagStorage().ServerAvailablePairTags;
@@ -405,6 +415,18 @@ public class ServerConfigurationManager
             return;
 
         CurrentNotesStorage().UidLastSeenNames[uid] = name;
+        _notesConfig.Save();
+    }
+
+    internal void SetWorldIdForUid(string uid, uint worldId)
+    {
+        if (string.IsNullOrEmpty(uid)) return;
+        if (worldId == 0) return;
+
+        if (CurrentNotesStorage().UidLastSeenWorldIds.TryGetValue(uid, out var currentWorldId) && currentWorldId == worldId)
+            return;
+
+        CurrentNotesStorage().UidLastSeenWorldIds[uid] = worldId;
         _notesConfig.Save();
     }
 
