@@ -183,6 +183,11 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton<IConfigService<IMareConfiguration>>(s => s.GetRequiredService<NotificationsConfigService>());
             collection.AddSingleton<ConfigurationMigrator>();
             collection.AddSingleton<ConfigurationSaveService>();
+            collection.AddSingleton<IPopupHandler, ReportPopupHandler>();
+            collection.AddSingleton<IPopupHandler, BanUserPopupHandler>();
+            collection.AddSingleton<IPopupHandler, SlotPopupHandler>();
+            collection.AddSingleton<WindowMediatorSubscriberBase, PopupHandler>();
+
 
             collection.AddSingleton<HubFactory>();
 
@@ -207,11 +212,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddScoped<WindowMediatorSubscriberBase, EventViewerUI>();
             collection.AddScoped<WindowMediatorSubscriberBase, CharaDataHubUi>();
             collection.AddScoped<WindowMediatorSubscriberBase>(sp => sp.GetRequiredService<EditProfileUi>());
-            collection.AddScoped<WindowMediatorSubscriberBase, PopupHandler>();
             collection.AddScoped<WindowMediatorSubscriberBase, TypingIndicatorOverlay>();
-            collection.AddScoped<IPopupHandler, ReportPopupHandler>();
-            collection.AddScoped<IPopupHandler, BanUserPopupHandler>();
-            collection.AddScoped<IPopupHandler, SlotPopupHandler>();
             collection.AddScoped<CacheCreationService>();
             collection.AddScoped<TransientResourceManager>();
             collection.AddScoped<PlayerDataFactory>();

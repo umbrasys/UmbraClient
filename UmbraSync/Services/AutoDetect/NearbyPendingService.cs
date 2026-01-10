@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using UmbraSync.Localization;
+using UmbraSync.MareConfiguration;
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.Notification;
@@ -16,18 +17,20 @@ public sealed class NearbyPendingService : IMediatorSubscriber
     private readonly ApiController _api;
     private readonly AutoDetectRequestService _requestService;
     private readonly NotificationTracker _notificationTracker;
+    private readonly MareConfigService _configService;
     private readonly ConcurrentDictionary<string, string> _pending = new(StringComparer.Ordinal);
     private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(1);
     private static readonly Regex ReqRegex = new(@"^Nearby Request: .+ \[(?<uid>[A-Z0-9]+)\]$", RegexOptions.Compiled | RegexOptions.ExplicitCapture, RegexTimeout);
     private static readonly Regex AcceptRegex = new(@"^Nearby Accept: .+ \[(?<uid>[A-Z0-9]+)\]$", RegexOptions.Compiled | RegexOptions.ExplicitCapture, RegexTimeout);
 
-    public NearbyPendingService(ILogger<NearbyPendingService> logger, MareMediator mediator, ApiController api, AutoDetectRequestService requestService, NotificationTracker notificationTracker)
+    public NearbyPendingService(ILogger<NearbyPendingService> logger, MareMediator mediator, ApiController api, AutoDetectRequestService requestService, NotificationTracker notificationTracker, MareConfigService configService)
     {
         _logger = logger;
         _mediator = mediator;
         _api = api;
         _requestService = requestService;
         _notificationTracker = notificationTracker;
+        _configService = configService;
         _mediator.Subscribe<NotificationMessage>(this, OnNotification);
         _mediator.Subscribe<ManualPairInviteMessage>(this, OnManualPairInvite);
     }
@@ -80,10 +83,14 @@ public sealed class NearbyPendingService : IMediatorSubscriber
         _pending[uid] = name;
         _logger.LogInformation("NearbyPending: received request from {uid} ({name})", uid, name);
         _notificationTracker.Upsert(NotificationEntry.AutoDetect(uid, name));
-        Mediator.Publish(new NotificationMessage(
-            Loc.Get("AutoDetect.Notification.IncomingTitle"),
-            string.Format(CultureInfo.CurrentCulture, Loc.Get("AutoDetect.Notification.IncomingBody"), name, uid),
-            NotificationType.Info, TimeSpan.FromSeconds(5)));
+
+        if (!_configService.Current.UseInteractivePairRequestPopup)
+        {
+            Mediator.Publish(new NotificationMessage(
+                Loc.Get("AutoDetect.Notification.IncomingTitle"),
+                string.Format(CultureInfo.CurrentCulture, Loc.Get("AutoDetect.Notification.IncomingBody"), name, uid),
+                NotificationType.Info, TimeSpan.FromSeconds(5)));
+        }
     }
 
     private void OnManualPairInvite(ManualPairInviteMessage msg)
@@ -97,11 +104,15 @@ public sealed class NearbyPendingService : IMediatorSubscriber
 
         _pending[msg.SourceUid] = display;
         _logger.LogInformation("NearbyPending: received manual invite from {uid} ({name})", msg.SourceUid, display);
-        _mediator.Publish(new NotificationMessage(
-            Loc.Get("AutoDetect.Notification.IncomingTitle"),
-            string.Format(CultureInfo.CurrentCulture, Loc.Get("AutoDetect.Notification.IncomingBody"), display, msg.SourceUid),
-            NotificationType.Info, TimeSpan.FromSeconds(5)));
         _notificationTracker.Upsert(NotificationEntry.AutoDetect(msg.SourceUid, display));
+
+        if (!_configService.Current.UseInteractivePairRequestPopup)
+        {
+            _mediator.Publish(new NotificationMessage(
+                Loc.Get("AutoDetect.Notification.IncomingTitle"),
+                string.Format(CultureInfo.CurrentCulture, Loc.Get("AutoDetect.Notification.IncomingBody"), display, msg.SourceUid),
+                NotificationType.Info, TimeSpan.FromSeconds(5)));
+        }
     }
 
     public void Remove(string uid)

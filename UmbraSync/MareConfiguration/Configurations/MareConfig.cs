@@ -72,6 +72,7 @@ public class MareConfig : IMareConfiguration
     public const int AutoDetectFixedMaxDistanceMeters = 50;
     public int AutoDetectMaxDistanceMeters { get; set; } = AutoDetectFixedMaxDistanceMeters;
     public int AutoDetectMuteMinutes { get; set; } = 5;
+    public bool UseInteractivePairRequestPopup { get; set; } = true;
     public int TimeSpanBetweenScansInSeconds { get; set; } = 30;
     public int TransferBarsHeight { get; set; } = 12;
     public bool TransferBarsShowText { get; set; } = true;

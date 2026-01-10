@@ -617,6 +617,8 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
 
             foreach (var slot in _slots.ToList())
             {
+                using var slotId = ImRaii.PushId("slot_" + slot.SlotId);
+
                 ImGui.TableNextColumn();
                 ImGui.AlignTextToFramePadding();
                 ImGui.TextUnformatted(slot.SlotName);
@@ -802,6 +804,8 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                                 Radius = _slotRadius
                             }
                         };
+                        _logger.LogInformation("Saving slot: Name={name}, Server={server}, Territory={territory}, Division={division}, Ward={ward}, Plot={plot}, Pos=({x},{y},{z}), Radius={radius}",
+                            _slotName, _slotServerId, _slotTerritoryId, _slotDivisionId, _slotWardId, _slotPlotId, _slotX, _slotY, _slotZ, _slotRadius);
                         var success = await _apiController.SlotUpdate(request).ConfigureAwait(false);
                         if (success)
                         {
@@ -811,6 +815,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                         }
                         else
                         {
+                            _logger.LogWarning("Failed to save slot {name} - server returned false", _slotName);
                             Mediator.Publish(new NotificationMessage(Loc.Get("SyncshellAdmin.Slot.SaveErrorTitle"), Loc.Get("SyncshellAdmin.Slot.SaveErrorMessage"), NotificationType.Error));
                         }
                     });
