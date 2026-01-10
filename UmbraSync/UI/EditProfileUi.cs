@@ -51,6 +51,8 @@ public class EditProfileUi : WindowMediatorSubscriberBase
     private bool _wasOpen;
     private bool _rpLoaded = false;
     private bool _hrpLoaded = false;
+    private bool _vanityModalOpen = false;
+    private string _vanityInput = string.Empty;
 
     public EditProfileUi(ILogger<EditProfileUi> logger, MareMediator mediator,
         ApiController apiController, UiSharedService uiSharedService, FileDialogManager fileDialogManager,
@@ -585,7 +587,9 @@ public class EditProfileUi : WindowMediatorSubscriberBase
         ImGui.SameLine();
         if (_uiSharedService.IconTextButton(FontAwesomeIcon.Tag, Loc.Get("EditProfile.SetCustomId.Button")))
         {
-            ImGui.OpenPopup("SetCustomIdModal");
+            _vanityInput = string.Empty;
+            _vanityModalOpen = true;
+            ImGui.OpenPopup(Loc.Get("EditProfile.SetCustomId.Title"));
         }
         UiSharedService.AttachToolTip(Loc.Get("EditProfile.SetCustomId.Tooltip"));
         if (!isRp)
@@ -623,6 +627,47 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             _uiSharedService.DrawHelpText(Loc.Get("EditProfile.ProfileIsNsfwHelp"));
         }
         ImGui.Separator();
+
+        // Popup modal pour l'ID personnalisé
+        if (_vanityModalOpen && ImGui.BeginPopupModal(Loc.Get("EditProfile.SetCustomId.Title"), ref _vanityModalOpen, ImGuiWindowFlags.AlwaysAutoResize))
+        {
+            ImGui.TextWrapped(Loc.Get("EditProfile.SetCustomId.FormatHint"));
+            ImGuiHelpers.ScaledDummy(new Vector2(0f, 5f));
+
+            ImGui.SetNextItemWidth(400 * ImGuiHelpers.GlobalScale);
+            ImGui.InputTextWithHint("##customId", Loc.Get("EditProfile.SetCustomId.Placeholder"), ref _vanityInput, 64);
+
+            ImGuiHelpers.ScaledDummy(new Vector2(0f, ImGui.GetStyle().ItemSpacing.Y));
+            if (ImGui.Button(Loc.Get("EditProfile.SetCustomId.Confirm")))
+            {
+                _ = SubmitVanityAsync(_vanityInput);
+            }
+            ImGui.SameLine();
+            if (ImGui.Button(Loc.Get("Common.Cancel")))
+            {
+                _vanityModalOpen = false;
+                ImGui.CloseCurrentPopup();
+            }
+
+            ImGui.EndPopup();
+        }
+    }
+
+    private async Task SubmitVanityAsync(string input)
+    {
+        try
+        {
+            await _apiController.UserSetAlias(string.IsNullOrWhiteSpace(input) ? null : input).ConfigureAwait(false);
+            Mediator.Publish(new NotificationMessage(Loc.Get("EditProfile.SetCustomId.SentTitle"), Loc.Get("EditProfile.SetCustomId.SentBody"), NotificationType.Info));
+        }
+        catch
+        {
+            Mediator.Publish(new NotificationMessage(Loc.Get("EditProfile.SetCustomId.ErrorTitle"), Loc.Get("EditProfile.SetCustomId.ErrorBody"), NotificationType.Error));
+        }
+        finally
+        {
+            _vanityModalOpen = false;
+        }
     }
 
     protected override void Dispose(bool disposing)
