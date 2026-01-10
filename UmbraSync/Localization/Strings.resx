@@ -1029,7 +1029,7 @@ Click to change.</value>
     <value>Ban User</value>
   </data>
   <data name="SlotPopup.Title" xml:space="preserve">
-    <value>Syncshell Slot</value>
+    <value>SyncSlot</value>
   </data>
   <data name="SlotPopup.WelcomeTo" xml:space="preserve">
     <value>Welcome to {0}!</value>
@@ -1090,6 +1090,9 @@ Click to change.</value>
   </data>
   <data name="Slot.Toast.Joined" xml:space="preserve">
     <value>You have joined the Syncshell of {0}</value>
+  </data>
+  <data name="Slot.Toast.AutoLeft" xml:space="preserve">
+    <value>You have left the Syncshell {0} after 5 minutes of inactivity in the area.</value>
   </data>
   <data name="SyncshellAdmin.Tab.Slot" xml:space="preserve">
     <value>Slot</value>
@@ -2323,6 +2326,12 @@ Click to change.</value>
   </data>
   <data name="Settings.AutoDetect.AllowInvites" xml:space="preserve">
     <value>Allow incoming invitations</value>
+  </data>
+  <data name="Settings.AutoDetect.UseInteractivePopup" xml:space="preserve">
+    <value>Use interactive popup for invitations</value>
+  </data>
+  <data name="Settings.AutoDetect.UseInteractivePopupHelp" xml:space="preserve">
+    <value>Displays an interactive popup in the bottom right corner with buttons to accept or decline invitations. If disabled, shows a classic toast notification.</value>
   </data>
   <data name="Settings.AutoDetect.Enable" xml:space="preserve">
     <value>Enable AutoDetect</value>

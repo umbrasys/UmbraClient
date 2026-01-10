@@ -911,7 +911,7 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value />
   </data>
   <data name="SlotPopup.Title" xml:space="preserve">
-    <value>Syncshell Slot</value>
+    <value>SyncSlot</value>
   </data>
   <data name="SlotPopup.WelcomeTo" xml:space="preserve">
     <value>Bienvenue à {0} !</value>
@@ -972,6 +972,9 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   </data>
   <data name="Slot.Toast.Joined" xml:space="preserve">
     <value>Vous avez rejoint la Syncshell de {0}</value>
+  </data>
+  <data name="Slot.Toast.AutoLeft" xml:space="preserve">
+    <value>Vous avez quitté la Syncshell {0} après 5 minutes d'inactivité dans la zone.</value>
   </data>
   <data name="SyncshellAdmin.Tab.Slot" xml:space="preserve">
     <value>Slot</value>
@@ -2205,6 +2208,12 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   </data>
   <data name="Settings.AutoDetect.AllowInvites" xml:space="preserve">
     <value>Activer les invitations entrantes</value>
+  </data>
+  <data name="Settings.AutoDetect.UseInteractivePopup" xml:space="preserve">
+    <value>Utiliser la popup interactive pour les invitations</value>
+  </data>
+  <data name="Settings.AutoDetect.UseInteractivePopupHelp" xml:space="preserve">
+    <value>Affiche une popup en bas à droite avec des boutons pour accepter ou refuser les invitations. Si désactivé, affiche une notification toast classique.</value>
   </data>
   <data name="Settings.AutoDetect.Enable" xml:space="preserve">
     <value>Activer l'AutoDetect</value>

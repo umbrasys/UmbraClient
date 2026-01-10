@@ -2109,6 +2109,18 @@ public class SettingsUi : WindowMediatorSubscriberBase
             }
         }
 
+        // Interactive popup for pair requests is disabled when Nearby or Pair Requests are OFF
+        using (ImRaii.Disabled(isAutoDetectSuppressed || !enableDiscovery || !_configService.Current.AllowAutoDetectPairRequests))
+        {
+            bool useInteractivePopup = _configService.Current.UseInteractivePairRequestPopup;
+            if (ImGui.Checkbox(Loc.Get("Settings.AutoDetect.UseInteractivePopup"), ref useInteractivePopup))
+            {
+                _configService.Current.UseInteractivePairRequestPopup = useInteractivePopup;
+                _configService.Save();
+            }
+            _uiShared.DrawHelpText(Loc.Get("Settings.AutoDetect.UseInteractivePopupHelp"));
+        }
+
         var enableSlotNotifications = _configService.Current.EnableSlotNotifications;
         if (ImGui.Checkbox(Loc.Get("Settings.AutoDetect.EnableSlotNotifications"), ref enableSlotNotifications))
         {

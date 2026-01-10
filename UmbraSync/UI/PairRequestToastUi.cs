@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using System.Globalization;
 using System.Numerics;
 using UmbraSync.Localization;
+using UmbraSync.MareConfiguration;
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.Services;
 using UmbraSync.Services.AutoDetect;
@@ -32,11 +33,12 @@ public sealed class PairRequestToastUi : WindowMediatorSubscriberBase
     private readonly NearbyPendingService _nearbyPending;
     private readonly NearbyDiscoveryService _nearbyDiscoveryService;
     private readonly NotificationTracker _notificationTracker;
+    private readonly MareConfigService _configService;
 
     public PairRequestToastUi(ILogger<PairRequestToastUi> logger, MareMediator mediator,
         PerformanceCollectorService performanceCollectorService,
         DalamudUtilService dalamudUtilService, ApiController apiController, NearbyPendingService nearbyPending,
-        NearbyDiscoveryService nearbyDiscoveryService, NotificationTracker notificationTracker)
+        NearbyDiscoveryService nearbyDiscoveryService, NotificationTracker notificationTracker, MareConfigService configService)
         : base(logger, mediator, "UmbraSync Pair Requests Toasts", performanceCollectorService)
     {
         _dalamudUtilService = dalamudUtilService;
@@ -44,6 +46,7 @@ public sealed class PairRequestToastUi : WindowMediatorSubscriberBase
         _nearbyPending = nearbyPending;
         _nearbyDiscoveryService = nearbyDiscoveryService;
         _notificationTracker = notificationTracker;
+        _configService = configService;
 
         Flags |= ImGuiWindowFlags.NoDecoration;
         Flags |= ImGuiWindowFlags.NoSavedSettings;
@@ -62,6 +65,8 @@ public sealed class PairRequestToastUi : WindowMediatorSubscriberBase
     protected override void DrawInternal()
     {
         if (!_dalamudUtilService.IsLoggedIn) return;
+
+        if (!_configService.Current.UseInteractivePairRequestPopup) return;
 
         var pendingEntries = GetPendingEntries();
         if (pendingEntries.Count == 0) return;
