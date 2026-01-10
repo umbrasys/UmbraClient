@@ -11,6 +11,7 @@ using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
 using UmbraSync.Services.Events;
 using UmbraSync.Services.Mediator;
+using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.Utils;
 using UmbraSync.WebAPI.Files;
 using ObjectKind = UmbraSync.API.Data.Enum.ObjectKind;
@@ -32,6 +33,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     private readonly PluginWarningNotificationService _pluginWarningNotificationManager;
     private readonly VisibilityService _visibilityService;
     private readonly ApplicationSemaphoreService _applicationSemaphoreService;
+    private readonly ServerConfigurationManager _serverConfigurationManager;
     private string _currentProcessingHash = string.Empty;
     private CancellationTokenSource? _applicationCancellationTokenSource = new();
     private Guid _applicationId;
@@ -58,7 +60,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         FileCacheManager fileDbManager, MareMediator mediator,
         PlayerPerformanceService playerPerformanceService,
         MareConfigService configService, VisibilityService visibilityService,
-        ApplicationSemaphoreService applicationSemaphoreService) : base(logger, mediator)
+        ApplicationSemaphoreService applicationSemaphoreService, ServerConfigurationManager serverConfigurationManager) : base(logger, mediator)
     {
         Pair = pair;
         PairAnalyzer = pairAnalyzer;
@@ -72,6 +74,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         _configService = configService;
         _visibilityService = visibilityService;
         _applicationSemaphoreService = applicationSemaphoreService;
+        _serverConfigurationManager = serverConfigurationManager;
 
         _visibilityService.StartTracking(Pair.Ident);
 
@@ -1062,6 +1065,13 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         if (_dalamudUtil.TryGetWorldIdByIdent(Pair.Ident, out var worldId))
         {
             Pair.SetWorldId(worldId);
+            // Sauvegarder le nom et le WorldId pour utilisation ultérieure (pour les profils RP quand offline)
+            _serverConfigurationManager.SetWorldIdForUid(Pair.UserData.UID, worldId);
+        }
+
+        if (!string.IsNullOrEmpty(name))
+        {
+            _serverConfigurationManager.SetNameForUid(Pair.UserData.UID, name);
         }
 
         Mediator.Subscribe<HonorificReadyMessage>(this, msg =>
