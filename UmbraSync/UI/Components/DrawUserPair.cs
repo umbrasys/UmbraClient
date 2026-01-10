@@ -3,17 +3,15 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using System.Globalization;
+using System.Numerics;
 using UmbraSync.API.Data.Extensions;
 using UmbraSync.API.Dto.User;
-using UmbraSync.PlayerData.Pairs;
-using UmbraSync.Services;
-using UmbraSync.Services.Mediator;
-using UmbraSync.UI.Handlers;
-using UmbraSync.WebAPI;
-using System.Numerics;
-using UmbraSync.Services.ServerConfiguration;
-using System.Globalization;
 using UmbraSync.Localization;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Services.ServerConfiguration;
+using UmbraSync.UI.Handlers;
 
 namespace UmbraSync.UI.Components;
 
@@ -70,7 +68,7 @@ public class DrawUserPair : DrawPairBase
         width += spacingX * 1.2f;
         return width;
     }
-    
+
     protected override float GetLeftSideReservedWidth()
     {
         var style = ImGui.GetStyle();
@@ -79,7 +77,7 @@ public class DrawUserPair : DrawPairBase
 
         int icons = 1;
         if (!(_pair.UserPair!.OwnPermissions.IsPaired() && _pair.UserPair!.OtherPermissions.IsPaired()))
-            icons++; 
+            icons++;
         else if (_pair.UserPair!.OwnPermissions.IsPaused() || _pair.UserPair!.OtherPermissions.IsPaused())
             icons++;
         if (_pair.IsOnline && _pair.IsVisible)

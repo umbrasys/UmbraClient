@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.SignalR.Client;
-using UmbraSync.API.Dto.Slot;
-using UmbraSync.API.Dto.Group;
 using Microsoft.Extensions.Logging;
+using UmbraSync.API.Dto.Group;
+using UmbraSync.API.Dto.Slot;
 
 namespace UmbraSync.WebAPI.SignalR;
 
@@ -21,16 +21,16 @@ public partial class ApiController
         }
     }
 
-    public async Task<SlotInfoResponseDto?> SlotGetNearby(uint serverId, uint territoryId, float x, float y, float z)
+    public async Task<SlotInfoResponseDto?> SlotGetNearby(uint serverId, uint territoryId, uint divisionId, uint wardId, float x, float y, float z)
     {
         if (!IsConnected) return null;
         try
         {
-            return await _mareHub!.InvokeAsync<SlotInfoResponseDto?>(nameof(SlotGetNearby), serverId, territoryId, x, y, z).ConfigureAwait(false);
+            return await _mareHub!.InvokeAsync<SlotInfoResponseDto?>(nameof(SlotGetNearby), serverId, territoryId, divisionId, wardId, x, y, z).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "Error getting nearby slot info at {serverId}:{territoryId}", serverId, territoryId);
+            Logger.LogWarning(ex, "Error getting nearby slot info at {serverId}:{territoryId}:{divisionId}:{wardId}", serverId, territoryId, divisionId, wardId);
             return null;
         }
     }

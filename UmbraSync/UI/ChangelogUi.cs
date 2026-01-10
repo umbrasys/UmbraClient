@@ -171,6 +171,27 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
     {
         return new List<ChangelogEntry>
         {
+            new(new Version(2, 1, 0, 0), "2.1.0.0", new List<ChangelogLine>
+            {
+                new("Nouvelle fonctionnalité : Ajout du support complet des profils RP (Roleplay) avec gestion d'images et descriptions séparées par personnage."),
+                new("Nouvelle fonctionnalité : gestion des SyncShells et Slots pour une synchronisation avancée."),
+                new("Nouvelle fonctionnalité : Ajout de notifications interactives pour les invitations de pair avec options de configuration."),
+                new("Réécriture complète de l'intégration Penumbra avec architecture modulaire pour une meilleure stabilité."),
+                new("Traitement parallèle des pairs avec limitation configurable et amélioration des performances."),
+                new("Migration vers MessagePack v2.5.187 suite à un problème de vulnérabilité."),
+                new("Nombreuses améliorations de stabilité, modernisation du code et optimisations."),
+
+            }),
+            new(new Version(2, 0, 3, 5), "2.0.3.5", new List<ChangelogLine>
+            {
+                new("Correction du crash lors de rassemblements importants (50+ personnes) et amélioration de la stabilité de la synchronisation."),
+                new("Amélioration de la file de téléchargement : toujours active par défaut, limite augmentée à 50 téléchargements simultanés."),
+
+            }),
+            new(new Version(2, 0, 3, 4), "2.0.3.4", new List<ChangelogLine>
+            {
+                new("Optimisation de la gestion des mods Penumbra pour éviter les redraw inutiles."),
+            }),
             new(new Version(2, 0, 3, 3), "2.0.3.3", new List<ChangelogLine>
             {
                 new("Mise à jour de l'IPC Moodle."),

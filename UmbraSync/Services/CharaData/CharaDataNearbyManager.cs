@@ -1,12 +1,12 @@
 ﻿using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
+using Microsoft.Extensions.Logging;
+using System.Numerics;
 using UmbraSync.API.Data;
 using UmbraSync.Interop;
 using UmbraSync.MareConfiguration;
 using UmbraSync.Services.CharaData.Models;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.ServerConfiguration;
-using Microsoft.Extensions.Logging;
-using System.Numerics;
 
 namespace UmbraSync.Services.CharaData;
 

@@ -5,10 +5,16 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Utility;
+using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
+using System.Globalization;
+using System.Numerics;
+using System.Text.Json;
 using UmbraSync.API.Data;
 using UmbraSync.API.Data.Comparer;
 using UmbraSync.FileCache;
 using UmbraSync.Interop.Ipc;
+using UmbraSync.Localization;
 using UmbraSync.MareConfiguration;
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.PlayerData.Handlers;
@@ -21,12 +27,6 @@ using UmbraSync.WebAPI;
 using UmbraSync.WebAPI.Files;
 using UmbraSync.WebAPI.Files.Models;
 using UmbraSync.WebAPI.SignalR.Utils;
-using UmbraSync.Localization;
-using Microsoft.Extensions.Logging;
-using System.Collections.Concurrent;
-using System.Globalization;
-using System.Numerics;
-using System.Text.Json;
 
 namespace UmbraSync.UI;
 
@@ -186,7 +186,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
     {
         _lastTab = "Transfers";
         _uiShared.BigText(Loc.Get("Settings.Transfer.Title"));
-        
+
         bool enablePenumbraPrecache = _configService.Current.EnablePenumbraPrecache;
         if (ImGui.Checkbox(Loc.Get("Settings.Transfer.Precache.Enable"), ref enablePenumbraPrecache))
         {
@@ -223,7 +223,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             {
                 UiSharedService.ColorTextWrapped(_precacheService.StatusText, ImGuiColors.DalamudGrey);
             }
-            
+
             if (ImGui.Button(Loc.Get("Settings.Transfer.Precache.RunNow")))
             {
                 _precacheService.TriggerManualPrecache();
@@ -262,24 +262,39 @@ public class SettingsUi : WindowMediatorSubscriberBase
         ImGui.SameLine();
         ImGui.AlignTextToFramePadding();
         ImGui.TextUnformatted("0 = No limit/infinite");
-
-        bool enableDownloadQueue = _configService.Current.EnableDownloadQueue;
-        if (ImGui.Checkbox(Loc.Get("Settings.DownloadQueue.Enable"), ref enableDownloadQueue))
-        {
-            _configService.Current.EnableDownloadQueue = enableDownloadQueue;
-            _configService.Save();
-        }
-        UiSharedService.AttachToolTip(Loc.Get("Settings.DownloadQueue.EnableTooltip"));
-
         ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
-        if (ImGui.SliderInt("Maximum Parallel Downloads", ref maxParallelDownloads, 1, 10))
+        if (ImGui.SliderInt("Maximum Parallel Downloads", ref maxParallelDownloads, 1, 50))
         {
             _configService.Current.ParallelDownloads = maxParallelDownloads;
             _configService.Save();
         }
-        UiSharedService.AttachToolTip(enableDownloadQueue
-            ? Loc.Get("Settings.DownloadQueue.MaxWhenEnabled")
-            : Loc.Get("Settings.DownloadQueue.MaxStreams"));
+        UiSharedService.AttachToolTip("Limite le nombre de téléchargements simultanés pour éviter la surcharge. Recommandé : 10 (défaut: 10, max: 50)");
+
+        ImGui.Spacing();
+        _uiShared.BigText(Loc.Get("Settings.Transfer.PairProcessing.Title"));
+
+        bool enableParallelPairProcessing = _configService.Current.EnableParallelPairProcessing;
+        if (ImGui.Checkbox(Loc.Get("Settings.Transfer.PairProcessing.Enable"), ref enableParallelPairProcessing))
+        {
+            _configService.Current.EnableParallelPairProcessing = enableParallelPairProcessing;
+            _configService.Save();
+            Mediator.Publish(new PairProcessingLimitChangedMessage());
+        }
+        _uiShared.DrawHelpText(Loc.Get("Settings.Transfer.PairProcessing.Enable.Help"));
+
+        if (!enableParallelPairProcessing) ImGui.BeginDisabled();
+        ImGui.Indent();
+        int maxConcurrentPairApplications = _configService.Current.MaxConcurrentPairApplications;
+        ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
+        if (ImGui.SliderInt(Loc.Get("Settings.Transfer.PairProcessing.MaxConcurrent"), ref maxConcurrentPairApplications, 2, 16))
+        {
+            _configService.Current.MaxConcurrentPairApplications = maxConcurrentPairApplications;
+            _configService.Save();
+            Mediator.Publish(new PairProcessingLimitChangedMessage());
+        }
+        _uiShared.DrawHelpText(Loc.Get("Settings.Transfer.PairProcessing.MaxConcurrent.Help"));
+        ImGui.Unindent();
+        if (!enableParallelPairProcessing) ImGui.EndDisabled();
 
         ImGui.Separator();
         _uiShared.BigText("Transfer UI");
@@ -495,7 +510,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 0 => (uiColors[ChatService.DefaultColor].Dark, "Plugin Default"),
                 _ => (uiColors[i].Dark, $"[{i}] Sample Text")
             },
-            i => {
+            i =>
+            {
                 _configService.Current.ChatColor = i;
                 _configService.Save();
             }, globalChatColor);
@@ -508,7 +524,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
             ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
             _uiShared.DrawCombo("Chat channel", Enumerable.Range(1, _syncshellChatTypes.Count - 1), i => $"{_syncshellChatTypes[i].Item2}",
-            i => {
+            i =>
+            {
                 if (_configService.Current.ChatLogKind == (int)_syncshellChatTypes[i].Item1)
                     return;
                 _configService.Current.ChatLogKind = (int)_syncshellChatTypes[i].Item1;
@@ -625,7 +642,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 0 => (uiColors[globalChatColor > 0 ? globalChatColor : ChatService.DefaultColor].Dark, "(use global setting)"),
                 _ => (uiColors[i].Dark, $"[{i}] Sample Text")
             },
-            i => {
+            i =>
+            {
                 shellConfig.Color = i;
                 _serverConfigurationManager.SaveShellConfigForGid(gid, shellConfig);
             }, shellConfig.Color);
@@ -637,7 +655,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
             ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
             _uiShared.DrawCombo($"Chat channel##{gid}", Enumerable.Range(0, _syncshellChatTypes.Count), i => $"{_syncshellChatTypes[i].Item2}",
-            i => {
+            i =>
+            {
                 shellConfig.LogKind = (int)_syncshellChatTypes[i].Item1;
                 _serverConfigurationManager.SaveShellConfigForGid(gid, shellConfig);
             }, shellChatTypeIdx);
@@ -990,7 +1009,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
         _lastTab = "General";
 
-                _uiShared.BigText("Notes");
+        _uiShared.BigText("Notes");
         if (_uiShared.IconTextButton(FontAwesomeIcon.StickyNote, "Export all your user notes to clipboard"))
         {
             ImGui.SetClipboardText(UiSharedService.GetNotes(_pairManager.DirectPairs.UnionBy(_pairManager.GroupPairs.SelectMany(p => p.Value), p => p.UserData, UserDataComparer.Instance).ToList()));
@@ -1166,7 +1185,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 _guiHookService.RequestRedraw();
             }
         }
-        
+
         if (ImGui.Checkbox("Show separate Visible group", ref showVisibleSeparate))
         {
             _configService.Current.ShowVisibleUsersSeparately = showVisibleSeparate;
@@ -1371,9 +1390,9 @@ public class SettingsUi : WindowMediatorSubscriberBase
         ImGui.TextUnformatted("Current VRAM utilization by all nearby players:");
         ImGui.SameLine();
         using (ImRaii.PushColor(ImGuiCol.Text, UiSharedService.AccentColor, totalVramBytes < 2.0 * 1024.0 * 1024.0 * 1024.0))
-            using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudYellow, totalVramBytes >= 4.0 * 1024.0 * 1024.0 * 1024.0))
-                using (ImRaii.PushColor(ImGuiCol.Text, UiSharedService.AccentColor, totalVramBytes >= 6.0 * 1024.0 * 1024.0 * 1024.0))
-                    ImGui.TextUnformatted($"{totalVramBytes / 1024.0 / 1024.0 / 1024.0:0.00} GiB");
+        using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudYellow, totalVramBytes >= 4.0 * 1024.0 * 1024.0 * 1024.0))
+        using (ImRaii.PushColor(ImGuiCol.Text, UiSharedService.AccentColor, totalVramBytes >= 6.0 * 1024.0 * 1024.0 * 1024.0))
+            ImGui.TextUnformatted($"{totalVramBytes / 1024.0 / 1024.0 / 1024.0:0.00} GiB");
 
         ImGui.Separator();
         _uiShared.BigText("Individual Limits");
@@ -1858,7 +1877,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
                     if (_uiShared.IconTextButton(FontAwesomeIcon.Plus, "Register a new Umbra account"))
                     {
                         _registrationInProgress = true;
-                        _ = Task.Run(async () => {
+                        _ = Task.Run(async () =>
+                        {
                             try
                             {
                                 var reply = await _registerService.RegisterAccount(CancellationToken.None).ConfigureAwait(false);
@@ -2036,10 +2056,10 @@ public class SettingsUi : WindowMediatorSubscriberBase
     {
         _lastTab = "AutoDetect";
         _uiShared.BigText("AutoDetect");
-        
+
         bool isAutoDetectSuppressed = _autoDetectSuppressionService.IsSuppressed;
         bool enableDiscovery = _configService.Current.EnableAutoDetectDiscovery;
-        
+
         using (ImRaii.Disabled(isAutoDetectSuppressed))
         {
             if (ImGui.Checkbox(Loc.Get("Settings.AutoDetect.Enable"), ref enableDiscovery))
@@ -2087,6 +2107,18 @@ public class SettingsUi : WindowMediatorSubscriberBase
             {
                 UiSharedService.AttachToolTip(Loc.Get("Settings.AutoDetect.SuppressedTooltip"));
             }
+        }
+
+        // Interactive popup for pair requests is disabled when Nearby or Pair Requests are OFF
+        using (ImRaii.Disabled(isAutoDetectSuppressed || !enableDiscovery || !_configService.Current.AllowAutoDetectPairRequests))
+        {
+            bool useInteractivePopup = _configService.Current.UseInteractivePairRequestPopup;
+            if (ImGui.Checkbox(Loc.Get("Settings.AutoDetect.UseInteractivePopup"), ref useInteractivePopup))
+            {
+                _configService.Current.UseInteractivePairRequestPopup = useInteractivePopup;
+                _configService.Save();
+            }
+            _uiShared.DrawHelpText(Loc.Get("Settings.AutoDetect.UseInteractivePopupHelp"));
         }
 
         var enableSlotNotifications = _configService.Current.EnableSlotNotifications;

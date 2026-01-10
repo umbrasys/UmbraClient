@@ -2,11 +2,11 @@
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
 using Dalamud.Utility;
+using Microsoft.Extensions.Logging;
+using System.Globalization;
+using System.Text;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
-using Microsoft.Extensions.Logging;
-using System.Text;
-using System.Globalization;
 
 namespace UmbraSync.Interop.Ipc;
 
@@ -42,21 +42,8 @@ public sealed class IpcCallerCustomize : IIpcCaller
         CheckAPI();
     }
 
-    public bool APIAvailable { get; private set; } = false;
+    public bool APIAvailable { get; private set; }
 
-    public async Task RevertAsync(nint character)
-    {
-        if (!APIAvailable) return;
-        await _dalamudUtil.RunOnFrameworkThread(() =>
-        {
-            var gameObj = _dalamudUtil.CreateGameObject(character);
-            if (gameObj is ICharacter c)
-            {
-                _logger.LogTrace("CustomizePlus reverting for {chara}", c.Address.ToString("X", CultureInfo.InvariantCulture));
-                _customizePlusRevertCharacter.InvokeFunc(c.ObjectIndex);
-            }
-        }).ConfigureAwait(false);
-    }
 
     public async Task<Guid?> SetBodyScaleAsync(nint character, string scale)
     {
@@ -67,7 +54,7 @@ public sealed class IpcCallerCustomize : IIpcCaller
             if (gameObj is ICharacter c)
             {
                 string decodedScale = Encoding.UTF8.GetString(Convert.FromBase64String(scale));
-                    _logger.LogTrace("CustomizePlus applying for {chara}", c.Address.ToString("X", CultureInfo.InvariantCulture));
+                _logger.LogTrace("CustomizePlus applying for {chara}", c.Address.ToString("X", CultureInfo.InvariantCulture));
                 if (scale.IsNullOrEmpty())
                 {
                     _customizePlusRevertCharacter.InvokeFunc(c.ObjectIndex);

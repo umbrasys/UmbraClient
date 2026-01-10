@@ -2,12 +2,11 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
+using System.Globalization;
+using System.Numerics;
 using UmbraSync.Localization;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services.Mediator;
-using UmbraSync.WebAPI;
-using System.Globalization;
-using System.Numerics;
 
 namespace UmbraSync.UI.Components.Popup;
 

@@ -1,11 +1,14 @@
-﻿using Dalamud.Game.ClientState.Objects;
-using Dalamud.Interface.ImGuiFileDialog;
+﻿using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using UmbraSync.FileCache;
 using UmbraSync.Interop;
 using UmbraSync.Interop.Ipc;
+using UmbraSync.Localization;
 using UmbraSync.MareConfiguration;
 using UmbraSync.MareConfiguration.Configurations;
 using UmbraSync.PlayerData.Factories;
@@ -14,22 +17,13 @@ using UmbraSync.PlayerData.Services;
 using UmbraSync.Services;
 using UmbraSync.Services.Events;
 using UmbraSync.Services.Mediator;
-using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.Services.Notification;
+using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.UI;
-using UmbraSync.UI.Components;
 using UmbraSync.UI.Components.Popup;
 using UmbraSync.UI.Handlers;
 using UmbraSync.WebAPI;
 using UmbraSync.WebAPI.Files;
-using UmbraSync.WebAPI.SignalR;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using UmbraSync.Services.CharaData;
-using UmbraSync.Localization;
-
-using UmbraSync;
 
 namespace UmbraSync;
 
@@ -95,6 +89,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton<ServerConfigurationManager>();
             collection.AddSingleton<ApiController>();
             collection.AddSingleton<PerformanceCollectorService>();
+            collection.AddSingleton<ApplicationSemaphoreService>();
             collection.AddSingleton<HubFactory>();
             collection.AddSingleton<FileUploadManager>();
             collection.AddSingleton<FileTransferOrchestrator>();
@@ -188,6 +183,11 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton<IConfigService<IMareConfiguration>>(s => s.GetRequiredService<NotificationsConfigService>());
             collection.AddSingleton<ConfigurationMigrator>();
             collection.AddSingleton<ConfigurationSaveService>();
+            collection.AddSingleton<IPopupHandler, ReportPopupHandler>();
+            collection.AddSingleton<IPopupHandler, BanUserPopupHandler>();
+            collection.AddSingleton<IPopupHandler, SlotPopupHandler>();
+            collection.AddSingleton<WindowMediatorSubscriberBase, PopupHandler>();
+
 
             collection.AddSingleton<HubFactory>();
 
@@ -212,11 +212,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddScoped<WindowMediatorSubscriberBase, EventViewerUI>();
             collection.AddScoped<WindowMediatorSubscriberBase, CharaDataHubUi>();
             collection.AddScoped<WindowMediatorSubscriberBase>(sp => sp.GetRequiredService<EditProfileUi>());
-            collection.AddScoped<WindowMediatorSubscriberBase, PopupHandler>();
             collection.AddScoped<WindowMediatorSubscriberBase, TypingIndicatorOverlay>();
-            collection.AddScoped<IPopupHandler, ReportPopupHandler>();
-            collection.AddScoped<IPopupHandler, BanUserPopupHandler>();
-            collection.AddScoped<IPopupHandler, SlotPopupHandler>();
             collection.AddScoped<CacheCreationService>();
             collection.AddScoped<TransientResourceManager>();
             collection.AddScoped<PlayerDataFactory>();
@@ -270,7 +266,8 @@ public sealed class Plugin : IDalamudPlugin
             pluginLog.Warning(e, "Failed to initialize PartyListTypingService draw hook");
         }
 
-        _ = Task.Run(async () => {
+        _ = Task.Run(async () =>
+        {
             try
             {
                 await _host.StartAsync().ConfigureAwait(false);

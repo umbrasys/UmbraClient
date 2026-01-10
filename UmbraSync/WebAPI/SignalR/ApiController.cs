@@ -1,22 +1,19 @@
-﻿using Dalamud.Utility;
+﻿using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.Logging;
+using System.Reflection;
 using UmbraSync.API.Data;
 using UmbraSync.API.Data.Extensions;
 using UmbraSync.API.Dto;
-using UmbraSync.API.Dto.User;
 using UmbraSync.API.Dto.Group;
+using UmbraSync.API.Dto.User;
 using UmbraSync.API.SignalR;
-using UmbraSync.MareConfiguration;
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.Notification;
 using UmbraSync.Services.ServerConfiguration;
-using UmbraSync.WebAPI.SignalR;
 using UmbraSync.WebAPI.SignalR.Utils;
-using Microsoft.AspNetCore.SignalR.Client;
-using Microsoft.Extensions.Logging;
-using System.Reflection;
 
 namespace UmbraSync.WebAPI.SignalR;
 
@@ -36,7 +33,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
     private readonly NotificationTracker _notificationTracker;
     private CancellationTokenSource _connectionCancellationTokenSource;
     private ConnectionDto? _connectionDto;
-    private bool _doNotNotifyOnNextInfo = false;
+    private bool _doNotNotifyOnNextInfo;
     private CancellationTokenSource? _healthCheckTokenSource = new();
     private bool _initialized;
     private HubConnection? _mareHub;
@@ -181,10 +178,11 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
                 if (token.IsCancellationRequested) break;
 
                 _mareHub = await _hubFactory.GetOrCreate(token).ConfigureAwait(false);
-                InitializeApiHooks();
 
                 await _mareHub.StartAsync(token).ConfigureAwait(false);
-                
+
+                InitializeApiHooks();
+
                 _connectionDto = await GetConnectionDto().ConfigureAwait(false);
 
                 ServerState = ServerState.Connected;
@@ -282,10 +280,9 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         bool shouldPause = !isCurrentlyPaused;
 
         Logger.LogInformation("Toggling pause for {uid}: {isCurrentlyPaused} -> {shouldPause}", userData.UID, isCurrentlyPaused, shouldPause);
-
         if (shouldPause) _serverManager.AddPausedUid(userData.UID);
         else _serverManager.RemovePausedUid(userData.UID);
-
+        
         if (pair.UserPair != null)
         {
             var perm = pair.UserPair.OwnPermissions;
@@ -306,15 +303,23 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
                 _ = GroupChangeIndividualPermissionState(new GroupPairUserPermissionDto(groupEntry.Key.Group, userData, groupPerm));
             }
         }
-
-        if (shouldPause)
+        if (pair.Handler != null)
         {
-            Mediator.Publish(new PlayerVisibilityMessage(pair.Ident, IsVisible: false, Invalidate: true));
+            Logger.LogDebug("Using SetPaused mechanism for {uid}", userData.UID);
+            pair.Handler.SetPaused(shouldPause);
         }
         else
         {
-            _pairManager.CancelPendingOffline(userData.UID);
-            pair.ApplyLastReceivedData(forced: true);
+            Logger.LogWarning("Handler not available for {uid}, using fallback pause method", userData.UID);
+            if (shouldPause)
+            {
+                Mediator.Publish(new PlayerVisibilityMessage(pair.Ident, IsVisible: false, Invalidate: true));
+            }
+            else
+            {
+                _pairManager.CancelPendingOffline(userData.UID);
+                pair.ApplyLastReceivedData(forced: true);
+            }
         }
     }
 
@@ -340,9 +345,9 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
     {
         while (!ct.IsCancellationRequested && _mareHub != null)
         {
-            await Task.Delay(TimeSpan.FromSeconds(30), ct).ConfigureAwait(false);
             Logger.LogDebug("Checking Client Health State");
             _ = await CheckClientHealth().ConfigureAwait(false);
+            await Task.Delay(TimeSpan.FromSeconds(15), ct).ConfigureAwait(false);
         }
     }
 
@@ -419,7 +424,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         {
             var users = await GroupsGetUsersInGroup(group).ConfigureAwait(false);
             foreach (var user in users)
-        {
+            {
                 Logger.LogDebug("Group Pair: {user}", user);
                 _pairManager.AddGroupPair(user, isInitialLoad: true);
             }

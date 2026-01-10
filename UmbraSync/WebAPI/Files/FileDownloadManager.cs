@@ -1,5 +1,10 @@
 ﻿using Dalamud.Utility;
 using K4os.Compression.LZ4.Streams;
+using Microsoft.Extensions.Logging;
+using System.Globalization;
+using System.Net;
+using System.Net.Http.Json;
+using System.Security.Cryptography;
 using UmbraSync.API.Data;
 using UmbraSync.API.Dto.Files;
 using UmbraSync.API.Routes;
@@ -9,12 +14,6 @@ using UmbraSync.PlayerData.Handlers;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Utils;
 using UmbraSync.WebAPI.Files.Models;
-using Microsoft.Extensions.Logging;
-using System.Net;
-using System.Net.Http.Json;
-using System.Security.Cryptography;
-using System.Globalization;
-using System.Threading;
 
 namespace UmbraSync.WebAPI.Files;
 
@@ -155,7 +154,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
 
     private SemaphoreSlim GetQueueSemaphore()
     {
-        var desiredCapacity = Math.Clamp(_mareConfigService.Current.ParallelDownloads, 1, 10);
+        var desiredCapacity = Math.Clamp(_mareConfigService.Current.ParallelDownloads, 1, 50);
 
         using (_queueLock.EnterScope())
         {
@@ -391,7 +390,8 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
 
                     Logger.LogDebug("{dlName}: Decompressing {file}:{le} => {dest}", fi.Name, fileHash, fileLengthBytes, filePath);
 
-                    tasks.Add(Task.Run(() => {
+                    tasks.Add(Task.Run(() =>
+                    {
                         try
                         {
                             using var tmpFileStream = new HashingStream(new FileStream(tmpPath, new FileStreamOptions()
@@ -451,7 +451,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
                     }, CancellationToken.None));
                 }
 
-                Task.WaitAll([..tasks], CancellationToken.None);
+                Task.WaitAll([.. tasks], CancellationToken.None);
             }
             catch (EndOfStreamException)
             {
@@ -463,7 +463,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
             }
             finally
             {
-                Task.WaitAll([..tasks], CancellationToken.None);
+                Task.WaitAll([.. tasks], CancellationToken.None);
                 _orchestrator.ReleaseDownloadSlot();
                 if (fileBlockStream != null)
                     await fileBlockStream.DisposeAsync().ConfigureAwait(false);
@@ -526,8 +526,6 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
                     Logger.LogWarning(ex, "getFileSizes GET fallback failed");
                 }
             }
-
-            // For 5xx or other errors, try a permissive GET retry too (some proxies mis-handle POST)
             try
             {
                 var getRetry = await _orchestrator
@@ -555,8 +553,6 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
             {
                 Logger.LogWarning(ex, "getFileSizes GET retry threw");
             }
-
-            // As a last resort, log and return a conservative list with FileExists=false to avoid crashing the flow
             if (postResponse != null)
             {
                 var bodySnippet = await SafeReadBodySnippetAsync(postResponse, ct).ConfigureAwait(false);
@@ -590,7 +586,6 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
         }
         catch (System.Text.Json.JsonException)
         {
-            // Try to read as string and handle possible double-serialization or text/plain
             var body = await postResponse.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
             try
             {
@@ -599,7 +594,6 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
             catch (Exception ex)
             {
                 var snippet = body.Length > 2048 ? body[..2048] + "…" : body;
-                // Re-throw with context to satisfy analyzers and aid diagnostics
                 throw new System.Text.Json.JsonException($"Failed to parse getFileSizes response. Snippet: {snippet}", ex);
             }
         }
@@ -607,11 +601,9 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
 
     private static List<DownloadFileDto> ParseDownloadFileDtoList(string body)
     {
-        // If the server returned a quoted JSON string, unwrap it first
         string json = body;
         try
         {
-            // Detect a pure JSON string value (starts and ends with quotes) and small chance of double-encoding
             if (!string.IsNullOrEmpty(body) && body.Length >= 2 && body[0] == '"' && body[^1] == '"')
             {
                 var inner = System.Text.Json.JsonSerializer.Deserialize<string>(body);

@@ -1,10 +1,10 @@
 ﻿using Dalamud.Utility;
-using UmbraSync.API.Data;
-using UmbraSync.API.Dto.CharaData;
-using UmbraSync.Utils;
 using System.Globalization;
 using System.Numerics;
 using System.Text;
+using UmbraSync.API.Data;
+using UmbraSync.API.Dto.CharaData;
+using UmbraSync.Utils;
 
 namespace UmbraSync.Services.CharaData.Models;
 

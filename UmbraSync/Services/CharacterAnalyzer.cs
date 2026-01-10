@@ -1,6 +1,6 @@
-﻿using System;
+﻿using Lumina.Data.Files;
+using Microsoft.Extensions.Logging;
 using System.Runtime.InteropServices;
-using Lumina.Data.Files;
 using UmbraSync.API.Data;
 using UmbraSync.API.Data.Enum;
 using UmbraSync.FileCache;
@@ -8,8 +8,6 @@ using UmbraSync.MareConfiguration;
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.Services.Mediator;
 using UmbraSync.UI;
-using UmbraSync.Utils;
-using Microsoft.Extensions.Logging;
 
 namespace UmbraSync.Services;
 

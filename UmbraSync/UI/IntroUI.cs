@@ -3,8 +3,13 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Utility;
+using Microsoft.Extensions.Logging;
+using System.Globalization;
+using System.Numerics;
+using System.Text.RegularExpressions;
 using UmbraSync.API.Dto.Account;
 using UmbraSync.FileCache;
+using UmbraSync.Localization;
 using UmbraSync.MareConfiguration;
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.Services;
@@ -12,11 +17,6 @@ using UmbraSync.Services.Mediator;
 using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.WebAPI;
 using UmbraSync.WebAPI.SignalR.Utils;
-using Microsoft.Extensions.Logging;
-using System.Numerics;
-using System.Text.RegularExpressions;
-using System.Globalization;
-using UmbraSync.Localization;
 
 namespace UmbraSync.UI;
 
@@ -33,8 +33,8 @@ public partial class IntroUi : WindowMediatorSubscriberBase
     private string _secretKey = string.Empty;
     private string _timeoutLabel = string.Empty;
     private Task? _timeoutTask;
-    private bool _registrationInProgress = false;
-    private bool _registrationSuccess = false;
+    private bool _registrationInProgress;
+    private bool _registrationSuccess;
     private string? _registrationMessage;
     private RegisterReplyDto? _registrationReply;
 
@@ -244,7 +244,8 @@ public partial class IntroUi : WindowMediatorSubscriberBase
                 if (_uiShared.IconTextButton(FontAwesomeIcon.Plus, Loc.Get("CompactUi.IntroUi.Service.RegisterButton")))
                 {
                     _registrationInProgress = true;
-                    _ = Task.Run(async () => {
+                    _ = Task.Run(async () =>
+                    {
                         try
                         {
                             var reply = await _registerService.RegisterAccount(CancellationToken.None).ConfigureAwait(false);

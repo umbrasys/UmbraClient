@@ -1,6 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Text.Json;
 using UmbraSync.MareConfiguration.Configurations;
-using System.Text.Json;
 
 namespace UmbraSync.MareConfiguration;
 

@@ -1,21 +1,15 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Runtime.InteropServices;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
 using Dalamud.Plugin.Services;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Runtime.InteropServices;
 using UmbraSync.API.Data.Enum;
 using UmbraSync.Interop.ChatTwo;
 using UmbraSync.MareConfiguration;
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services.Mediator;
-using UmbraSync.WebAPI;
-using Dalamud.Game.ClientState.Party;
 
 namespace UmbraSync.Services;
 

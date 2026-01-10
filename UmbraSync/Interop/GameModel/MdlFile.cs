@@ -48,12 +48,12 @@ public class MdlFile
 
     public MdlFile(string filePath)
     {
-        VertexOffset = Array.Empty<uint>();
-        IndexOffset = Array.Empty<uint>();
-        VertexBufferSize = Array.Empty<uint>();
-        IndexBufferSize = Array.Empty<uint>();
-        Meshes = Array.Empty<MeshStruct>();
-        Lods = Array.Empty<LodStruct>();
+        VertexOffset = [];
+        IndexOffset = [];
+        VertexBufferSize = [];
+        IndexBufferSize = [];
+        Meshes = [];
+        Lods = [];
 
         using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
         using var r = new LuminaBinaryReader(stream);
@@ -205,13 +205,9 @@ public class MdlFile
     [Flags]
     public enum ModelFlags1 : byte
     {
-        DustOcclusionEnabled = 0x80,
-        SnowOcclusionEnabled = 0x40,
-        RainOcclusionEnabled = 0x20,
         Unknown1 = 0x10,
         LightingReflectionEnabled = 0x08,
         WavingAnimationDisabled = 0x04,
-        LightShadowDisabled = 0x02,
         ShadowDisabled = 0x01,
     }
 

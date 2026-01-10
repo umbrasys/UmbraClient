@@ -1,12 +1,10 @@
-﻿using UmbraSync.API.Data;
-using UmbraSync.API.Data.Comparer;
-using UmbraSync.MareConfiguration;
-using UmbraSync.Services.Mediator;
-using UmbraSync.WebAPI;
-using UmbraSync.PlayerData.Pairs;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
-using API = UmbraSync.API;
+using UmbraSync.API.Data;
+using UmbraSync.MareConfiguration;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Services.ServerConfiguration;
 
 namespace UmbraSync.Services;
 
@@ -19,6 +17,7 @@ public class UmbraProfileManager : MediatorSubscriberBase
     private readonly MareConfigService _mareConfigService;
     private readonly RpConfigService _rpConfigService;
     private readonly PairManager _pairManager;
+    private readonly ServerConfigurationManager _serverConfigurationManager;
     private readonly ConcurrentDictionary<(UserData User, string? CharName, uint? WorldId), UmbraProfileData> _umbraProfiles = new();
 
     private readonly UmbraProfileData _defaultProfileData = new(IsFlagged: false, IsNSFW: false, string.Empty, _noDescription);
@@ -27,20 +26,21 @@ public class UmbraProfileManager : MediatorSubscriberBase
 
     public UmbraProfileManager(ILogger<UmbraProfileManager> logger, MareConfigService mareConfigService,
         RpConfigService rpConfigService, MareMediator mediator, ApiController apiController,
-        PairManager pairManager, DalamudUtilService dalamudUtil) : base(logger, mediator)
+        PairManager pairManager, DalamudUtilService dalamudUtil, ServerConfigurationManager serverConfigurationManager) : base(logger, mediator)
     {
         _mareConfigService = mareConfigService;
         _rpConfigService = rpConfigService;
         _apiController = apiController;
         _pairManager = pairManager;
         _dalamudUtil = dalamudUtil;
+        _serverConfigurationManager = serverConfigurationManager;
 
         Mediator.Subscribe<ClearProfileDataMessage>(this, (msg) =>
         {
             if (msg.UserData != null)
             {
-                foreach (var k in _umbraProfiles.Keys.Where(k => 
-                    string.Equals(k.User.UID, msg.UserData.UID, StringComparison.Ordinal) && 
+                foreach (var k in _umbraProfiles.Keys.Where(k =>
+                    string.Equals(k.User.UID, msg.UserData.UID, StringComparison.Ordinal) &&
                     (msg.CharacterName == null || string.Equals(k.CharName, msg.CharacterName, StringComparison.Ordinal)) &&
                     (msg.WorldId == null || k.WorldId == msg.WorldId)).ToList())
                 {
@@ -56,8 +56,28 @@ public class UmbraProfileManager : MediatorSubscriberBase
     public UmbraProfileData GetUmbraProfile(UserData data)
     {
         var pair = _pairManager.GetPairByUID(data.UID);
-        var charName = pair?.PlayerName ?? (string.Equals(data.UID, _apiController.UID, StringComparison.Ordinal) ? _dalamudUtil.GetPlayerName() : null);
-        var worldId = pair?.WorldId ?? (string.Equals(data.UID, _apiController.UID, StringComparison.Ordinal) ? _dalamudUtil.GetWorldId() : null);
+        string? charName;
+        uint? worldId;
+
+        if (pair != null)
+        {
+            // Utilisateur online : utiliser les données du pair
+            charName = pair.PlayerName;
+            worldId = pair.WorldId == 0 ? null : pair.WorldId;
+        }
+        else if (string.Equals(data.UID, _apiController.UID, StringComparison.Ordinal))
+        {
+            // C'est nous-même : utiliser nos propres données
+            charName = _dalamudUtil.GetPlayerName();
+            worldId = _dalamudUtil.GetWorldId();
+        }
+        else
+        {
+            // Utilisateur offline : utiliser les dernières données connues
+            charName = _serverConfigurationManager.GetNameForUid(data.UID);
+            worldId = _serverConfigurationManager.GetWorldIdForUid(data.UID);
+        }
+
         return GetUmbraProfile(data, charName, worldId);
     }
 
@@ -90,6 +110,7 @@ public class UmbraProfileManager : MediatorSubscriberBase
                 CharacterName = charName,
                 WorldId = worldId
             }).ConfigureAwait(false);
+
             UmbraProfileData profileData = new(profile.Disabled, profile.IsNSFW ?? false,
                 string.IsNullOrEmpty(profile.ProfilePictureBase64) ? string.Empty : profile.ProfilePictureBase64,
                 string.IsNullOrEmpty(profile.Description) ? _noDescription : profile.Description,

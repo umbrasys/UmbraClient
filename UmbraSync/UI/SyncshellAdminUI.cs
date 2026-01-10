@@ -3,24 +3,19 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using System;
-using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
+using System.Globalization;
 using System.Numerics;
 using UmbraSync.API.Data.Enum;
 using UmbraSync.API.Data.Extensions;
 using UmbraSync.API.Dto.Group;
 using UmbraSync.API.Dto.Slot;
+using UmbraSync.Localization;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
 using UmbraSync.Services.AutoDetect;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.Notification;
-using UmbraSync.WebAPI;
-using UmbraSync.Localization;
-using Microsoft.Extensions.Logging;
-using System.Globalization;
-using System.Threading;
-using System.Threading.Tasks;
 using NotificationType = UmbraSync.MareConfiguration.Models.NotificationType;
 
 namespace UmbraSync.UI;
@@ -66,6 +61,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
     private string _slotDescription = string.Empty;
     private uint _slotServerId;
     private uint _slotTerritoryId;
+    private uint _slotDivisionId;
     private uint _slotWardId;
     private uint _slotPlotId;
     private float _slotX;
@@ -484,8 +480,8 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
             var capacityTab = ImRaii.TabItem(Loc.Get("SyncshellAdmin.Tab.Capacity"));
             if (capacityTab)
             {
-                if (!_capacityApplyInFlight 
-                    && _desiredCapacity != GroupFullInfo.MaxUserCount 
+                if (!_capacityApplyInFlight
+                    && _desiredCapacity != GroupFullInfo.MaxUserCount
                     && (_desiredCapacity < 1 || _desiredCapacity > _apiController.ServerInfo.MaxGroupUserCount))
                 {
                     _desiredCapacity = GroupFullInfo.MaxUserCount;
@@ -621,6 +617,8 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
 
             foreach (var slot in _slots.ToList())
             {
+                using var slotId = ImRaii.PushId("slot_" + slot.SlotId);
+
                 ImGui.TableNextColumn();
                 ImGui.AlignTextToFramePadding();
                 ImGui.TextUnformatted(slot.SlotName);
@@ -652,6 +650,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                     _slotDescription = slot.SlotDescription ?? string.Empty;
                     _slotServerId = slot.Location?.ServerId ?? 0;
                     _slotTerritoryId = slot.Location?.TerritoryId ?? 0;
+                    _slotDivisionId = slot.Location?.DivisionId ?? 0;
                     _slotWardId = slot.Location?.WardId ?? 0;
                     _slotPlotId = slot.Location?.PlotId ?? 0;
                     _slotX = slot.Location?.X ?? 0;
@@ -692,6 +691,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                 _slotDescription = string.Empty;
                 _slotServerId = 0;
                 _slotTerritoryId = 0;
+                _slotDivisionId = 0;
                 _slotWardId = 0;
                 _slotPlotId = 0;
                 _slotX = 0;
@@ -732,7 +732,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                     _slotX = player.Position.X;
                     _slotY = player.Position.Y;
                     _slotZ = player.Position.Z;
-                    
+
                     var mapData = _dalamudUtilService.GetMapData();
                     _slotTerritoryId = mapData.TerritoryId;
                     _slotServerId = mapData.ServerId;
@@ -755,9 +755,10 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                 {
                     var currentMapData = _dalamudUtilService.GetMapData();
                     _slotServerId = currentMapData.ServerId;
+                    _slotDivisionId = currentMapData.DivisionId;
                     _slotWardId = currentMapData.WardId;
                     _slotPlotId = currentMapData.HouseId;
-                    _logger.LogInformation("Captured housing info: S:{s} T:{t} W:{w} P:{p}", _slotServerId, _slotTerritoryId, _slotWardId, _slotPlotId);
+                    _logger.LogInformation("Captured housing info: S:{s} T:{t} D:{d} W:{w} P:{p}", _slotServerId, _slotTerritoryId, _slotDivisionId, _slotWardId, _slotPlotId);
                 }
             }
 
@@ -794,6 +795,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                             {
                                 ServerId = _slotServerId,
                                 TerritoryId = _slotTerritoryId,
+                                DivisionId = _slotDivisionId,
                                 WardId = _slotWardId,
                                 PlotId = _slotPlotId,
                                 X = _slotX,
@@ -802,6 +804,8 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                                 Radius = _slotRadius
                             }
                         };
+                        _logger.LogInformation("Saving slot: Name={name}, Server={server}, Territory={territory}, Division={division}, Ward={ward}, Plot={plot}, Pos=({x},{y},{z}), Radius={radius}",
+                            _slotName, _slotServerId, _slotTerritoryId, _slotDivisionId, _slotWardId, _slotPlotId, _slotX, _slotY, _slotZ, _slotRadius);
                         var success = await _apiController.SlotUpdate(request).ConfigureAwait(false);
                         if (success)
                         {
@@ -811,6 +815,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                         }
                         else
                         {
+                            _logger.LogWarning("Failed to save slot {name} - server returned false", _slotName);
                             Mediator.Publish(new NotificationMessage(Loc.Get("SyncshellAdmin.Slot.SaveErrorTitle"), Loc.Get("SyncshellAdmin.Slot.SaveErrorMessage"), NotificationType.Error));
                         }
                     });

@@ -1,48 +1,30 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+using Microsoft.Extensions.Logging;
+using System.Globalization;
 using System.Security.Cryptography;
-using System.Threading;
-using System.Threading.Tasks;
 using UmbraSync.API.Dto.McdfShare;
-using UmbraSync.MareConfiguration.Models;
 using UmbraSync.Localization;
+using UmbraSync.MareConfiguration.Models;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.Notification;
 using UmbraSync.Services.ServerConfiguration;
-using UmbraSync.WebAPI;
-using Microsoft.Extensions.Logging;
-using System.Globalization;
 
 namespace UmbraSync.Services.CharaData;
 
-public sealed class McdfShareManager
+public sealed class McdfShareManager(ILogger<McdfShareManager> logger, ApiController apiController,
+    CharaDataFileHandler fileHandler, CharaDataManager charaDataManager,
+    ServerConfigurationManager serverConfigurationManager, MareMediator mediator, NotificationTracker notificationTracker)
 {
-    private readonly ILogger<McdfShareManager> _logger;
-    private readonly ApiController _apiController;
-    private readonly CharaDataFileHandler _fileHandler;
-    private readonly CharaDataManager _charaDataManager;
-    private readonly ServerConfigurationManager _serverConfigurationManager;
-    private readonly MareMediator _mediator;
-    private readonly NotificationTracker _notificationTracker;
+    private readonly ILogger<McdfShareManager> _logger = logger;
+    private readonly ApiController _apiController = apiController;
+    private readonly CharaDataFileHandler _fileHandler = fileHandler;
+    private readonly CharaDataManager _charaDataManager = charaDataManager;
+    private readonly ServerConfigurationManager _serverConfigurationManager = serverConfigurationManager;
+    private readonly MareMediator _mediator = mediator;
+    private readonly NotificationTracker _notificationTracker = notificationTracker;
     private readonly SemaphoreSlim _operationSemaphore = new(1, 1);
     private readonly List<McdfShareEntryDto> _ownShares = new();
     private readonly List<McdfShareEntryDto> _sharedWithMe = new();
     private Task? _currentTask;
-
-    public McdfShareManager(ILogger<McdfShareManager> logger, ApiController apiController,
-        CharaDataFileHandler fileHandler, CharaDataManager charaDataManager,
-        ServerConfigurationManager serverConfigurationManager, MareMediator mediator, NotificationTracker notificationTracker)
-    {
-        _logger = logger;
-        _apiController = apiController;
-        _fileHandler = fileHandler;
-        _charaDataManager = charaDataManager;
-        _serverConfigurationManager = serverConfigurationManager;
-        _mediator = mediator;
-        _notificationTracker = notificationTracker;
-    }
 
     public IReadOnlyList<McdfShareEntryDto> OwnShares => _ownShares;
     public IReadOnlyList<McdfShareEntryDto> SharedShares => _sharedWithMe;

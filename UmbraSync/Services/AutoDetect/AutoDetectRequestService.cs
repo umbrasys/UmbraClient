@@ -1,19 +1,13 @@
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using UmbraSync.WebAPI.AutoDetect;
+using System.Collections.Concurrent;
+using UmbraSync.API.Data;
+using UmbraSync.API.Dto.User;
 using UmbraSync.MareConfiguration;
-using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.Notification;
+using UmbraSync.WebAPI.AutoDetect;
 using NotificationType = UmbraSync.MareConfiguration.Models.NotificationType;
-using UmbraSync.WebAPI;
-using UmbraSync.API.Dto.User;
-using UmbraSync.API.Data;
 
 namespace UmbraSync.Services.AutoDetect;
 

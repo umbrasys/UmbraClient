@@ -1,19 +1,20 @@
-using System;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Dalamud.Plugin.Services;
 using Lumina.Excel.Sheets;
-using UmbraSync.MareConfiguration;
-using UmbraSync.MareConfiguration.Models;
-using UmbraSync.Services;
-using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using UmbraSync.MareConfiguration;
+using UmbraSync.MareConfiguration.Models;
+using UmbraSync.Services.Mediator;
 
 namespace UmbraSync.Services.AutoDetect;
 
-public sealed class AutoDetectSuppressionService : IHostedService, IMediatorSubscriber
+public sealed class AutoDetectSuppressionService(ILogger<AutoDetectSuppressionService> logger,
+    MareConfigService configService,
+    IClientState clientState,
+    IDataManager dataManager,
+    DalamudUtilService dalamudUtilService,
+    MareMediator mediator)
+    : IHostedService, IMediatorSubscriber
 {
     private static readonly string[] ContentTypeKeywords =
     [
@@ -30,12 +31,12 @@ public sealed class AutoDetectSuppressionService : IHostedService, IMediatorSubs
         "conflit"
     ];
 
-    private readonly ILogger<AutoDetectSuppressionService> _logger;
-    private readonly MareConfigService _configService;
-    private readonly IClientState _clientState;
-    private readonly IDataManager _dataManager;
-    private readonly MareMediator _mediator;
-    private readonly DalamudUtilService _dalamudUtilService;
+    private readonly ILogger<AutoDetectSuppressionService> _logger = logger;
+    private readonly MareConfigService _configService = configService;
+    private readonly IClientState _clientState = clientState;
+    private readonly IDataManager _dataManager = dataManager;
+    private readonly MareMediator _mediator = mediator;
+    private readonly DalamudUtilService _dalamudUtilService = dalamudUtilService;
 
     private bool _isSuppressed;
     private bool _hasSavedState;
@@ -43,18 +44,6 @@ public sealed class AutoDetectSuppressionService : IHostedService, IMediatorSubs
     private bool _savedAllowRequests;
     private bool _suppressionWarningShown;
     public bool IsSuppressed => _isSuppressed;
-
-    public AutoDetectSuppressionService(ILogger<AutoDetectSuppressionService> logger,
-        MareConfigService configService, IClientState clientState,
-        IDataManager dataManager, DalamudUtilService dalamudUtilService, MareMediator mediator)
-    {
-        _logger = logger;
-        _configService = configService;
-        _clientState = clientState;
-        _dataManager = dataManager;
-        _dalamudUtilService = dalamudUtilService;
-        _mediator = mediator;
-    }
 
     public MareMediator Mediator => _mediator;
 

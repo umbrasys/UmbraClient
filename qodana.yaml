@@ -16,9 +16,10 @@ bootstrap: |
 
   echo "Dalamud installed to: $DALAMUD_PATH"
   export DALAMUD_DIR="$DALAMUD_PATH"
+  echo "DALAMUD_DIR=$DALAMUD_PATH" >> $GITHUB_ENV || true
 
   echo "Restoring NuGet packages..."
-  dotnet restore UmbraSync.sln --verbosity minimal -p:DALAMUD_DIR="$DALAMUD_PATH"
+  dotnet restore UmbraSync.sln -p:DALAMUD_DIR="$DALAMUD_PATH"
 
   echo "=== Bootstrap complete ==="
 
@@ -31,12 +32,14 @@ exclude:
       - bin
       - obj
       - dalamud
+      - "**/bin"
+      - "**/obj"
   - name: Exclude external dependencies
     paths:
-      - OtterGui
-      - OtterGuiInternal
-      - Penumbra.Api
-      - Glamourer.Api
+      - OtterGui/
+      - OtterGuiInternal/
+      - Penumbra.Api/
+      - Glamourer.Api/
       - UmbraServer
       - UmbraAPI/UmbraSyncAPI/bin
       - UmbraAPI/UmbraSyncAPI/obj
@@ -62,3 +65,4 @@ exclude:
   - name: UnityPerformanceHighlighting
   - name: WebConfigErrors
   - name: XAMLErrors
+  - name: MA0009  # Regex DoS false positive - simple patterns without backtracking risk

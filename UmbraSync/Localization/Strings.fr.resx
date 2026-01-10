@@ -180,7 +180,24 @@
   <data name="Settings.Transfer.Precache.Status.WaitingConnection" xml:space="preserve">
     <value>En attente de connexion au serveur</value>
   </data>
-  
+
+  <!-- Paramètres de traitement des pairs -->
+  <data name="Settings.Transfer.PairProcessing.Title" xml:space="preserve">
+    <value>Traitement des pairs</value>
+  </data>
+  <data name="Settings.Transfer.PairProcessing.Enable" xml:space="preserve">
+    <value>Activer le traitement parallèle des pairs</value>
+  </data>
+  <data name="Settings.Transfer.PairProcessing.Enable.Help" xml:space="preserve">
+    <value>Lorsqu'activé, plusieurs pairs peuvent être traités simultanément (plus rapide mais utilise plus de CPU). Lorsque désactivé, les pairs sont traités un par un (plus lent mais plus stable). Recommandé : désactivé pour les PC moins puissants.</value>
+  </data>
+  <data name="Settings.Transfer.PairProcessing.MaxConcurrent" xml:space="preserve">
+    <value>Pairs simultanés max</value>
+  </data>
+  <data name="Settings.Transfer.PairProcessing.MaxConcurrent.Help" xml:space="preserve">
+    <value>Nombre maximum de pairs pouvant être traités en même temps. Des valeurs plus élevées sont plus rapides mais utilisent plus de ressources. Recommandé : 4 (défaut : 4, max : 16)</value>
+  </data>
+
   <!-- Vanity / Custom ID in Edit Profile (FR) -->
   <data name="EditProfile.SetCustomId.Button" xml:space="preserve">
     <value>Définir l'ID personnalisé</value>
@@ -894,7 +911,7 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value />
   </data>
   <data name="SlotPopup.Title" xml:space="preserve">
-    <value>Syncshell Slot</value>
+    <value>SyncSlot</value>
   </data>
   <data name="SlotPopup.WelcomeTo" xml:space="preserve">
     <value>Bienvenue à {0} !</value>
@@ -952,6 +969,12 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   </data>
   <data name="Slot.Toast.AutoLeaveStarting" xml:space="preserve">
     <value>Vous quittez les alentours de {0}. Vous serez exclu de la Syncshell dans 5 minutes si vous ne revenez pas dans la zone.</value>
+  </data>
+  <data name="Slot.Toast.Joined" xml:space="preserve">
+    <value>Vous avez rejoint la Syncshell de {0}</value>
+  </data>
+  <data name="Slot.Toast.AutoLeft" xml:space="preserve">
+    <value>Vous avez quitté la Syncshell {0} après 5 minutes d'inactivité dans la zone.</value>
   </data>
   <data name="SyncshellAdmin.Tab.Slot" xml:space="preserve">
     <value>Slot</value>
@@ -2185,6 +2208,12 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   </data>
   <data name="Settings.AutoDetect.AllowInvites" xml:space="preserve">
     <value>Activer les invitations entrantes</value>
+  </data>
+  <data name="Settings.AutoDetect.UseInteractivePopup" xml:space="preserve">
+    <value>Utiliser la popup interactive pour les invitations</value>
+  </data>
+  <data name="Settings.AutoDetect.UseInteractivePopupHelp" xml:space="preserve">
+    <value>Affiche une popup en bas à droite avec des boutons pour accepter ou refuser les invitations. Si désactivé, affiche une notification toast classique.</value>
   </data>
   <data name="Settings.AutoDetect.Enable" xml:space="preserve">
     <value>Activer l'AutoDetect</value>

@@ -1,8 +1,8 @@
 ﻿using Dalamud.Plugin.Services;
-using UmbraSync.MareConfiguration;
 using Microsoft.Extensions.Logging;
-using System.Text;
 using System.Globalization;
+using System.Text;
+using UmbraSync.MareConfiguration;
 
 namespace UmbraSync.Interop;
 

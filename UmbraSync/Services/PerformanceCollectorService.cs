@@ -1,11 +1,10 @@
-﻿using UmbraSync.MareConfiguration;
-using UmbraSync.Utils;
-using Microsoft.Extensions.Hosting;
+﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text;
-using System.Threading.Tasks;
+using UmbraSync.MareConfiguration;
+using UmbraSync.Utils;
 
 namespace UmbraSync.Services;
 

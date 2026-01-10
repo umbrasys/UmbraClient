@@ -20,7 +20,7 @@ public static class ChatUtils
 
         var footer = (byte)0x03; // Payload.END_BYTE
 
-        return new RawPayload([..header, ..guid.ToByteArray(), footer]);
+        return new RawPayload([.. header, .. guid.ToByteArray(), footer]);
     }
 
     // We have a unique identifier in the form of a GID, which can be consistently mapped to the same GUID

@@ -1,14 +1,15 @@
-﻿using System;
+﻿using Dalamud.Game.Gui.ContextMenu;
+using Dalamud.Plugin.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Globalization;
-using System.Linq;
-using Dalamud.Game.Gui.ContextMenu;
-using Dalamud.Plugin.Services;
 using UmbraSync.API.Data;
 using UmbraSync.API.Data.Comparer;
 using UmbraSync.API.Data.Extensions;
 using UmbraSync.API.Dto.Group;
 using UmbraSync.API.Dto.User;
+using UmbraSync.Localization;
 using UmbraSync.MareConfiguration;
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.PlayerData.Factories;
@@ -16,10 +17,6 @@ using UmbraSync.Services;
 using UmbraSync.Services.AutoDetect;
 using UmbraSync.Services.Events;
 using UmbraSync.Services.Mediator;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using UmbraSync.Localization;
-using UmbraSync.WebAPI;
 
 namespace UmbraSync.PlayerData.Pairs;
 
@@ -229,11 +226,23 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
             {
                 // ignored: offline was canceled due to online signal
             }
+            catch (ObjectDisposedException)
+            {
+                // ignored: CTS was disposed by a concurrent call - this is expected during rapid pause/unpause
+                Logger.LogTrace("CancellationTokenSource disposed during MarkPairOffline for {uid}", uid);
+            }
             finally
             {
                 // Clean up token only if it's still our CTS
                 _pendingOffline.TryRemove(KeyValuePair.Create(uid, cts));
-                cts.Dispose();
+                try
+                {
+                    cts.Dispose();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Already disposed - safe to ignore
+                }
             }
         });
     }
@@ -256,15 +265,12 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
 
     public void MarkPairOnline(OnlineUserIdentDto dto, bool sendNotif = true)
     {
-        // Cancel any pending offline debounce for this UID (come back online immediately)
         CancelPendingOffline(dto.User.UID);
-
         if (!_allClientPairs.TryGetValue(dto.User, out var pair))
         {
             if (Logger.IsEnabled(LogLevel.Debug))
-                Logger.LogDebug("No user found for {uid}, creating temporary pair for online signal", dto.User.UID);
-            pair = _pairFactory.Create(dto.User);
-            _allClientPairs[dto.User] = pair;
+                Logger.LogDebug("No user found for {uid}, ignoring online signal (no existing pair)", dto.User.UID);
+            return;
         }
 
         Mediator.Publish(new ClearProfileDataMessage(dto.User));
@@ -277,9 +283,6 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
             RecreateLazy();
             return;
         }
-
-        // Create cached player BEFORE sending notification to prevent duplicate notifications
-        // if this method is called multiple times rapidly for the same user
         pair.CreateCachedPlayer(dto);
 
         if (sendNotif && _configurationService.Current.ShowOnlineNotifications
@@ -305,9 +308,8 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         if (!_allClientPairs.TryGetValue(dto.User, out var pair))
         {
             if (Logger.IsEnabled(LogLevel.Debug))
-                Logger.LogDebug("No user found for {uid}, creating temporary pair for character data", dto.User.UID);
-            pair = _pairFactory.Create(dto.User);
-            _allClientPairs[dto.User] = pair;
+                Logger.LogDebug("No user found for {uid}, ignoring character data (no existing pair)", dto.User.UID);
+            return;
         }
 
         Mediator.Publish(new EventMessage(new Event(pair.UserData, nameof(PairManager), EventSeverity.Informational, "Received Character Data")));
@@ -774,7 +776,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
                 IsSubmenu = false,
                 IsReturn = false,
                 Priority = 1,
-                OnClicked = args =>
+                OnClicked = clickedArgs =>
                 {
                     _ = _autoDetectRequestService.SendRequestAsync(
                         nearbyEntry.Token!,
@@ -796,7 +798,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
                 IsSubmenu = false,
                 IsReturn = false,
                 Priority = 0,
-                OnClicked = args =>
+                OnClicked = clickedArgs =>
                 {
                     _ = _apiController.Value.UserAddPair(new UserDto(new UserData(nearbyEntry.Uid!)));
                 }

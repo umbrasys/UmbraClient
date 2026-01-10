@@ -1,7 +1,7 @@
-using Microsoft.Extensions.Logging;
-using UmbraSync.Services.Mediator;
-using UmbraSync.API.Dto.CharaData;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using UmbraSync.API.Dto.CharaData;
+using UmbraSync.Services.Mediator;
 
 namespace UmbraSync.Services;
 
@@ -49,12 +49,10 @@ public class HousingMonitorService : IHostedService, IMediatorSubscriber
                     await Task.Delay(5000, ct).ConfigureAwait(false);
                     continue;
                 }
-
-                // Toujours envoyer la position si on est dans un territoire de housing (TerritoryId change ou position change assez)
                 var player = await _dalamudUtil.GetPlayerCharacterAsync().ConfigureAwait(false);
                 if (player != null)
                 {
-                    _mediator.Publish(new HousingPositionUpdateMessage(currentLocation.ServerId, currentLocation.TerritoryId, player.Position));
+                    _mediator.Publish(new HousingPositionUpdateMessage(currentLocation.ServerId, currentLocation.TerritoryId, currentLocation.DivisionId, currentLocation.WardId, player.Position));
                 }
 
                 bool hasChanged = currentLocation.ServerId != _lastLocation.ServerId ||
@@ -64,10 +62,10 @@ public class HousingMonitorService : IHostedService, IMediatorSubscriber
 
                 if (hasChanged)
                 {
-                    _logger.LogDebug("Location changed from {lastServer}:{lastTerritory}:{lastWard}:{lastHouse} to {currentServer}:{currentTerritory}:{currentWard}:{currentHouse}", 
+                    _logger.LogDebug("Location changed from {lastServer}:{lastTerritory}:{lastWard}:{lastHouse} to {currentServer}:{currentTerritory}:{currentWard}:{currentHouse}",
                         _lastLocation.ServerId, _lastLocation.TerritoryId, _lastLocation.WardId, _lastLocation.HouseId,
                         currentLocation.ServerId, currentLocation.TerritoryId, currentLocation.WardId, currentLocation.HouseId);
-                    
+
                     bool wasInHousing = _lastLocation.HouseId != 0;
                     bool isInHousing = currentLocation.HouseId != 0;
 

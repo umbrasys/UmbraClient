@@ -1,5 +1,3 @@
-using UmbraSync.MareConfiguration.Configurations;
-
 namespace UmbraSync.MareConfiguration.Configurations;
 
 [Serializable]

@@ -1,8 +1,6 @@
-using System;
-using System.Collections.Generic;
-using UmbraSync.API.Dto.McdfShare;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
+using UmbraSync.API.Dto.McdfShare;
 
 namespace UmbraSync.WebAPI.SignalR;
 

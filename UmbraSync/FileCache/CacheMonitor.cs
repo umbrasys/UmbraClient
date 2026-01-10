@@ -1,13 +1,12 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
+using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
 using UmbraSync.Interop.Ipc;
 using UmbraSync.MareConfiguration;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Utils;
-using Microsoft.Extensions.Logging;
-using System.Collections.Concurrent;
-using System.Collections.Immutable;
-using System.Runtime.CompilerServices;
 
 namespace UmbraSync.FileCache;
 
@@ -70,7 +69,6 @@ public sealed class CacheMonitor : DisposableMediatorSubscriberBase
         _ = Task.Run((Func<Task>)(async () =>
         {
             Logger.LogInformation("Starting Periodic Storage Directory Calculation Task");
-            var token = _periodicCalculationTokenSource.Token;
             while (!token.IsCancellationRequested)
             {
                 try

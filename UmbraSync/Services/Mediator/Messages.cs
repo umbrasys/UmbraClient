@@ -1,4 +1,5 @@
 ﻿using Dalamud.Game.ClientState.Objects.Types;
+using System.Numerics;
 using UmbraSync.API.Data;
 using UmbraSync.API.Dto;
 using UmbraSync.API.Dto.CharaData;
@@ -10,7 +11,6 @@ using UmbraSync.PlayerData.Handlers;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services.Events;
 using UmbraSync.WebAPI.Files.Models;
-using System.Numerics;
 
 namespace UmbraSync.Services.Mediator;
 
@@ -85,6 +85,7 @@ public record OpenSlotPromptMessage(SlotInfoResponseDto SlotInfo) : MessageBase;
 public record OpenPermissionWindow(Pair Pair) : MessageBase;
 public record OpenPairAnalysisWindow(Pair Pair) : MessageBase;
 public record DownloadLimitChangedMessage() : SameThreadMessage;
+public record PairProcessingLimitChangedMessage() : MessageBase;
 public record CensusUpdateMessage(byte Gender, byte RaceId, byte TribeId) : MessageBase;
 public record TargetPairMessage(Pair Pair) : MessageBase;
 public record CombatOrPerformanceStartMessage : MessageBase;
@@ -123,7 +124,7 @@ public record SyncshellAutoDetectStateChanged(string Gid, bool Visible, bool Pas
 public record GroupLeftMessage(string Gid) : MessageBase;
 public record HousingPlotEnteredMessage(LocationInfo LocationInfo) : MessageBase;
 public record HousingPlotLeftMessage : MessageBase;
-public record HousingPositionUpdateMessage(uint ServerId, uint TerritoryId, Vector3 Position) : MessageBase;
+public record HousingPositionUpdateMessage(uint ServerId, uint TerritoryId, uint DivisionId, uint WardId, Vector3 Position) : MessageBase;
 public record ManualPairInviteMessage(string SourceUid, string SourceAlias, string TargetUid, string? DisplayName, string InviteId) : MessageBase;
 public record ApplyDefaultPairPermissionsMessage(UserPairDto Pair) : MessageBase;
 public record ApplyDefaultGroupPermissionsMessage(GroupPairFullInfoDto GroupPair) : MessageBase;

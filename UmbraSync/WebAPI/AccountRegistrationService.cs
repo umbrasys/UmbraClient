@@ -1,13 +1,11 @@
-using UmbraSync.API.Dto.Account;
-using UmbraSync.API.Routes;
-using UmbraSync.Services;
-using UmbraSync.Services.ServerConfiguration;
-using UmbraSync.Utils;
-using UmbraSync.WebAPI.SignalR;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Reflection;
 using System.Security.Cryptography;
+using UmbraSync.API.Dto.Account;
+using UmbraSync.API.Routes;
+using UmbraSync.Services.ServerConfiguration;
+using UmbraSync.Utils;
 
 namespace UmbraSync.WebAPI;
 

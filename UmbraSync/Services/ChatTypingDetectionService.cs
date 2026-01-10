@@ -1,20 +1,15 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
+using Dalamud.Game.Text;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
-using Dalamud.Game.Text;
-using FFXIVClientStructs.FFXIV.Component.GUI;
 using FFXIVClientStructs.FFXIV.Client.UI.Shell;
+using FFXIVClientStructs.FFXIV.Component.GUI;
 using Microsoft.Extensions.Logging;
-using UmbraSync.PlayerData.Pairs;
-using UmbraSync.WebAPI;
-using UmbraSync.MareConfiguration;
+using System.Globalization;
+using System.Runtime.CompilerServices;
 using UmbraSync.API.Data.Enum;
 using UmbraSync.API.Dto.User;
-using Dalamud.Game.ClientState.Party;
-using System.Globalization;
+using UmbraSync.MareConfiguration;
+using UmbraSync.PlayerData.Pairs;
 
 namespace UmbraSync.Services;
 
@@ -149,35 +144,38 @@ public sealed class ChatTypingDetectionService : IDisposable
                 _notifyingRemote = false;
             }
 
-            if (!_isTyping || !string.Equals(chatText, _lastChatText, StringComparison.Ordinal))
+            if (_isTyping && string.Equals(chatText, _lastChatText, StringComparison.Ordinal))
             {
-                // Keep server channel memberships up to date (party/alliance/etc.)
-                RefreshTypingChannelsIfChanged();
-
-                if (notifyRemote)
-                {
-                    var scope = GetCurrentTypingScope();
-                    if (scope == TypingScope.Unknown)
-                    {
-                        scope = TypingScope.Proximity; // fallback when chat type cannot be resolved
-                    }
-                    // Resolve channelId for scoped routing when available
-                    string? channelId = ResolveChannelIdForScope(scope);
-                    _logger.LogDebug("TypingDetection: notify remote scope={scope} channelId={channel} textLength={length}", scope, channelId, chatText.Length);
-                    if (!string.IsNullOrEmpty(channelId))
-                    {
-                        _chatService.NotifyTypingKeystroke(scope, channelId, targetUid: null);
-                    }
-                    else
-                    {
-                        _chatService.NotifyTypingKeystroke(scope);
-                    }
-                    _notifyingRemote = true;
-                }
-
-                _typingStateService.SetSelfTypingLocal(true);
-                _isTyping = true;
+                _lastChatText = chatText;
+                return;
             }
+
+            // Keep server channel memberships up to date (party/alliance/etc.)
+            RefreshTypingChannelsIfChanged();
+
+            if (notifyRemote)
+            {
+                var scope = GetCurrentTypingScope();
+                if (scope == TypingScope.Unknown)
+                {
+                    scope = TypingScope.Proximity; // fallback when chat type cannot be resolved
+                }
+                // Resolve channelId for scoped routing when available
+                string? channelId = ResolveChannelIdForScope(scope);
+                _logger.LogDebug("TypingDetection: notify remote scope={scope} channelId={channel} textLength={length}", scope, channelId, chatText.Length);
+                if (!string.IsNullOrEmpty(channelId))
+                {
+                    _chatService.NotifyTypingKeystroke(scope, channelId, targetUid: null);
+                }
+                else
+                {
+                    _chatService.NotifyTypingKeystroke(scope);
+                }
+                _notifyingRemote = true;
+            }
+
+            _typingStateService.SetSelfTypingLocal(true);
+            _isTyping = true;
 
             _lastChatText = chatText;
         }
@@ -412,12 +410,12 @@ public sealed class ChatTypingDetectionService : IDisposable
 
             _serverSupportWarnLogged = false;
 
-        var shellModule = RaptureShellModule.Instance();
-        if (shellModule == null)
-        {
-            _logger.LogDebug("TypingDetection: shell module null");
-            return true;
-        }
+            var shellModule = RaptureShellModule.Instance();
+            if (shellModule == null)
+            {
+                _logger.LogDebug("TypingDetection: shell module null");
+                return true;
+            }
 
             var chatType = (XivChatType)shellModule->ChatType;
             switch (chatType)
@@ -462,8 +460,8 @@ public sealed class ChatTypingDetectionService : IDisposable
 
             if (pairedNames.Count == 0)
             {
-            _logger.LogDebug("TypingDetection: no paired names online");
-            return false;
+                _logger.LogDebug("TypingDetection: no paired names online");
+                return false;
             }
 
             for (var i = 0; i < _partyList.Count; ++i)

@@ -3,8 +3,8 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using System.Numerics;
 using System.Globalization;
+using System.Numerics;
 using UmbraSync.Localization;
 
 namespace UmbraSync.UI;

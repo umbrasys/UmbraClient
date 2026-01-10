@@ -1,17 +1,14 @@
-using Dalamud.Interface.Colors;
-using Dalamud.Interface.Utility.Raii;
-using System.Numerics;
-using Dalamud.Interface;
-using Dalamud.Interface.Utility;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface;
+using Microsoft.Extensions.Logging;
+using System.Numerics;
+using UmbraSync.API.Data;
+using UmbraSync.API.Dto.Group;
 using UmbraSync.API.Dto.Slot;
 using UmbraSync.Localization;
+using UmbraSync.MareConfiguration.Models;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
-using UmbraSync.WebAPI.SignalR;
-using UmbraSync.API.Dto.Group;
-using UmbraSync.API.Data;
-using System.Threading.Tasks;
 
 namespace UmbraSync.UI.Components.Popup;
 
@@ -21,15 +18,17 @@ public class SlotPopupHandler : IPopupHandler
     private readonly UiSharedService _uiSharedService;
     private readonly SlotService _slotService;
     private readonly DalamudUtilService _dalamudUtilService;
+    private readonly MareMediator _mediator;
     private SlotInfoResponseDto? _slotInfo;
     private bool _joinPermanently = false;
 
-    public SlotPopupHandler(ApiController apiController, UiSharedService uiSharedService, SlotService slotService, DalamudUtilService dalamudUtilService)
+    public SlotPopupHandler(ApiController apiController, UiSharedService uiSharedService, SlotService slotService, DalamudUtilService dalamudUtilService, MareMediator mediator)
     {
         _apiController = apiController;
         _uiSharedService = uiSharedService;
         _slotService = slotService;
         _dalamudUtilService = dalamudUtilService;
+        _mediator = mediator;
     }
 
     public Vector2 PopupSize => new(550, 450);
@@ -38,7 +37,7 @@ public class SlotPopupHandler : IPopupHandler
     public void Open(OpenSlotPromptMessage msg)
     {
         _slotInfo = msg.SlotInfo;
-        _joinPermanently = false; // Reset à chaque ouverture
+        _joinPermanently = false;
     }
 
     public void DrawContent()
@@ -50,11 +49,8 @@ public class SlotPopupHandler : IPopupHandler
         var originalFontScale = ImGui.GetFont().Scale;
         ImGui.SetWindowFontScale(1.3f);
 
-        // Calculer la taille du titre
         var titleTextSize = ImGui.CalcTextSize(_slotInfo.SlotName);
         var windowWidth = ImGui.GetContentRegionAvail().X;
-
-        // Dessiner un rectangle arrondi autour du titre
         var padding = new Vector2(16, 8);
         var rectSize = new Vector2(titleTextSize.X + padding.X * 2, titleTextSize.Y + padding.Y * 2);
         var rectPosX = (windowWidth - rectSize.X) * 0.5f;
@@ -65,13 +61,11 @@ public class SlotPopupHandler : IPopupHandler
 
         ImGui.GetWindowDrawList().AddRect(rectTopLeft, rectBottomRight, rectColor, 8.0f, ImDrawFlags.None, 2.5f);
 
-        // Centrer le titre dans le rectangle
         ImGui.SetCursorPosX(ImGui.GetCursorPosX() + rectPosX + padding.X);
         ImGui.SetCursorPosY(ImGui.GetCursorPosY() + padding.Y);
 
         ImGui.TextColored(titleColor, _slotInfo.SlotName);
 
-        // Avancer le curseur pour compenser le padding
         ImGui.SetCursorPosY(ImGui.GetCursorPosY() + padding.Y);
 
         ImGui.SetWindowFontScale(originalFontScale);
@@ -80,7 +74,7 @@ public class SlotPopupHandler : IPopupHandler
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();
-        
+
         DrawInfoSection();
 
         ImGui.Spacing();
@@ -114,8 +108,6 @@ public class SlotPopupHandler : IPopupHandler
 
             string worldName = _dalamudUtilService.WorldData.Value.TryGetValue((ushort)_slotInfo.Location.ServerId, out var world) ? world : _slotInfo.Location.ServerId.ToString();
             string territoryName = _dalamudUtilService.TerritoryData.Value.TryGetValue(_slotInfo.Location.TerritoryId, out var territory) ? territory : _slotInfo.Location.TerritoryId.ToString();
-
-            // Format desired: "Ragnarok, Empyrée, Secteur 1 - Emplacement 2"
             string locationText = $"{worldName}, {territoryName}, Secteur {_slotInfo.Location.WardId} - Emplacement {_slotInfo.Location.PlotId}";
             ImGui.TextColored(textColor, locationText);
         }
@@ -136,18 +128,14 @@ public class SlotPopupHandler : IPopupHandler
     {
         if (_slotInfo == null) return;
 
-        // Titre de la section
         ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, 1.0f, 1.0f, 1.0f));
         ImGui.Text(Loc.Get("SlotPopup.AboutSlot"));
         ImGui.PopStyleColor();
         ImGui.Spacing();
-
-        // Description avec style
         if (!string.IsNullOrEmpty(_slotInfo.SlotDescription))
         {
             var descColor = new Vector4(0.85f, 0.85f, 0.85f, 1.0f);
 
-            // Créer une zone avec fond légèrement plus sombre
             var cursorPos = ImGui.GetCursorScreenPos();
             var windowSize = ImGui.GetContentRegionAvail();
             var boxHeight = 80f;
@@ -176,7 +164,6 @@ public class SlotPopupHandler : IPopupHandler
 
         if (_slotInfo.AssociatedSyncshell != null)
         {
-            // Information sur l'auto-join
             var infoColor = new Vector4(0.9f, 0.9f, 0.7f, 1.0f);
             ImGui.PushStyleColor(ImGuiCol.Text, infoColor);
             ImGui.PushTextWrapPos();
@@ -200,7 +187,6 @@ public class SlotPopupHandler : IPopupHandler
             ImGui.Spacing();
             ImGui.Spacing();
 
-            // Checkbox pour rejoindre de manière permanente
             var checkboxColor = new Vector4(0.9f, 0.9f, 0.9f, 1.0f);
             ImGui.PushStyleColor(ImGuiCol.Text, checkboxColor);
             ImGui.Checkbox(Loc.Get("SlotPopup.JoinPermanentlyCheckbox"), ref _joinPermanently);
@@ -214,7 +200,6 @@ public class SlotPopupHandler : IPopupHandler
             ImGui.Spacing();
             ImGui.Spacing();
 
-            // Centrer les boutons
             var buttonWidth = 200f;
             var buttonHeight = 45f;
             var spacing = 10f;
@@ -224,10 +209,10 @@ public class SlotPopupHandler : IPopupHandler
             if (cursorPosX > 0)
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + cursorPosX);
 
-            // Bouton Join avec style vert
             var joinText = Loc.Get("SlotPopup.JoinButton");
             if (_uiSharedService.IconTextButton(FontAwesomeIcon.Check, joinText, buttonWidth, isInPopup: true, buttonColor: new Vector4(0.2f, 0.6f, 0.2f, 1.0f), height: buttonHeight))
             {
+                var slotName = _slotInfo.SlotName;
                 _ = Task.Run(async () =>
                 {
                     if (_joinPermanently)
@@ -242,6 +227,12 @@ public class SlotPopupHandler : IPopupHandler
                         _slotService.MarkJoinedViaSlot(_slotInfo.AssociatedSyncshell);
                         await _apiController.SlotJoin(_slotInfo.SlotId).ConfigureAwait(false);
                     }
+                    
+                    // Notification toast de confirmation
+                    _mediator.Publish(new NotificationMessage(
+                        Loc.Get("SlotPopup.Title"),
+                        string.Format(Loc.Get("Slot.Toast.Joined"), slotName),
+                        NotificationType.Info));
                 });
                 ImGui.CloseCurrentPopup();
             }

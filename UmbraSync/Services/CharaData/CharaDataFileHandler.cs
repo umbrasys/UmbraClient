@@ -1,44 +1,37 @@
 ﻿using Dalamud.Game.ClientState.Objects.SubKinds;
 using K4os.Compression.LZ4.Legacy;
+using Microsoft.Extensions.Logging;
 using UmbraSync.API.Data;
 using UmbraSync.API.Data.Enum;
 using UmbraSync.API.Dto.CharaData;
 using UmbraSync.FileCache;
 using UmbraSync.PlayerData.Factories;
 using UmbraSync.PlayerData.Handlers;
-using UmbraSync.Services.CharaData;
 using UmbraSync.Services.CharaData.Models;
 using UmbraSync.Utils;
 using UmbraSync.WebAPI.Files;
-using Microsoft.Extensions.Logging;
-using System.Threading;
 
 namespace UmbraSync.Services.CharaData;
 
-public sealed class CharaDataFileHandler : IDisposable
+public sealed class CharaDataFileHandler(
+    ILogger<CharaDataFileHandler> logger,
+    FileDownloadManagerFactory fileDownloadManagerFactory,
+    FileUploadManager fileUploadManager,
+    FileCacheManager fileCacheManager,
+    DalamudUtilService dalamudUtilService,
+    GameObjectHandlerFactory gameObjectHandlerFactory,
+    PlayerDataFactory playerDataFactory)
+    : IDisposable
 {
-    private readonly DalamudUtilService _dalamudUtilService;
-    private readonly FileCacheManager _fileCacheManager;
-    private readonly FileDownloadManager _fileDownloadManager;
-    private readonly FileUploadManager _fileUploadManager;
-    private readonly GameObjectHandlerFactory _gameObjectHandlerFactory;
-    private readonly ILogger<CharaDataFileHandler> _logger;
-    private readonly MareCharaFileDataFactory _mareCharaFileDataFactory;
-    private readonly PlayerDataFactory _playerDataFactory;
+    private readonly DalamudUtilService _dalamudUtilService = dalamudUtilService;
+    private readonly FileCacheManager _fileCacheManager = fileCacheManager;
+    private readonly FileDownloadManager _fileDownloadManager = fileDownloadManagerFactory.Create();
+    private readonly FileUploadManager _fileUploadManager = fileUploadManager;
+    private readonly GameObjectHandlerFactory _gameObjectHandlerFactory = gameObjectHandlerFactory;
+    private readonly ILogger<CharaDataFileHandler> _logger = logger;
+    private readonly MareCharaFileDataFactory _mareCharaFileDataFactory = new(fileCacheManager);
+    private readonly PlayerDataFactory _playerDataFactory = playerDataFactory;
     private int _globalFileCounter = 0;
-
-    public CharaDataFileHandler(ILogger<CharaDataFileHandler> logger, FileDownloadManagerFactory fileDownloadManagerFactory, FileUploadManager fileUploadManager, FileCacheManager fileCacheManager,
-            DalamudUtilService dalamudUtilService, GameObjectHandlerFactory gameObjectHandlerFactory, PlayerDataFactory playerDataFactory)
-    {
-        _fileDownloadManager = fileDownloadManagerFactory.Create();
-        _logger = logger;
-        _fileUploadManager = fileUploadManager;
-        _fileCacheManager = fileCacheManager;
-        _dalamudUtilService = dalamudUtilService;
-        _gameObjectHandlerFactory = gameObjectHandlerFactory;
-        _playerDataFactory = playerDataFactory;
-        _mareCharaFileDataFactory = new(fileCacheManager);
-    }
 
     public void ComputeMissingFiles(CharaDataDownloadDto charaDataDownloadDto, out Dictionary<string, string> modPaths, out List<FileReplacementData> missingFiles)
     {
@@ -281,7 +274,7 @@ public sealed class CharaDataFileHandler : IDisposable
                 {
                     using var br = new BinaryReader(fsRead);
                     byte[] buffer = new byte[item.Length];
-                    br.Read(buffer, 0, item.Length);
+                    br.ReadExactly(buffer);
                     writer.Write(buffer);
                 }
             }

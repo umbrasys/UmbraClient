@@ -1,7 +1,7 @@
-using UmbraSync.Interop.Ipc;
-using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
+using UmbraSync.Interop.Ipc;
+using UmbraSync.Services.Mediator;
 
 namespace UmbraSync.Services;
 

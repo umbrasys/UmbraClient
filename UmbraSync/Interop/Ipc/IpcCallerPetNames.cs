@@ -1,10 +1,10 @@
 ﻿using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
-using UmbraSync.Services;
-using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Logging;
 using System.Globalization;
+using UmbraSync.Services;
+using UmbraSync.Services.Mediator;
 
 namespace UmbraSync.Interop.Ipc;
 
@@ -85,7 +85,7 @@ public sealed class IpcCallerPetNames : IIpcCaller
         {
             string localNameData = _getPlayerData.InvokeFunc();
             return string.IsNullOrEmpty(localNameData) ? string.Empty : localNameData;
-        } 
+        }
         catch (Exception e)
         {
             _logger.LogWarning(e, "Could not obtain Pet Nicknames data");
@@ -134,7 +134,7 @@ public sealed class IpcCallerPetNames : IIpcCaller
                 var gameObj = _dalamudUtil.CreateGameObject(characterPointer);
                 if (gameObj is IPlayerCharacter pc)
                 {
-                        _logger.LogTrace("Pet Nicknames removing for {addr}", pc.Address.ToString("X", CultureInfo.InvariantCulture));
+                    _logger.LogTrace("Pet Nicknames removing for {addr}", pc.Address.ToString("X", CultureInfo.InvariantCulture));
                     _clearPlayerData.InvokeAction(pc.ObjectIndex);
                 }
             }).ConfigureAwait(false);

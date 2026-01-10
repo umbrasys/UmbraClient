@@ -1,16 +1,15 @@
-﻿using UmbraSync.API.SignalR;
-using UmbraSync.Services;
-using UmbraSync.Services.Mediator;
-using UmbraSync.Services.Notification;
-using UmbraSync.Services.ServerConfiguration;
-using UmbraSync.WebAPI.SignalR.Utils;
-using Microsoft.AspNetCore.Http.Connections;
+﻿using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text.Json;
+using UmbraSync.API.SignalR;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Services.Notification;
+using UmbraSync.Services.ServerConfiguration;
+using UmbraSync.WebAPI.SignalR.Utils;
 
 namespace UmbraSync.WebAPI.SignalR;
 
@@ -169,11 +168,11 @@ public class HubFactory : MediatorSubscriberBase
         _instance = new HubConnectionBuilder()
             .WithUrl(hubConfig.HubUrl, options =>
             {
-                var transports =  hubConfig.TransportType;
+                var transports = hubConfig.TransportType;
                 options.AccessTokenProvider = () => _tokenProvider.GetOrUpdateToken(ct);
                 options.SkipNegotiation = hubConfig.SkipNegotiation && (transports == HttpTransportType.WebSockets);
                 options.Transports = transports;
-                options.CloseTimeout = TimeSpan.FromMinutes(5); 
+                options.CloseTimeout = TimeSpan.FromMinutes(5);
             })
             .AddJsonProtocol()
             .WithAutomaticReconnect(new ForeverRetryPolicy(Mediator, _notificationTracker))

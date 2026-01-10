@@ -1,17 +1,16 @@
 ﻿using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Colors;
+using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
+using System.Globalization;
+using System.Numerics;
+using UmbraSync.Localization;
 using UmbraSync.MareConfiguration;
 using UmbraSync.PlayerData.Handlers;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.WebAPI.Files;
 using UmbraSync.WebAPI.Files.Models;
-using Microsoft.Extensions.Logging;
-using System.Collections.Concurrent;
-using System.Numerics;
-using UmbraSync.Localization;
-using System;
-using System.Globalization;
 
 namespace UmbraSync.UI;
 
@@ -174,7 +173,7 @@ public class DownloadUi : WindowMediatorSubscriberBase
                 // Border
                 drawList.AddRectFilled(
                     dlBarStart with { X = dlBarStart.X - dlBarBorder, Y = dlBarStart.Y - dlBarBorder },
-                    dlBarEnd   with { X = dlBarEnd.X   + dlBarBorder, Y = dlBarEnd.Y   + dlBarBorder },
+                    dlBarEnd with { X = dlBarEnd.X + dlBarBorder, Y = dlBarEnd.Y + dlBarBorder },
                     UiSharedService.Color(40, 30, 50, transparency), barRounding + dlBarBorder);
 
                 // Track background
@@ -199,8 +198,8 @@ public class DownloadUi : WindowMediatorSubscriberBase
                         barRounding,
                         ImDrawFlags.RoundCornersAll);
                 }
-                
-                var glossTop    = dlBarStart;
+
+                var glossTop = dlBarStart;
                 var glossBottom = dlBarStart with { Y = dlBarStart.Y + dlBarHeight * 0.55f };
                 var glossAlphaTop = 22;   // faint white
                 var glossAlphaMid = 8;
