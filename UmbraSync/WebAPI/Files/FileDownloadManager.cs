@@ -247,6 +247,148 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
         }
     }
 
+    private async Task<bool> DownloadFileDirectAsync(DownloadFileTransfer file, string destPath, IProgress<long> progress, CancellationToken ct)
+    {
+        if (!file.HasDirectDownload || file.DirectDownloadUri == null)
+            return false;
+
+        var url = file.DirectDownloadUri.ToString();
+        Logger.LogDebug("Direct CDN download: {hash} from {url}", file.Hash, url);
+
+        try
+        {
+            var response = await _orchestrator.SendRequestAsync(HttpMethod.Get, url, ct, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                Logger.LogDebug("Direct CDN download 404 for {hash}, will fallback", file.Hash);
+                return false;
+            }
+
+            response.EnsureSuccessStatusCode();
+
+            ThrottledStream? stream = null;
+            try
+            {
+                using var fileStream = File.Create(destPath);
+                var bufferSize = response.Content.Headers.ContentLength > 1024 * 1024 ? 65536 : 8196;
+                var buffer = new byte[bufferSize];
+
+                var limit = _orchestrator.DownloadLimitPerSlot();
+                stream = new ThrottledStream(await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false), limit);
+                _activeDownloadStreams.Add(stream);
+
+                int bytesRead;
+                while ((bytesRead = await stream.ReadAsync(buffer, ct).ConfigureAwait(false)) > 0)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), ct).ConfigureAwait(false);
+                    progress.Report(bytesRead);
+                }
+
+                Logger.LogDebug("Direct CDN download complete: {hash}", file.Hash);
+                return true;
+            }
+            finally
+            {
+                if (stream != null)
+                {
+                    _activeDownloadStreams.Remove(stream);
+                    await stream.DisposeAsync().ConfigureAwait(false);
+                }
+            }
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            Logger.LogDebug("Direct CDN download 404 for {hash}, will fallback", file.Hash);
+            return false;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            Logger.LogWarning(ex, "Direct CDN download failed for {hash}, will fallback", file.Hash);
+            if (File.Exists(destPath)) File.Delete(destPath);
+            return false;
+        }
+    }
+
+    private async Task<bool> DownloadAndDecompressDirectAsync(DownloadFileTransfer file, string tmpPath, string destPath, IProgress<long> progress, CancellationToken ct)
+    {
+        if (!file.HasDirectDownload || file.DirectDownloadUri == null)
+            return false;
+
+        var url = file.DirectDownloadUri.ToString();
+        Logger.LogDebug("Direct CDN download+decompress: {hash} from {url}", file.Hash, url);
+
+        try
+        {
+            var response = await _orchestrator.SendRequestAsync(HttpMethod.Get, url, ct, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                Logger.LogDebug("Direct CDN 404 for {hash}, will fallback", file.Hash);
+                return false;
+            }
+
+            response.EnsureSuccessStatusCode();
+
+            ThrottledStream? throttledStream = null;
+            try
+            {
+                var limit = _orchestrator.DownloadLimitPerSlot();
+                throttledStream = new ThrottledStream(await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false), limit);
+                _activeDownloadStreams.Add(throttledStream);
+
+                using var hashingStream = new HashingStream(
+                    new FileStream(tmpPath, FileMode.Create, FileAccess.Write, FileShare.None),
+                    SHA1.Create());
+
+                using var lz4Decoder = LZ4Stream.Decode(throttledStream, leaveOpen: true);
+
+                var buffer = new byte[65536];
+                int bytesRead;
+                while ((bytesRead = await lz4Decoder.ReadAsync(buffer, ct).ConfigureAwait(false)) > 0)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    await hashingStream.WriteAsync(buffer.AsMemory(0, bytesRead), ct).ConfigureAwait(false);
+                    progress.Report(bytesRead);
+                }
+
+                hashingStream.Close();
+
+                var calculatedHash = BitConverter.ToString(hashingStream.Finish()).Replace("-", "", StringComparison.Ordinal);
+                if (!string.Equals(calculatedHash, file.Hash, StringComparison.OrdinalIgnoreCase))
+                {
+                    Logger.LogWarning("CDN hash mismatch for {hash}: got {calculated}", file.Hash, calculatedHash);
+                    if (File.Exists(tmpPath)) File.Delete(tmpPath);
+                    return false;
+                }
+
+                _fileCompactor.RenameAndCompact(destPath, tmpPath);
+                Logger.LogDebug("Direct CDN download+decompress complete: {hash}", file.Hash);
+                return true;
+            }
+            finally
+            {
+                if (throttledStream != null)
+                {
+                    _activeDownloadStreams.Remove(throttledStream);
+                    await throttledStream.DisposeAsync().ConfigureAwait(false);
+                }
+            }
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            Logger.LogDebug("Direct CDN 404 for {hash}, will fallback", file.Hash);
+            return false;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            Logger.LogWarning(ex, "Direct CDN download failed for {hash}, will fallback", file.Hash);
+            if (File.Exists(tmpPath)) File.Delete(tmpPath);
+            return false;
+        }
+    }
+
     public async Task<List<DownloadFileTransfer>> InitiateDownloadList(GameObjectHandler gameObjectHandler, List<FileReplacementData> fileReplacement, CancellationToken ct)
     {
         Logger.LogDebug("Download start: {id}", gameObjectHandler.Name);
@@ -274,7 +416,71 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
 
     private async Task DownloadFilesInternal(GameObjectHandler gameObjectHandler, List<FileReplacementData> fileReplacement, CancellationToken ct)
     {
-        var downloadGroups = CurrentDownloads
+        var directDownloads = CurrentDownloads.Where(f => f.HasDirectDownload).ToList();
+        var fallbackFiles = new List<DownloadFileTransfer>();
+
+        if (directDownloads.Count > 0)
+        {
+            Logger.LogInformation("Attempting direct CDN download for {count} files", directDownloads.Count);
+
+            const string cdnKey = "cdn-direct";
+            _downloadStatus[cdnKey] = new FileDownloadStatus
+            {
+                DownloadStatus = DownloadStatus.Downloading,
+                TotalBytes = directDownloads.Sum(f => f.Total),
+                TotalFiles = directDownloads.Count,
+                TransferredBytes = 0,
+                TransferredFiles = 0
+            };
+
+            Mediator.Publish(new DownloadStartedMessage(gameObjectHandler, _downloadStatus));
+
+            var parallelism = Math.Clamp(_mareConfigService.Current.ParallelDownloads, 1, 10);
+            await Parallel.ForEachAsync(directDownloads, new ParallelOptions
+            {
+                MaxDegreeOfParallelism = parallelism,
+                CancellationToken = ct
+            }, async (file, token) =>
+            {
+                var fileData = fileReplacement.FirstOrDefault(f => string.Equals(f.Hash, file.Hash, StringComparison.OrdinalIgnoreCase));
+                var fileExtension = fileData?.GamePaths[0].Split(".")[^1] ?? "tmp";
+                var filePath = _fileDbManager.GetCacheFilePath(file.Hash, fileExtension);
+                var tmpPath = filePath + ".cdntmp";
+
+                Progress<long> progress = new(bytes =>
+                {
+                    if (_downloadStatus.TryGetValue(cdnKey, out var status))
+                        status.TransferredBytes += bytes;
+                });
+
+                var success = await DownloadAndDecompressDirectAsync(file, tmpPath, filePath, progress, token).ConfigureAwait(false);
+
+                if (success)
+                {
+                    PersistFileToStorage(file.Hash, filePath, file.Total);
+                    if (_downloadStatus.TryGetValue(cdnKey, out var status))
+                        status.TransferredFiles++;
+                }
+                else
+                {
+                    lock (fallbackFiles) { fallbackFiles.Add(file); }
+                }
+            }).ConfigureAwait(false);
+
+            _downloadStatus.Remove(cdnKey, out _);
+
+            if (fallbackFiles.Count > 0)
+                Logger.LogInformation("CDN fallback needed for {count} files", fallbackFiles.Count);
+        }
+
+        var queueFiles = CurrentDownloads.Where(f => !f.HasDirectDownload).Concat(fallbackFiles).ToList();
+        if (queueFiles.Count == 0)
+        {
+            ClearDownload();
+            return;
+        }
+
+        var downloadGroups = queueFiles
             .GroupBy(f => f.DownloadUri.Host + ":" + f.DownloadUri.Port, StringComparer.Ordinal)
             .ToList();
 
