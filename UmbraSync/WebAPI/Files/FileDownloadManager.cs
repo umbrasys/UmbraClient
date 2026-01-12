@@ -257,7 +257,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
 
         try
         {
-            var response = await _orchestrator.SendRequestAsync(HttpMethod.Get, url, ct, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+            var response = await _orchestrator.SendRequestAsync(HttpMethod.Get, new Uri(url), ct, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
 
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
@@ -321,7 +321,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
 
         try
         {
-            var response = await _orchestrator.SendRequestAsync(HttpMethod.Get, url, ct, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+            var response = await _orchestrator.SendRequestAsync(HttpMethod.Get, new Uri(url), ct, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
 
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
