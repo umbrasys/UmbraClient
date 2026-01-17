@@ -183,9 +183,9 @@ public class HubFactory : MediatorSubscriberBase
             })
             .Build();
 
-        _instance.KeepAliveInterval = TimeSpan.FromSeconds(15);
-        _instance.ServerTimeout = TimeSpan.FromMinutes(6);
-        _instance.HandshakeTimeout = TimeSpan.FromSeconds(30);
+        _instance.KeepAliveInterval = TimeSpan.FromSeconds(10);
+        _instance.ServerTimeout = TimeSpan.FromMinutes(15);
+        _instance.HandshakeTimeout = TimeSpan.FromSeconds(60);
 
         _instance.Closed += HubOnClosed;
         _instance.Reconnecting += HubOnReconnecting;
