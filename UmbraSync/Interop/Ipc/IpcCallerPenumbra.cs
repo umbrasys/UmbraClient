@@ -149,6 +149,7 @@ public sealed class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
             _core.Dispose();
             _modSettings.Dispose();
             _redraw.Dispose();
+            _collections.Dispose();
             _resources.Dispose();
         }
     }

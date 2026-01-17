@@ -36,9 +36,13 @@ public sealed class PenumbraRedraw : IDisposable
     public async Task RedrawAsync(ILogger logger, GameObjectHandler handler, Guid applicationId, CancellationToken token)
     {
         if (!_core.APIAvailable || _core.DalamudUtil.IsZoning) return;
+
+        var semaphoreAcquired = false;
         try
         {
             await _core.RedrawManager.RedrawSemaphore.WaitAsync(token).ConfigureAwait(false);
+            semaphoreAcquired = true;
+
             await _core.RedrawManager.PenumbraRedrawInternalAsync(logger, handler, applicationId, (chara) =>
             {
                 logger.LogDebug("[{appid}] Calling on IPC: PenumbraRedraw", applicationId);
@@ -48,7 +52,10 @@ public sealed class PenumbraRedraw : IDisposable
         }
         finally
         {
-            _core.RedrawManager.RedrawSemaphore.Release();
+            if (semaphoreAcquired)
+            {
+                _core.RedrawManager.RedrawSemaphore.Release();
+            }
         }
     }
     

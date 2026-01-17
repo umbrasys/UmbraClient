@@ -110,7 +110,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         bool apiAvailable = false;
         try
         {
-            bool versionValid = _pluginLoaded && _pluginVersion >= new Version(1, 0, 6, 1);
+            bool versionValid = _pluginLoaded && _pluginVersion >= new Version(1, 3, 0, 10);
             try
             {
                 var version = _glamourerApiVersions.Invoke();
@@ -147,18 +147,18 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     {
         if (!APIAvailable || string.IsNullOrEmpty(customization) || _dalamudUtil.IsZoning) return;
 
-        await _redrawManager.RedrawSemaphore.WaitAsync(token).ConfigureAwait(false);
-
+        var semaphoreAcquired = false;
         try
         {
+            await _redrawManager.RedrawSemaphore.WaitAsync(token).ConfigureAwait(false);
+            semaphoreAcquired = true;
+
             await _redrawManager.PenumbraRedrawInternalAsync(logger, handler, applicationId, (chara) =>
             {
                 try
                 {
                     logger.LogDebug("[{appid}] Calling on IPC: GlamourerApplyAll", applicationId);
                     _glamourerApplyAll!.Invoke(customization, chara.ObjectIndex, LockCode);
-                    logger.LogDebug("[{appid}] Calling On IPC: PenumbraRedraw (post-apply)", applicationId);
-                    _mareMediator.Publish(new PenumbraRedrawCharacterMessage(chara));
                 }
                 catch (Exception ex)
                 {
@@ -168,7 +168,10 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         }
         finally
         {
-            _redrawManager.RedrawSemaphore.Release();
+            if (semaphoreAcquired)
+            {
+                _redrawManager.RedrawSemaphore.Release();
+            }
         }
     }
 
@@ -196,9 +199,13 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     public async Task RevertAsync(ILogger logger, GameObjectHandler handler, Guid applicationId, CancellationToken token)
     {
         if ((!APIAvailable) || _dalamudUtil.IsZoning) return;
+
+        var semaphoreAcquired = false;
         try
         {
             await _redrawManager.RedrawSemaphore.WaitAsync(token).ConfigureAwait(false);
+            semaphoreAcquired = true;
+
             await _redrawManager.PenumbraRedrawInternalAsync(logger, handler, applicationId, (chara) =>
             {
                 try
@@ -218,7 +225,10 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         }
         finally
         {
-            _redrawManager.RedrawSemaphore.Release();
+            if (semaphoreAcquired)
+            {
+                _redrawManager.RedrawSemaphore.Release();
+            }
         }
     }
 
