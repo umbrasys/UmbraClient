@@ -18,7 +18,7 @@ public sealed class PenumbraTemporaryMods
     
     public async Task SetManipulationDataAsync(ILogger logger, Guid applicationId, Guid collId, string manipulationData)
     {
-        if (!_core.APIAvailable) return;
+        if (!_core.APIAvailable || collId == Guid.Empty) return;
 
         await _core.DalamudUtil.RunOnFrameworkThread(() =>
         {
@@ -29,7 +29,7 @@ public sealed class PenumbraTemporaryMods
     }
     public async Task SetTemporaryModsAsync(ILogger logger, Guid applicationId, Guid collId, Dictionary<string, string> modPaths)
     {
-        if (!_core.APIAvailable) return;
+        if (!_core.APIAvailable || collId == Guid.Empty) return;
 
         await _core.DalamudUtil.RunOnFrameworkThread(() =>
         {

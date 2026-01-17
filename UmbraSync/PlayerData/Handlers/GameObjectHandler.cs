@@ -21,7 +21,6 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
     private CancellationTokenSource? _clearCts = new();
     private Task? _delayedZoningTask;
     private bool _haltProcessing;
-    private bool _ignoreSendAfterRedraw;
     private int _ptrNullCounter;
     private byte _classJob;
     private CancellationTokenSource _zoningCts = new();
@@ -78,12 +77,6 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
             if (msg.Address == Address)
             {
                 _haltProcessing = false;
-                _ = Task.Run(async () =>
-                {
-                    _ignoreSendAfterRedraw = true;
-                    await Task.Delay(500).ConfigureAwait(false);
-                    _ignoreSendAfterRedraw = false;
-                });
             }
         });
 
@@ -246,7 +239,7 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
                     Logger.LogTrace("Checking [{this}] equip data from game obj, result: {diff}", this, equipDiff);
             }
 
-            if (equipDiff && !_isOwnedObject && !_ignoreSendAfterRedraw) // send the message out immediately and cancel out, no reason to continue if not self
+            if (equipDiff && !_isOwnedObject) // send the message out immediately and cancel out, no reason to continue if not self
             {
                 Logger.LogTrace("[{this}] Changed", this);
                 Mediator.Publish(new CharacterChangedMessage(this));
