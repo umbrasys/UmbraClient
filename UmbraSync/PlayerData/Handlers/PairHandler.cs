@@ -732,29 +732,18 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
 
         _ = Task.Run(async () =>
         {
-            try
+            await using var semaphoreLease = await _applicationSemaphoreService
+                .AcquireAsync(downloadToken)
+                .ConfigureAwait(false);
+            if ((updateModdedPaths || updateManip) && !hasOtherChanges && !_forceApplyMods)
             {
-                await using var semaphoreLease = await _applicationSemaphoreService
-                    .AcquireAsync(downloadToken)
-                    .ConfigureAwait(false);
-                if ((updateModdedPaths || updateManip) && !hasOtherChanges && !_forceApplyMods)
-                {
-                    Logger.LogDebug("[BASE-{appBase}] Applying mod changes only - skipping full redraw", applicationBase);
-                    await ApplyModChangesOnlyAsync(applicationBase, charaData, updatedData, updateModdedPaths, updateManip, downloadToken).ConfigureAwait(false);
-                    return;
-                }
+                Logger.LogDebug("[BASE-{appBase}] Applying mod changes only - skipping full redraw", applicationBase);
+                await ApplyModChangesOnlyAsync(applicationBase, charaData, updatedData, updateModdedPaths, updateManip, downloadToken).ConfigureAwait(false);
+                return;
+            }
 
-                _currentProcessingHash = charaData.DataHash.Value;
-                await DownloadAndApplyCharacterAsync(applicationBase, charaData, updatedData, updateModdedPaths, updateManip, downloadToken).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                Logger.LogTrace("[BASE-{appBase}] Téléchargement annulé - nouveau téléchargement démarré", applicationBase);
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "[BASE-{appBase}] Erreur lors du téléchargement et de l'application du personnage", applicationBase);
-            }
+            _currentProcessingHash = charaData.DataHash.Value;
+            await DownloadAndApplyCharacterAsync(applicationBase, charaData, updatedData, updateModdedPaths, updateManip, downloadToken).ConfigureAwait(false);
         }, downloadToken);
     }
     
@@ -801,14 +790,9 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
 
             Logger.LogDebug("[BASE-{applicationBase}] Mod changes applied without forced redraw", applicationBase);
         }
-        catch (OperationCanceledException)
-        {
-            Logger.LogDebug("[BASE-{applicationBase}] Application des changements de mods annulée (token annulé)", applicationBase);
-            throw;
-        }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "[BASE-{applicationBase}] Échec de l'application des changements de mods uniquement, fallback vers application complète", applicationBase);
+            Logger.LogWarning(ex, "[BASE-{applicationBase}] Failed to apply mod changes only, falling back to full apply", applicationBase);
             await DownloadAndApplyCharacterAsync(applicationBase, charaData, updatedData, updateModdedPaths, updateManip, token).ConfigureAwait(false);
         }
     }
@@ -885,7 +869,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             if (exceedsThreshold)
                 Pair.HoldApplication("IndividualPerformanceThreshold", maxValue: 1);
             else
-                Pair.UnholdApplication("IndividualPerformanceThreshold", skipApplication: true);
+                Pair.UnholdApplication("IndividualPerformanceThreshold");
 
             if (exceedsThreshold)
             {
