@@ -25,8 +25,6 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
     private readonly ConcurrentDictionary<UserData, Pair> _allClientPairs = new(UserDataComparer.Instance);
     private readonly ConcurrentDictionary<GroupData, GroupFullInfoDto> _allGroups = new(GroupDataComparer.Instance);
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _pendingOffline = new(StringComparer.Ordinal);
-    private readonly ConcurrentDictionary<string, (OnlineUserCharaDataDto Data, DateTime ReceivedAt)> _pendingCharaData = new(StringComparer.Ordinal);
-    private static readonly TimeSpan PendingCharaDataTimeout = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan OfflineDebounce = TimeSpan.FromSeconds(6);
     private readonly ConcurrentQueue<DateTime> _offlineBurstEvents = new();
     private static readonly TimeSpan OfflineBurstWindow = TimeSpan.FromSeconds(1);
@@ -78,19 +76,13 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
 
     public void AddGroupPair(GroupPairFullInfoDto dto, bool isInitialLoad = false)
     {
-        bool isNewPair = !_allClientPairs.ContainsKey(dto.User);
-        if (isNewPair)
+        if (!_allClientPairs.ContainsKey(dto.User))
             _allClientPairs[dto.User] = _pairFactory.Create(dto.User);
 
         var pair = _allClientPairs[dto.User];
         var group = _allGroups[dto.Group];
         var prevPaused = pair.IsPaused;
         pair.GroupPair[group] = dto;
-
-        if (isNewPair)
-        {
-            TryApplyPendingCharaData(pair);
-        }
 
         if (!pair.IsPaused)
         {
@@ -122,8 +114,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
 
     public void AddUserPair(UserPairDto dto, bool addToLastAddedUser = true)
     {
-        bool isNewPair = !_allClientPairs.ContainsKey(dto.User);
-        if (isNewPair)
+        if (!_allClientPairs.ContainsKey(dto.User))
         {
             _allClientPairs[dto.User] = _pairFactory.Create(dto.User);
         }
@@ -137,11 +128,6 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         pair.UserPair = dto;
         if (addToLastAddedUser)
             LastAddedUser = pair;
-
-        if (isNewPair)
-        {
-            TryApplyPendingCharaData(pair);
-        }
 
         if (!pair.IsPaused)
         {
@@ -166,7 +152,6 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         DisposePairs();
         _allClientPairs.Clear();
         _allGroups.Clear();
-        _pendingCharaData.Clear();
         LastAddedUser = null;
         RecreateLazy();
     }
@@ -322,61 +307,13 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
     {
         if (!_allClientPairs.TryGetValue(dto.User, out var pair))
         {
-            // Queue the data for when the pair is added (race condition during connection)
-            var uid = dto.User.UID;
-            if (!string.IsNullOrEmpty(uid))
-            {
-                _pendingCharaData[uid] = (dto, DateTime.UtcNow);
-                Logger.LogDebug("No user found for {uid}, queued character data for later application", uid);
-
-                // Cleanup expired entries
-                CleanupExpiredPendingCharaData();
-            }
+            if (Logger.IsEnabled(LogLevel.Debug))
+                Logger.LogDebug("No user found for {uid}, ignoring character data (no existing pair)", dto.User.UID);
             return;
         }
 
-        _pendingCharaData.TryRemove(dto.User.UID, out _);
-
         Mediator.Publish(new EventMessage(new Event(pair.UserData, nameof(PairManager), EventSeverity.Informational, "Received Character Data")));
         pair.ApplyData(dto);
-    }
-
-    private void CleanupExpiredPendingCharaData()
-    {
-        var now = DateTime.UtcNow;
-        var expiredKeys = _pendingCharaData
-            .Where(kvp => (now - kvp.Value.ReceivedAt) > PendingCharaDataTimeout)
-            .Select(kvp => kvp.Key)
-            .ToList();
-
-        foreach (var key in expiredKeys)
-        {
-            if (_pendingCharaData.TryRemove(key, out _))
-            {
-                Logger.LogDebug("Removed expired pending CharaData for {uid}", key);
-            }
-        }
-    }
-
-    private void TryApplyPendingCharaData(Pair pair)
-    {
-        var uid = pair.UserData.UID;
-        if (string.IsNullOrEmpty(uid)) return;
-
-        if (_pendingCharaData.TryRemove(uid, out var pending))
-        {
-            var age = DateTime.UtcNow - pending.ReceivedAt;
-            if (age <= PendingCharaDataTimeout)
-            {
-                Logger.LogInformation("Applying queued CharaData for {uid} (queued {ms}ms ago)", uid, age.TotalMilliseconds);
-                Mediator.Publish(new EventMessage(new Event(pair.UserData, nameof(PairManager), EventSeverity.Informational, "Received Character Data (from queue)")));
-                pair.ApplyData(pending.Data);
-            }
-            else
-            {
-                Logger.LogDebug("Discarded expired queued CharaData for {uid} (was {ms}ms old)", uid, age.TotalMilliseconds);
-            }
-        }
     }
 
     public void RemoveGroup(GroupData data)
