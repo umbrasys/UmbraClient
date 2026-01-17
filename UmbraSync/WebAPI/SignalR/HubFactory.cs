@@ -172,7 +172,7 @@ public class HubFactory : MediatorSubscriberBase
                 options.AccessTokenProvider = () => _tokenProvider.GetOrUpdateToken(ct);
                 options.SkipNegotiation = hubConfig.SkipNegotiation && (transports == HttpTransportType.WebSockets);
                 options.Transports = transports;
-                options.CloseTimeout = TimeSpan.FromMinutes(5);
+                options.CloseTimeout = TimeSpan.FromSeconds(30);
             })
             .AddJsonProtocol()
             .WithAutomaticReconnect(new ForeverRetryPolicy(Mediator, _notificationTracker))
@@ -183,9 +183,9 @@ public class HubFactory : MediatorSubscriberBase
             })
             .Build();
 
-        _instance.KeepAliveInterval = TimeSpan.FromSeconds(30);
-        _instance.ServerTimeout = TimeSpan.FromMinutes(5);
-        _instance.HandshakeTimeout = TimeSpan.FromSeconds(30);
+        _instance.KeepAliveInterval = TimeSpan.FromSeconds(10);
+        _instance.ServerTimeout = TimeSpan.FromMinutes(15);
+        _instance.HandshakeTimeout = TimeSpan.FromSeconds(60);
 
         _instance.Closed += HubOnClosed;
         _instance.Reconnecting += HubOnReconnecting;

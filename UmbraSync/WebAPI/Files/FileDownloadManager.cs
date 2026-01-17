@@ -353,8 +353,6 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
                     progress.Report(bytesRead);
                 }
 
-                hashingStream.Close();
-
                 var calculatedHash = BitConverter.ToString(hashingStream.Finish()).Replace("-", "", StringComparison.Ordinal);
                 if (!string.Equals(calculatedHash, file.Hash, StringComparison.OrdinalIgnoreCase))
                 {

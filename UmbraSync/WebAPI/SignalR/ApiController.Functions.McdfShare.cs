@@ -39,7 +39,8 @@ public sealed partial class ApiController
         if (!IsConnected) return;
         try
         {
-            await _mareHub!.InvokeAsync(nameof(McdfShareUpload), requestDto).ConfigureAwait(false);
+            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(30));
+            await _mareHub!.InvokeAsync(nameof(McdfShareUpload), requestDto, cts.Token).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -53,7 +54,8 @@ public sealed partial class ApiController
         if (!IsConnected) return null;
         try
         {
-            return await _mareHub!.InvokeAsync<McdfSharePayloadDto?>(nameof(McdfShareDownload), shareId).ConfigureAwait(false);
+            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(30));
+            return await _mareHub!.InvokeAsync<McdfSharePayloadDto?>(nameof(McdfShareDownload), shareId, cts.Token).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
