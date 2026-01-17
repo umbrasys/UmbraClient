@@ -1,20 +1,13 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
+using System.Text.RegularExpressions;
 using UmbraSync.FileCache;
 using UmbraSync.Interop.Ipc;
+using UmbraSync.Localization;
 using UmbraSync.MareConfiguration;
-using UmbraSync.MareConfiguration.Configurations;
 using UmbraSync.Services.Mediator;
 using UmbraSync.WebAPI.Files;
-using System.Collections.Concurrent;
-using UmbraSync.Localization;
-using System.Text.RegularExpressions;
 
 namespace UmbraSync.Services;
 
@@ -175,7 +168,7 @@ public sealed class PenumbraPrecacheService : DisposableMediatorSubscriberBase, 
     {
         var ext = Path.GetExtension(path);
         if (!CacheMonitor.AllowedFileExtensions.Contains(ext, StringComparer.OrdinalIgnoreCase)) return false;
-        var exclusions = _configService.Current.PrecacheExcludePatterns ?? new List<string>();
+        var exclusions = _configService.Current.PrecacheExcludePatterns;
         if (exclusions.Any(ex => !string.IsNullOrWhiteSpace(ex) && path.Contains(ex, StringComparison.OrdinalIgnoreCase))) return false;
         return true;
     }
@@ -353,6 +346,22 @@ public sealed class PenumbraPrecacheService : DisposableMediatorSubscriberBase, 
         // Note: UploadFiles itself checks for server presence and returns missing/forbidden list.
         try
         {
+            if (!_fileUploadManager.IsInitialized)
+            {
+                Logger.LogDebug("FileUploadManager not initialized; waiting for connection");
+                using (_stateLock.EnterScope())
+                {
+                    StatusText = Loc.Get("Settings.Transfer.Precache.Status.WaitingConnection");
+                }
+
+                while (!_fileUploadManager.IsInitialized && !token.IsCancellationRequested)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(1), token).ConfigureAwait(false);
+                }
+
+                if (token.IsCancellationRequested) return;
+            }
+
             var missingOrForbidden = await _fileUploadManager.UploadFiles(hashes, progress, token, byteProgress).ConfigureAwait(false);
             if (missingOrForbidden.Count > 0)
             {
@@ -441,7 +450,7 @@ public sealed class PenumbraPrecacheService : DisposableMediatorSubscriberBase, 
         }
 
         var allowed = CacheMonitor.AllowedFileExtensions;
-        var exclusions = _configService.Current.PrecacheExcludePatterns ?? new List<string>();
+        var exclusions = _configService.Current.PrecacheExcludePatterns;
 
         return GetAllFilesSafe(root)
             .Where(p => allowed.Contains(Path.GetExtension(p), StringComparer.OrdinalIgnoreCase))

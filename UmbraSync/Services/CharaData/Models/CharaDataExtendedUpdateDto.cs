@@ -143,8 +143,8 @@ public sealed record CharaDataExtendedUpdateDto : CharaDataUpdateDto
         set
         {
             base.FileGamePaths = value;
-            if (!(base.FileGamePaths ?? []).Except(_charaDataFullDto.FileGamePaths).Any()
-                && !_charaDataFullDto.FileGamePaths.Except(base.FileGamePaths ?? []).Any())
+            if (base.FileGamePaths != null && !base.FileGamePaths.Except(_charaDataFullDto.FileGamePaths).Any()
+                && !_charaDataFullDto.FileGamePaths.Except(base.FileGamePaths).Any())
             {
                 base.FileGamePaths = null;
             }
@@ -161,8 +161,8 @@ public sealed record CharaDataExtendedUpdateDto : CharaDataUpdateDto
         set
         {
             base.FileSwaps = value;
-            if (!(base.FileSwaps ?? []).Except(_charaDataFullDto.FileSwaps).Any()
-                && !_charaDataFullDto.FileSwaps.Except(base.FileSwaps ?? []).Any())
+            if (base.FileSwaps != null && !base.FileSwaps.Except(_charaDataFullDto.FileSwaps).Any()
+                && !_charaDataFullDto.FileSwaps.Except(base.FileSwaps).Any())
             {
                 base.FileSwaps = null;
             }
@@ -229,7 +229,7 @@ public sealed record CharaDataExtendedUpdateDto : CharaDataUpdateDto
     private void UpdateAllowedUsers()
     {
         AllowedUsers = [.. _userList.Select(u => u.UID)];
-        if (!AllowedUsers.Except(_charaDataFullDto.AllowedUsers.Select(u => u.UID), StringComparer.Ordinal).Any()
+        if (AllowedUsers != null && !AllowedUsers.Except(_charaDataFullDto.AllowedUsers.Select(u => u.UID), StringComparer.Ordinal).Any()
             && !_charaDataFullDto.AllowedUsers.Select(u => u.UID).Except(AllowedUsers, StringComparer.Ordinal).Any())
         {
             AllowedUsers = null;
@@ -239,7 +239,7 @@ public sealed record CharaDataExtendedUpdateDto : CharaDataUpdateDto
     private void UpdateAllowedGroups()
     {
         AllowedGroups = [.. _groupList.Select(u => u.GID)];
-        if (!AllowedGroups.Except(_charaDataFullDto.AllowedGroups.Select(u => u.GID), StringComparer.Ordinal).Any()
+        if (AllowedGroups != null && !AllowedGroups.Except(_charaDataFullDto.AllowedGroups.Select(u => u.GID), StringComparer.Ordinal).Any()
             && !_charaDataFullDto.AllowedGroups.Select(u => u.GID).Except(AllowedGroups, StringComparer.Ordinal).Any())
         {
             AllowedGroups = null;
@@ -283,7 +283,7 @@ public sealed record CharaDataExtendedUpdateDto : CharaDataUpdateDto
     public void UpdatePoseList()
     {
         Poses = [.. _poseList];
-        if (!Poses.Except(_charaDataFullDto.PoseData).Any() && !_charaDataFullDto.PoseData.Except(Poses).Any())
+        if (Poses.Count == _charaDataFullDto.PoseData.Count && !Poses.Except(_charaDataFullDto.PoseData).Any() && !_charaDataFullDto.PoseData.Except(Poses).Any())
         {
             Poses = null;
         }

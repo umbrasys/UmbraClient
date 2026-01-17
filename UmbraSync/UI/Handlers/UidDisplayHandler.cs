@@ -1,13 +1,13 @@
 ﻿using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility.Raii;
+using System.Globalization;
+using UmbraSync.Localization;
 using UmbraSync.MareConfiguration;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.UI.Components;
-using UmbraSync.Localization;
-using System.Globalization;
 
 namespace UmbraSync.UI.Handlers;
 

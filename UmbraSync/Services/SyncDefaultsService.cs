@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using UmbraSync.API.Data;
 using UmbraSync.API.Data.Enum;
 using UmbraSync.API.Data.Extensions;
@@ -12,8 +9,6 @@ using UmbraSync.MareConfiguration.Configurations;
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services.Mediator;
-using UmbraSync.WebAPI;
-using Microsoft.Extensions.Logging;
 using NotificationType = UmbraSync.MareConfiguration.Models.NotificationType;
 
 namespace UmbraSync.Services;
@@ -146,7 +141,7 @@ public sealed class SyncDefaultsService : DisposableMediatorSubscriberBase
 
     private void OnPairOverrideChanged(PairSyncOverrideChanged message)
     {
-        var overrides = _configService.Current.PairSyncOverrides ??= new(StringComparer.Ordinal);
+        var overrides = _configService.Current.PairSyncOverrides;
         var entry = overrides.TryGetValue(message.Uid, out var existing) ? existing : new SyncOverrideEntry();
         bool changed = false;
 
@@ -198,7 +193,7 @@ public sealed class SyncDefaultsService : DisposableMediatorSubscriberBase
 
     private void OnGroupOverrideChanged(GroupSyncOverrideChanged message)
     {
-        var overrides = _configService.Current.GroupSyncOverrides ??= new(StringComparer.Ordinal);
+        var overrides = _configService.Current.GroupSyncOverrides;
         var entry = overrides.TryGetValue(message.Gid, out var existing) ? existing : new SyncOverrideEntry();
         bool changed = false;
 

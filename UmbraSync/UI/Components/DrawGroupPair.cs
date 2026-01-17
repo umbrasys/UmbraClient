@@ -1,25 +1,22 @@
-﻿using System;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
-using System.Globalization;
-using UmbraSync.Localization;
+﻿using Dalamud.Bindings.ImGui;
 using Dalamud.Game.Text.SeStringHandling;
-using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
+using System.Globalization;
+using System.Numerics;
+using System.Text;
 using UmbraSync.API.Data;
 using UmbraSync.API.Data.Enum;
 using UmbraSync.API.Data.Extensions;
 using UmbraSync.API.Dto.Group;
+using UmbraSync.Localization;
 using UmbraSync.PlayerData.Pairs;
-using UmbraSync.Services;
 using UmbraSync.Services.AutoDetect;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.UI.Handlers;
-using UmbraSync.WebAPI;
 
 namespace UmbraSync.UI.Components;
 
@@ -82,7 +79,7 @@ public class DrawGroupPair : DrawPairBase
                 : FontAwesomeIcon.InfoCircle;
             width += UiSharedService.GetIconSize(icon).X + spacing * 0.5f;
         }
-        
+
         width += spacing * 1.2f;
         return width;
     }
@@ -417,26 +414,36 @@ public class DrawGroupPair : DrawPairBase
         ImGui.SetCursorPosY(originalY);
         if (showPause)
         {
-            if (pauseIcon == FontAwesomeIcon.Pause ? _uiSharedService.IconPauseButtonCentered() : _uiSharedService.IconButtonCentered(pauseIcon))
+            using (ImRaii.PushId($"pause-{_pair.UserData.UID}"))
             {
-                _ = _apiController.Pause(_pair.UserData);
+                if (pauseIcon == FontAwesomeIcon.Pause ? _uiSharedService.IconPauseButtonCentered() : _uiSharedService.IconButtonCentered(pauseIcon))
+                {
+                    _apiController.Pause(_pair.UserData);
+                }
+                UiSharedService.AttachToolTip(AppendSeenInfo((_pair.IsPaused ? "Resume" : "Pause") + " syncing with " + entryUID));
             }
-            UiSharedService.AttachToolTip(AppendSeenInfo((_pair.IsPaused ? "Resume" : "Pause") + " syncing with " + entryUID));
         }
         currentX += pauseMaxW + spacing;
         ImGui.SetCursorPosX(currentX);
         if (showBars)
         {
             ImGui.SetCursorPosY(originalY);
-            if (_uiSharedService.IconButtonCentered(FontAwesomeIcon.Bars))
+            var popupId = $"Syncshell Flyout Menu##{_pair.UserData.UID}";
+            bool buttonClicked;
+            using (ImRaii.PushId($"info-{_pair.UserData.UID}"))
             {
-                ImGui.OpenPopup("Syncshell Flyout Menu");
+                buttonClicked = _uiSharedService.IconButtonCentered(FontAwesomeIcon.Bars);
+            }
+            if (buttonClicked)
+            {
+                ImGui.OpenPopup(popupId);
             }
         }
         currentX += barsW; // avance quand même pour cohérence interne
         ImGui.SetCursorPosX(currentX);
         // Must match the ID used in OpenPopup above
-        if (ImGui.BeginPopup("Syncshell Flyout Menu"))
+        var popupMenuId = $"Syncshell Flyout Menu##{_pair.UserData.UID}";
+        if (ImGui.BeginPopup(popupMenuId))
         {
             if ((userIsModerator || userIsOwner) && !(entryIsMod || entryIsOwner))
             {
@@ -586,7 +593,7 @@ public class DrawGroupPair : DrawPairBase
 
     private static string EncodeInviteField(string value)
     {
-        var bytes = Encoding.UTF8.GetBytes(value ?? string.Empty);
+        var bytes = Encoding.UTF8.GetBytes(value);
         return Convert.ToBase64String(bytes);
     }
 }

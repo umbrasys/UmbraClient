@@ -1,20 +1,17 @@
-using System;
-using System.Text;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Plugin.Services;
+using Microsoft.Extensions.Logging;
+using System.Text;
 using UmbraSync.API.Data;
+using UmbraSync.API.Data.Enum;
 using UmbraSync.Interop;
 using UmbraSync.MareConfiguration;
-using UmbraSync.API.Data.Enum;
-using UmbraSync.MareConfiguration.Models;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.Utils;
-using UmbraSync.WebAPI;
-using Microsoft.Extensions.Logging;
 
 namespace UmbraSync.Services;
 
@@ -90,8 +87,9 @@ public class ChatService : DisposableMediatorSubscriberBase
         var chatMsg = message.ChatMsg;
         var prefix = new SeStringBuilder();
         prefix.AddText("[UmbraChat] ");
-        _chatGui.Print(new XivChatEntry{
-            MessageBytes = [..prefix.Build().Encode(), ..message.ChatMsg.PayloadContent],
+        _chatGui.Print(new XivChatEntry
+        {
+            MessageBytes = [.. prefix.Build().Encode(), .. message.ChatMsg.PayloadContent],
             Name = chatMsg.SenderName,
             Type = XivChatType.TellIncoming
         });
@@ -156,7 +154,8 @@ public class ChatService : DisposableMediatorSubscriberBase
         if (color != 0)
             msg.AddUiForegroundOff();
 
-        _chatGui.Print(new XivChatEntry{
+        _chatGui.Print(new XivChatEntry
+        {
             Message = msg.Build(),
             Name = chatMsg.SenderName,
             Type = logKind
@@ -222,12 +221,23 @@ public class ChatService : DisposableMediatorSubscriberBase
             }
         }
 
-        _chatGui.Print(new XivChatEntry{
+        _chatGui.Print(new XivChatEntry
+        {
             Message = message,
             Name = "",
             Type = (XivChatType)chatType
         });
     }
+
+    public void Print(string message)
+    {
+        _chatGui.Print(new XivChatEntry
+        {
+            Message = "[UmbraSync] " + message,
+            Type = XivChatType.Debug
+        });
+    }
+
     public void MaybeUpdateShellName(int shellNumber)
     {
         if (_mareConfig.Current.DisableSyncshellChat)
@@ -280,8 +290,10 @@ public class ChatService : DisposableMediatorSubscriberBase
             var shellConfig = _serverConfigurationManager.GetShellConfigForGid(group.Key.GID);
             if (shellConfig.Enabled && shellConfig.ShellNumber == shellNumber)
             {
-                _ = Task.Run(async () => {
-                    var chatMsg = await _dalamudUtil.RunOnFrameworkThread(() => {
+                _ = Task.Run(async () =>
+                {
+                    var chatMsg = await _dalamudUtil.RunOnFrameworkThread(() =>
+                    {
                         return new ChatMessage()
                         {
                             SenderName = _dalamudUtil.GetPlayerName(),

@@ -3,22 +3,19 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using System;
-using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
+using System.Globalization;
+using System.Numerics;
 using UmbraSync.API.Data.Enum;
 using UmbraSync.API.Data.Extensions;
 using UmbraSync.API.Dto.Group;
+using UmbraSync.API.Dto.Slot;
+using UmbraSync.Localization;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
 using UmbraSync.Services.AutoDetect;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.Notification;
-using UmbraSync.WebAPI;
-using UmbraSync.Localization;
-using Microsoft.Extensions.Logging;
-using System.Globalization;
-using System.Threading;
-using System.Threading.Tasks;
 using NotificationType = UmbraSync.MareConfiguration.Models.NotificationType;
 
 namespace UmbraSync.UI;
@@ -58,10 +55,26 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
     private int _adEndHour = 23;
     private int _adEndMinute = 0;
     private string _adTimeZone = "Europe/Paris";
+    private List<SlotInfoResponseDto> _slots = [];
+    private SlotInfoResponseDto? _selectedSlot = null;
+    private string _slotName = string.Empty;
+    private string _slotDescription = string.Empty;
+    private uint _slotServerId;
+    private uint _slotTerritoryId;
+    private uint _slotDivisionId;
+    private uint _slotWardId;
+    private uint _slotPlotId;
+    private float _slotX;
+    private float _slotY;
+    private float _slotZ;
+    private float _slotRadius = 25f;
+    private bool _slotLoading = false;
+    private readonly DalamudUtilService _dalamudUtilService;
 
     public SyncshellAdminUI(ILogger<SyncshellAdminUI> logger, MareMediator mediator, ApiController apiController,
         UiSharedService uiSharedService, PairManager pairManager, SyncshellDiscoveryService syncshellDiscoveryService,
-        GroupFullInfoDto groupFullInfo, PerformanceCollectorService performanceCollectorService, NotificationTracker notificationTracker)
+        GroupFullInfoDto groupFullInfo, PerformanceCollectorService performanceCollectorService, NotificationTracker notificationTracker,
+        DalamudUtilService dalamudUtilService)
         : base(logger, mediator, string.Format(CultureInfo.CurrentCulture, Loc.Get("SyncshellAdmin.WindowTitle"), groupFullInfo.GroupAliasOrGID), performanceCollectorService)
     {
         GroupFullInfo = groupFullInfo;
@@ -70,6 +83,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
         _pairManager = pairManager;
         _syncshellDiscoveryService = syncshellDiscoveryService;
         _notificationTracker = notificationTracker;
+        _dalamudUtilService = dalamudUtilService;
         _isOwner = string.Equals(GroupFullInfo.OwnerUID, _apiController.UID, StringComparison.Ordinal);
         _isModerator = GroupFullInfo.GroupUserInfo.IsModerator();
         _newPassword = string.Empty;
@@ -88,6 +102,15 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
             MinimumSize = new(700, 500),
             MaximumSize = new(700, 2000),
         };
+
+        _ = LoadSlotData();
+    }
+
+    private async Task LoadSlotData()
+    {
+        _slotLoading = true;
+        _slots = await _apiController.SlotGetInfoForGroup(new(GroupFullInfo.Group)).ConfigureAwait(false);
+        _slotLoading = false;
     }
 
     public GroupFullInfoDto GroupFullInfo { get; private set; }
@@ -457,8 +480,8 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
             var capacityTab = ImRaii.TabItem(Loc.Get("SyncshellAdmin.Tab.Capacity"));
             if (capacityTab)
             {
-                if (!_capacityApplyInFlight 
-                    && _desiredCapacity != GroupFullInfo.MaxUserCount 
+                if (!_capacityApplyInFlight
+                    && _desiredCapacity != GroupFullInfo.MaxUserCount
                     && (_desiredCapacity < 1 || _desiredCapacity > _apiController.ServerInfo.MaxGroupUserCount))
                 {
                     _desiredCapacity = GroupFullInfo.MaxUserCount;
@@ -520,6 +543,13 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
             }
             capacityTab.Dispose();
 
+            var slotTab = ImRaii.TabItem(Loc.Get("SyncshellAdmin.Tab.Slot"));
+            if (slotTab)
+            {
+                DrawSlotTab();
+            }
+            slotTab.Dispose();
+
             if (_isOwner)
             {
                 var ownerTab = ImRaii.TabItem(Loc.Get("SyncshellAdmin.Tab.Owner"));
@@ -559,6 +589,242 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                     UiSharedService.AttachToolTip(Loc.Get("SyncshellAdmin.Owner.DeleteTooltip"));
                 }
                 ownerTab.Dispose();
+            }
+        }
+    }
+
+    private void DrawSlotTab()
+    {
+        if (_slotLoading)
+        {
+            ImGui.TextUnformatted(Loc.Get("SyncshellAdmin.Slot.Loading"));
+            return;
+        }
+
+        UiSharedService.TextWrapped(Loc.Get("SyncshellAdmin.Slot.Description"));
+        ImGuiHelpers.ScaledDummy(5);
+        ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudYellow);
+        UiSharedService.TextWrapped(Loc.Get("SyncshellAdmin.Slot.AutoLeaveWarning"));
+        ImGui.PopStyleColor();
+        ImGuiHelpers.ScaledDummy(5);
+
+        if (ImGui.BeginTable("slots_table", 3, ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders))
+        {
+            ImGui.TableSetupColumn(Loc.Get("SyncshellAdmin.Slot.Name"), ImGuiTableColumnFlags.WidthStretch);
+            ImGui.TableSetupColumn(Loc.Get("SyncshellAdmin.Slot.Location"), ImGuiTableColumnFlags.WidthStretch);
+            ImGui.TableSetupColumn(Loc.Get("SyncshellAdmin.Slot.Actions"), ImGuiTableColumnFlags.WidthFixed, 100 * ImGuiHelpers.GlobalScale);
+            ImGui.TableHeadersRow();
+
+            foreach (var slot in _slots.ToList())
+            {
+                using var slotId = ImRaii.PushId("slot_" + slot.SlotId);
+
+                ImGui.TableNextColumn();
+                ImGui.AlignTextToFramePadding();
+                ImGui.TextUnformatted(slot.SlotName);
+                if (!string.IsNullOrEmpty(slot.SlotDescription))
+                {
+                    ImGui.SameLine();
+                    _uiSharedService.IconText(FontAwesomeIcon.InfoCircle, ImGuiColors.DalamudGrey);
+                    UiSharedService.AttachToolTip(slot.SlotDescription);
+                }
+
+                ImGui.TableNextColumn();
+                if (slot.Location != null)
+                {
+                    string worldName = _dalamudUtilService.WorldData.Value.TryGetValue((ushort)slot.Location.ServerId, out var world) ? world : slot.Location.ServerId.ToString();
+                    string territoryName = _dalamudUtilService.TerritoryData.Value.TryGetValue(slot.Location.TerritoryId, out var territory) ? territory : slot.Location.TerritoryId.ToString();
+                    ImGui.TextUnformatted($"{worldName}, {territoryName}");
+                    ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, "S:{0} P:{1} (X:{2:F1} Y:{3:F1} Z:{4:F1})", slot.Location.WardId, slot.Location.PlotId, slot.Location.X, slot.Location.Y, slot.Location.Z));
+                }
+                else
+                {
+                    ImGui.TextDisabled("No location data");
+                }
+
+                ImGui.TableNextColumn();
+                if (_uiSharedService.IconButton(FontAwesomeIcon.Edit))
+                {
+                    _selectedSlot = slot;
+                    _slotName = slot.SlotName;
+                    _slotDescription = slot.SlotDescription ?? string.Empty;
+                    _slotServerId = slot.Location?.ServerId ?? 0;
+                    _slotTerritoryId = slot.Location?.TerritoryId ?? 0;
+                    _slotDivisionId = slot.Location?.DivisionId ?? 0;
+                    _slotWardId = slot.Location?.WardId ?? 0;
+                    _slotPlotId = slot.Location?.PlotId ?? 0;
+                    _slotX = slot.Location?.X ?? 0;
+                    _slotY = slot.Location?.Y ?? 0;
+                    _slotZ = slot.Location?.Z ?? 0;
+                    _slotRadius = slot.Location?.Radius ?? 25f;
+                }
+                UiSharedService.AttachToolTip(Loc.Get("SyncshellAdmin.Slot.EditTooltip"));
+                ImGui.SameLine();
+                if (_uiSharedService.IconButton(FontAwesomeIcon.Trash))
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        var request = new SlotUpdateRequestDto
+                        {
+                            Group = new GroupDto(GroupFullInfo.Group),
+                            SlotId = slot.SlotId,
+                            IsDelete = true
+                        };
+                        if (await _apiController.SlotUpdate(request).ConfigureAwait(false))
+                        {
+                            await LoadSlotData().ConfigureAwait(false);
+                            Mediator.Publish(new NotificationMessage(Loc.Get("SyncshellAdmin.Slot.DeleteSuccessTitle"), Loc.Get("SyncshellAdmin.Slot.DeleteSuccessMessage"), NotificationType.Info));
+                        }
+                    });
+                }
+                UiSharedService.AttachToolTip(Loc.Get("SyncshellAdmin.Slot.DeleteTooltip"));
+            }
+            ImGui.EndTable();
+        }
+
+        if (_selectedSlot == null)
+        {
+            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Plus, Loc.Get("SyncshellAdmin.Slot.AddButton")))
+            {
+                _selectedSlot = new SlotInfoResponseDto { SlotId = Guid.Empty };
+                _slotName = string.Empty;
+                _slotDescription = string.Empty;
+                _slotServerId = 0;
+                _slotTerritoryId = 0;
+                _slotDivisionId = 0;
+                _slotWardId = 0;
+                _slotPlotId = 0;
+                _slotX = 0;
+                _slotY = 0;
+                _slotZ = 0;
+                _slotRadius = 25f;
+            }
+        }
+        else
+        {
+            ImGui.Separator();
+            ImGuiHelpers.ScaledDummy(10);
+            ImGui.TextUnformatted(_selectedSlot.SlotId == Guid.Empty ? Loc.Get("SyncshellAdmin.Slot.AddingNew") : Loc.Get("SyncshellAdmin.Slot.Editing") + ": " + _selectedSlot.SlotName);
+
+            ImGui.TextUnformatted(Loc.Get("SyncshellAdmin.Slot.Name"));
+            ImGui.InputText("##slotname", ref _slotName, 100);
+            _uiSharedService.DrawHelpText(Loc.Get("SyncshellAdmin.Slot.NameHelp"));
+
+            ImGui.TextUnformatted(Loc.Get("SyncshellAdmin.Slot.SlotDescription"));
+            ImGui.InputTextMultiline("##slotdesc", ref _slotDescription, 500, new Vector2(-1, 60));
+            _uiSharedService.DrawHelpText(Loc.Get("SyncshellAdmin.Slot.SlotDescriptionHelp"));
+
+            ImGuiHelpers.ScaledDummy(5);
+            ImGui.TextUnformatted(Loc.Get("SyncshellAdmin.Slot.Radius"));
+            ImGui.SliderFloat("##slotradius", ref _slotRadius, 5f, 100f, "%.1f m");
+            _uiSharedService.DrawHelpText(Loc.Get("SyncshellAdmin.Slot.RadiusHelp"));
+
+            ImGuiHelpers.ScaledDummy(5);
+            ImGui.TextUnformatted(Loc.Get("SyncshellAdmin.Slot.Location"));
+            ImGui.Separator();
+
+            ImGui.TextUnformatted(Loc.Get("SyncshellAdmin.Slot.Step1Outside"));
+            if (_uiSharedService.IconTextButton(FontAwesomeIcon.MapMarkerAlt, Loc.Get("SyncshellAdmin.Slot.GetOutsidePos")))
+            {
+                var player = _dalamudUtilService.GetPlayerCharacter();
+                if (player != null)
+                {
+                    _slotX = player.Position.X;
+                    _slotY = player.Position.Y;
+                    _slotZ = player.Position.Z;
+
+                    var mapData = _dalamudUtilService.GetMapData();
+                    _slotTerritoryId = mapData.TerritoryId;
+                    _slotServerId = mapData.ServerId;
+
+                    _logger.LogInformation("Captured outside position: {x}, {y}, {z} on Territory {t}", _slotX, _slotY, _slotZ, _slotTerritoryId);
+                }
+            }
+            _uiSharedService.DrawHelpText(Loc.Get("SyncshellAdmin.Slot.GetOutsidePosHelp"));
+            ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("SyncshellAdmin.Slot.LocationCoords"), _slotX, _slotY, _slotZ));
+
+            ImGuiHelpers.ScaledDummy(5);
+            ImGui.TextUnformatted(Loc.Get("SyncshellAdmin.Slot.Step2Inside"));
+
+            // Vérifier si le joueur est en mode housing
+            var isInHousingEditMode = _dalamudUtilService.IsInHousingMode;
+
+            using (ImRaii.Disabled(!isInHousingEditMode))
+            {
+                if (_uiSharedService.IconTextButton(FontAwesomeIcon.Home, Loc.Get("SyncshellAdmin.Slot.GetHousingInfo")))
+                {
+                    var currentMapData = _dalamudUtilService.GetMapData();
+                    _slotServerId = currentMapData.ServerId;
+                    _slotDivisionId = currentMapData.DivisionId;
+                    _slotWardId = currentMapData.WardId;
+                    _slotPlotId = currentMapData.HouseId;
+                    _logger.LogInformation("Captured housing info: S:{s} T:{t} D:{d} W:{w} P:{p}", _slotServerId, _slotTerritoryId, _slotDivisionId, _slotWardId, _slotPlotId);
+                }
+            }
+
+            if (!isInHousingEditMode)
+            {
+                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, 0.5f, 0.2f, 1.0f));
+                ImGui.TextWrapped(Loc.Get("SyncshellAdmin.Slot.MustBeInHousingEditMode"));
+                ImGui.PopStyleColor();
+            }
+            else
+            {
+                _uiSharedService.DrawHelpText(Loc.Get("SyncshellAdmin.Slot.GetHousingInfoHelp"));
+            }
+            if (_slotServerId != 0)
+            {
+                ImGui.TextUnformatted(string.Format(CultureInfo.CurrentCulture, Loc.Get("SyncshellAdmin.Slot.HousingSummary"), _slotServerId, _slotTerritoryId, _slotWardId, _slotPlotId));
+            }
+
+            ImGuiHelpers.ScaledDummy(10);
+            using (ImRaii.Disabled(string.IsNullOrWhiteSpace(_slotName) || (_slotPlotId == 0 && _slotRadius < 0.001f)))
+            {
+                if (_uiSharedService.IconTextButton(FontAwesomeIcon.Save, Loc.Get("SyncshellAdmin.Slot.Save")))
+                {
+                    var slotId = _selectedSlot.SlotId;
+                    _ = Task.Run(async () =>
+                    {
+                        var request = new SlotUpdateRequestDto
+                        {
+                            Group = new GroupDto(GroupFullInfo.Group),
+                            SlotId = slotId,
+                            SlotName = _slotName,
+                            SlotDescription = _slotDescription,
+                            Location = new SlotLocationDto
+                            {
+                                ServerId = _slotServerId,
+                                TerritoryId = _slotTerritoryId,
+                                DivisionId = _slotDivisionId,
+                                WardId = _slotWardId,
+                                PlotId = _slotPlotId,
+                                X = _slotX,
+                                Y = _slotY,
+                                Z = _slotZ,
+                                Radius = _slotRadius
+                            }
+                        };
+                        _logger.LogInformation("Saving slot: Name={name}, Server={server}, Territory={territory}, Division={division}, Ward={ward}, Plot={plot}, Pos=({x},{y},{z}), Radius={radius}",
+                            _slotName, _slotServerId, _slotTerritoryId, _slotDivisionId, _slotWardId, _slotPlotId, _slotX, _slotY, _slotZ, _slotRadius);
+                        var success = await _apiController.SlotUpdate(request).ConfigureAwait(false);
+                        if (success)
+                        {
+                            await LoadSlotData().ConfigureAwait(false);
+                            _selectedSlot = null;
+                            Mediator.Publish(new NotificationMessage(Loc.Get("SyncshellAdmin.Slot.SaveSuccessTitle"), Loc.Get("SyncshellAdmin.Slot.SaveSuccessMessage"), NotificationType.Info));
+                        }
+                        else
+                        {
+                            _logger.LogWarning("Failed to save slot {name} - server returned false", _slotName);
+                            Mediator.Publish(new NotificationMessage(Loc.Get("SyncshellAdmin.Slot.SaveErrorTitle"), Loc.Get("SyncshellAdmin.Slot.SaveErrorMessage"), NotificationType.Error));
+                        }
+                    });
+                }
+            }
+            ImGui.SameLine();
+            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Times, Loc.Get("SyncshellAdmin.Slot.Cancel")))
+            {
+                _selectedSlot = null;
             }
         }
     }

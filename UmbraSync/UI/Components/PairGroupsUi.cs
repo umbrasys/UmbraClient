@@ -2,15 +2,11 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using UmbraSync.API.Data.Extensions;
+using UmbraSync.Localization;
 using UmbraSync.MareConfiguration;
 using UmbraSync.UI.Handlers;
-using UmbraSync.WebAPI;
-using UmbraSync.Localization;
 
 namespace UmbraSync.UI.Components;
 
@@ -208,8 +204,12 @@ public class PairGroupsUi
         var onlineUsersList = onlineUsers as List<DrawUserPair> ?? onlineUsers.ToList();
         var offlineUsersList = offlineUsers as List<DrawUserPair> ?? offlineUsers.ToList();
         var visibleUsersList = visibleUsers as List<DrawUserPair> ?? visibleUsers.ToList();
+        if (_mareConfig.Current.ShowVisibleUsersSeparately)
+        {
+            using (ImRaii.PushId("group-VisibleCustomTag"))
+                DrawCategory(TagHandler.CustomVisibleTag, visibleUsersList, allUsers);
+        }
 
-        // Visible section intentionally omitted for Individual Pairs view.
         foreach (var tag in tagsWithPairsInThem)
         {
             if (_mareConfig.Current.ShowOfflineUsersSeparately)
@@ -221,8 +221,6 @@ public class PairGroupsUi
                 using (ImRaii.PushId($"group-{tag}")) DrawCategory(tag, allUsers, allUsers, visibleUsersList);
             }
         }
-        // Afficher les contenus supplémentaires (ex: Nearby) AVANT les sections Online/Offline/Unpaired
-        // afin que "Nearby" soit au-dessus de "Online" au même niveau.
         drawVisibleExtras?.Invoke();
         if (_mareConfig.Current.ShowOfflineUsersSeparately)
         {

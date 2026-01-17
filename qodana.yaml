@@ -1,5 +1,27 @@
 version: "1.0"
-linter: jetbrains/qodana-dotnet:2025.2
+linter: jetbrains/qodana-dotnet:2025.3
+
+bootstrap: |
+  set -e
+  echo "=== Preparing Dalamud environment for Qodana ==="
+
+  # Use a location that persists or is easily accessible
+  DALAMUD_PATH="/opt/dalamud"
+  mkdir -p "$DALAMUD_PATH"
+
+  echo "Downloading Dalamud..."
+  curl -L https://goatcorp.github.io/dalamud-distrib/stg/latest.zip -o /tmp/dalamud.zip
+  unzip -q -o /tmp/dalamud.zip -d "$DALAMUD_PATH"
+  rm -f /tmp/dalamud.zip
+
+  echo "Dalamud installed to: $DALAMUD_PATH"
+  export DALAMUD_DIR="$DALAMUD_PATH"
+  echo "DALAMUD_DIR=$DALAMUD_PATH" >> $GITHUB_ENV || true
+
+  echo "Restoring NuGet packages..."
+  dotnet restore UmbraSync.sln -p:DALAMUD_DIR="$DALAMUD_PATH"
+
+  echo "=== Bootstrap complete ==="
 
 dotnet:
   solution: UmbraSync.sln
@@ -9,4 +31,38 @@ exclude:
     paths:
       - bin
       - obj
-      - libs
+      - dalamud
+      - "**/bin"
+      - "**/obj"
+  - name: Exclude external dependencies
+    paths:
+      - OtterGui/
+      - OtterGuiInternal/
+      - Penumbra.Api/
+      - Glamourer.Api/
+      - UmbraServer
+      - UmbraAPI/UmbraSyncAPI/bin
+      - UmbraAPI/UmbraSyncAPI/obj
+  - name: Exclude localization files
+    paths:
+      - UmbraSync/Localization/
+      - "**/*.resx"
+      - "**/*.Designer.cs"
+      - ".compare/**/Localization/"
+      - ".compare/**/Localisation/"
+  - name: All
+    paths:
+      - UmbraSync/Localization/
+  - name: NotOverriddenInSpecificCulture
+  - name: LocalizableElement
+  - name: CA1303
+  - name: OverriddenWithEmptyValue
+  - name: AsmDefWarnings
+  - name: CSharpHints
+  - name: RazorWarnings
+  - name: RegExpErrors
+  - name: UnityGutterMarks
+  - name: UnityPerformanceHighlighting
+  - name: WebConfigErrors
+  - name: XAMLErrors
+  - name: MA0009  # Regex DoS false positive - simple patterns without backtracking risk

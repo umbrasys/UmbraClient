@@ -1,6 +1,5 @@
-﻿using UmbraSync.API.Data;
-
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
+using UmbraSync.API.Data;
 
 namespace UmbraSync.PlayerData.Data;
 

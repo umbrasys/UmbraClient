@@ -1,30 +1,20 @@
-﻿using UmbraSync.API.Data;
-using UmbraSync.API.Dto.Group;
+﻿using Microsoft.Extensions.Logging;
+using UmbraSync.API.Data;
 using UmbraSync.MareConfiguration;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.ServerConfiguration;
-using Microsoft.Extensions.Logging;
 
 namespace UmbraSync.PlayerData.Factories;
 
-public class PairFactory
+public class PairFactory(ILoggerFactory loggerFactory, PairHandlerFactory cachedPlayerFactory,
+    MareMediator mareMediator, MareConfigService mareConfig, ServerConfigurationManager serverConfigurationManager)
 {
-    private readonly PairHandlerFactory _cachedPlayerFactory;
-    private readonly ILoggerFactory _loggerFactory;
-    private readonly MareMediator _mareMediator;
-    private readonly MareConfigService _mareConfig;
-    private readonly ServerConfigurationManager _serverConfigurationManager;
-
-    public PairFactory(ILoggerFactory loggerFactory, PairHandlerFactory cachedPlayerFactory,
-        MareMediator mareMediator, MareConfigService mareConfig, ServerConfigurationManager serverConfigurationManager)
-    {
-        _loggerFactory = loggerFactory;
-        _cachedPlayerFactory = cachedPlayerFactory;
-        _mareMediator = mareMediator;
-        _mareConfig = mareConfig;
-        _serverConfigurationManager = serverConfigurationManager;
-    }
+    private readonly PairHandlerFactory _cachedPlayerFactory = cachedPlayerFactory;
+    private readonly ILoggerFactory _loggerFactory = loggerFactory;
+    private readonly MareMediator _mareMediator = mareMediator;
+    private readonly MareConfigService _mareConfig = mareConfig;
+    private readonly ServerConfigurationManager _serverConfigurationManager = serverConfigurationManager;
 
     public Pair Create(UserData userData)
     {

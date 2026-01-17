@@ -1,5 +1,5 @@
-﻿using UmbraSync.Services.Mediator;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
+using UmbraSync.Services.Mediator;
 
 namespace UmbraSync.Interop.Ipc;
 

@@ -1,9 +1,10 @@
-﻿using UmbraSync.API.Data;
-using UmbraSync.API.Dto.CharaData;
-using Microsoft.AspNetCore.SignalR.Client;
+﻿using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
+using UmbraSync.API.Data;
+using UmbraSync.API.Dto.CharaData;
 
 namespace UmbraSync.WebAPI.SignalR;
+
 public partial class ApiController
 {
     public async Task<CharaDataFullDto?> CharaDataCreate()

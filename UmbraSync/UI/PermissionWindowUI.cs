@@ -1,15 +1,14 @@
 ﻿using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using Microsoft.Extensions.Logging;
 using UmbraSync.API.Data.Enum;
 using UmbraSync.API.Data.Extensions;
+using UmbraSync.Localization;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Utils;
-using UmbraSync.WebAPI;
-using UmbraSync.Localization;
-using Microsoft.Extensions.Logging;
 
 namespace UmbraSync.UI;
 

@@ -1,15 +1,15 @@
-﻿using UmbraSync.API.Data;
+﻿using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.Logging;
+using UmbraSync.API.Data;
 using UmbraSync.API.Data.Enum;
 using UmbraSync.API.Dto;
-using UmbraSync.API.Dto.Chat;
 using UmbraSync.API.Dto.CharaData;
+using UmbraSync.API.Dto.Chat;
 using UmbraSync.API.Dto.Group;
 using UmbraSync.API.Dto.User;
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.Services.Mediator;
-using Microsoft.AspNetCore.SignalR.Client;
-using Microsoft.Extensions.Logging;
-using static FFXIVClientStructs.FFXIV.Client.Game.UI.MapMarkerData.Delegates;
+using UmbraSync.Services.Notification;
 
 namespace UmbraSync.WebAPI.SignalR;
 
@@ -17,28 +17,32 @@ public partial class ApiController
 {
     public Task Client_DownloadReady(Guid requestId)
     {
-        Logger.LogDebug("Server sent {requestId} ready", requestId);
+        if (Logger.IsEnabled(LogLevel.Debug))
+            Logger.LogDebug("Server sent {requestId} ready", requestId);
         Mediator.Publish(new DownloadReadyMessage(requestId));
         return Task.CompletedTask;
     }
 
     public Task Client_GroupChangePermissions(GroupPermissionDto groupPermission)
     {
-        Logger.LogTrace("Client_GroupChangePermissions: {perm}", groupPermission);
+        if (Logger.IsEnabled(LogLevel.Trace))
+            Logger.LogTrace("Client_GroupChangePermissions: {gid}", groupPermission.Group.GID);
         ExecuteSafely(() => _pairManager.SetGroupPermissions(groupPermission));
         return Task.CompletedTask;
     }
 
     public Task Client_GroupChatMsg(GroupChatMsgDto groupChatMsgDto)
     {
-        Logger.LogDebug("Client_GroupChatMsg: {msg}", groupChatMsgDto.Message);
+        if (Logger.IsEnabled(LogLevel.Debug))
+            Logger.LogDebug("Client_GroupChatMsg from {gid}", groupChatMsgDto.Group.GID);
         Mediator.Publish(new GroupChatMsgMessage(groupChatMsgDto.Group, groupChatMsgDto.Message));
         return Task.CompletedTask;
     }
 
     public Task Client_GroupPairChangePermissions(GroupPairUserPermissionDto permissionDto)
     {
-        Logger.LogTrace("Client_GroupPairChangePermissions: {dto}", permissionDto);
+        if (Logger.IsEnabled(LogLevel.Trace))
+            Logger.LogTrace("Client_GroupPairChangePermissions: {gid} for {uid}", permissionDto.Group.GID, permissionDto.User.UID);
         ExecuteSafely(() =>
         {
             if (string.Equals(permissionDto.UID, UID, StringComparison.Ordinal))
@@ -51,14 +55,16 @@ public partial class ApiController
 
     public Task Client_GroupDelete(GroupDto groupDto)
     {
-        Logger.LogTrace("Client_GroupDelete: {dto}", groupDto);
+        if (Logger.IsEnabled(LogLevel.Trace))
+            Logger.LogTrace("Client_GroupDelete: {gid}", groupDto.Group.GID);
         ExecuteSafely(() => _pairManager.RemoveGroup(groupDto.Group));
         return Task.CompletedTask;
     }
 
     public Task Client_GroupPairChangeUserInfo(GroupPairUserInfoDto userInfo)
     {
-        Logger.LogTrace("Client_GroupPairChangeUserInfo: {dto}", userInfo);
+        if (Logger.IsEnabled(LogLevel.Trace))
+            Logger.LogTrace("Client_GroupPairChangeUserInfo: {gid} for {uid}", userInfo.Group.GID, userInfo.User.UID);
         ExecuteSafely(() =>
         {
             if (string.Equals(userInfo.UID, UID, StringComparison.Ordinal)) _pairManager.SetGroupStatusInfo(userInfo);
@@ -69,28 +75,36 @@ public partial class ApiController
 
     public Task Client_GroupPairJoined(GroupPairFullInfoDto groupPairInfoDto)
     {
-        Logger.LogTrace("Client_GroupPairJoined: {dto}", groupPairInfoDto);
+        if (Logger.IsEnabled(LogLevel.Trace))
+            Logger.LogTrace("Client_GroupPairJoined: {gid} for {uid}", groupPairInfoDto.Group.GID, groupPairInfoDto.User.UID);
         ExecuteSafely(() => _pairManager.AddGroupPair(groupPairInfoDto));
         return Task.CompletedTask;
     }
 
     public Task Client_GroupPairLeft(GroupPairDto groupPairDto)
     {
-        Logger.LogTrace("Client_GroupPairLeft: {dto}", groupPairDto);
+        if (Logger.IsEnabled(LogLevel.Trace))
+            Logger.LogTrace("Client_GroupPairLeft: {gid} for {uid}", groupPairDto.Group.GID, groupPairDto.User.UID);
         ExecuteSafely(() => _pairManager.RemoveGroupPair(groupPairDto));
+        if (string.Equals(groupPairDto.User.UID, _connectionDto?.User.UID, StringComparison.Ordinal))
+        {
+            Mediator.Publish(new GroupLeftMessage(groupPairDto.Group.GID));
+        }
         return Task.CompletedTask;
     }
 
     public Task Client_GroupSendFullInfo(GroupFullInfoDto groupInfo)
     {
-        Logger.LogTrace("Client_GroupSendFullInfo: {dto}", groupInfo);
+        if (Logger.IsEnabled(LogLevel.Trace))
+            Logger.LogTrace("Client_GroupSendFullInfo: {gid}", groupInfo.Group.GID);
         ExecuteSafely(() => _pairManager.AddGroup(groupInfo));
         return Task.CompletedTask;
     }
 
     public Task Client_GroupSendInfo(GroupInfoDto groupInfo)
     {
-        Logger.LogTrace("Client_GroupSendInfo: {dto}", groupInfo);
+        if (Logger.IsEnabled(LogLevel.Trace))
+            Logger.LogTrace("Client_GroupSendInfo: {gid}", groupInfo.Group.GID);
         ExecuteSafely(() => _pairManager.SetGroupInfo(groupInfo));
         return Task.CompletedTask;
     }
@@ -101,10 +115,12 @@ public partial class ApiController
         {
             case MessageSeverity.Error:
                 Mediator.Publish(new NotificationMessage("Warning from " + _serverManager.CurrentServer!.ServerName, message, NotificationType.Error, TimeSpan.FromSeconds(7.5)));
+                _notificationTracker.Upsert(NotificationEntry.ServerMessageError(_serverManager.CurrentServer!.ServerName, message));
                 break;
 
             case MessageSeverity.Warning:
                 Mediator.Publish(new NotificationMessage("Warning from " + _serverManager.CurrentServer!.ServerName, message, NotificationType.Warning, TimeSpan.FromSeconds(7.5)));
+                _notificationTracker.Upsert(NotificationEntry.ServerMessageWarning(_serverManager.CurrentServer!.ServerName, message));
                 break;
 
             case MessageSeverity.Information:
@@ -128,77 +144,88 @@ public partial class ApiController
 
     public Task Client_UserAddClientPair(UserPairDto dto)
     {
-        Logger.LogDebug("Client_UserAddClientPair: {dto}", dto);
+        if (Logger.IsEnabled(LogLevel.Debug))
+            Logger.LogDebug("Client_UserAddClientPair: {uid}", dto.User.UID);
         ExecuteSafely(() => _pairManager.AddUserPair(dto, addToLastAddedUser: true));
         return Task.CompletedTask;
     }
 
     public Task Client_UserChatMsg(UserChatMsgDto chatMsgDto)
     {
-        Logger.LogDebug("Client_UserChatMsg: {msg}", chatMsgDto.Message);
+        if (Logger.IsEnabled(LogLevel.Debug))
+            Logger.LogDebug("Client_UserChatMsg received");
         Mediator.Publish(new UserChatMsgMessage(chatMsgDto.Message));
         return Task.CompletedTask;
     }
 
     public Task Client_UserTypingState(TypingStateDto dto)
     {
-        Logger.LogTrace("Client_UserTypingState: {uid} typing={typing}", dto.User.UID, dto.IsTyping);
+        if (Logger.IsEnabled(LogLevel.Trace))
+            Logger.LogTrace("Client_UserTypingState: {uid} typing={typing}", dto.User.UID, dto.IsTyping);
         Mediator.Publish(new UserTypingStateMessage(dto));
         return Task.CompletedTask;
     }
 
     public Task Client_UserReceiveCharacterData(OnlineUserCharaDataDto dataDto)
     {
-        Logger.LogTrace("Client_UserReceiveCharacterData: {user}", dataDto.User);
+        if (Logger.IsEnabled(LogLevel.Trace))
+            Logger.LogTrace("Client_UserReceiveCharacterData: {uid}", dataDto.User.UID);
         ExecuteSafely(() => _pairManager.ReceiveCharaData(dataDto));
         return Task.CompletedTask;
     }
 
     public Task Client_UserReceiveUploadStatus(UserDto dto)
     {
-        Logger.LogTrace("Client_UserReceiveUploadStatus: {dto}", dto);
+        if (Logger.IsEnabled(LogLevel.Trace))
+            Logger.LogTrace("Client_UserReceiveUploadStatus: {uid}", dto.User.UID);
         ExecuteSafely(() => _pairManager.ReceiveUploadStatus(dto));
         return Task.CompletedTask;
     }
 
     public Task Client_UserRemoveClientPair(UserDto dto)
     {
-        Logger.LogDebug("Client_UserRemoveClientPair: {dto}", dto);
+        if (Logger.IsEnabled(LogLevel.Debug))
+            Logger.LogDebug("Client_UserRemoveClientPair: {uid}", dto.User.UID);
         ExecuteSafely(() => _pairManager.RemoveUserPair(dto));
         return Task.CompletedTask;
     }
 
     public Task Client_UserSendOffline(UserDto dto)
     {
-        Logger.LogDebug("Client_UserSendOffline: {dto}", dto);
+        if (Logger.IsEnabled(LogLevel.Debug))
+            Logger.LogDebug("Client_UserSendOffline: {uid}", dto.User.UID);
         ExecuteSafely(() => _pairManager.MarkPairOffline(dto.User));
         return Task.CompletedTask;
     }
 
     public Task Client_UserSendOnline(OnlineUserIdentDto dto)
     {
-        Logger.LogDebug("Client_UserSendOnline: {dto}", dto);
+        if (Logger.IsEnabled(LogLevel.Debug))
+            Logger.LogDebug("Client_UserSendOnline: {uid}", dto.User.UID);
         ExecuteSafely(() => _pairManager.MarkPairOnline(dto));
         return Task.CompletedTask;
     }
 
     public Task Client_UserUpdateOtherPairPermissions(UserPermissionsDto dto)
     {
-        Logger.LogDebug("Client_UserUpdateOtherPairPermissions: {dto}", dto);
+        if (Logger.IsEnabled(LogLevel.Debug))
+            Logger.LogDebug("Client_UserUpdateOtherPairPermissions: {uid}", dto.User.UID);
         ExecuteSafely(() => _pairManager.UpdatePairPermissions(dto));
         return Task.CompletedTask;
     }
 
     public Task Client_UserUpdateProfile(UserDto dto)
     {
-        Logger.LogDebug("Client_UserUpdateProfile: {dto}", dto);
-        ExecuteSafely(() => Mediator.Publish(new ClearProfileDataMessage(dto.User)));
+        if (Logger.IsEnabled(LogLevel.Debug))
+            Logger.LogDebug("Client_UserUpdateProfile: {uid}", dto.User.UID);
+        ExecuteSafely(() => Mediator.Publish(new ClearProfileDataMessage(dto.User, null, null)));
         return Task.CompletedTask;
     }
 
     public Task Client_UserUpdateSelfPairPermissions(UserPermissionsDto dto)
     {
-        Logger.LogDebug("Client_UserUpdateSelfPairPermissions: {dto}", dto);
+        if (Logger.IsEnabled(LogLevel.Debug))
+            Logger.LogDebug("Client_UserUpdateSelfPairPermissions: {uid}", dto.User.UID);
         ExecuteSafely(() => _pairManager.UpdateSelfPairPermissions(dto));
         return Task.CompletedTask;
     }

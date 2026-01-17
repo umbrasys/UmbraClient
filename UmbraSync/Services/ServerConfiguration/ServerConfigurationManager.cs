@@ -1,10 +1,7 @@
-﻿using UmbraSync.MareConfiguration;
-using UmbraSync.MareConfiguration.Models;
-using UmbraSync.Services.Mediator;
-using UmbraSync.Utils;
-using UmbraSync.WebAPI;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using UmbraSync.MareConfiguration;
+using UmbraSync.MareConfiguration.Models;
 
 namespace UmbraSync.Services.ServerConfiguration;
 
@@ -82,7 +79,7 @@ public class ServerConfigurationManager
 
         var charaName = _dalamudUtil.GetPlayerNameAsync().GetAwaiter().GetResult();
         var worldId = _dalamudUtil.GetHomeWorldIdAsync().GetAwaiter().GetResult();
-        if (!currentServer.Authentications.Any() && currentServer.SecretKeys.Any())
+        if (currentServer.Authentications.Count == 0 && currentServer.SecretKeys.Count > 0)
         {
             currentServer.Authentications.Add(new Authentication()
             {
@@ -145,7 +142,7 @@ public class ServerConfigurationManager
 
     public bool HasValidConfig()
     {
-        return CurrentServer.SecretKeys.Any();
+        return CurrentServer.SecretKeys.Count > 0;
     }
 
     public void Save()
@@ -186,7 +183,7 @@ public class ServerConfigurationManager
         var server = GetServerByIndex(serverSelectionIndex);
         server.Authentications.Add(new Authentication()
         {
-            SecretKeyIdx = server.SecretKeys.Any() ? server.SecretKeys.First().Key : -1,
+            SecretKeyIdx = server.SecretKeys.Count > 0 ? server.SecretKeys.First().Key : -1,
         });
         Save();
     }
@@ -281,6 +278,16 @@ public class ServerConfigurationManager
         return null;
     }
 
+    internal uint? GetWorldIdForUid(string uid)
+    {
+        if (CurrentNotesStorage().UidLastSeenWorldIds.TryGetValue(uid, out var worldId))
+        {
+            if (worldId == 0) return null;
+            return worldId;
+        }
+        return null;
+    }
+
     internal HashSet<string> GetServerAvailablePairTags()
     {
         return CurrentServerTagStorage().ServerAvailablePairTags;
@@ -294,7 +301,8 @@ public class ServerConfigurationManager
         // Pick the next higher syncshell number that is available
         int newShellNumber = CurrentSyncshellStorage().GidShellConfig.Count > 0 ? CurrentSyncshellStorage().GidShellConfig.Select(x => x.Value.ShellNumber).Max() + 1 : 1;
 
-        var shellConfig = new ShellConfig{
+        var shellConfig = new ShellConfig
+        {
             ShellNumber = newShellNumber
         };
 
@@ -323,7 +331,7 @@ public class ServerConfigurationManager
     {
         if (CurrentServerTagStorage().UidServerPairedUserTags.TryGetValue(uid, out var tags))
         {
-            return tags.Any();
+            return tags.Count > 0;
         }
 
         return false;
@@ -407,6 +415,18 @@ public class ServerConfigurationManager
             return;
 
         CurrentNotesStorage().UidLastSeenNames[uid] = name;
+        _notesConfig.Save();
+    }
+
+    internal void SetWorldIdForUid(string uid, uint worldId)
+    {
+        if (string.IsNullOrEmpty(uid)) return;
+        if (worldId == 0) return;
+
+        if (CurrentNotesStorage().UidLastSeenWorldIds.TryGetValue(uid, out var currentWorldId) && currentWorldId == worldId)
+            return;
+
+        CurrentNotesStorage().UidLastSeenWorldIds[uid] = worldId;
         _notesConfig.Save();
     }
 

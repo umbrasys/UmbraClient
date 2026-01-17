@@ -1,11 +1,10 @@
-﻿using UmbraSync.API.Data;
+﻿using Microsoft.Extensions.Logging;
+using UmbraSync.API.Data;
 using UmbraSync.PlayerData.Handlers;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Utils;
-using UmbraSync.WebAPI;
 using UmbraSync.WebAPI.Files;
-using Microsoft.Extensions.Logging;
 
 namespace UmbraSync.PlayerData.Pairs;
 
@@ -43,6 +42,7 @@ public class OnlinePlayerManager : DisposableMediatorSubscriberBase
         });
         Mediator.Subscribe<PairHandlerVisibleMessage>(this, (msg) => _newVisiblePlayers.Add(msg.Player));
         Mediator.Subscribe<ConnectedMessage>(this, (_) => PushCharacterData(_pairManager.GetVisibleUsers()));
+        Mediator.Subscribe<DisconnectedMessage>(this, (_) => _lastSentData = null);
     }
 
     private void FrameworkOnUpdate()

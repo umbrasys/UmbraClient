@@ -1,5 +1,4 @@
 ﻿using Dalamud.Game.ClientState.Conditions;
-using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Plugin.Services;
@@ -10,22 +9,20 @@ using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Lumina.Excel.Sheets;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Text;
 using UmbraSync.API.Dto.CharaData;
 using UmbraSync.Interop;
 using UmbraSync.PlayerData.Handlers;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Utils;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using System.Numerics;
-using System.Globalization;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using GameObject = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
 using DalamudGameObject = Dalamud.Game.ClientState.Objects.Types.IGameObject;
+using GameObject = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
 #pragma warning disable CS8500 // required pointer interop with Dalamud/FFXIV structs
 
 namespace UmbraSync.Services;
@@ -58,14 +55,14 @@ public class DalamudUtilService : IHostedService, IMediatorSubscriber
     private readonly IObjectTable _objectTable;
     private readonly PerformanceCollectorService _performanceCollector;
     private readonly Dictionary<string, ConditionFlag> _conditionLookup = new(StringComparer.OrdinalIgnoreCase);
-    private uint? _classJobId = 0;
+    private uint? _classJobId;
     private DateTime _delayedFrameworkUpdateCheck = DateTime.UtcNow;
     private string _lastGlobalBlockPlayer = string.Empty;
     private string _lastGlobalBlockReason = string.Empty;
-    private ushort _lastZone = 0;
+    private ushort _lastZone;
     private readonly Dictionary<string, PlayerCharacter> _playerCharas = new(StringComparer.Ordinal);
     private readonly List<string> _notUpdatedCharas = [];
-    private bool _sentBetweenAreas = false;
+    private bool _sentBetweenAreas;
     private static readonly Dictionary<uint, PlayerInfo> _playerInfoCache = new();
 
     // Prefer IObjectTable.LocalPlayer when available (newer Dalamud),
@@ -74,7 +71,7 @@ public class DalamudUtilService : IHostedService, IMediatorSubscriber
 
 
     public DalamudUtilService(ILogger<DalamudUtilService> logger, IClientState clientState, IObjectTable objectTable, IFramework framework,
-        IGameGui gameGui, IToastGui toastGui,ICondition condition, IDataManager gameData, ITargetManager targetManager,
+        IGameGui gameGui, IToastGui toastGui, ICondition condition, IDataManager gameData, ITargetManager targetManager,
         BlockedCharacterHandler blockedCharacterHandler, MareMediator mediator, PerformanceCollectorService performanceCollector)
     {
         _logger = logger;
@@ -174,13 +171,14 @@ public class DalamudUtilService : IHostedService, IMediatorSubscriber
 
         return await _framework.RunOnFrameworkThread(() => _objectTable[GPoseTargetIdx]).ConfigureAwait(true);
     }
-    public bool IsAnythingDrawing { get; private set; } = false;
-    public bool IsInCutscene { get; private set; } = false;
-    public bool IsInGpose { get; private set; } = false;
+    public bool IsAnythingDrawing { get; private set; }
+    public bool IsInCutscene { get; private set; }
+    public bool IsInGpose { get; private set; }
     public bool IsLoggedIn { get; private set; }
     public bool IsOnFrameworkThread => _framework.IsInFrameworkUpdateThread;
     public bool IsZoning => _condition[ConditionFlag.BetweenAreas] || _condition[ConditionFlag.BetweenAreas51];
-    public bool IsInCombatOrPerforming { get; private set; } = false;
+    public bool IsInCombatOrPerforming { get; private set; }
+    public bool IsInHousingMode => _condition[ConditionFlag.UsingHousingFunctions];
     public bool HasModifiedGameFiles => _gameData.HasModifiedGameDataFiles;
 
     public bool IsConditionActive(string flagName)
@@ -325,6 +323,17 @@ public class DalamudUtilService : IHostedService, IMediatorSubscriber
         return IntPtr.Zero;
     }
 
+    public bool TryGetWorldIdByIdent(string ident, out ushort worldId)
+    {
+        if (_playerCharas.TryGetValue(ident, out var pchar))
+        {
+            worldId = (ushort)pchar.HomeWorldId;
+            return true;
+        }
+        worldId = 0;
+        return false;
+    }
+
     public bool TryGetPlayerCharacterByObjectId(uint objectId, out PlayerCharacter playerCharacter)
     {
         foreach (var entry in _playerCharas.Values)
@@ -391,14 +400,14 @@ public class DalamudUtilService : IHostedService, IMediatorSubscriber
         uint divisionId = houseMan == null ? 0 : (uint)(houseMan->GetCurrentDivision());
         uint wardId = houseMan == null ? 0 : (uint)(houseMan->GetCurrentWard() + 1);
         uint houseId = 0;
-        var tempHouseId = houseMan == null ? 0 : (houseMan->GetCurrentPlot());
+        var tempHouseId = houseMan == null ? 0 : (houseMan->GetCurrentPlot() + 1);
         if (!houseMan->IsInside()) tempHouseId = 0;
-        if (tempHouseId < -1)
+        if (tempHouseId < 0) // Should not happen with +1 but keep logic
         {
-            divisionId = tempHouseId == -127 ? 2 : (uint)1;
-            tempHouseId = 100;
+            divisionId = tempHouseId == -126 ? 2 : (uint)1;
+            tempHouseId = 101;
         }
-        if (tempHouseId == -1) tempHouseId = 0;
+        if (tempHouseId == 0) tempHouseId = 0;
         houseId = (uint)tempHouseId;
         if (houseId != 0)
         {

@@ -1,8 +1,8 @@
 ﻿using Dalamud.Game.Gui.ContextMenu;
-using Dalamud.Game.Text.SeStringHandling;
+using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 using UmbraSync.API.Data;
 using UmbraSync.API.Data.Comparer;
-using UmbraSync.API.Data.Enum;
 using UmbraSync.API.Data.Extensions;
 using UmbraSync.API.Dto.Group;
 using UmbraSync.API.Dto.User;
@@ -13,8 +13,6 @@ using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.Utils;
-using Microsoft.Extensions.Logging;
-using System.Collections.Concurrent;
 
 namespace UmbraSync.PlayerData.Pairs;
 
@@ -27,6 +25,7 @@ public class Pair : DisposableMediatorSubscriberBase
     private readonly ServerConfigurationManager _serverConfigurationManager;
     private CancellationTokenSource _applicationCts = new();
     private OnlineUserIdentDto? _onlineUserIdentDto = null;
+    private ushort? _worldId = null;
 
     public Pair(ILogger<Pair> logger, UserData userData, PairHandlerFactory cachedPlayerFactory,
         MareMediator mediator, MareConfigService mareConfig, ServerConfigurationManager serverConfigurationManager)
@@ -53,7 +52,8 @@ public class Pair : DisposableMediatorSubscriberBase
         {
             if (_serverConfigurationManager.IsUidPaused(UserData.UID))
             {
-                _logger.LogTrace("IsPaused: true (LocalPaused) for {uid}", UserData.UID);
+                if (_logger.IsEnabled(LogLevel.Trace))
+                    _logger.LogTrace("IsPaused: true (LocalPaused) for {uid}", UserData.UID);
                 return true;
             }
 
@@ -61,33 +61,38 @@ public class Pair : DisposableMediatorSubscriberBase
             {
                 if (UserPair.OtherPermissions.IsPaused())
                 {
-                    _logger.LogTrace("IsPaused: true (Individual OtherPaused) for {uid}", UserData.UID);
+                    if (_logger.IsEnabled(LogLevel.Trace))
+                        _logger.LogTrace("IsPaused: true (Individual OtherPaused) for {uid}", UserData.UID);
                     return true;
                 }
                 if (UserPair.OwnPermissions.IsPaused())
                 {
-                    _logger.LogTrace("IsPaused: true (Individual OwnPaused) for {uid}", UserData.UID);
+                    if (_logger.IsEnabled(LogLevel.Trace))
+                        _logger.LogTrace("IsPaused: true (Individual OwnPaused) for {uid}", UserData.UID);
                     return true;
                 }
             }
 
-            if (GroupPair.Any())
+            if (GroupPair.Count > 0)
             {
                 foreach (var p in GroupPair)
                 {
                     if (p.Key.GroupUserPermissions.IsPaused())
                     {
-                        _logger.LogTrace("IsPaused: true (Group {gid} OwnPaused) for {uid}", p.Key.Group.GID, UserData.UID);
+                        if (_logger.IsEnabled(LogLevel.Trace))
+                            _logger.LogTrace("IsPaused: true (Group {gid} OwnPaused) for {uid}", p.Key.Group.GID, UserData.UID);
                         return true;
                     }
                     if (p.Value.GroupUserPermissions.IsPaused())
                     {
-                        _logger.LogTrace("IsPaused: true (Group {gid} OtherPaused) for {uid}", p.Key.Group.GID, UserData.UID);
+                        if (_logger.IsEnabled(LogLevel.Trace))
+                            _logger.LogTrace("IsPaused: true (Group {gid} OtherPaused) for {uid}", p.Key.Group.GID, UserData.UID);
                         return true;
                     }
                     if (p.Key.GroupPermissions.IsPaused())
                     {
-                        _logger.LogTrace("IsPaused: true (Group {gid} GroupPaused) for {uid}", p.Key.Group.GID, UserData.UID);
+                        if (_logger.IsEnabled(LogLevel.Trace))
+                            _logger.LogTrace("IsPaused: true (Group {gid} GroupPaused) for {uid}", p.Key.Group.GID, UserData.UID);
                         return true;
                     }
                 }
@@ -101,14 +106,17 @@ public class Pair : DisposableMediatorSubscriberBase
     private ConcurrentDictionary<string, int> HoldDownloadLocks { get; set; } = new(StringComparer.Ordinal);
     private ConcurrentDictionary<string, int> HoldApplicationLocks { get; set; } = new(StringComparer.Ordinal);
 
-    public bool IsDownloadBlocked => HoldDownloadLocks.Any(f => f.Value > 0);
-    public bool IsApplicationBlocked => HoldApplicationLocks.Any(f => f.Value > 0) || IsDownloadBlocked;
+    public bool IsDownloadBlocked => HoldDownloadLocks.Values.Any(f => f > 0);
+    public bool IsApplicationBlocked => HoldApplicationLocks.Values.Any(f => f > 0) || IsDownloadBlocked;
 
     public IEnumerable<string> HoldDownloadReasons => HoldDownloadLocks.Keys;
     public IEnumerable<string> HoldApplicationReasons => Enumerable.Concat(HoldDownloadLocks.Keys, HoldApplicationLocks.Keys);
 
     public bool IsVisible => CachedPlayer?.IsVisible ?? false;
+    public uint WorldId => _worldId ?? 0;
+
     public CharacterData? LastReceivedCharacterData { get; set; }
+
     public string? PlayerName => GetPlayerName();
     public uint PlayerCharacterId => GetPlayerCharacterId();
     public long LastAppliedDataBytes => CachedPlayer?.LastAppliedDataBytes ?? -1;
@@ -116,12 +124,10 @@ public class Pair : DisposableMediatorSubscriberBase
     public long LastAppliedApproximateVRAMBytes { get; set; } = -1;
     public string Ident => _onlineUserIdentDto?.Ident ?? string.Empty;
     public PairAnalyzer? PairAnalyzer => CachedPlayer?.PairAnalyzer;
-
     public UserData UserData { get; init; }
-
     public UserPairDto? UserPair { get; set; }
-
     private PairHandler? CachedPlayer { get; set; }
+    public PairHandler? Handler => CachedPlayer;
 
     public void AddContextMenu(IMenuOpenedArgs args)
     {
@@ -152,25 +158,29 @@ public class Pair : DisposableMediatorSubscriberBase
         Add(IsPaused ? "Resume syncing" : "Pause immediately", _ => Mediator.Publish(new PauseMessage(UserData)));
 
         if (!isBlocked && !isBlacklisted)
-            Add("Always Block Modded Appearance", _ => {
-                    _serverConfigurationManager.AddBlacklistUid(UserData.UID);
-                    HoldApplication("Blacklist", maxValue: 1);
-                    ApplyLastReceivedData(forced: true);
-                });
+            Add("Always Block Modded Appearance", _ =>
+            {
+                _serverConfigurationManager.AddBlacklistUid(UserData.UID);
+                HoldApplication("Blacklist", maxValue: 1);
+                ApplyLastReceivedData(forced: true);
+            });
         else if (isBlocked && !isWhitelisted)
-            Add("Always Allow Modded Appearance", _ => {
-                    _serverConfigurationManager.AddWhitelistUid(UserData.UID);
-                    UnholdApplication("Blacklist", skipApplication: true);
-                    ApplyLastReceivedData(forced: true);
-                });
+            Add("Always Allow Modded Appearance", _ =>
+            {
+                _serverConfigurationManager.AddWhitelistUid(UserData.UID);
+                UnholdApplication("Blacklist", skipApplication: true);
+                ApplyLastReceivedData(forced: true);
+            });
 
         if (isWhitelisted)
-            Add("Remove from Whitelist", _ => {
+            Add("Remove from Whitelist", _ =>
+            {
                 _serverConfigurationManager.RemoveWhitelistUid(UserData.UID);
                 ApplyLastReceivedData(forced: true);
             });
         else if (isBlacklisted)
-            Add("Remove from Blacklist", _ => {
+            Add("Remove from Blacklist", _ =>
+            {
                 _serverConfigurationManager.RemoveBlacklistUid(UserData.UID);
                 UnholdApplication("Blacklist", skipApplication: true);
                 ApplyLastReceivedData(forced: true);
@@ -192,7 +202,8 @@ public class Pair : DisposableMediatorSubscriberBase
 
         if (CachedPlayer == null)
         {
-            _logger.LogDebug("Received Data for {uid} but CachedPlayer does not exist, waiting", data.User.UID);
+            if (_logger.IsEnabled(LogLevel.Debug))
+                _logger.LogDebug("Received Data for {uid} but CachedPlayer does not exist, waiting", data.User.UID);
             _ = Task.Run(async () =>
             {
                 using var timeoutCts = new CancellationTokenSource();
@@ -206,7 +217,8 @@ public class Pair : DisposableMediatorSubscriberBase
 
                 if (!combined.IsCancellationRequested)
                 {
-                    _logger.LogDebug("Applying delayed data for {uid}", data.User.UID);
+                    if (_logger.IsEnabled(LogLevel.Debug))
+                        _logger.LogDebug("Applying delayed data for {uid}", data.User.UID);
                     ApplyLastReceivedData();
                 }
             });
@@ -276,6 +288,11 @@ public class Pair : DisposableMediatorSubscriberBase
         return uint.MaxValue;
     }
 
+    public void SetWorldId(ushort worldId)
+    {
+        _worldId = worldId;
+    }
+
     public string? GetNoteOrName()
     {
         string? note = GetNote();
@@ -302,7 +319,7 @@ public class Pair : DisposableMediatorSubscriberBase
 
     public bool HasAnyConnection()
     {
-        return UserPair != null || GroupPair.Any();
+        return UserPair != null || GroupPair.Count > 0;
     }
 
     public void MarkOffline(bool wait = true)

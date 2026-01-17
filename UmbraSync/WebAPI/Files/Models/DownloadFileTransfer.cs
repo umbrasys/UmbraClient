@@ -10,6 +10,8 @@ public class DownloadFileTransfer : FileTransfer
 
     public override bool CanBeTransferred => Dto.FileExists && !Dto.IsForbidden && Dto.Size > 0;
     public Uri DownloadUri => new(Dto.Url);
+    public bool HasDirectDownload => !string.IsNullOrEmpty(Dto.DirectDownloadUrl);
+    public Uri? DirectDownloadUri => HasDirectDownload ? new Uri(Dto.DirectDownloadUrl) : null;
     public override long Total
     {
         set

@@ -1,21 +1,19 @@
-﻿using Dalamud.Utility;
+﻿using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.Logging;
+using System.Reflection;
 using UmbraSync.API.Data;
 using UmbraSync.API.Data.Extensions;
 using UmbraSync.API.Dto;
-using UmbraSync.API.Dto.User;
 using UmbraSync.API.Dto.Group;
+using UmbraSync.API.Dto.User;
 using UmbraSync.API.SignalR;
-using UmbraSync.MareConfiguration;
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
+using UmbraSync.Services.Notification;
 using UmbraSync.Services.ServerConfiguration;
-using UmbraSync.WebAPI.SignalR;
 using UmbraSync.WebAPI.SignalR.Utils;
-using Microsoft.AspNetCore.SignalR.Client;
-using Microsoft.Extensions.Logging;
-using System.Reflection;
 
 namespace UmbraSync.WebAPI.SignalR;
 
@@ -25,16 +23,17 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
     public const string UmbraServer = "UmbraSync Main Server";
     public const string UmbraServiceUri = "wss://umbra-sync.net/";
     public const string UmbraServiceApiUri = "wss://umbra-sync.net/";
-    public const string UmbraServiceHubUri = "wss://umbra-sync.net/mare";  
+    public const string UmbraServiceHubUri = "wss://umbra-sync.net/mare";
 
     private readonly DalamudUtilService _dalamudUtil;
     private readonly HubFactory _hubFactory;
     private readonly PairManager _pairManager;
     private readonly ServerConfigurationManager _serverManager;
     private readonly TokenProvider _tokenProvider;
+    private readonly NotificationTracker _notificationTracker;
     private CancellationTokenSource _connectionCancellationTokenSource;
     private ConnectionDto? _connectionDto;
-    private bool _doNotNotifyOnNextInfo = false;
+    private bool _doNotNotifyOnNextInfo;
     private CancellationTokenSource? _healthCheckTokenSource = new();
     private bool _initialized;
     private HubConnection? _mareHub;
@@ -43,13 +42,14 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
 
     public ApiController(ILogger<ApiController> logger, HubFactory hubFactory, DalamudUtilService dalamudUtil,
         PairManager pairManager, ServerConfigurationManager serverManager, MareMediator mediator,
-        TokenProvider tokenProvider) : base(logger, mediator)
+        TokenProvider tokenProvider, NotificationTracker notificationTracker) : base(logger, mediator)
     {
         _hubFactory = hubFactory;
         _dalamudUtil = dalamudUtil;
         _pairManager = pairManager;
         _serverManager = serverManager;
         _tokenProvider = tokenProvider;
+        _notificationTracker = notificationTracker;
         _connectionCancellationTokenSource = new CancellationTokenSource();
 
         Mediator.Subscribe<DalamudLoginMessage>(this, (_) => DalamudUtilOnLogIn());
@@ -57,10 +57,9 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         Mediator.Subscribe<HubClosedMessage>(this, (msg) => MareHubOnClosed(msg.Exception));
         Mediator.Subscribe<HubReconnectedMessage>(this, (msg) => _ = MareHubOnReconnected());
         Mediator.Subscribe<HubReconnectingMessage>(this, (msg) => MareHubOnReconnecting(msg.Exception));
-        // Rediriger CyclePauseMessage vers une pause immédiate afin d'éviter le délai perçu
-        Mediator.Subscribe<CyclePauseMessage>(this, (msg) => _ = Pause(msg.UserData));
+        Mediator.Subscribe<CyclePauseMessage>(this, (msg) => Pause(msg.UserData));
         Mediator.Subscribe<CensusUpdateMessage>(this, (msg) => _lastCensus = msg);
-        Mediator.Subscribe<PauseMessage>(this, (msg) => _ = Pause(msg.UserData));
+        Mediator.Subscribe<PauseMessage>(this, (msg) => Pause(msg.UserData));
 
         ServerState = ServerState.Offline;
 
@@ -179,10 +178,11 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
                 if (token.IsCancellationRequested) break;
 
                 _mareHub = await _hubFactory.GetOrCreate(token).ConfigureAwait(false);
-                InitializeApiHooks();
 
                 await _mareHub.StartAsync(token).ConfigureAwait(false);
-                
+
+                InitializeApiHooks();
+
                 _connectionDto = await GetConnectionDto().ConfigureAwait(false);
 
                 ServerState = ServerState.Connected;
@@ -193,11 +193,13 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
                 {
                     if (_connectionDto.CurrentClientVersion > currentClientVer)
                     {
+                        var currentVer = $"{currentClientVer.Major}.{currentClientVer.Minor}.{currentClientVer.Build}";
+                        var requiredVer = $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}";
                         Mediator.Publish(new NotificationMessage("Client incompatible",
-                            $"Your client is outdated ({currentClientVer.Major}.{currentClientVer.Minor}.{currentClientVer.Build}), current is: " +
-                            $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}. " +
+                            $"Your client is outdated ({currentVer}), current is: {requiredVer}. " +
                             $"This client version is incompatible and will not be able to connect. Please update your Umbra client.",
                             NotificationType.Error));
+                        _notificationTracker.Upsert(NotificationEntry.ClientIncompatible(currentVer, requiredVer));
                     }
                     await StopConnection(ServerState.VersionMisMatch).ConfigureAwait(false);
                     return;
@@ -205,11 +207,13 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
 
                 if (_connectionDto.CurrentClientVersion > currentClientVer)
                 {
+                    var currentVer = $"{currentClientVer.Major}.{currentClientVer.Minor}.{currentClientVer.Build}";
+                    var latestVer = $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}";
                     Mediator.Publish(new NotificationMessage("Client outdated",
-                        $"Your client is outdated ({currentClientVer.Major}.{currentClientVer.Minor}.{currentClientVer.Build}), current is: " +
-                        $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}. " +
+                        $"Your client is outdated ({currentVer}), current is: {latestVer}. " +
                         $"Please keep your Umbra client up-to-date.",
                         NotificationType.Warning, TimeSpan.FromSeconds(15)));
+                    _notificationTracker.Upsert(NotificationEntry.ClientOutdated(currentVer, latestVer));
                 }
 
                 if (_dalamudUtil.HasModifiedGameFiles)
@@ -262,9 +266,8 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         }
     }
 
-    // CyclePause supprimé: entraînait un délai perceptible. Utiliser Pause(UserData) pour une action immédiate.
 
-    public async Task Pause(UserData userData)
+    public void Pause(UserData userData)
     {
         var pair = _pairManager.GetPairByUID(userData.UID);
         if (pair == null)
@@ -277,12 +280,9 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         bool shouldPause = !isCurrentlyPaused;
 
         Logger.LogInformation("Toggling pause for {uid}: {isCurrentlyPaused} -> {shouldPause}", userData.UID, isCurrentlyPaused, shouldPause);
-
-        // 1. Pause locale
         if (shouldPause) _serverManager.AddPausedUid(userData.UID);
         else _serverManager.RemovePausedUid(userData.UID);
-
-        // 2. Pause individuelle (si appairé)
+        
         if (pair.UserPair != null)
         {
             var perm = pair.UserPair.OwnPermissions;
@@ -292,8 +292,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
             _ = UserSetPairPermissions(new UserPermissionsDto(userData, perm));
         }
 
-        // 3. Pause de groupe (pour chaque Syncshell)
-        if (pair.GroupPair.Any())
+        if (pair.GroupPair.Count > 0)
         {
             foreach (var groupEntry in pair.GroupPair)
             {
@@ -304,16 +303,23 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
                 _ = GroupChangeIndividualPermissionState(new GroupPairUserPermissionDto(groupEntry.Key.Group, userData, groupPerm));
             }
         }
-
-        // 4. Action immédiate en local pour fluidité (Snowcloak-style)
-        if (shouldPause)
+        if (pair.Handler != null)
         {
-            Mediator.Publish(new PlayerVisibilityMessage(pair.Ident, IsVisible: false, Invalidate: true));
+            Logger.LogDebug("Using SetPaused mechanism for {uid}", userData.UID);
+            pair.Handler.SetPaused(shouldPause);
         }
         else
         {
-            _pairManager.CancelPendingOffline(userData.UID);
-            pair.ApplyLastReceivedData(forced: true);
+            Logger.LogWarning("Handler not available for {uid}, using fallback pause method", userData.UID);
+            if (shouldPause)
+            {
+                Mediator.Publish(new PlayerVisibilityMessage(pair.Ident, IsVisible: false, Invalidate: true));
+            }
+            else
+            {
+                _pairManager.CancelPendingOffline(userData.UID);
+                pair.ApplyLastReceivedData(forced: true);
+            }
         }
     }
 
@@ -339,9 +345,9 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
     {
         while (!ct.IsCancellationRequested && _mareHub != null)
         {
-            await Task.Delay(TimeSpan.FromSeconds(30), ct).ConfigureAwait(false);
             Logger.LogDebug("Checking Client Health State");
             _ = await CheckClientHealth().ConfigureAwait(false);
+            await Task.Delay(TimeSpan.FromSeconds(15), ct).ConfigureAwait(false);
         }
     }
 
@@ -418,7 +424,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         {
             var users = await GroupsGetUsersInGroup(group).ConfigureAwait(false);
             foreach (var user in users)
-        {
+            {
                 Logger.LogDebug("Group Pair: {user}", user);
                 _pairManager.AddGroupPair(user, isInitialLoad: true);
             }

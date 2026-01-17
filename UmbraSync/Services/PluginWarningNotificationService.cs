@@ -1,11 +1,12 @@
-﻿using UmbraSync.API.Data;
+﻿using System.Collections.Concurrent;
+using UmbraSync.API.Data;
 using UmbraSync.API.Data.Comparer;
 using UmbraSync.Interop.Ipc;
 using UmbraSync.MareConfiguration;
 using UmbraSync.MareConfiguration.Models;
-using UmbraSync.Services.Mediator;
 using UmbraSync.PlayerData.Pairs;
-using System.Collections.Concurrent;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Services.Notification;
 using PlayerChanges = UmbraSync.PlayerData.Data.PlayerChanges;
 
 namespace UmbraSync.Services;
@@ -16,12 +17,15 @@ public class PluginWarningNotificationService
     private readonly IpcManager _ipcManager;
     private readonly MareConfigService _mareConfigService;
     private readonly MareMediator _mediator;
+    private readonly NotificationTracker _notificationTracker;
 
-    public PluginWarningNotificationService(MareConfigService mareConfigService, IpcManager ipcManager, MareMediator mediator)
+    public PluginWarningNotificationService(MareConfigService mareConfigService, IpcManager ipcManager, MareMediator mediator,
+        NotificationTracker notificationTracker)
     {
         _mareConfigService = mareConfigService;
         _ipcManager = ipcManager;
         _mediator = mediator;
+        _notificationTracker = notificationTracker;
     }
 
     public void NotifyForMissingPlugins(UserData user, string playerName, HashSet<PlayerChanges> changes)
@@ -73,6 +77,7 @@ public class PluginWarningNotificationService
             _mediator.Publish(new NotificationMessage("Missing plugins for " + playerName,
                 $"Received data for {playerName} that contained information for plugins you have not installed. Install {string.Join(", ", missingPluginsForData)} to experience their character fully.",
                 NotificationType.Warning, TimeSpan.FromSeconds(10)));
+            _notificationTracker.Upsert(NotificationEntry.MissingPlugins(playerName, missingPluginsForData));
         }
     }
 }

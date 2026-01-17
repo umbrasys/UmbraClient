@@ -1,5 +1,4 @@
 ﻿using UmbraSync.MareConfiguration.Models;
-using UmbraSync.WebAPI;
 
 namespace UmbraSync.MareConfiguration.Configurations;
 

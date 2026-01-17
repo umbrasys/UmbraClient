@@ -1,8 +1,8 @@
-﻿﻿using UmbraSync.MareConfiguration;
+﻿using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using UmbraSync.MareConfiguration;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Utils;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace UmbraSync.Services.Events;
 

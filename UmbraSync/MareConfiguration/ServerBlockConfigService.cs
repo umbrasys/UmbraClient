@@ -2,13 +2,9 @@
 
 namespace UmbraSync.MareConfiguration;
 
-public class ServerBlockConfigService : ConfigurationServiceBase<ServerBlockConfig>
+public class ServerBlockConfigService(string configDir) : ConfigurationServiceBase<ServerBlockConfig>(configDir)
 {
     public const string ConfigName = "blocks.json";
-
-    public ServerBlockConfigService(string configDir) : base(configDir)
-    {
-    }
 
     public override string ConfigurationName => ConfigName;
 }

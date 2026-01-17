@@ -1,21 +1,15 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Runtime.InteropServices;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
 using Dalamud.Plugin.Services;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Runtime.InteropServices;
 using UmbraSync.API.Data.Enum;
 using UmbraSync.Interop.ChatTwo;
 using UmbraSync.MareConfiguration;
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services.Mediator;
-using UmbraSync.WebAPI;
-using Dalamud.Game.ClientState.Party;
 
 namespace UmbraSync.Services;
 
@@ -421,9 +415,6 @@ public sealed class ChatTwoCompatibilityService : MediatorSubscriberBase, IHoste
 
             foreach (var pair in _pairManager.GetOnlineUserPairs())
             {
-                if (pair == null)
-                    continue;
-
                 var objectId = pair.PlayerCharacterId;
                 if (objectId != 0 && objectId != uint.MaxValue && allianceMembers.Any(m => m.EntityId == objectId))
                     return true;
@@ -462,7 +453,7 @@ public sealed class ChatTwoCompatibilityService : MediatorSubscriberBase, IHoste
                 if (member == null)
                     continue;
 
-                var name = member.Name?.TextValue ?? string.Empty;
+                var name = member.Name.TextValue;
                 var entityId = member.EntityId;
                 if (entityId == 0 && string.IsNullOrEmpty(name))
                     continue;

@@ -2,11 +2,12 @@
 using Dalamud.Plugin;
 using Glamourer.Api.Helpers;
 using Glamourer.Api.IpcSubscribers;
+using Microsoft.Extensions.Logging;
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.PlayerData.Handlers;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
-using Microsoft.Extensions.Logging;
+using UmbraSync.Services.Notification;
 
 namespace UmbraSync.Interop.Ipc;
 
@@ -16,6 +17,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     private readonly DalamudUtilService _dalamudUtil;
     private readonly MareMediator _mareMediator;
     private readonly RedrawManager _redrawManager;
+    private readonly NotificationTracker _notificationTracker;
 
     private readonly ApiVersion _glamourerApiVersions;
     private readonly ApplyState? _glamourerApplyAll;
@@ -33,8 +35,9 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     private readonly uint LockCode = 0x626E7579;
 
     public IpcCallerGlamourer(ILogger<IpcCallerGlamourer> logger, IDalamudPluginInterface pi, DalamudUtilService dalamudUtil, MareMediator mareMediator,
-        RedrawManager redrawManager) : base(logger, mareMediator)
+        RedrawManager redrawManager, NotificationTracker notificationTracker) : base(logger, mareMediator)
     {
+        _notificationTracker = notificationTracker;
         _glamourerApiVersions = new ApiVersion(pi);
         _glamourerGetAllCustomization = new GetStateBase64(pi);
         _glamourerApplyAll = new ApplyState(pi);
@@ -55,17 +58,41 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
 
         Mediator.SubscribeKeyed<PluginChangeMessage>(this, "Glamourer", (msg) =>
         {
-             _pluginLoaded = msg.IsLoaded;
-             _pluginVersion = msg.Version;
-             CheckAPI();
+            _pluginLoaded = msg.IsLoaded;
+            _pluginVersion = msg.Version;
+            CheckAPI();
         });
-
-        CheckAPI();
 
         _glamourerStateChanged = StateChanged.Subscriber(pi, GlamourerChanged);
         _glamourerStateChanged.Enable();
 
-        Mediator.Subscribe<DalamudLoginMessage>(this, s => _shownGlamourerUnavailable = false);
+        Mediator.Subscribe<DalamudLoginMessage>(this, (msg) =>
+        {
+            _shownGlamourerUnavailable = false;
+            _ = Task.Run(CheckAPIWithRetryAsync);
+        });
+    }
+
+    private async Task CheckAPIWithRetryAsync()
+    {
+        const int maxRetries = 5;
+        const int delayBetweenRetries = 2000;
+
+        for (int attempt = 1; attempt <= maxRetries; attempt++)
+        {
+            await Task.Delay(delayBetweenRetries).ConfigureAwait(false);
+            CheckAPI();
+
+            if (APIAvailable)
+            {
+                _logger.LogDebug("Glamourer API available after {attempt} attempt(s)", attempt);
+                return;
+            }
+
+            _logger.LogDebug("Glamourer API not available, attempt {attempt}/{maxRetries}", attempt, maxRetries);
+        }
+
+        _logger.LogWarning("Glamourer API still not available after {maxRetries} attempts", maxRetries);
     }
 
     protected override void Dispose(bool disposing)
@@ -111,6 +138,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
                 _shownGlamourerUnavailable = true;
                 _mareMediator.Publish(new NotificationMessage("Glamourer inactive", "Your Glamourer installation is not active or out of date. Update Glamourer to continue to use Umbra. If you just updated Glamourer, ignore this message.",
                     NotificationType.Error));
+                _notificationTracker.Upsert(NotificationEntry.GlamourerInactive());
             }
         }
     }

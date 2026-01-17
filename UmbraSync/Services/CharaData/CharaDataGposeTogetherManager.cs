@@ -1,17 +1,15 @@
 ﻿using Dalamud.Game.ClientState.Objects.SubKinds;
+using Microsoft.Extensions.Logging;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.Numerics;
+using System.Text.Json.Nodes;
 using UmbraSync.API.Data;
 using UmbraSync.API.Dto.CharaData;
 using UmbraSync.Interop;
 using UmbraSync.Interop.Ipc;
 using UmbraSync.Services.CharaData.Models;
 using UmbraSync.Services.Mediator;
-using UmbraSync.WebAPI;
-using Microsoft.Extensions.Logging;
-using System.Globalization;
-using System.Numerics;
-using System.Text.Json.Nodes;
-using System.Diagnostics.CodeAnalysis;
-using API = UmbraSync.API;
 
 namespace UmbraSync.Services.CharaData;
 
@@ -32,7 +30,7 @@ public class CharaDataGposeTogetherManager : DisposableMediatorSubscriberBase
     private WorldData? _lastWorldData;
     private CancellationTokenSource _lobbyCts = new();
     [SuppressMessage("Major Code Smell", "S1450:Remove the field '_poseGenerationExecutions'", Justification = "Tracks resend cadence across updates")]
-    private int _poseGenerationExecutions = 0;
+    private int _poseGenerationExecutions;
 
     public CharaDataGposeTogetherManager(ILogger<CharaDataGposeTogetherManager> logger, MareMediator mediator,
             ApiController apiController, IpcCallerBrio brio, DalamudUtilService dalamudUtil, VfxSpawnManager vfxSpawnManager,
@@ -404,7 +402,7 @@ public class CharaDataGposeTogetherManager : DisposableMediatorSubscriberBase
 
                 bool deltaIsSame = _lastDeltaPoseData != null &&
                     (poseData.Bones.Keys.All(k => _lastDeltaPoseData.Value.Bones.ContainsKey(k)
-                        && poseData.Bones.Values.All(k => _lastDeltaPoseData.Value.Bones.ContainsValue(k))));
+                        && poseData.Bones.Values.All(v => _lastDeltaPoseData.Value.Bones.ContainsValue(v))));
 
                 if (_forceResendFullPose || ((poseData.Bones.Any() || poseData.MainHand.Any() || poseData.OffHand.Any())
                     && (!poseData.IsDelta || (poseData.IsDelta && !deltaIsSame))))

@@ -1,5 +1,3 @@
-using System;
-
 namespace UmbraSync.MareConfiguration.Models;
 
 [Serializable]

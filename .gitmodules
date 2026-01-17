@@ -10,3 +10,6 @@
 	path = Glamourer.Api
 	url = https://github.com/Ottermandias/Glamourer.Api.git
 	branch = main
+[submodule "OtterGui"]
+	path = OtterGui
+	url = https://github.com/Ottermandias/OtterGui.git

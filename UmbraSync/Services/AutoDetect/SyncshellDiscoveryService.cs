@@ -1,17 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using System.Globalization;
 using UmbraSync.API.Data;
+using UmbraSync.API.Data.Enum;
 using UmbraSync.API.Dto.Group;
 using UmbraSync.Services.Mediator;
-using UmbraSync.WebAPI;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using UmbraSync.API.Data.Enum;
 
 namespace UmbraSync.Services.AutoDetect;
 
@@ -144,7 +137,7 @@ public sealed class SyncshellDiscoveryService : IHostedService, IMediatorSubscri
             }
             catch (Exception ex)
             {
-                var isMissing = ex.Message?.IndexOf("Method does not exist", StringComparison.OrdinalIgnoreCase) >= 0
+                var isMissing = ex.Message.IndexOf("Method does not exist", StringComparison.OrdinalIgnoreCase) >= 0
                                 || ex.GetType().Name.IndexOf("HubException", StringComparison.OrdinalIgnoreCase) >= 0;
                 if (!isMissing)
                 {
@@ -217,7 +210,7 @@ public sealed class SyncshellDiscoveryService : IHostedService, IMediatorSubscri
             var discovered = await _apiController.SyncshellDiscoveryList().ConfigureAwait(false);
             using (_entriesLock.EnterScope())
             {
-                _entries = discovered ?? [];
+                _entries = discovered;
             }
             _lastError = null;
             _mediator.Publish(new SyncshellDiscoveryUpdated(Entries.ToList()));

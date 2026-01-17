@@ -1,17 +1,20 @@
-﻿using UmbraSync.MareConfiguration.Models;
+﻿using Microsoft.AspNetCore.SignalR.Client;
+using UmbraSync.MareConfiguration.Models;
 using UmbraSync.Services.Mediator;
-using Microsoft.AspNetCore.SignalR.Client;
+using UmbraSync.Services.Notification;
 
 namespace UmbraSync.WebAPI.SignalR.Utils;
 
 public class ForeverRetryPolicy : IRetryPolicy
 {
     private readonly MareMediator _mediator;
+    private readonly NotificationTracker _notificationTracker;
     private bool _sentDisconnected = false;
 
-    public ForeverRetryPolicy(MareMediator mediator)
+    public ForeverRetryPolicy(MareMediator mediator, NotificationTracker notificationTracker)
     {
         _mediator = mediator;
+        _notificationTracker = notificationTracker;
     }
 
     public TimeSpan? NextRetryDelay(RetryContext retryContext)
@@ -29,6 +32,7 @@ public class ForeverRetryPolicy : IRetryPolicy
             if (!_sentDisconnected)
             {
                 _mediator.Publish(new NotificationMessage("Connection lost", "Connection lost to server", NotificationType.Warning, TimeSpan.FromSeconds(10)));
+                _notificationTracker.Upsert(NotificationEntry.ConnectionLost());
                 _mediator.Publish(new DisconnectedMessage());
             }
             _sentDisconnected = true;

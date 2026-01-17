@@ -1,9 +1,9 @@
-﻿using UmbraSync.MareConfiguration;
-using Microsoft.Extensions.Hosting;
+﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text;
+using UmbraSync.MareConfiguration;
 
 namespace UmbraSync.Services.Mediator;
 
@@ -17,7 +17,7 @@ public sealed class MareMediator : IHostedService, IDisposable
     private readonly PerformanceCollectorService _performanceCollector;
     private readonly MareConfigService _mareConfigService;
     private readonly ConcurrentDictionary<(Type, string?), HashSet<SubscriberAction>> _subscriberDict = [];
-    private bool _processQueue = false;
+    private bool _processQueue;
     private readonly ConcurrentDictionary<(Type, string?), MethodInfo?> _genericExecuteMethods = new();
     public MareMediator(ILogger<MareMediator> logger, PerformanceCollectorService performanceCollector, MareConfigService mareConfigService)
     {
@@ -159,9 +159,9 @@ public sealed class MareMediator : IHostedService, IDisposable
     {
         lock (_addRemoveLock)
         {
-                foreach (var kvp in _subscriberDict.Select(k => k.Key))
-                {
-                    int unSubbed = _subscriberDict[kvp].RemoveWhere(p => p.Subscriber == subscriber);
+            foreach (var kvp in _subscriberDict.Select(k => k.Key))
+            {
+                int unSubbed = _subscriberDict[kvp].RemoveWhere(p => p.Subscriber == subscriber);
                 if (unSubbed > 0)
                 {
                     _logger.LogDebug("{sub} unsubscribed from {msg}", subscriber.GetType().Name, kvp.Item1.Name);

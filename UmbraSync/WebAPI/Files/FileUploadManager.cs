@@ -1,15 +1,14 @@
-﻿using UmbraSync.API.Data;
+﻿using Microsoft.Extensions.Logging;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using UmbraSync.API.Data;
 using UmbraSync.API.Dto.Files;
 using UmbraSync.API.Routes;
 using UmbraSync.FileCache;
-using UmbraSync.MareConfiguration;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.UI;
 using UmbraSync.WebAPI.Files.Models;
-using Microsoft.Extensions.Logging;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
 
 
 namespace UmbraSync.WebAPI.Files;
@@ -37,12 +36,14 @@ public sealed class FileUploadManager : DisposableMediatorSubscriberBase
         });
     }
 
+    public bool IsInitialized => _orchestrator.IsInitialized;
+
     public List<FileTransfer> CurrentUploads { get; } = [];
     public bool IsUploading => CurrentUploads.Count > 0;
 
     public bool CancelUpload()
     {
-        if (CurrentUploads.Any())
+        if (CurrentUploads.Count > 0)
         {
             Logger.LogDebug("Cancelling current upload");
             _uploadCancellationTokenSource?.Cancel();
@@ -67,7 +68,7 @@ public sealed class FileUploadManager : DisposableMediatorSubscriberBase
         Logger.LogDebug("Trying to upload files");
         var filesPresentLocally = hashesToUpload.Where(h => _fileDbManager.GetFileCacheByHash(h) != null).ToHashSet(StringComparer.Ordinal);
         var locallyMissingFiles = hashesToUpload.Except(filesPresentLocally, StringComparer.Ordinal).ToList();
-        if (locallyMissingFiles.Any())
+        if (locallyMissingFiles.Count > 0)
         {
             return locallyMissingFiles;
         }
@@ -123,7 +124,7 @@ public sealed class FileUploadManager : DisposableMediatorSubscriberBase
         Logger.LogDebug("Sending Character data {hash} to service {url}", data.DataHash.Value, _serverManager.CurrentRealApiUrl);
 
         HashSet<string> unverifiedUploads = GetUnverifiedFiles(data);
-        if (unverifiedUploads.Any())
+        if (unverifiedUploads.Count > 0)
         {
             await UploadUnverifiedFiles(unverifiedUploads, visiblePlayers, uploadToken).ConfigureAwait(false);
             Logger.LogInformation("Upload complete for {hash}", data.DataHash.Value);
@@ -281,7 +282,7 @@ public sealed class FileUploadManager : DisposableMediatorSubscriberBase
             uploadToken.ThrowIfCancellationRequested();
         }
 
-        if (CurrentUploads.Any())
+        if (CurrentUploads.Count > 0)
         {
             await uploadTask.ConfigureAwait(false);
 

@@ -1,9 +1,9 @@
 ﻿using Dalamud.Utility;
 using Lumina.Excel.Sheets;
-using UmbraSync.API.Dto.CharaData;
 using System.Globalization;
 using System.Numerics;
 using System.Text;
+using UmbraSync.API.Dto.CharaData;
 
 namespace UmbraSync.Services.CharaData.Models;
 

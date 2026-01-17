@@ -5,8 +5,8 @@
         <LangVersion>13.0</LangVersion>
         <AssemblyName>UmbraSync</AssemblyName>
         <RootNamespace>UmbraSync</RootNamespace>
-        <Version>2.0.3.5</Version>
-        <DALAMUD_DIR>/Volumes/Data/dev/ressources/dalamud/Hooks/dev</DALAMUD_DIR>
+        <Version>2.1.0.0</Version>
+        <DALAMUD_DIR Condition="'$(DALAMUD_DIR)' == ''">/Volumes/Data/dev/ressources/dalamud/Hooks/dev</DALAMUD_DIR>
     </PropertyGroup>
 
     <ItemGroup>
@@ -27,6 +27,7 @@
         </PackageReference>
         <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.8" />
         <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="9.0.8" />
+        <PackageReference Include="MessagePack" Version="2.5.187" />
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.8" />
         <PackageReference Include="SonarAnalyzer.CSharp" Version="10.15.0.120848">
             <PrivateAssets>all</PrivateAssets>
@@ -60,7 +61,16 @@
 
     <ItemGroup>
         <ProjectReference Include="..\UmbraAPI\UmbraSyncAPI\UmbraSync.API.csproj" />
+        <ProjectReference Include="..\OtterGui\OtterGui.csproj" />
         <None Include="..\.editorconfig" Link=".editorconfig" />
     </ItemGroup>
+
+    <Target Name="EnsureOtterGuiBuilt"
+            BeforeTargets="ResolveReferences"
+            Condition="Exists('..\OtterGui\OtterGui.csproj') and !Exists('..\OtterGui\bin\$(Configuration)\OtterGui.dll')">
+        <MSBuild Projects="..\OtterGui\OtterGui.csproj"
+                 Targets="Build"
+                 Properties="Configuration=$(Configuration)" />
+    </Target>
 
 </Project>

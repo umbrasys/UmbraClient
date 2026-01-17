@@ -1,24 +1,20 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using UmbraSync.API.Dto.Group;
-using UmbraSync.MareConfiguration;
-using UmbraSync.PlayerData.Pairs;
-using UmbraSync.Localization;
-using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Logging;
-using System.Numerics;
 using System.Globalization;
+using System.Numerics;
 using System.Text;
+using UmbraSync.API.Dto.Group;
+using UmbraSync.Localization;
+using UmbraSync.MareConfiguration;
+using UmbraSync.MareConfiguration.Configurations;
+using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
 using UmbraSync.Services.AutoDetect;
-using UmbraSync.MareConfiguration.Configurations;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Services.Notification;
 using NotificationType = UmbraSync.MareConfiguration.Models.NotificationType;
 
 namespace UmbraSync.UI;
@@ -34,6 +30,7 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
     private List<Services.Mediator.NearbyEntry> _entries;
     private readonly HashSet<string> _acceptInFlight = new(StringComparer.Ordinal);
     private readonly SyncshellDiscoveryService _syncshellDiscoveryService;
+    private readonly NotificationTracker _notificationTracker;
     private List<SyncshellDiscoveryEntryDto> _syncshellEntries = [];
     private bool _syncshellInitialized;
     private readonly HashSet<string> _syncshellJoinInFlight = new(StringComparer.OrdinalIgnoreCase);
@@ -43,7 +40,7 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
         MareConfigService configService, DalamudUtilService dalamudUtilService,
         AutoDetectRequestService requestService, NearbyPendingService pendingService, PairManager pairManager,
         NearbyDiscoveryService discoveryService, SyncshellDiscoveryService syncshellDiscoveryService,
-        PerformanceCollectorService performanceCollectorService)
+        PerformanceCollectorService performanceCollectorService, NotificationTracker notificationTracker)
         : base(logger, mediator, "AutoDetect", performanceCollectorService)
     {
         _configService = configService;
@@ -53,6 +50,7 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
         _pairManager = pairManager;
         _discoveryService = discoveryService;
         _syncshellDiscoveryService = syncshellDiscoveryService;
+        _notificationTracker = notificationTracker;
         Mediator.Subscribe<Services.Mediator.DiscoveryListUpdated>(this, OnDiscoveryUpdated);
         Mediator.Subscribe<SyncshellDiscoveryUpdated>(this, OnSyncshellDiscoveryUpdated);
         _entries = _discoveryService.SnapshotEntries();
@@ -336,12 +334,14 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
             {
                 _syncshellLastError = string.Format(CultureInfo.CurrentCulture, Loc.Get("AutoDetectUi.Syncshell.JoinFailed"), entry.Alias ?? entry.GID);
                 Mediator.Publish(new NotificationMessage(Loc.Get("AutoDetectUi.Syncshell.NotificationTitle"), _syncshellLastError, NotificationType.Warning, TimeSpan.FromSeconds(5)));
+                _notificationTracker.Upsert(NotificationEntry.SyncshellJoinFailed(entry.Alias ?? entry.GID, "join returned false"));
             }
         }
         catch (Exception ex)
         {
             _syncshellLastError = string.Format(CultureInfo.CurrentCulture, Loc.Get("AutoDetectUi.Syncshell.JoinError"), ex.Message);
             Mediator.Publish(new NotificationMessage(Loc.Get("AutoDetectUi.Syncshell.NotificationTitle"), _syncshellLastError, NotificationType.Error, TimeSpan.FromSeconds(5)));
+            _notificationTracker.Upsert(NotificationEntry.SyncshellJoinFailed(entry.Alias ?? entry.GID, ex.Message));
         }
         finally
         {
@@ -512,6 +512,7 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
                 if (!ok)
                 {
                     Mediator.Publish(new NotificationMessage(Loc.Get("AutoDetectUi.Notification.AcceptTitle"), string.Format(CultureInfo.CurrentCulture, Loc.Get("AutoDetectUi.Notification.AcceptFailed"), uid), NotificationType.Warning, TimeSpan.FromSeconds(5)));
+                    _notificationTracker.Upsert(NotificationEntry.AcceptPairRequestFailed(uid));
                 }
             }
             finally

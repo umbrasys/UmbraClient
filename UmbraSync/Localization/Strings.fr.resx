@@ -177,7 +177,27 @@
   <data name="Settings.Transfer.Precache.Status.CompletedSkipped" xml:space="preserve">
     <value>Terminé avec {0} ignoré(s)</value>
   </data>
-  
+  <data name="Settings.Transfer.Precache.Status.WaitingConnection" xml:space="preserve">
+    <value>En attente de connexion au serveur</value>
+  </data>
+
+  <!-- Paramètres de traitement des pairs -->
+  <data name="Settings.Transfer.PairProcessing.Title" xml:space="preserve">
+    <value>Traitement des pairs</value>
+  </data>
+  <data name="Settings.Transfer.PairProcessing.Enable" xml:space="preserve">
+    <value>Activer le traitement parallèle des pairs</value>
+  </data>
+  <data name="Settings.Transfer.PairProcessing.Enable.Help" xml:space="preserve">
+    <value>Lorsqu'activé, plusieurs pairs peuvent être traités simultanément (plus rapide mais utilise plus de CPU). Lorsque désactivé, les pairs sont traités un par un (plus lent mais plus stable). Recommandé : désactivé pour les PC moins puissants.</value>
+  </data>
+  <data name="Settings.Transfer.PairProcessing.MaxConcurrent" xml:space="preserve">
+    <value>Pairs simultanés max</value>
+  </data>
+  <data name="Settings.Transfer.PairProcessing.MaxConcurrent.Help" xml:space="preserve">
+    <value>Nombre maximum de pairs pouvant être traités en même temps. Des valeurs plus élevées sont plus rapides mais utilisent plus de ressources. Recommandé : 4 (défaut : 4, max : 16)</value>
+  </data>
+
   <!-- Vanity / Custom ID in Edit Profile (FR) -->
   <data name="EditProfile.SetCustomId.Button" xml:space="preserve">
     <value>Définir l'ID personnalisé</value>
@@ -219,6 +239,9 @@
   </data>
   <data name="AutoDetect.Notification.IncomingBody" xml:space="preserve">
     <value>{0} ({1}) vous a envoyé une invitation de pair.</value>
+  </data>
+  <data name="AutoDetect.Notification.IncomingBodyIdFirst" xml:space="preserve">
+    <value>{0} souhaite s'appairer avec vous.</value>
   </data>
   <data name="AutoDetect.Notification.AcceptedTitle" xml:space="preserve">
     <value>Invitation acceptée</value>
@@ -432,7 +455,7 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value />
   </data>
   <data name="CompactUi.Notifications.Accept" xml:space="preserve">
-    <value />
+    <value>Accepter</value>
   </data>
   <data name="CompactUi.Notifications.AcceptFailed" xml:space="preserve">
     <value />
@@ -441,10 +464,10 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value>AutoDetect</value>
   </data>
   <data name="CompactUi.Notifications.Clear" xml:space="preserve">
-    <value />
+    <value>Ok</value>
   </data>
   <data name="CompactUi.Notifications.Decline" xml:space="preserve">
-    <value />
+    <value>Refuser</value>
   </data>
   <data name="CompactUi.Notifications.Empty" xml:space="preserve">
     <value />
@@ -887,8 +910,173 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="BanUserPopup.SubmitButton" xml:space="preserve">
     <value />
   </data>
+  <data name="SlotPopup.Title" xml:space="preserve">
+    <value>SyncSlot</value>
+  </data>
+  <data name="SlotPopup.WelcomeTo" xml:space="preserve">
+    <value>Bienvenue à {0} !</value>
+  </data>
+  <data name="SlotPopup.SyncshellFound" xml:space="preserve">
+    <value>Une Syncshell est associée à ce lieu : {0}</value>
+  </data>
+  <data name="SlotPopup.JoinButton" xml:space="preserve">
+    <value>Rejoindre la Syncshell</value>
+  </data>
+  <data name="SlotPopup.JoinToolTip" xml:space="preserve">
+    <value>Rejoindre automatiquement la Syncshell de ce lieu.</value>
+  </data>
+  <data name="SlotPopup.AutoLeaveNotice" xml:space="preserve">
+    <value>Note : Vous quitterez automatiquement cette Syncshell si vous restez en dehors de la zone de housing pendant plus de 5 minutes.</value>
+  </data>
+  <data name="SlotPopup.DeclineButton" xml:space="preserve">
+    <value>Refuser</value>
+  </data>
+  <data name="SlotPopup.SlotLocation" xml:space="preserve">
+    <value>Localisation du lieu :</value>
+  </data>
+  <data name="SlotPopup.Host" xml:space="preserve">
+    <value>Hôte :</value>
+  </data>
+  <data name="SlotPopup.AboutSlot" xml:space="preserve">
+    <value>À propos de ce lieu</value>
+  </data>
+  <data name="SlotPopup.SlotRegistered" xml:space="preserve">
+    <value>Ce housing possède une Syncshell associée.</value>
+  </data>
+  <data name="SlotPopup.CloseButton" xml:space="preserve">
+    <value>Fermer</value>
+  </data>
+  <data name="SlotPopup.NoSyncshell" xml:space="preserve">
+    <value>Aucune Syncshell n'est associée à ce lieu.</value>
+  </data>
+  <data name="SlotPopup.JoinPermanentlyCheckbox" xml:space="preserve">
+    <value>Rejoindre cette Syncshell de manière permanente</value>
+  </data>
+  <data name="SlotPopup.JoinPermanentlyTooltip" xml:space="preserve">
+    <value>Si cochée, vous resterez dans cette Syncshell même après avoir quitté la zone du lieu. Vous devrez quitter manuellement la Syncshell plus tard.</value>
+  </data>
+  <data name="SlotPopup.PermanentJoinNotice" xml:space="preserve">
+    <value>✓ Vous resterez dans cette Syncshell de manière permanente (pas d'auto-déconnexion).</value>
+  </data>
+  <data name="Slot.Decline.Notification" xml:space="preserve">
+    <value>Vous avez refusé de rejoindre la Syncshell pour {0}. Vous ne serez plus sollicité pour ce lieu durant cette session.</value>
+  </data>
+  <data name="Slot.Toast.Welcome" xml:space="preserve">
+    <value>Bienvenue au {0}</value>
+  </data>
+  <data name="Slot.Toast.Leaving" xml:space="preserve">
+    <value>Vous quittez le {0}</value>
+  </data>
+  <data name="Slot.Toast.AutoLeaveStarting" xml:space="preserve">
+    <value>Vous quittez les alentours de {0}. Vous serez exclu de la Syncshell dans 5 minutes si vous ne revenez pas dans la zone.</value>
+  </data>
+  <data name="Slot.Toast.Joined" xml:space="preserve">
+    <value>Vous avez rejoint la Syncshell de {0}</value>
+  </data>
+  <data name="Slot.Toast.AutoLeft" xml:space="preserve">
+    <value>Vous avez quitté la Syncshell {0} après 5 minutes d'inactivité dans la zone.</value>
+  </data>
+  <data name="SyncshellAdmin.Tab.Slot" xml:space="preserve">
+    <value>Slot</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.Loading" xml:space="preserve">
+    <value>Chargement des données du Slot...</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.Description" xml:space="preserve">
+    <value>Configurez l'association entre cette Syncshell et un emplacement de housing physique (Slot). Lorsque les joueurs s'approcheront de cet emplacement, il leur sera proposé de rejoindre la Syncshell.</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.AutoLeaveWarning" xml:space="preserve">
+    <value>Important : Lorsqu'un joueur rejoint via ce système, il sera automatiquement retiré de la Syncshell 5 minutes après avoir quitté les alentours du housing.</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.Name" xml:space="preserve">
+    <value>Nom du Slot</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.NameHelp" xml:space="preserve">
+    <value>Le nom du lieu tel qu'il apparaîtra dans la popup.</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.SlotDescription" xml:space="preserve">
+    <value>Description du Slot</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.SlotDescriptionHelp" xml:space="preserve">
+    <value>Une courte description du lieu affichée dans la popup.</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.Location" xml:space="preserve">
+    <value>Emplacement</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.Step1Outside" xml:space="preserve">
+    <value>Étape 1 : Capturer les coordonnées extérieures</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.GetOutsidePos" xml:space="preserve">
+    <value>Obtenir la position extérieure</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.GetOutsidePosHelp" xml:space="preserve">
+    <value>Placez-vous devant l'entrée à l'extérieur et cliquez sur ce bouton.</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.Step2Inside" xml:space="preserve">
+    <value>Étape 2 : Capturer les informations de housing</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.GetHousingInfo" xml:space="preserve">
+    <value>Obtenir les infos de housing</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.GetHousingInfoHelp" xml:space="preserve">
+    <value>Entrez dans la maison (à l'intérieur de la parcelle) et cliquez sur ce bouton.</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.MustBeInHousingEditMode" xml:space="preserve">
+    <value>⚠ Vous devez être en Mode Édition de Housing (Mode Aménagement) pour enregistrer ce housing. Cette mesure de sécurité garantit que seul le propriétaire du housing peut enregistrer un slot.</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.HousingSummary" xml:space="preserve">
+    <value>Infos Housing : S:{0} | T:{1} | W:{2} | P:{3}</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.LocationCoords" xml:space="preserve">
+    <value>Coords : X: {0:F1} | Y: {1:F1} | Z: {2:F1}</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.Radius" xml:space="preserve">
+    <value>Rayon de détection (mètres)</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.RadiusHelp" xml:space="preserve">
+    <value>Le rayon autour des coordonnées où la popup apparaîtra (utile pour la détection à l'extérieur de la maison).</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.Save" xml:space="preserve">
+    <value>Sauvegarder la configuration du Slot</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.SaveSuccessTitle" xml:space="preserve">
+    <value>Slot Sauvegardé</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.SaveSuccessMessage" xml:space="preserve">
+    <value>La configuration du Slot a été mise à jour avec succès.</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.SaveErrorTitle" xml:space="preserve">
+    <value>Échec de la sauvegarde</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.EditTooltip" xml:space="preserve">
+    <value>Modifier ce Slot</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.DeleteTooltip" xml:space="preserve">
+    <value>Supprimer ce Slot</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.DeleteSuccessTitle" xml:space="preserve">
+    <value>Slot Supprimé</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.DeleteSuccessMessage" xml:space="preserve">
+    <value>Le Slot a été supprimé avec succès.</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.AddButton" xml:space="preserve">
+    <value>Ajouter un nouveau Slot</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.AddingNew" xml:space="preserve">
+    <value>Ajout d'un nouveau Slot</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.Editing" xml:space="preserve">
+    <value>Modification du Slot</value>
+  </data>
+  <data name="SyncshellAdmin.Slot.Cancel" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
   <data name="PopupHandler.CloseButton" xml:space="preserve">
-    <value />
+    <value>Fermer</value>
   </data>
   <data name="ReportPopup.Note" xml:space="preserve">
     <value />
@@ -2021,6 +2209,12 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="Settings.AutoDetect.AllowInvites" xml:space="preserve">
     <value>Activer les invitations entrantes</value>
   </data>
+  <data name="Settings.AutoDetect.UseInteractivePopup" xml:space="preserve">
+    <value>Utiliser la popup interactive pour les invitations</value>
+  </data>
+  <data name="Settings.AutoDetect.UseInteractivePopupHelp" xml:space="preserve">
+    <value>Affiche une popup en bas à droite avec des boutons pour accepter ou refuser les invitations. Si désactivé, affiche une notification toast classique.</value>
+  </data>
   <data name="Settings.AutoDetect.Enable" xml:space="preserve">
     <value>Activer l'AutoDetect</value>
   </data>
@@ -2029,6 +2223,12 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   </data>
   <data name="Settings.AutoDetect.InvitesEnabled" xml:space="preserve">
     <value>Invitations entrantes autorisées : les autres peuvent vous inviter.</value>
+  </data>
+  <data name="Settings.AutoDetect.EnableSlotNotifications" xml:space="preserve">
+    <value>Activer la détection des Slots</value>
+  </data>
+  <data name="Settings.AutoDetect.EnableSlotNotificationsHelp" xml:space="preserve">
+    <value>Si activé, une fenêtre apparaîtra pour vous proposer de rejoindre une Syncshell lorsque vous approchez d'un lieu de housing enregistré (Slot).</value>
   </data>
   <data name="Settings.AutoDetect.LockedInInstance" xml:space="preserve">
     <value>AutoDetect est verrouillé tant que vous restez dans une zone instanciée.</value>
@@ -2932,5 +3132,181 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   </data>
   <data name="Notification.AutoDetect.RequestBody" xml:space="preserve">
     <value>{0} a demandé un appairage avec vous. UID : {1}</value>
+  </data>
+
+  <!-- Notifications de performance -->
+  <data name="Notification.Performance.AutoBlockTriangles.Title" xml:space="preserve">
+    <value>Joueur auto-bloqué : {0}</value>
+  </data>
+  <data name="Notification.Performance.AutoBlockTriangles.Body" xml:space="preserve">
+    <value>Seuil de triangles dépassé : {0:N0}/{1:N0} triangles. Le joueur a été automatiquement bloqué.</value>
+  </data>
+  <data name="Notification.Performance.AutoBlockVRAM.Title" xml:space="preserve">
+    <value>Joueur auto-bloqué : {0}</value>
+  </data>
+  <data name="Notification.Performance.AutoBlockVRAM.Body" xml:space="preserve">
+    <value>Seuil VRAM dépassé : {0}/{1} MiB. Le joueur a été automatiquement bloqué.</value>
+  </data>
+
+  <!-- Notifications d'intégration de plugins -->
+  <data name="Notification.PluginIntegration.PenumbraInactive.Title" xml:space="preserve">
+    <value>Penumbra inactif</value>
+  </data>
+  <data name="Notification.PluginIntegration.PenumbraInactive.Body" xml:space="preserve">
+    <value>Votre installation Penumbra est inactive ou obsolète. Mettez à jour Penumbra et activez les mods pour continuer à utiliser Umbra.</value>
+  </data>
+  <data name="Notification.PluginIntegration.GlamourerInactive.Title" xml:space="preserve">
+    <value>Glamourer inactif</value>
+  </data>
+  <data name="Notification.PluginIntegration.GlamourerInactive.Body" xml:space="preserve">
+    <value>Votre installation Glamourer est inactive ou obsolète. Mettez à jour Glamourer pour continuer à utiliser Umbra.</value>
+  </data>
+  <data name="Notification.PluginIntegration.MissingPlugins.Title" xml:space="preserve">
+    <value>Plugins manquants pour {0}</value>
+  </data>
+  <data name="Notification.PluginIntegration.MissingPlugins.Body" xml:space="preserve">
+    <value>Données reçues nécessitant : {0}. Installez ces plugins pour profiter pleinement du personnage.</value>
+  </data>
+
+  <!-- Notifications de connexion -->
+  <data name="Notification.Connection.Lost.Title" xml:space="preserve">
+    <value>Connexion perdue</value>
+  </data>
+  <data name="Notification.Connection.Lost.Body" xml:space="preserve">
+    <value>Connexion au serveur perdue. Reconnexion automatique en cours.</value>
+  </data>
+  <data name="Notification.Connection.AuthFailed.Title" xml:space="preserve">
+    <value>Échec d'authentification</value>
+  </data>
+  <data name="Notification.Connection.AuthFailed.Body" xml:space="preserve">
+    <value>Impossible de renouveler votre jeton d'authentification. Reconnectez-vous manuellement.</value>
+  </data>
+
+  <!-- Notifications système -->
+  <data name="Notification.System.ClientIncompatible.Title" xml:space="preserve">
+    <value>Client incompatible</value>
+  </data>
+  <data name="Notification.System.ClientIncompatible.Body" xml:space="preserve">
+    <value>Votre client ({0}) est incompatible. Version requise : {1}. Veuillez mettre à jour Umbra immédiatement.</value>
+  </data>
+  <data name="Notification.System.ClientOutdated.Title" xml:space="preserve">
+    <value>Client obsolète</value>
+  </data>
+  <data name="Notification.System.ClientOutdated.Body" xml:space="preserve">
+    <value>Votre client ({0}) est obsolète. Dernière version : {1}. Veuillez mettre à jour Umbra.</value>
+  </data>
+  <data name="Notification.System.ServerError.Title" xml:space="preserve">
+    <value>Erreur serveur : {0}</value>
+  </data>
+  <data name="Notification.System.ServerWarning.Title" xml:space="preserve">
+    <value>Avertissement serveur : {0}</value>
+  </data>
+
+  <!-- Notifications de profil -->
+  <data name="Notification.Profile.SaveFailed.Title" xml:space="preserve">
+    <value>Échec de sauvegarde du profil</value>
+  </data>
+  <data name="Notification.Profile.SaveFailed.Body" xml:space="preserve">
+    <value>Impossible de sauvegarder votre profil. Veuillez réessayer ou vérifier votre connexion.</value>
+  </data>
+
+  <!-- Notifications de statut utilisateur -->
+  <data name="Notification.UserStatus.SyncshellJoinFailed.Title" xml:space="preserve">
+    <value>Échec de rejoindre la Syncshell</value>
+  </data>
+  <data name="Notification.UserStatus.SyncshellJoinFailed.Body" xml:space="preserve">
+    <value>Impossible de rejoindre "{0}". Raison : {1}</value>
+  </data>
+  <data name="Notification.UserStatus.AcceptFailed.Title" xml:space="preserve">
+    <value>Échec d'acceptation</value>
+  </data>
+  <data name="Notification.UserStatus.AcceptFailed.Body" xml:space="preserve">
+    <value>Échec de l'acceptation de la demande de {0}. Veuillez réessayer.</value>
+  </data>
+  <data name="Notification.UserStatus.NearbyRequestFailed.Title" xml:space="preserve">
+    <value>Échec de la demande Nearby</value>
+  </data>
+  <data name="Notification.UserStatus.SlotConflict.Title" xml:space="preserve">
+    <value>Avertissement de conflit de slot</value>
+  </data>
+  <data name="Notification.UserStatus.SlotConflict.Body" xml:space="preserve">
+    <value>Démarrage du minuteur de départ automatique pour "{0}" (5 minutes). Retournez à la parcelle pour annuler.</value>
+  </data>
+
+  <!-- Syncshell - Expire bientôt -->
+  <data name="Notification.Syncshell.TempExpiring.Title" xml:space="preserve">
+    <value>Syncshell temporaire expire bientôt</value>
+  </data>
+  <data name="Notification.Syncshell.TempExpiring.Body" xml:space="preserve">
+    <value>La Syncshell "{0}" sera supprimée dans {1} minutes (à {2}).</value>
+  </data>
+
+  <!-- Bouton CompactUI optionnel -->
+  <data name="CompactUi.Notifications.Reconnect" xml:space="preserve">
+    <value>Reconnecter</value>
+  </data>
+
+  <data name="UserProfile.RpFirstName" xml:space="preserve">
+    <value>Prénom</value>
+  </data>
+  <data name="UserProfile.RpLastName" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="UserProfile.RpTitle" xml:space="preserve">
+    <value>Titre</value>
+  </data>
+  <data name="UserProfile.RpAge" xml:space="preserve">
+    <value>Âge</value>
+  </data>
+  <data name="UserProfile.RpHeight" xml:space="preserve">
+    <value>Taille</value>
+  </data>
+  <data name="UserProfile.RpBuild" xml:space="preserve">
+    <value>Corpulence</value>
+  </data>
+  <data name="UserProfile.RpOccupation" xml:space="preserve">
+    <value>Occupation</value>
+  </data>
+  <data name="UserProfile.RpAffiliation" xml:space="preserve">
+    <value>Affiliation</value>
+  </data>
+  <data name="UserProfile.RpAlignment" xml:space="preserve">
+    <value>Alignement</value>
+  </data>
+  <data name="UserProfile.RpAdditionalInfo" xml:space="preserve">
+    <value>Informations supplémentaires</value>
+  </data>
+  <data name="UserProfile.RpNsfw" xml:space="preserve">
+    <value>Est-ce un profil RP NSFW ?</value>
+  </data>
+  <data name="UserProfile.NoRpDescription" xml:space="preserve">
+    <value>L'utilisateur n'a pas défini de description RP.</value>
+  </data>
+  <data name="UserProfile.RpDescription" xml:space="preserve">
+    <value>Description RP</value>
+  </data>
+  <data name="UserProfile.RpNsfwHelp" xml:space="preserve">
+    <value>Si activé, votre profil RP sera masqué pour les utilisateurs qui ont l'option "Afficher les profils RP marqués comme NSFW" désactivée.</value>
+  </data>
+  <data name="EditProfile.PreviewButton" xml:space="preserve">
+    <value>Prévisualiser mon profil</value>
+  </data>
+  <data name="EditProfile.SaveButton" xml:space="preserve">
+    <value>Sauvegarder le profil</value>
+  </data>
+  <data name="EditProfile.SelectImageButton" xml:space="preserve">
+    <value>Sélectionner une image</value>
+  </data>
+  <data name="EditProfile.SaveSuccessTitle" xml:space="preserve">
+    <value>Profil sauvegardé</value>
+  </data>
+  <data name="EditProfile.SaveSuccessBody" xml:space="preserve">
+    <value>Votre profil a été enregistré avec succès sur le serveur Umbra.</value>
+  </data>
+  <data name="EditProfile.SaveErrorTitle" xml:space="preserve">
+    <value>Erreur de sauvegarde</value>
+  </data>
+  <data name="EditProfile.SaveErrorBody" xml:space="preserve">
+    <value>Une erreur est survenue lors de l'enregistrement de votre profil sur le serveur.</value>
   </data>
 </root>

@@ -1,12 +1,11 @@
-﻿using UmbraSync.MareConfiguration;
-using UmbraSync.Services.Mediator;
-using UmbraSync.WebAPI.Files.Models;
-using UmbraSync.WebAPI.SignalR;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Reflection;
+using UmbraSync.MareConfiguration;
+using UmbraSync.Services.Mediator;
+using UmbraSync.WebAPI.Files.Models;
 
 namespace UmbraSync.WebAPI.Files;
 
@@ -167,6 +166,10 @@ public class FileTransferOrchestrator : DisposableMediatorSubscriberBase
             if (ct != null)
                 return await _httpClient.SendAsync(requestMessage, httpCompletionOption, ct.Value).ConfigureAwait(false);
             return await _httpClient.SendAsync(requestMessage, httpCompletionOption).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

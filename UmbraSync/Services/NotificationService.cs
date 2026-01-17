@@ -1,15 +1,14 @@
-﻿using System;
-using System.Linq;
-using Dalamud.Game.Text.SeStringHandling;
+﻿using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Plugin.Services;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using UmbraSync.Localization;
 using UmbraSync.MareConfiguration;
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.Services.Mediator;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using NotificationType = UmbraSync.MareConfiguration.Models.NotificationType;
 using DalamudNotification = Dalamud.Interface.ImGuiNotification.Notification;
 using DalamudNotificationType = Dalamud.Interface.ImGuiNotification.NotificationType;
+using NotificationType = UmbraSync.MareConfiguration.Models.NotificationType;
 
 namespace UmbraSync.Services;
 
@@ -97,18 +96,20 @@ public class NotificationService : DisposableMediatorSubscriberBase, IHostedServ
         var effectiveMessage = forceChat && appendInstruction ? AppendAutoDetectInstruction(msg.Message) : msg.Message;
         var adjustedMsg = forceChat && appendInstruction ? msg with { Message = effectiveMessage } : msg;
 
+        var suppressToast = IsAutoDetectPairRequest(adjustedMsg);
+
         switch (adjustedMsg.Type)
         {
             case NotificationType.Info:
-                ShowNotificationLocationBased(adjustedMsg, _configurationService.Current.InfoNotification, forceChat);
+                ShowNotificationLocationBased(adjustedMsg, _configurationService.Current.InfoNotification, forceChat, suppressToast);
                 break;
 
             case NotificationType.Warning:
-                ShowNotificationLocationBased(adjustedMsg, _configurationService.Current.WarningNotification, forceChat);
+                ShowNotificationLocationBased(adjustedMsg, _configurationService.Current.WarningNotification, forceChat, suppressToast);
                 break;
 
             case NotificationType.Error:
-                ShowNotificationLocationBased(adjustedMsg, _configurationService.Current.ErrorNotification, forceChat);
+                ShowNotificationLocationBased(adjustedMsg, _configurationService.Current.ErrorNotification, forceChat, suppressToast);
                 break;
         }
     }
@@ -194,9 +195,9 @@ public class NotificationService : DisposableMediatorSubscriberBase, IHostedServ
         return message ?? string.Empty;
     }
 
-    private void ShowNotificationLocationBased(NotificationMessage msg, NotificationLocation location, bool forceChat)
+    private void ShowNotificationLocationBased(NotificationMessage msg, NotificationLocation location, bool forceChat, bool suppressToast)
     {
-        bool showToast = location is NotificationLocation.Toast or NotificationLocation.Both;
+        bool showToast = !suppressToast && location is NotificationLocation.Toast or NotificationLocation.Both;
         bool showChat = forceChat || location is NotificationLocation.Chat or NotificationLocation.Both;
 
         if (showToast)
@@ -222,11 +223,18 @@ public class NotificationService : DisposableMediatorSubscriberBase, IHostedServ
 
         _notificationManager.AddNotification(new DalamudNotification()
         {
-            Content = msg.Message ?? string.Empty,
+            Content = msg.Message,
             Title = msg.Title,
             Type = dalamudType,
             Minimized = false,
             InitialDuration = msg.TimeShownOnScreen ?? TimeSpan.FromSeconds(3)
         });
+    }
+
+    private static bool IsAutoDetectPairRequest(NotificationMessage msg)
+    {
+        if (msg.Type != NotificationType.Info) return false;
+        var incomingTitle = Loc.Get("AutoDetect.Notification.IncomingTitle");
+        return string.Equals(msg.Title, incomingTitle, StringComparison.Ordinal);
     }
 }

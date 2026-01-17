@@ -1,10 +1,10 @@
 ﻿using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
-using UmbraSync.PlayerData.Pairs;
-using UmbraSync.UI.Handlers;
+using System.Globalization;
 using System.Numerics;
 using UmbraSync.Localization;
-using System.Globalization;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.UI.Handlers;
 
 namespace UmbraSync.UI.Components;
 

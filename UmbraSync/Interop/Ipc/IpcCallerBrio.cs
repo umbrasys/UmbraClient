@@ -1,11 +1,11 @@
 ﻿using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
-using UmbraSync.API.Dto.CharaData;
-using UmbraSync.Services;
 using Microsoft.Extensions.Logging;
 using System.Numerics;
 using System.Text.Json.Nodes;
+using UmbraSync.API.Dto.CharaData;
+using UmbraSync.Services;
 
 namespace UmbraSync.Interop.Ipc;
 

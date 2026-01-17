@@ -3,11 +3,11 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using UmbraSync.API.Dto.CharaData;
-using UmbraSync.Services.CharaData.Models;
-using System.Numerics;
 using System.Globalization;
+using System.Numerics;
+using UmbraSync.API.Dto.CharaData;
 using UmbraSync.Localization;
+using UmbraSync.Services.CharaData.Models;
 
 namespace UmbraSync.UI;
 

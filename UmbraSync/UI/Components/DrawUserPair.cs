@@ -3,17 +3,15 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using System.Globalization;
+using System.Numerics;
 using UmbraSync.API.Data.Extensions;
 using UmbraSync.API.Dto.User;
-using UmbraSync.PlayerData.Pairs;
-using UmbraSync.Services;
-using UmbraSync.Services.Mediator;
-using UmbraSync.UI.Handlers;
-using UmbraSync.WebAPI;
-using System.Numerics;
-using UmbraSync.Services.ServerConfiguration;
-using System.Globalization;
 using UmbraSync.Localization;
+using UmbraSync.PlayerData.Pairs;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Services.ServerConfiguration;
+using UmbraSync.UI.Handlers;
 
 namespace UmbraSync.UI.Components;
 
@@ -70,7 +68,7 @@ public class DrawUserPair : DrawPairBase
         width += spacingX * 1.2f;
         return width;
     }
-    
+
     protected override float GetLeftSideReservedWidth()
     {
         var style = ImGui.GetStyle();
@@ -79,7 +77,7 @@ public class DrawUserPair : DrawPairBase
 
         int icons = 1;
         if (!(_pair.UserPair!.OwnPermissions.IsPaired() && _pair.UserPair!.OtherPermissions.IsPaired()))
-            icons++; 
+            icons++;
         else if (_pair.UserPair!.OwnPermissions.IsPaused() || _pair.UserPair!.OtherPermissions.IsPaused())
             icons++;
         if (_pair.IsOnline && _pair.IsVisible)
@@ -173,7 +171,12 @@ public class DrawUserPair : DrawPairBase
         // when multiple list items call BeginPopup with the same name in the same frame.
         var popupId = $"User Flyout Menu##{_pair.UserData.UID}";
 
-        if (_uiSharedService.IconButton(FontAwesomeIcon.Bars))
+        bool buttonClicked;
+        using (ImRaii.PushId($"info-{_pair.UserData.UID}"))
+        {
+            buttonClicked = _uiSharedService.IconButton(FontAwesomeIcon.Bars);
+        }
+        if (buttonClicked)
         {
             ImGui.OpenPopup(popupId);
         }
@@ -186,12 +189,15 @@ public class DrawUserPair : DrawPairBase
         rightSidePos -= pauseIconSize.X + spacingX;
         ImGui.SameLine(rightSidePos);
         ImGui.SetCursorPosY(originalY);
-        if (pauseIcon == FontAwesomeIcon.Pause ? _uiSharedService.IconPauseButtonCentered() : _uiSharedService.IconButtonCentered(pauseIcon))
+        using (ImRaii.PushId($"pause-{_pair.UserData.UID}"))
         {
-            _ = _apiController.Pause(_pair.UserData);
+            if (pauseIcon == FontAwesomeIcon.Pause ? _uiSharedService.IconPauseButtonCentered() : _uiSharedService.IconButtonCentered(pauseIcon))
+            {
+                _apiController.Pause(_pair.UserData);
+            }
+            var pauseKey = !_pair.IsPaused ? "DrawUserPair.Pause" : "DrawUserPair.Resume";
+            UiSharedService.AttachToolTip(AppendSeenInfo(string.Format(CultureInfo.CurrentCulture, Loc.Get(pauseKey), entryUID)));
         }
-        var pauseKey = !_pair.IsPaused ? "DrawUserPair.Pause" : "DrawUserPair.Resume";
-        UiSharedService.AttachToolTip(AppendSeenInfo(string.Format(CultureInfo.CurrentCulture, Loc.Get(pauseKey), entryUID)));
 
 
         var individualSoundsDisabled = (_pair.UserPair?.OwnPermissions.IsDisableSounds() ?? false) || (_pair.UserPair?.OtherPermissions.IsDisableSounds() ?? false);
@@ -320,9 +326,7 @@ public class DrawUserPair : DrawPairBase
 
         if (_uiSharedService.IconTextButton(FontAwesomeIcon.PlayCircle, Loc.Get("DrawUserPair.Menu.CyclePause")))
         {
-            // Ancien comportement: CyclePause entraînait un délai (timer) avant application.
-            // On remplace par une pause immédiate pour supprimer toute attente perçue.
-            _ = _apiController.Pause(entry.UserData);
+            _apiController.Pause(entry.UserData);
             ImGui.CloseCurrentPopup();
         }
         var entryUID = entry.UserData.AliasOrUID;

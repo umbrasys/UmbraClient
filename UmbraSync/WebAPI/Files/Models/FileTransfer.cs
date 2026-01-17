@@ -15,10 +15,9 @@ public abstract class FileTransfer
     public string ForbiddenBy => TransferDto.ForbiddenBy;
     public string Hash => TransferDto.Hash;
     public bool IsForbidden => TransferDto.IsForbidden;
-    public bool IsInTransfer => Transferred != Total && Transferred > 0;
     public bool IsTransferred => Transferred == Total;
     public abstract long Total { get; set; }
-    public long Transferred { get; set; } = 0;
+    public long Transferred { get; set; }
 
     public override string ToString()
     {

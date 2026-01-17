@@ -1,18 +1,18 @@
 ﻿using Dalamud.Utility;
 using K4os.Compression.LZ4.Streams;
-using UmbraSync.Interop.Ipc;
-using UmbraSync.MareConfiguration;
-using UmbraSync.Services.Mediator;
-using UmbraSync.Utils;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text;
+using UmbraSync.Interop.Ipc;
+using UmbraSync.MareConfiguration;
+using UmbraSync.Services.Mediator;
+using UmbraSync.Utils;
 
 namespace UmbraSync.FileCache;
 
-public sealed class FileCacheManager : IHostedService
+public sealed class FileCacheManager : DisposableMediatorSubscriberBase, IHostedService
 {
     public const string CachePrefix = "{cache}";
     public const string CsvSplit = "|";
@@ -29,23 +29,41 @@ public sealed class FileCacheManager : IHostedService
     private readonly Lock _fileWriteLock = new();
     private readonly IpcManager _ipcManager;
     private readonly ILogger<FileCacheManager> _logger;
+    private bool _hasCheckedPenumbraOnLogin;
 
     public FileCacheManager(ILogger<FileCacheManager> logger, IpcManager ipcManager, MareConfigService configService, MareMediator mareMediator)
+        : base(logger, mareMediator)
     {
         _logger = logger;
         _ipcManager = ipcManager;
         _configService = configService;
         _mareMediator = mareMediator;
         _csvPath = Path.Combine(configService.ConfigurationDirectory, "FileCache.csv");
+
+        Mediator.Subscribe<DalamudLoginMessage>(this, _ => CheckPenumbraAndNotify());
     }
 
     private string CsvBakPath => _csvPath + ".bak";
+
+    private void CheckPenumbraAndNotify()
+    {
+        if (_hasCheckedPenumbraOnLogin) return;
+        _hasCheckedPenumbraOnLogin = true;
+
+        if (!_ipcManager.Penumbra.APIAvailable || string.IsNullOrEmpty(_ipcManager.Penumbra.ModDirectory))
+        {
+            Mediator.Publish(new NotificationMessage("Penumbra not connected",
+                "Could not load local file cache data. Penumbra is not connected or not properly set up. Please enable and/or configure Penumbra properly to use Umbra. After, reload Umbra in the Plugin installer.",
+                MareConfiguration.Models.NotificationType.Error));
+        }
+    }
 
     public FileCacheEntity? CreateCacheEntry(string path, string? hash = null)
     {
         FileInfo fi = new(path);
         if (!fi.Exists) return null;
-        _logger.LogTrace("Creating cache entry for {path}", path);
+        if (_logger.IsEnabled(LogLevel.Trace))
+            _logger.LogTrace("Creating cache entry for {path}", path);
         var fullName = fi.FullName.ToLowerInvariant();
         if (!fullName.Contains(_configService.Current.CacheFolder.ToLowerInvariant(), StringComparison.Ordinal)) return null;
         string prefixedPath = fullName.Replace(_configService.Current.CacheFolder.ToLowerInvariant(), CachePrefix + "\\", StringComparison.Ordinal).Replace("\\\\", "\\", StringComparison.Ordinal);
@@ -59,7 +77,8 @@ public sealed class FileCacheManager : IHostedService
     {
         FileInfo fi = new(path);
         if (!fi.Exists) return null;
-        _logger.LogTrace("Creating substitute entry for {path}", path);
+        if (_logger.IsEnabled(LogLevel.Trace))
+            _logger.LogTrace("Creating substitute entry for {path}", path);
         var fullName = fi.FullName.ToLowerInvariant();
         if (!fullName.Contains(SubstFolder, StringComparison.Ordinal)) return null;
         string prefixedPath = fullName.Replace(SubstFolder, SubstPrefix + "\\", StringComparison.Ordinal).Replace("\\\\", "\\", StringComparison.Ordinal);
@@ -72,7 +91,8 @@ public sealed class FileCacheManager : IHostedService
     {
         FileInfo fi = new(path);
         if (!fi.Exists) return null;
-        _logger.LogTrace("Creating file entry for {path}", path);
+        if (_logger.IsEnabled(LogLevel.Trace))
+            _logger.LogTrace("Creating file entry for {path}", path);
         var fullName = fi.FullName.ToLowerInvariant();
         if (!fullName.Contains(_ipcManager.Penumbra.ModDirectory!.ToLowerInvariant(), StringComparison.Ordinal)) return null;
         string prefixedPath = fullName.Replace(_ipcManager.Penumbra.ModDirectory!.ToLowerInvariant(), PenumbraPrefix + "\\", StringComparison.Ordinal).Replace("\\\\", "\\", StringComparison.Ordinal);
@@ -121,7 +141,8 @@ public sealed class FileCacheManager : IHostedService
             if (cancellationToken.IsCancellationRequested) break;
             if (fileCache.IsSubstEntry) continue;
 
-            _logger.LogInformation("Validating {file}", fileCache.ResolvedFilepath);
+            if (_logger.IsEnabled(LogLevel.Information))
+                _logger.LogInformation("Validating {file}", fileCache.ResolvedFilepath);
 
             progress.Report((i, cacheEntries.Count, fileCache));
             i++;
@@ -136,13 +157,15 @@ public sealed class FileCacheManager : IHostedService
                 var computedHash = Crypto.GetFileHash(fileCache.ResolvedFilepath);
                 if (!string.Equals(computedHash, fileCache.Hash, StringComparison.Ordinal))
                 {
-                    _logger.LogInformation("Failed to validate {file}, got hash {hash}, expected hash {expectedHash}", fileCache.ResolvedFilepath, computedHash, fileCache.Hash);
+                    if (_logger.IsEnabled(LogLevel.Information))
+                        _logger.LogInformation("Failed to validate {file}, got hash {hash}, expected hash {expectedHash}", fileCache.ResolvedFilepath, computedHash, fileCache.Hash);
                     brokenEntities.Add(fileCache);
                 }
             }
             catch (Exception e)
             {
-                _logger.LogWarning(e, "Error during validation of {file}", fileCache.ResolvedFilepath);
+                if (_logger.IsEnabled(LogLevel.Warning))
+                    _logger.LogWarning(e, "Error during validation of {file}", fileCache.ResolvedFilepath);
                 brokenEntities.Add(fileCache);
             }
         }
@@ -180,7 +203,7 @@ public sealed class FileCacheManager : IHostedService
         var fileCache = GetFileCacheByHash(fileHash)!;
         using var fs = File.OpenRead(fileCache.ResolvedFilepath);
         var ms = new MemoryStream(64 * 1024);
-        using var encstream = LZ4Stream.Encode(ms, new LZ4EncoderSettings(){CompressionLevel=K4os.Compression.LZ4.LZ4Level.L09_HC});
+        using var encstream = LZ4Stream.Encode(ms, new LZ4EncoderSettings() { CompressionLevel = K4os.Compression.LZ4.LZ4Level.L09_HC });
         await fs.CopyToAsync(encstream, uploadToken).ConfigureAwait(false);
         encstream.Close();
         fileCache.CompressedSize = encstream.Length;
@@ -383,7 +406,7 @@ public sealed class FileCacheManager : IHostedService
 
         if (!entries.Exists(u => string.Equals(u.PrefixedFilePath, fileCache.PrefixedFilePath, StringComparison.OrdinalIgnoreCase)))
         {
-                        entries.Add(fileCache);
+            entries.Add(fileCache);
         }
     }
 
@@ -477,13 +500,6 @@ public sealed class FileCacheManager : IHostedService
 
         if (File.Exists(_csvPath))
         {
-            if (!_ipcManager.Penumbra.APIAvailable || string.IsNullOrEmpty(_ipcManager.Penumbra.ModDirectory))
-            {
-                _mareMediator.Publish(new NotificationMessage("Penumbra not connected",
-                    "Could not load local file cache data. Penumbra is not connected or not properly set up. Please enable and/or configure Penumbra properly to use Umbra. After, reload Umbra in the Plugin installer.",
-                    MareConfiguration.Models.NotificationType.Error));
-            }
-
             _logger.LogInformation("{csvPath} found, parsing", _csvPath);
 
             bool success = false;

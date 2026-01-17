@@ -1,35 +1,27 @@
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Numerics;
-using System.Threading.Channels;
 using Dalamud.Plugin.Services;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
+using System.Numerics;
 using UmbraSync.MareConfiguration;
 using UmbraSync.MareConfiguration.Configurations;
 using UmbraSync.Services.Mediator;
-using UmbraSync.Services.Notification;
-using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.Utils;
-using UmbraSync.WebAPI;
 using UmbraSync.WebAPI.AutoDetect;
-using UmbraSync.WebAPI.Files;
-using UmbraSync.WebAPI.Files.Models;
 
 namespace UmbraSync.Services.AutoDetect;
 
-public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
+public class NearbyDiscoveryService(ILogger<NearbyDiscoveryService> logger, MareMediator mediator,
+    MareConfigService config, DiscoveryConfigProvider configProvider, DalamudUtilService dalamudUtilService,
+    IObjectTable objectTable, DiscoveryApiClient api) : IHostedService, IMediatorSubscriber
 {
-    private readonly ILogger<NearbyDiscoveryService> _logger;
-    private readonly MareMediator _mediator;
-    private readonly MareConfigService _config;
-    private readonly DiscoveryConfigProvider _configProvider;
-    private readonly DalamudUtilService _dalamud;
-    private readonly IObjectTable _objectTable;
-    private readonly DiscoveryApiClient _api;
+    private readonly ILogger<NearbyDiscoveryService> _logger = logger;
+    private readonly MareMediator _mediator = mediator;
+    private readonly MareConfigService _config = config;
+    private readonly DiscoveryConfigProvider _configProvider = configProvider;
+    private readonly DalamudUtilService _dalamud = dalamudUtilService;
+    private readonly IObjectTable _objectTable = objectTable;
+    private readonly DiscoveryApiClient _api = api;
     private CancellationTokenSource? _loopCts;
     private string? _lastPublishedSignature;
     private bool _loggedLocalOnly;
@@ -46,19 +38,6 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
     private static readonly TimeSpan HeartbeatInterval = TimeSpan.FromSeconds(75);
     private readonly System.Threading.Lock _entriesLock = new();
     private List<NearbyEntry> _lastEntries = [];
-
-    public NearbyDiscoveryService(ILogger<NearbyDiscoveryService> logger, MareMediator mediator,
-        MareConfigService config, DiscoveryConfigProvider configProvider, DalamudUtilService dalamudUtilService,
-        IObjectTable objectTable, DiscoveryApiClient api)
-    {
-        _logger = logger;
-        _mediator = mediator;
-        _config = config;
-        _configProvider = configProvider;
-        _dalamud = dalamudUtilService;
-        _objectTable = objectTable;
-        _api = api;
-    }
 
     public MareMediator Mediator => _mediator;
 
@@ -124,7 +103,7 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
             if (string.IsNullOrEmpty(displayName)) return;
 
             var selfHash = (saltHex + displayName + meWorld.ToString()).GetHash256();
-            var ok = await _api.PublishAsync(ep!, new[] { selfHash }, displayName, ct, _config.Current.AllowAutoDetectPairRequests).ConfigureAwait(false);
+            var ok = await _api.PublishAsync(ep!, [selfHash], displayName, ct, _config.Current.AllowAutoDetectPairRequests).ConfigureAwait(false);
             _logger.LogInformation("Nearby publish (manual/immediate): {result}", ok ? "success" : "failed");
             if (ok)
             {
@@ -199,10 +178,10 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
 
                             var ep = _configProvider.PublishEndpoint;
                             var saltBytes = _configProvider.Salt;
-                        if (!string.IsNullOrEmpty(ep) && saltBytes is { Length: > 0 })
-                        {
-                            await ImmediatePublishAsync(ep, saltBytes, ct).ConfigureAwait(false);
-                        }
+                            if (!string.IsNullOrEmpty(ep) && saltBytes is { Length: > 0 })
+                            {
+                                await ImmediatePublishAsync(ep, saltBytes, ct).ConfigureAwait(false);
+                            }
                         }
                         catch (Exception ex)
                         {
@@ -358,7 +337,7 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                                     _lastPublishedSignature = sig;
                                     var shortSelf = selfHash.Length > 8 ? selfHash[..8] : selfHash;
                                     _logger.LogDebug("Nearby publish: self presence updated (hash={hash})", shortSelf);
-                                    var ok = await _api.PublishAsync(publishEndpoint, new[] { selfHash }, displayName, ct, _config.Current.AllowAutoDetectPairRequests).ConfigureAwait(false);
+                                    var ok = await _api.PublishAsync(publishEndpoint, [selfHash], displayName, ct, _config.Current.AllowAutoDetectPairRequests).ConfigureAwait(false);
                                     _logger.LogInformation("Nearby publish result: {result}", ok ? "success" : "failed");
                                     if (ok)
                                     {
@@ -377,7 +356,7 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
                                     // No changes; perform heartbeat publish if interval elapsed
                                     if (DateTime.UtcNow - _lastHeartbeat >= HeartbeatInterval)
                                     {
-                                        var okHb = await _api.PublishAsync(publishEndpoint, new[] { selfHash }, displayName, ct, _config.Current.AllowAutoDetectPairRequests).ConfigureAwait(false);
+                                        var okHb = await _api.PublishAsync(publishEndpoint, [selfHash], displayName, ct, _config.Current.AllowAutoDetectPairRequests).ConfigureAwait(false);
                                         _logger.LogDebug("Nearby heartbeat publish: {result}", okHb ? "success" : "failed");
                                         if (okHb) _lastHeartbeat = DateTime.UtcNow;
                                     }
@@ -499,7 +478,7 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
 
         var selfHash = (saltHex + displayName + meWorld.ToString(CultureInfo.InvariantCulture)).GetHash256();
         _lastPublishedSignature = null;
-        var okNow = await _api.PublishAsync(publishEndpoint, new[] { selfHash }, displayName, ct, _config.Current.AllowAutoDetectPairRequests).ConfigureAwait(false);
+        var okNow = await _api.PublishAsync(publishEndpoint, [selfHash], displayName, ct, _config.Current.AllowAutoDetectPairRequests).ConfigureAwait(false);
         _logger.LogInformation("Nearby immediate publish on toggle ON: {result}", okNow ? "success" : "failed");
     }
 
@@ -514,7 +493,7 @@ public class NearbyDiscoveryService : IHostedService, IMediatorSubscriber
         {
             var slice = hashes.Skip(i).Take(batch).ToArray();
             var res = await _api.QueryAsync(_configProvider.QueryEndpoint!, slice, ct).ConfigureAwait(false);
-            if (res != null && res.Count > 0) allMatches.AddRange(res);
+            if (res.Count > 0) allMatches.AddRange(res);
         }
 
         if (allMatches.Count > 0)

@@ -2,11 +2,11 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using Microsoft.Extensions.Logging;
+using System.Numerics;
 using UmbraSync.Localization;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
-using Microsoft.Extensions.Logging;
-using System.Numerics;
 
 namespace UmbraSync.UI.Components.Popup;
 
@@ -48,6 +48,14 @@ public class PopupHandler : WindowMediatorSubscriberBase
             _openPopup = true;
             _currentHandler = _handlers.OfType<BanUserPopupHandler>().Single();
             ((BanUserPopupHandler)_currentHandler).Open(msg);
+            IsOpen = true;
+        });
+
+        Mediator.Subscribe<OpenSlotPromptMessage>(this, (msg) =>
+        {
+            _openPopup = true;
+            _currentHandler = _handlers.OfType<SlotPopupHandler>().Single();
+            ((SlotPopupHandler)_currentHandler).Open(msg);
             IsOpen = true;
         });
         _uiSharedService = uiSharedService;

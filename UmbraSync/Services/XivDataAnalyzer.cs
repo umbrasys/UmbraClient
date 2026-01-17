@@ -5,33 +5,25 @@ using FFXIVClientStructs.Havok.Common.Base.Types;
 using FFXIVClientStructs.Havok.Common.Serialize.Resource;
 using FFXIVClientStructs.Havok.Common.Serialize.Util;
 using Lumina.Data;
+using Microsoft.Extensions.Logging;
+using System.Globalization;
+using System.Text;
 using UmbraSync.FileCache;
 using UmbraSync.Interop.GameModel;
 using UmbraSync.MareConfiguration;
 using UmbraSync.PlayerData.Handlers;
-using Microsoft.Extensions.Logging;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Globalization;
 #pragma warning disable CS8500 // direct pointer access into Havok structures
 
 namespace UmbraSync.Services;
 
-public sealed class XivDataAnalyzer
+public sealed class XivDataAnalyzer(ILogger<XivDataAnalyzer> logger, FileCacheManager fileCacheManager,
+    XivDataStorageService configService)
 {
-    private readonly ILogger<XivDataAnalyzer> _logger;
-    private readonly FileCacheManager _fileCacheManager;
-    private readonly XivDataStorageService _configService;
+    private readonly ILogger<XivDataAnalyzer> _logger = logger;
+    private readonly FileCacheManager _fileCacheManager = fileCacheManager;
+    private readonly XivDataStorageService _configService = configService;
     private readonly List<string> _failedCalculatedTris = [];
     private readonly List<string> _failedCalculatedTex = [];
-
-    public XivDataAnalyzer(ILogger<XivDataAnalyzer> logger, FileCacheManager fileCacheManager,
-        XivDataStorageService configService)
-    {
-        _logger = logger;
-        _fileCacheManager = fileCacheManager;
-        _configService = configService;
-    }
 
     public unsafe Dictionary<string, List<ushort>>? GetSkeletonBoneIndices(GameObjectHandler handler)
     {

@@ -1,15 +1,13 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Interface.Utility;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Client.UI;
+using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
-using FFXIVClientStructs.Interop;
+using Microsoft.Extensions.Logging;
+using System.Numerics;
 using UmbraSync.API.Data;
 using UmbraSync.API.Data.Extensions;
 using UmbraSync.MareConfiguration;
@@ -17,8 +15,6 @@ using UmbraSync.MareConfiguration.Models;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
-using UmbraSync.WebAPI;
-using Microsoft.Extensions.Logging;
 
 namespace UmbraSync.UI;
 
@@ -122,22 +118,16 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
             var targetIndex = -1;
             var playerName = pair?.PlayerName;
             var objectId = pair?.PlayerCharacterId ?? uint.MaxValue;
-
+            
             if (objectId != 0 && objectId != uint.MaxValue)
             {
-                targetIndex = GetPartyIndexForObjectId(objectId);
-                if (targetIndex >= 0 && !string.IsNullOrEmpty(playerName))
-                {
-                    var member = _partyList[targetIndex];
-                    var memberName = member?.Name?.TextValue;
-                    if (!string.IsNullOrEmpty(memberName) && !memberName.Equals(playerName, StringComparison.OrdinalIgnoreCase))
-                    {
-                        var nameIndex = GetPartyIndexForName(playerName);
-                        targetIndex = nameIndex;
-                    }
-                }
+                targetIndex = GetPartyIndexFromAgentHUD(objectId);
             }
-
+            if (targetIndex < 0 && objectId != 0 && objectId != uint.MaxValue)
+            {
+                targetIndex = GetPartyIndexForObjectId(objectId);
+            }
+            
             if (targetIndex < 0 && !string.IsNullOrEmpty(playerName))
             {
                 targetIndex = GetPartyIndexForName(playerName);
@@ -176,7 +166,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         iconPos += iconOffset;
 
         var texture = _textureProvider.GetFromGame("ui/uld/charamake_dataimport.tex").GetWrapOrEmpty();
-        if (texture == null) return;
+        if (texture.Handle == IntPtr.Zero) return;
 
         drawList.AddImage(texture.Handle, iconPos, iconPos + iconSize, Vector2.Zero, Vector2.One,
             ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0.9f)));
@@ -186,7 +176,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         bool selfActive, DateTime now, DateTime selfStart, DateTime selfLast)
     {
         var iconWrap = _textureProvider.GetFromGameIcon(NameplateIconId).GetWrapOrEmpty();
-        if (iconWrap == null || iconWrap.Handle == IntPtr.Zero)
+        if (iconWrap.Handle == IntPtr.Zero)
             return;
 
         var showSelf = _configService.Current.TypingIndicatorShowSelf;
@@ -213,7 +203,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
 
             var pair = _pairManager.GetPairByUID(uid);
             var objectId = pair?.PlayerCharacterId ?? 0;
-            var pairName = pair?.PlayerName ?? entry.User.AliasOrUID ?? string.Empty;
+            var pairName = pair?.PlayerName ?? entry.User.AliasOrUID;
             var pairIdent = pair?.Ident ?? string.Empty;
             var isPartyMember = IsPartyMember(objectId, pairName);
             var isRelevantMember = IsPlayerRelevant(pair, isPartyMember);
@@ -269,7 +259,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
 
     private unsafe bool TryDrawNameplateBubble(ImDrawListPtr drawList, IDalamudTextureWrap textureWrap, uint objectId)
     {
-        if (textureWrap == null || textureWrap.Handle == IntPtr.Zero)
+        if (textureWrap.Handle == IntPtr.Zero)
             return false;
 
         var framework = Framework.Instance();
@@ -294,6 +284,9 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
                 continue;
 
             if (objectInfo.Value->GameObject->EntityId != objectId)
+                continue;
+
+            if ((byte)objectInfo.Value->GameObject->ObjectKind != 1)
                 continue;
 
             if (objectInfo.Value->GameObject->YalmDistanceFromPlayerX > 20f)
@@ -387,6 +380,9 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
             if (obj == null)
                 continue;
 
+            if (obj.ObjectKind != Dalamud.Game.ClientState.Objects.Enums.ObjectKind.Player)
+                continue;
+
             if (obj.EntityId == objectId)
             {
                 position = obj.Position;
@@ -456,6 +452,9 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
             if (obj == null)
                 continue;
 
+            if (obj.ObjectKind != Dalamud.Game.ClientState.Objects.Enums.ObjectKind.Player)
+                continue;
+
             if (obj.Name.TextValue.Equals(name, StringComparison.OrdinalIgnoreCase))
             {
                 position = obj.Position;
@@ -466,6 +465,41 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         return false;
     }
 
+    private unsafe int GetPartyIndexFromAgentHUD(uint objectId)
+    {
+        if (objectId == 0 || objectId == uint.MaxValue)
+            return -1;
+
+        try
+        {
+            var framework = Framework.Instance();
+            if (framework == null) return -1;
+
+            var uiModule = framework->GetUIModule();
+            if (uiModule == null) return -1;
+
+            var agentModule = uiModule->GetAgentModule();
+            if (agentModule == null) return -1;
+
+            var agentHud = agentModule->GetAgentHUD();
+            if (agentHud == null) return -1;
+
+            var partyMembers = agentHud->PartyMembers;
+
+            for (var i = 0; i < agentHud->PartyMemberCount; i++)
+            {
+                if (partyMembers[i].EntityId == objectId)
+                    return i;
+            }
+        }
+        catch (Exception ex)
+        {
+            _typedLogger.LogDebug(ex, "Failed to get party index from AgentHUD for objectId {ObjectId}", objectId);
+        }
+
+        return -1;
+    }
+    
     private int GetPartyIndexForObjectId(uint objectId)
     {
         for (var i = 0; i < _partyList.Count; ++i)
@@ -497,6 +531,9 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
 
     private bool IsPartyMember(uint objectId, string? playerName)
     {
+        if (objectId != 0 && objectId != uint.MaxValue && GetPartyIndexFromAgentHUD(objectId) >= 0)
+            return true;
+
         if (objectId != 0 && objectId != uint.MaxValue && GetPartyIndexForObjectId(objectId) >= 0)
             return true;
 

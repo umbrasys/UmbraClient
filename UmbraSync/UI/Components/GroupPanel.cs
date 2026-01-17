@@ -4,24 +4,19 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Utility;
+using System.Globalization;
+using System.Numerics;
 using UmbraSync.API.Data;
-using UmbraSync.API.Data.Comparer;
 using UmbraSync.API.Data.Enum;
 using UmbraSync.API.Data.Extensions;
 using UmbraSync.API.Dto.Group;
-using UmbraSync.MareConfiguration;
+using UmbraSync.Localization;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
 using UmbraSync.Services.AutoDetect;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.ServerConfiguration;
-using UmbraSync.UI.Components;
 using UmbraSync.UI.Handlers;
-using UmbraSync.WebAPI;
-using System;
-using System.Globalization;
-using System.Numerics;
-using UmbraSync.Localization;
 
 namespace UmbraSync.UI.Components;
 
@@ -93,11 +88,17 @@ internal sealed class GroupPanel
 
     private ApiController ApiController => _uiShared.ApiController;
 
+    public void ClearCache()
+    {
+        _drawGroupPairCache.Clear();
+        _sortedPairsCache.Clear();
+        _sortedPairsLastUpdate.Clear();
+    }
+
     public void DrawSyncshells(Action? drawAfterAdd = null)
     {
         using var fontScale = UiSharedService.PushFontScale(UiSharedService.ContentFontScale);
         using (ImRaii.PushId("addsyncshell")) DrawAddSyncshell();
-        // Contenu optionnel à afficher juste sous le champ de recherche GID/Alias (ex: Nearby)
         drawAfterAdd?.Invoke();
         using (ImRaii.PushId("syncshelllist")) DrawSyncshellList();
         _mainUi.TransferPartHeight = ImGui.GetCursorPosY();
@@ -215,52 +216,52 @@ internal sealed class GroupPanel
             {
                 _createIsTemporary = true;
                 _newSyncShellAlias = string.Empty;
-        }
-
-        if (!_createIsTemporary)
-        {
-            UiSharedService.TextWrapped(Loc.Get("Syncshell.Create.AliasPrompt"));
-            ImGui.SetNextItemWidth(-1);
-            ImGui.InputTextWithHint("##syncshellalias", Loc.Get("Syncshell.Create.AliasPlaceholder"), ref _newSyncShellAlias, 50);
-        }
-        else
-        {
-            _newSyncShellAlias = string.Empty;
-        }
-
-        if (_createIsTemporary)
-        {
-            UiSharedService.TextWrapped(Loc.Get("Syncshell.Create.TempMaxDuration"));
-            if (_tempSyncshellDurationHours > 168) _tempSyncshellDurationHours = 168;
-            for (int i = 0; i < _temporaryDurationOptions.Length; i++)
-            {
-                var option = _temporaryDurationOptions[i];
-                var isSelected = _tempSyncshellDurationHours == option;
-                string label = option switch
-                {
-                    >= 24 when option % 24 == 0 => option == 24 ? Loc.Get("Syncshell.Create.Duration24h") : string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Create.DurationDays"), option / 24),
-                    _ => string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Create.DurationHours"), option)
-                };
-
-                if (ImGui.RadioButton(label, isSelected))
-                {
-                    _tempSyncshellDurationHours = option;
-                }
-
-                // Start a new line after every 3 buttons
-                if ((i + 1) % 3 == 0)
-                {
-                    ImGui.NewLine();
-                }
-                else
-                {
-                    ImGui.SameLine();
-                }
             }
 
-            var expiresLocal = DateTime.Now.AddHours(_tempSyncshellDurationHours);
-            UiSharedService.TextWrapped(string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Create.ExpiresAt"), expiresLocal.ToString("g", CultureInfo.CurrentCulture)));
-        }
+            if (!_createIsTemporary)
+            {
+                UiSharedService.TextWrapped(Loc.Get("Syncshell.Create.AliasPrompt"));
+                ImGui.SetNextItemWidth(-1);
+                ImGui.InputTextWithHint("##syncshellalias", Loc.Get("Syncshell.Create.AliasPlaceholder"), ref _newSyncShellAlias, 50);
+            }
+            else
+            {
+                _newSyncShellAlias = string.Empty;
+            }
+
+            if (_createIsTemporary)
+            {
+                UiSharedService.TextWrapped(Loc.Get("Syncshell.Create.TempMaxDuration"));
+                if (_tempSyncshellDurationHours > 168) _tempSyncshellDurationHours = 168;
+                for (int i = 0; i < _temporaryDurationOptions.Length; i++)
+                {
+                    var option = _temporaryDurationOptions[i];
+                    var isSelected = _tempSyncshellDurationHours == option;
+                    string label = option switch
+                    {
+                        >= 24 when option % 24 == 0 => option == 24 ? Loc.Get("Syncshell.Create.Duration24h") : string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Create.DurationDays"), option / 24),
+                        _ => string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Create.DurationHours"), option)
+                    };
+
+                    if (ImGui.RadioButton(label, isSelected))
+                    {
+                        _tempSyncshellDurationHours = option;
+                    }
+
+                    // Start a new line after every 3 buttons
+                    if ((i + 1) % 3 == 0)
+                    {
+                        ImGui.NewLine();
+                    }
+                    else
+                    {
+                        ImGui.SameLine();
+                    }
+                }
+
+                var expiresLocal = DateTime.Now.AddHours(_tempSyncshellDurationHours);
+                UiSharedService.TextWrapped(string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Create.ExpiresAt"), expiresLocal.ToString("g", CultureInfo.CurrentCulture)));
+            }
 
             UiSharedService.TextWrapped(Loc.Get("Syncshell.Create.ButtonPrompt"));
             var createButtonHeight = ImGui.GetFrameHeight() * 1.1f;
@@ -351,7 +352,7 @@ internal sealed class GroupPanel
         {
             _expandedGroupState[groupDto.GID] = false;
         }
-        
+
         var style = ImGui.GetStyle();
         var compactPadding = new Vector2(
             style.FramePadding.X + 4f * ImGuiHelpers.GlobalScale,
@@ -365,320 +366,315 @@ internal sealed class GroupPanel
 
         UiSharedService.DrawCard($"syncshell-card-{groupDto.GID}", () =>
         {
-        // Ensure text/icon baseline alignment with frame padding like list rows
-        ImGui.AlignTextToFramePadding();
-        float lineStartY = ImGui.GetCursorPosY();
-        bool expandedState = _expandedGroupState[groupDto.GID];
-        UiSharedService.DrawArrowToggle(ref expandedState, $"##syncshell-toggle-{groupDto.GID}");
-        if (expandedState != _expandedGroupState[groupDto.GID])
-        {
-            _expandedGroupState[groupDto.GID] = expandedState;
-        }
-        ImGui.SameLine(0f, 6f * ImGuiHelpers.GlobalScale);
-
-        var textIsGid = true;
-        string groupName = groupDto.GroupAliasOrGID;
-
-        if (string.Equals(groupDto.OwnerUID, ApiController.UID, StringComparison.Ordinal))
-        {
-            ImGui.PushFont(UiBuilder.IconFont);
-            ImGui.TextUnformatted(FontAwesomeIcon.Crown.ToIconString());
-            ImGui.PopFont();
-            UiSharedService.AttachToolTip(string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Card.Owner"), groupName));
-            ImGui.SameLine(0f, ImGui.GetStyle().ItemSpacing.X * 1.2f);
-        }
-        else if (groupDto.GroupUserInfo.IsModerator())
-        {
-            ImGui.PushFont(UiBuilder.IconFont);
-            ImGui.TextUnformatted(FontAwesomeIcon.UserShield.ToIconString());
-            ImGui.PopFont();
-            UiSharedService.AttachToolTip(string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Card.Moderator"), groupName));
-            ImGui.SameLine(0f, ImGui.GetStyle().ItemSpacing.X * 1.2f);
-        }
-
-        _showGidForEntry.TryGetValue(groupDto.GID, out var showGidInsteadOfName);
-        var groupComment = _serverConfigurationManager.GetNoteForGid(groupDto.GID);
-        if (!showGidInsteadOfName && !string.IsNullOrEmpty(groupComment))
-        {
-            groupName = groupComment;
-            textIsGid = false;
-        }
-
-        if (!string.Equals(_editGroupEntry, groupDto.GID, StringComparison.Ordinal))
-        {
-            var totalMembers = pairsInGroup.Count + 1;
-            var connectedMembers = pairsInGroup.Count(p => p.IsOnline) + 1;
-            var maxCapacity = ApiController.ServerInfo.MaxGroupUserCount;
-            ImGui.TextUnformatted($"{connectedMembers}/{totalMembers}");
-            UiSharedService.AttachToolTip(string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Card.ConnectedTooltip"),
-                connectedMembers, totalMembers, maxCapacity, groupDto.Group.GID));
-            if (textIsGid) ImGui.PushFont(UiBuilder.MonoFont);
-            ImGui.SameLine();
-            ImGui.TextUnformatted(groupName);
-            if (textIsGid) ImGui.PopFont();
-            UiSharedService.AttachToolTip(string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Card.SwitchTooltip"), groupName, pairsInGroup.Count + 1, groupDto.OwnerAliasOrUID));
-            if (groupDto.IsTemporary)
+            // Ensure text/icon baseline alignment with frame padding like list rows
+            ImGui.AlignTextToFramePadding();
+            float lineStartY = ImGui.GetCursorPosY();
+            bool expandedState = _expandedGroupState[groupDto.GID];
+            UiSharedService.DrawArrowToggle(ref expandedState, $"##syncshell-toggle-{groupDto.GID}");
+            if (expandedState != _expandedGroupState[groupDto.GID])
             {
+                _expandedGroupState[groupDto.GID] = expandedState;
+            }
+            ImGui.SameLine(0f, 6f * ImGuiHelpers.GlobalScale);
+
+            var textIsGid = true;
+            string groupName = groupDto.GroupAliasOrGID;
+
+            if (string.Equals(groupDto.OwnerUID, ApiController.UID, StringComparison.Ordinal))
+            {
+                ImGui.PushFont(UiBuilder.IconFont);
+                ImGui.TextUnformatted(FontAwesomeIcon.Crown.ToIconString());
+                ImGui.PopFont();
+                UiSharedService.AttachToolTip(string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Card.Owner"), groupName));
+                ImGui.SameLine(0f, ImGui.GetStyle().ItemSpacing.X * 1.2f);
+            }
+            else if (groupDto.GroupUserInfo.IsModerator())
+            {
+                ImGui.PushFont(UiBuilder.IconFont);
+                ImGui.TextUnformatted(FontAwesomeIcon.UserShield.ToIconString());
+                ImGui.PopFont();
+                UiSharedService.AttachToolTip(string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Card.Moderator"), groupName));
+                ImGui.SameLine(0f, ImGui.GetStyle().ItemSpacing.X * 1.2f);
+            }
+
+            _showGidForEntry.TryGetValue(groupDto.GID, out var showGidInsteadOfName);
+            var groupComment = _serverConfigurationManager.GetNoteForGid(groupDto.GID);
+            if (!showGidInsteadOfName && !string.IsNullOrEmpty(groupComment))
+            {
+                groupName = groupComment;
+                textIsGid = false;
+            }
+
+            if (!string.Equals(_editGroupEntry, groupDto.GID, StringComparison.Ordinal))
+            {
+                var totalMembers = pairsInGroup.Count + 1;
+                var connectedMembers = pairsInGroup.Count(p => p.IsOnline) + 1;
+                var maxCapacity = ApiController.ServerInfo.MaxGroupUserCount;
+                ImGui.TextUnformatted($"{connectedMembers}/{totalMembers}");
+                UiSharedService.AttachToolTip(string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Card.ConnectedTooltip"),
+                    connectedMembers, totalMembers, maxCapacity, groupDto.Group.GID));
+                if (textIsGid) ImGui.PushFont(UiBuilder.MonoFont);
                 ImGui.SameLine();
-                UiSharedService.ColorText(Loc.Get("Syncshell.Card.TempLabel"), ImGuiColors.DalamudOrange);
-                if (groupDto.ExpiresAt != null)
+                ImGui.TextUnformatted(groupName);
+                if (textIsGid) ImGui.PopFont();
+                UiSharedService.AttachToolTip(string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Card.SwitchTooltip"), groupName, pairsInGroup.Count + 1, groupDto.OwnerAliasOrUID));
+                if (groupDto.IsTemporary)
                 {
-                    var tempExpireLocal = groupDto.ExpiresAt.Value.ToLocalTime();
-                    UiSharedService.AttachToolTip(string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Card.TempExpire"), tempExpireLocal.ToString("g", CultureInfo.CurrentCulture)));
-                }
-                else
-                {
-                    UiSharedService.AttachToolTip(Loc.Get("Syncshell.Card.TempTooltip"));
-                }
-            }
-            if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
-            {
-                var prevState = textIsGid;
-                if (_showGidForEntry.ContainsKey(groupDto.GID))
-                {
-                    prevState = _showGidForEntry[groupDto.GID];
-                }
-
-                _showGidForEntry[groupDto.GID] = !prevState;
-            }
-
-            if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
-            {
-                _serverConfigurationManager.SetNoteForGid(_editGroupEntry, _editGroupComment);
-                _editGroupComment = _serverConfigurationManager.GetNoteForGid(groupDto.GID) ?? string.Empty;
-                _editGroupEntry = groupDto.GID;
-                _chatService.MaybeUpdateShellName(shellNumber);
-            }
-        }
-        else
-        {
-            var buttonSizes = _uiShared.GetIconButtonSize(FontAwesomeIcon.Bars).X + _uiShared.GetIconButtonSize(FontAwesomeIcon.LockOpen).X;
-            ImGui.SetNextItemWidth(UiSharedService.GetWindowContentRegionWidth() - ImGui.GetCursorPosX() - buttonSizes - ImGui.GetStyle().ItemSpacing.X * 2);
-            if (ImGui.InputTextWithHint("", Loc.Get("Syncshell.Card.CommentPlaceholder"), ref _editGroupComment, 255, ImGuiInputTextFlags.EnterReturnsTrue))
-            {
-                _serverConfigurationManager.SetNoteForGid(groupDto.GID, _editGroupComment);
-                _editGroupEntry = string.Empty;
-                _chatService.MaybeUpdateShellName(shellNumber);
-            }
-
-            if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
-            {
-                _editGroupEntry = string.Empty;
-            }
-            UiSharedService.AttachToolTip(Loc.Get("Syncshell.Card.CommentTooltip"));
-        }
-
-
-        using (ImRaii.PushId(groupDto.GID + "settings")) DrawSyncShellButtons(groupDto, pairsInGroup, lineStartY);
-
-        if (_showModalBanList && !_modalBanListOpened)
-        {
-            _modalBanListOpened = true;
-            ImGui.OpenPopup(string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Banlist.ModalTitle"), groupDto.GID));
-        }
-
-        if (!_showModalBanList) _modalBanListOpened = false;
-
-        if (ImGui.BeginPopupModal(string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Banlist.ModalTitle"), groupDto.GID), ref _showModalBanList, UiSharedService.PopupWindowFlags))
-        {
-            if (_uiShared.IconTextButton(FontAwesomeIcon.Retweet, Loc.Get("Syncshell.Banlist.Refresh")))
-            {
-                _bannedUsers = ApiController.GroupGetBannedUsers(groupDto).Result;
-            }
-
-            if (ImGui.BeginTable("bannedusertable" + groupDto.GID, 6, ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.ScrollY))
-            {
-                ImGui.TableSetupColumn(Loc.Get("Syncshell.Banlist.Column.Uid"), ImGuiTableColumnFlags.None, 1);
-                ImGui.TableSetupColumn(Loc.Get("Syncshell.Banlist.Column.Alias"), ImGuiTableColumnFlags.None, 1);
-                ImGui.TableSetupColumn(Loc.Get("Syncshell.Banlist.Column.By"), ImGuiTableColumnFlags.None, 1);
-                ImGui.TableSetupColumn(Loc.Get("Syncshell.Banlist.Column.Date"), ImGuiTableColumnFlags.None, 2);
-                ImGui.TableSetupColumn(Loc.Get("Syncshell.Banlist.Column.Reason"), ImGuiTableColumnFlags.None, 3);
-                ImGui.TableSetupColumn(Loc.Get("Syncshell.Banlist.Column.Actions"), ImGuiTableColumnFlags.None, 1);
-
-                ImGui.TableHeadersRow();
-
-                foreach (var bannedUser in _bannedUsers.ToList())
-                {
-                    ImGui.TableNextColumn();
-                    ImGui.TextUnformatted(bannedUser.UID);
-                    ImGui.TableNextColumn();
-                    ImGui.TextUnformatted(bannedUser.UserAlias ?? string.Empty);
-                    ImGui.TableNextColumn();
-                    ImGui.TextUnformatted(bannedUser.BannedBy);
-                    ImGui.TableNextColumn();
-                    ImGui.TextUnformatted(bannedUser.BannedOn.ToLocalTime().ToString(CultureInfo.CurrentCulture));
-                    ImGui.TableNextColumn();
-                    UiSharedService.TextWrapped(bannedUser.Reason);
-                    ImGui.TableNextColumn();
-                    if (_uiShared.IconTextButton(FontAwesomeIcon.Check, string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Banlist.Unban"), bannedUser.UID)))
+                    ImGui.SameLine();
+                    UiSharedService.ColorText(Loc.Get("Syncshell.Card.TempLabel"), ImGuiColors.DalamudOrange);
+                    if (groupDto.ExpiresAt != null)
                     {
-                        _ = ApiController.GroupUnbanUser(bannedUser);
-                        _bannedUsers.RemoveAll(b => string.Equals(b.UID, bannedUser.UID, StringComparison.Ordinal));
+                        var tempExpireLocal = groupDto.ExpiresAt.Value.ToLocalTime();
+                        UiSharedService.AttachToolTip(string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Card.TempExpire"), tempExpireLocal.ToString("g", CultureInfo.CurrentCulture)));
+                    }
+                    else
+                    {
+                        UiSharedService.AttachToolTip(Loc.Get("Syncshell.Card.TempTooltip"));
                     }
                 }
-
-                ImGui.EndTable();
-            }
-            UiSharedService.SetScaledWindowSize(700, 300);
-            ImGui.EndPopup();
-        }
-
-        if (_showModalChangePassword && !_modalChangePwOpened)
-        {
-            _modalChangePwOpened = true;
-            ImGui.OpenPopup("Change Syncshell Password");
-        }
-
-        if (!_showModalChangePassword) _modalChangePwOpened = false;
-
-        if (ImGui.BeginPopupModal("Change Syncshell Password", ref _showModalChangePassword, UiSharedService.PopupWindowFlags))
-        {
-            UiSharedService.TextWrapped("Enter the new Syncshell password for Syncshell " + name + " here.");
-            UiSharedService.TextWrapped("This action is irreversible");
-            ImGui.SetNextItemWidth(-1);
-            ImGui.InputTextWithHint("##changepw", "New password for " + name, ref _newSyncShellPassword, 255);
-            if (ImGui.Button("Change password"))
-            {
-                var pw = _newSyncShellPassword;
-                _isPasswordValid = ApiController.GroupChangePassword(new(groupDto.Group, pw)).Result;
-                _newSyncShellPassword = string.Empty;
-                if (_isPasswordValid) _showModalChangePassword = false;
-            }
-
-            if (!_isPasswordValid)
-            {
-                UiSharedService.ColorTextWrapped("The selected password is too short. It must be at least 10 characters.", new Vector4(1, 0, 0, 1));
-            }
-
-            UiSharedService.SetScaledWindowSize(290);
-            ImGui.EndPopup();
-        }
-
-        if (_showModalBulkOneTimeInvites && !_modalBulkOneTimeInvitesOpened)
-        {
-            _modalBulkOneTimeInvitesOpened = true;
-            ImGui.OpenPopup("Create Bulk One-Time Invites");
-        }
-
-        if (!_showModalBulkOneTimeInvites) _modalBulkOneTimeInvitesOpened = false;
-
-        if (ImGui.BeginPopupModal("Create Bulk One-Time Invites", ref _showModalBulkOneTimeInvites, UiSharedService.PopupWindowFlags))
-        {
-            UiSharedService.TextWrapped("This allows you to create up to 100 one-time invites at once for the Syncshell " + name + "." + Environment.NewLine
-                + "The invites are valid for 24h after creation and will automatically expire.");
-            ImGui.Separator();
-            if (_bulkOneTimeInvites.Count == 0)
-            {
-                ImGui.SetNextItemWidth(-1);
-                ImGui.SliderInt("Amount##bulkinvites", ref _bulkInviteCount, 1, 100);
-                if (_uiShared.IconTextButton(FontAwesomeIcon.MailBulk, "Create invites"))
+                if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
                 {
-                    _bulkOneTimeInvites = ApiController.GroupCreateTempInvite(groupDto, _bulkInviteCount).Result;
+                    var prevState = textIsGid;
+                    if (_showGidForEntry.ContainsKey(groupDto.GID))
+                    {
+                        prevState = _showGidForEntry[groupDto.GID];
+                    }
+
+                    _showGidForEntry[groupDto.GID] = !prevState;
+                }
+
+                if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+                {
+                    _serverConfigurationManager.SetNoteForGid(_editGroupEntry, _editGroupComment);
+                    _editGroupComment = _serverConfigurationManager.GetNoteForGid(groupDto.GID) ?? string.Empty;
+                    _editGroupEntry = groupDto.GID;
+                    _chatService.MaybeUpdateShellName(shellNumber);
                 }
             }
             else
             {
-                UiSharedService.TextWrapped("A total of " + _bulkOneTimeInvites.Count + " invites have been created.");
-                if (_uiShared.IconTextButton(FontAwesomeIcon.Copy, "Copy invites to clipboard"))
+                var buttonSizes = _uiShared.GetIconButtonSize(FontAwesomeIcon.Bars).X + _uiShared.GetIconButtonSize(FontAwesomeIcon.LockOpen).X;
+                ImGui.SetNextItemWidth(UiSharedService.GetWindowContentRegionWidth() - ImGui.GetCursorPosX() - buttonSizes - ImGui.GetStyle().ItemSpacing.X * 2);
+                if (ImGui.InputTextWithHint("", Loc.Get("Syncshell.Card.CommentPlaceholder"), ref _editGroupComment, 255, ImGuiInputTextFlags.EnterReturnsTrue))
                 {
-                    ImGui.SetClipboardText(string.Join(Environment.NewLine, _bulkOneTimeInvites));
+                    _serverConfigurationManager.SetNoteForGid(groupDto.GID, _editGroupComment);
+                    _editGroupEntry = string.Empty;
+                    _chatService.MaybeUpdateShellName(shellNumber);
                 }
-            }
 
-            UiSharedService.SetScaledWindowSize(290);
-            ImGui.EndPopup();
-        }
-
-        bool hideOfflineUsers = pairsInGroup.Count > 1000;
-
-        ImGui.Indent(20);
-        if (expandedState)
-        {
-            if (!_sortedPairsCache.TryGetValue(groupDto.GID, out var sortedPairs) ||
-                Environment.TickCount64 - _sortedPairsLastUpdate[groupDto.GID] > 1000)
-            {
-                sortedPairs = pairsInGroup
-                    .OrderByDescending(u => string.Equals(u.UserData.UID, groupDto.OwnerUID, StringComparison.Ordinal))
-                    .ThenByDescending(u => u.GroupPair[groupDto].GroupPairStatusInfo.IsModerator())
-                    .ThenByDescending(u => u.GroupPair[groupDto].GroupPairStatusInfo.IsPinned())
-                    .ThenBy(u => u.GetPairSortKey(), StringComparer.OrdinalIgnoreCase)
-                    .ToList();
-                _sortedPairsCache[groupDto.GID] = sortedPairs;
-                _sortedPairsLastUpdate[groupDto.GID] = Environment.TickCount64;
-            }
-
-            var visibleUsers = new List<DrawGroupPair>();
-            var onlineUsers = new List<DrawGroupPair>();
-            var offlineUsers = new List<DrawGroupPair>();
-
-            foreach (var pair in sortedPairs)
-            {
-                var cacheKey = groupDto.GID + pair.UserData.UID;
-                var groupPairFullInfoDto = pair.GroupPair.FirstOrDefault(
-                        g => string.Equals(g.Key.Group.GID, groupDto.GID, StringComparison.Ordinal)
-                    ).Value;
-
-                if (groupPairFullInfoDto == null) continue;
-
-                if (!_drawGroupPairCache.TryGetValue(cacheKey, out var drawPair))
+                if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                 {
-                    drawPair = new DrawGroupPair(
-                        cacheKey, pair,
-                        ApiController, _mainUi.Mediator, groupDto,
-                        groupPairFullInfoDto,
-                        _uidDisplayHandler,
-                        _uiShared,
-                        _charaDataManager,
-                        _autoDetectRequestService,
-                        _serverConfigurationManager);
-                    _drawGroupPairCache[cacheKey] = drawPair;
+                    _editGroupEntry = string.Empty;
+                }
+                UiSharedService.AttachToolTip(Loc.Get("Syncshell.Card.CommentTooltip"));
+            }
+
+
+            using (ImRaii.PushId(groupDto.GID + "settings")) DrawSyncShellButtons(groupDto, pairsInGroup, lineStartY);
+
+            if (_showModalBanList && !_modalBanListOpened)
+            {
+                _modalBanListOpened = true;
+                ImGui.OpenPopup(string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Banlist.ModalTitle"), groupDto.GID));
+            }
+
+            if (!_showModalBanList) _modalBanListOpened = false;
+
+            if (ImGui.BeginPopupModal(string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Banlist.ModalTitle"), groupDto.GID), ref _showModalBanList, UiSharedService.PopupWindowFlags))
+            {
+                if (_uiShared.IconTextButton(FontAwesomeIcon.Retweet, Loc.Get("Syncshell.Banlist.Refresh")))
+                {
+                    _bannedUsers = ApiController.GroupGetBannedUsers(groupDto).Result;
+                }
+
+                if (ImGui.BeginTable("bannedusertable" + groupDto.GID, 6, ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.ScrollY))
+                {
+                    ImGui.TableSetupColumn(Loc.Get("Syncshell.Banlist.Column.Uid"), ImGuiTableColumnFlags.None, 1);
+                    ImGui.TableSetupColumn(Loc.Get("Syncshell.Banlist.Column.Alias"), ImGuiTableColumnFlags.None, 1);
+                    ImGui.TableSetupColumn(Loc.Get("Syncshell.Banlist.Column.By"), ImGuiTableColumnFlags.None, 1);
+                    ImGui.TableSetupColumn(Loc.Get("Syncshell.Banlist.Column.Date"), ImGuiTableColumnFlags.None, 2);
+                    ImGui.TableSetupColumn(Loc.Get("Syncshell.Banlist.Column.Reason"), ImGuiTableColumnFlags.None, 3);
+                    ImGui.TableSetupColumn(Loc.Get("Syncshell.Banlist.Column.Actions"), ImGuiTableColumnFlags.None, 1);
+
+                    ImGui.TableHeadersRow();
+
+                    foreach (var bannedUser in _bannedUsers.ToList())
+                    {
+                        ImGui.TableNextColumn();
+                        ImGui.TextUnformatted(bannedUser.UID);
+                        ImGui.TableNextColumn();
+                        ImGui.TextUnformatted(bannedUser.UserAlias ?? string.Empty);
+                        ImGui.TableNextColumn();
+                        ImGui.TextUnformatted(bannedUser.BannedBy);
+                        ImGui.TableNextColumn();
+                        ImGui.TextUnformatted(bannedUser.BannedOn.ToLocalTime().ToString(CultureInfo.CurrentCulture));
+                        ImGui.TableNextColumn();
+                        UiSharedService.TextWrapped(bannedUser.Reason);
+                        ImGui.TableNextColumn();
+                        if (_uiShared.IconTextButton(FontAwesomeIcon.Check, string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Banlist.Unban"), bannedUser.UID)))
+                        {
+                            _ = ApiController.GroupUnbanUser(bannedUser);
+                            _bannedUsers.RemoveAll(b => string.Equals(b.UID, bannedUser.UID, StringComparison.Ordinal));
+                        }
+                    }
+
+                    ImGui.EndTable();
+                }
+                UiSharedService.SetScaledWindowSize(700, 300);
+                ImGui.EndPopup();
+            }
+
+            if (_showModalChangePassword && !_modalChangePwOpened)
+            {
+                _modalChangePwOpened = true;
+                ImGui.OpenPopup("Change Syncshell Password");
+            }
+
+            if (!_showModalChangePassword) _modalChangePwOpened = false;
+
+            if (ImGui.BeginPopupModal("Change Syncshell Password", ref _showModalChangePassword, UiSharedService.PopupWindowFlags))
+            {
+                UiSharedService.TextWrapped("Enter the new Syncshell password for Syncshell " + name + " here.");
+                UiSharedService.TextWrapped("This action is irreversible");
+                ImGui.SetNextItemWidth(-1);
+                ImGui.InputTextWithHint("##changepw", "New password for " + name, ref _newSyncShellPassword, 255);
+                if (ImGui.Button("Change password"))
+                {
+                    var pw = _newSyncShellPassword;
+                    _isPasswordValid = ApiController.GroupChangePassword(new(groupDto.Group, pw)).Result;
+                    _newSyncShellPassword = string.Empty;
+                    if (_isPasswordValid) _showModalChangePassword = false;
+                }
+
+                if (!_isPasswordValid)
+                {
+                    UiSharedService.ColorTextWrapped("The selected password is too short. It must be at least 10 characters.", new Vector4(1, 0, 0, 1));
+                }
+
+                UiSharedService.SetScaledWindowSize(290);
+                ImGui.EndPopup();
+            }
+
+            if (_showModalBulkOneTimeInvites && !_modalBulkOneTimeInvitesOpened)
+            {
+                _modalBulkOneTimeInvitesOpened = true;
+                ImGui.OpenPopup("Create Bulk One-Time Invites");
+            }
+
+            if (!_showModalBulkOneTimeInvites) _modalBulkOneTimeInvitesOpened = false;
+
+            if (ImGui.BeginPopupModal("Create Bulk One-Time Invites", ref _showModalBulkOneTimeInvites, UiSharedService.PopupWindowFlags))
+            {
+                UiSharedService.TextWrapped("This allows you to create up to 100 one-time invites at once for the Syncshell " + name + "." + Environment.NewLine
+                    + "The invites are valid for 24h after creation and will automatically expire.");
+                ImGui.Separator();
+                if (_bulkOneTimeInvites.Count == 0)
+                {
+                    ImGui.SetNextItemWidth(-1);
+                    ImGui.SliderInt("Amount##bulkinvites", ref _bulkInviteCount, 1, 100);
+                    if (_uiShared.IconTextButton(FontAwesomeIcon.MailBulk, "Create invites"))
+                    {
+                        _bulkOneTimeInvites = ApiController.GroupCreateTempInvite(groupDto, _bulkInviteCount).Result;
+                    }
                 }
                 else
                 {
-                    drawPair.UpdateData(groupDto, groupPairFullInfoDto);
+                    UiSharedService.TextWrapped("A total of " + _bulkOneTimeInvites.Count + " invites have been created.");
+                    if (_uiShared.IconTextButton(FontAwesomeIcon.Copy, "Copy invites to clipboard"))
+                    {
+                        ImGui.SetClipboardText(string.Join(Environment.NewLine, _bulkOneTimeInvites));
+                    }
                 }
 
-                if (pair.IsVisible)
-                    visibleUsers.Add(drawPair);
-                else if (pair.IsOnline)
-                    onlineUsers.Add(drawPair);
-                else
-                    offlineUsers.Add(drawPair);
+                UiSharedService.SetScaledWindowSize(290);
+                ImGui.EndPopup();
             }
 
-            if (visibleUsers.Count > 0)
-            {
-                ImGui.TextUnformatted("Visible");
-                ImGui.Separator();
-                UidDisplayHandler.RenderPairList(visibleUsers);
-            }
+            bool hideOfflineUsers = pairsInGroup.Count > 1000;
 
-            if (onlineUsers.Count > 0)
+            ImGui.Indent(20);
+            if (expandedState)
             {
-                ImGui.TextUnformatted("Online");
-                ImGui.Separator();
-                UidDisplayHandler.RenderPairList(onlineUsers);
-            }
-
-            if (offlineUsers.Count > 0)
-            {
-                ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudGrey);
-                ImGui.TextUnformatted("Offline/Unknown");
-                ImGui.PopStyleColor();
-                ImGui.Separator();
-                if (hideOfflineUsers)
+                if (!_sortedPairsCache.TryGetValue(groupDto.GID, out var sortedPairs) ||
+                    Environment.TickCount64 - _sortedPairsLastUpdate[groupDto.GID] > 1000)
                 {
-                    UiSharedService.ColorText($"    {offlineUsers.Count} offline users omitted from display.", ImGuiColors.DalamudGrey);
+                    sortedPairs = pairsInGroup
+                        .OrderByDescending(u => string.Equals(u.UserData.UID, groupDto.OwnerUID, StringComparison.Ordinal))
+                        .ThenByDescending(u => u.GroupPair[groupDto].GroupPairStatusInfo.IsModerator())
+                        .ThenByDescending(u => u.GroupPair[groupDto].GroupPairStatusInfo.IsPinned())
+                        .ThenBy(u => u.GetPairSortKey(), StringComparer.OrdinalIgnoreCase)
+                        .ToList();
+                    _sortedPairsCache[groupDto.GID] = sortedPairs;
+                    _sortedPairsLastUpdate[groupDto.GID] = Environment.TickCount64;
                 }
-                else
+
+                var visibleUsers = new List<DrawGroupPair>();
+                var onlineUsers = new List<DrawGroupPair>();
+                var offlineUsers = new List<DrawGroupPair>();
+
+                foreach (var pair in sortedPairs)
                 {
-                    UidDisplayHandler.RenderPairList(offlineUsers);
+                    var cacheKey = groupDto.GID + pair.UserData.UID;
+                    var groupPairFullInfoDto = pair.GroupPair.FirstOrDefault(
+                            g => string.Equals(g.Key.Group.GID, groupDto.GID, StringComparison.Ordinal)
+                        ).Value;
+
+                    if (groupPairFullInfoDto == null) continue;
+
+                    if (!_drawGroupPairCache.TryGetValue(cacheKey, out var drawPair))
+                    {
+                        drawPair = new DrawGroupPair(
+                            cacheKey, pair,
+                            ApiController, _mainUi.Mediator, groupDto,
+                            groupPairFullInfoDto,
+                            _uidDisplayHandler,
+                            _uiShared,
+                            _charaDataManager,
+                            _autoDetectRequestService,
+                            _serverConfigurationManager);
+                        _drawGroupPairCache[cacheKey] = drawPair;
+                    }
+                    else
+                    {
+                        drawPair.UpdateData(groupDto, groupPairFullInfoDto);
+                    }
+
+                    if (pair.IsVisible)
+                        visibleUsers.Add(drawPair);
+                    else if (pair.IsOnline)
+                        onlineUsers.Add(drawPair);
+                    else
+                        offlineUsers.Add(drawPair);
+                }
+
+                if (visibleUsers.Count > 0)
+                {
+                    ImGui.TextUnformatted("Visible");
+                    UidDisplayHandler.RenderPairList(visibleUsers);
+                }
+
+                if (onlineUsers.Count > 0)
+                {
+                    ImGui.TextUnformatted("Online");
+                    UidDisplayHandler.RenderPairList(onlineUsers);
+                }
+
+                if (offlineUsers.Count > 0)
+                {
+                    ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudGrey);
+                    ImGui.TextUnformatted("Offline/Unknown");
+                    ImGui.PopStyleColor();
+                    if (hideOfflineUsers)
+                    {
+                        UiSharedService.ColorText($"    {offlineUsers.Count} offline users omitted from display.", ImGuiColors.DalamudGrey);
+                    }
+                    else
+                    {
+                        UidDisplayHandler.RenderPairList(offlineUsers);
+                    }
                 }
             }
-
-            ImGui.Separator();
-        }
-        ImGui.Unindent(20);
+            ImGui.Unindent(20);
         }, padding: cardPadding, stretchWidth: true);
 
         ImGuiHelpers.ScaledDummy(style.ItemSpacing.Y);

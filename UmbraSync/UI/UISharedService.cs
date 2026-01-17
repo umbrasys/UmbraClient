@@ -10,6 +10,11 @@ using Dalamud.Interface.Utility.Raii;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
+using Microsoft.Extensions.Logging;
+using System.Numerics;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Text.RegularExpressions;
 using UmbraSync.FileCache;
 using UmbraSync.Interop.Ipc;
 using UmbraSync.MareConfiguration;
@@ -18,14 +23,6 @@ using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.ServerConfiguration;
-using UmbraSync.WebAPI;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Numerics;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Text.RegularExpressions;
 
 namespace UmbraSync.UI;
 
@@ -62,31 +59,31 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     private readonly ITextureProvider _textureProvider;
     private readonly Dictionary<string, object> _selectedComboItems = new(StringComparer.Ordinal);
     private readonly ServerConfigurationManager _serverConfigurationManager;
-    private bool _cacheDirectoryHasOtherFilesThanCache = false;
+    private bool _cacheDirectoryHasOtherFilesThanCache;
     private static readonly Stack<float> _fontScaleStack = new();
     private static float _currentWindowFontScale = 1f;
 
     private bool _cacheDirectoryIsValidPath = true;
 
-    private bool _customizePlusExists = false;
+    private bool _customizePlusExists;
 
     private string _customServerName = "";
 
     private string _customServerUri = "";
 
-    private bool _glamourerExists = false;
+    private bool _glamourerExists;
 
-    private bool _heelsExists = false;
+    private bool _heelsExists;
 
-    private bool _honorificExists = false;
-    private bool _isDirectoryWritable = false;
-    private bool _isOneDrive = false;
-    private bool _isPenumbraDirectory = false;
-    private bool _moodlesExists = false;
-    private bool _penumbraExists = false;
-    private bool _petNamesExists = false;
-    private bool _brioExists = false;
-    private bool _chatTwoExists = false;
+    private bool _honorificExists;
+    private bool _isDirectoryWritable;
+    private bool _isOneDrive;
+    private bool _isPenumbraDirectory;
+    private bool _moodlesExists;
+    private bool _penumbraExists;
+    private bool _petNamesExists;
+    private bool _brioExists;
+    private bool _chatTwoExists;
 
     private int _serverSelectionIndex = -1;
 
@@ -543,7 +540,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
         return result;
     }
-    
+
     public bool IconButtonCentered(FontAwesomeIcon icon, float? height = null, float xOffset = 0f, float yOffset = 0f, bool square = false)
     {
         string text = icon.ToIconString();
@@ -640,7 +637,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         return clicked;
     }
 
-    private bool IconTextButtonInternal(FontAwesomeIcon icon, string text, Vector4? defaultColor = null, float? width = null, bool useAccentHover = true)
+    private bool IconTextButtonInternal(FontAwesomeIcon icon, string text, Vector4? defaultColor = null, float? width = null, bool useAccentHover = true, float? height = null)
     {
         int colorsPushed = 0;
         if (defaultColor.HasValue)
@@ -656,21 +653,29 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         }
 
         ImGui.PushID(text);
-        Vector2 vector;
+        Vector2 iconSize;
         using (IconFont.Push())
-            vector = ImGui.CalcTextSize(icon.ToIconString());
-        Vector2 vector2 = ImGui.CalcTextSize(text);
+            iconSize = ImGui.CalcTextSize(icon.ToIconString());
+        Vector2 textSize = ImGui.CalcTextSize(text);
         ImDrawListPtr windowDrawList = ImGui.GetWindowDrawList();
         Vector2 cursorScreenPos = ImGui.GetCursorScreenPos();
-        float num2 = 3f * ImGuiHelpers.GlobalScale;
-        float x = width ?? vector.X + vector2.X + ImGui.GetStyle().FramePadding.X * 2f + num2;
-        float frameHeight = ImGui.GetFrameHeight();
-        bool result = ImGui.Button(string.Empty, new Vector2(x, frameHeight));
-        Vector2 pos = new Vector2(cursorScreenPos.X + ImGui.GetStyle().FramePadding.X, cursorScreenPos.Y + ImGui.GetStyle().FramePadding.Y);
+        float spacing = 3f * ImGuiHelpers.GlobalScale;
+        float totalContentWidth = iconSize.X + spacing + textSize.X;
+        float x = width ?? totalContentWidth + ImGui.GetStyle().FramePadding.X * 2f;
+        float h = height ?? ImGui.GetFrameHeight();
+
+        bool result = ImGui.Button(string.Empty, new Vector2(x, h));
+
+        float offsetX = (x - totalContentWidth) / 2f;
+        float offsetY = (h - MathF.Max(iconSize.Y, textSize.Y)) / 2f;
+
+        Vector2 iconPos = new Vector2(cursorScreenPos.X + offsetX, cursorScreenPos.Y + offsetY);
         using (IconFont.Push())
-            windowDrawList.AddText(pos, ImGui.GetColorU32(ImGuiCol.Text), icon.ToIconString());
-        Vector2 pos2 = new Vector2(pos.X + vector.X + num2, cursorScreenPos.Y + ImGui.GetStyle().FramePadding.Y);
-        windowDrawList.AddText(pos2, ImGui.GetColorU32(ImGuiCol.Text), text);
+            windowDrawList.AddText(iconPos, ImGui.GetColorU32(ImGuiCol.Text), icon.ToIconString());
+
+        Vector2 textPos = new Vector2(iconPos.X + iconSize.X + spacing, cursorScreenPos.Y + offsetY);
+        windowDrawList.AddText(textPos, ImGui.GetColorU32(ImGuiCol.Text), text);
+
         ImGui.PopID();
         if (colorsPushed > 0)
         {
@@ -680,12 +685,13 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         return result;
     }
 
-    public bool IconTextButton(FontAwesomeIcon icon, string text, float? width = null, bool isInPopup = false)
+    public bool IconTextButton(FontAwesomeIcon icon, string text, float? width = null, bool isInPopup = false, Vector4? buttonColor = null, float? height = null)
     {
         return IconTextButtonInternal(icon, text,
-            isInPopup ? ColorHelpers.RgbaUintToVector4(ImGui.GetColorU32(ImGuiCol.PopupBg)) : null,
+            buttonColor ?? (isInPopup ? ColorHelpers.RgbaUintToVector4(ImGui.GetColorU32(ImGuiCol.PopupBg)) : null),
             width <= 0 ? null : width,
-            !isInPopup);
+            !isInPopup,
+            height <= 0 ? null : height);
     }
 
     public static bool IsDirectoryWritable(string dirPath, bool throwIfFails = false)
@@ -1247,7 +1253,22 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
                 Pitch = 1024
             }, cpuRead: false, cpuWrite: false);
         }
-        return _textureProvider.CreateFromImageAsync(imageData).Result;
+        try
+        {
+            Logger.LogTrace("Creating texture from image data, size: {size}", imageData.Length);
+            return _textureProvider.CreateFromImageAsync(imageData).Result;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to create texture from image data");
+            return _textureProvider.CreateEmpty(new()
+            {
+                Width = 256,
+                Height = 256,
+                DxgiFormat = 3,
+                Pitch = 1024
+            }, cpuRead: false, cpuWrite: false);
+        }
     }
 
     internal static void DistanceSeparator()
