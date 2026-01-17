@@ -152,24 +152,11 @@ public class NotificationService : DisposableMediatorSubscriberBase, IHostedServ
     {
         appendInstruction = false;
 
-        bool IsNearbyRequestText(string? text)
-        {
-            if (string.IsNullOrEmpty(text)) return false;
-            return text.Contains("Nearby request", StringComparison.OrdinalIgnoreCase)
-                || text.Contains("Nearby Request", StringComparison.Ordinal);
-        }
-
-        bool IsNearbyAcceptText(string? text)
-        {
-            if (string.IsNullOrEmpty(text)) return false;
-            return text.Contains("Nearby Accept", StringComparison.OrdinalIgnoreCase);
-        }
-
-        bool isAccept = IsNearbyAcceptText(msg.Title) || IsNearbyAcceptText(msg.Message);
+        bool isAccept = ContainsNearbyAccept(msg.Title) || ContainsNearbyAccept(msg.Message);
         if (isAccept)
             return false;
 
-        bool isRequest = IsNearbyRequestText(msg.Title) || IsNearbyRequestText(msg.Message);
+        bool isRequest = ContainsNearbyRequest(msg.Title) || ContainsNearbyRequest(msg.Message);
         if (isRequest)
         {
             appendInstruction = !IsRequestSentConfirmation(msg);
@@ -177,6 +164,12 @@ public class NotificationService : DisposableMediatorSubscriberBase, IHostedServ
         }
 
         return false;
+    }
+
+    private static bool ContainsNearbyAccept(string? text)
+    {
+        if (string.IsNullOrEmpty(text)) return false;
+        return text.Contains("Nearby Accept", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsRequestSentConfirmation(NotificationMessage msg)
@@ -231,10 +224,29 @@ public class NotificationService : DisposableMediatorSubscriberBase, IHostedServ
         });
     }
 
-    private static bool IsAutoDetectPairRequest(NotificationMessage msg)
+    private bool IsAutoDetectPairRequest(NotificationMessage msg)
     {
         if (msg.Type != NotificationType.Info) return false;
+
+        // Ne supprimer le toast que si les popups interactives sont activées
+        if (!_configurationService.Current.UseInteractivePairRequestPopup) return false;
+
+        // Vérifier le titre localisé (notification créée par NearbyPendingService)
         var incomingTitle = Loc.Get("AutoDetect.Notification.IncomingTitle");
-        return string.Equals(msg.Title, incomingTitle, StringComparison.Ordinal);
+        if (string.Equals(msg.Title, incomingTitle, StringComparison.Ordinal)) return true;
+
+        // Vérifier aussi le pattern "Nearby Request" dans le message (pour les messages du serveur)
+        // mais exclure les confirmations d'envoi
+        bool isNearbyRequest = ContainsNearbyRequest(msg.Title) || ContainsNearbyRequest(msg.Message);
+        if (isNearbyRequest && !IsRequestSentConfirmation(msg)) return true;
+
+        return false;
+    }
+
+    private static bool ContainsNearbyRequest(string? text)
+    {
+        if (string.IsNullOrEmpty(text)) return false;
+        return text.Contains("Nearby request", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Nearby Request", StringComparison.Ordinal);
     }
 }
