@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using UmbraSync.API.Data;
+using UmbraSync.API.Data.Comparer;
 using UmbraSync.PlayerData.Handlers;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
@@ -13,9 +14,14 @@ public class OnlinePlayerManager : DisposableMediatorSubscriberBase
     private readonly ApiController _apiController;
     private readonly DalamudUtilService _dalamudUtil;
     private readonly FileUploadManager _fileTransferManager;
-    private readonly HashSet<PairHandler> _newVisiblePlayers = [];
     private readonly PairManager _pairManager;
-    private CharacterData? _lastSentData;
+    private CharacterData? _lastCreatedData;
+    private CharacterData? _uploadingCharacterData;
+    private readonly List<UserData> _previouslyVisiblePlayers = [];
+    private readonly HashSet<UserData> _usersToPushDataTo = new(UserDataComparer.Instance);
+    private readonly SemaphoreSlim _pushLock = new(1, 1);
+    private Task<CharacterData>? _fileUploadTask;
+    private readonly CancellationTokenSource _runtimeCts = new();
 
     public OnlinePlayerManager(ILogger<OnlinePlayerManager> logger, ApiController apiController, DalamudUtilService dalamudUtil,
         PairManager pairManager, MareMediator mediator, FileUploadManager fileTransferManager) : base(logger, mediator)
@@ -24,52 +30,131 @@ public class OnlinePlayerManager : DisposableMediatorSubscriberBase
         _dalamudUtil = dalamudUtil;
         _pairManager = pairManager;
         _fileTransferManager = fileTransferManager;
-        Mediator.Subscribe<PlayerChangedMessage>(this, (_) => PlayerManagerOnPlayerHasChanged());
+
         Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, (_) => FrameworkOnUpdate());
         Mediator.Subscribe<CharacterDataCreatedMessage>(this, (msg) =>
         {
             var newData = msg.CharacterData;
-            if (_lastSentData == null || (!string.Equals(newData.DataHash.Value, _lastSentData.DataHash.Value, StringComparison.Ordinal)))
+            if (_lastCreatedData == null || !string.Equals(newData.DataHash.Value, _lastCreatedData.DataHash.Value, StringComparison.Ordinal))
             {
-                Logger.LogDebug("Pushing data for visible players");
-                _lastSentData = newData;
-                PushCharacterData(_pairManager.GetVisibleUsers());
+                _lastCreatedData = newData;
+                Logger.LogTrace("Nouveau hash de données stocké: {hash}", newData.DataHash.Value);
+                PushToAllVisibleUsers(forced: true);
             }
             else
             {
-                Logger.LogDebug("Not sending data for {hash}", newData.DataHash.Value);
+                Logger.LogTrace("Hash identique au précédent: {hash}", newData.DataHash.Value);
             }
         });
-        Mediator.Subscribe<PairHandlerVisibleMessage>(this, (msg) => _newVisiblePlayers.Add(msg.Player));
-        Mediator.Subscribe<ConnectedMessage>(this, (_) => PushCharacterData(_pairManager.GetVisibleUsers()));
-        Mediator.Subscribe<DisconnectedMessage>(this, (_) => _lastSentData = null);
+
+        Mediator.Subscribe<ConnectedMessage>(this, (_) => PushToAllVisibleUsers());
+        Mediator.Subscribe<DisconnectedMessage>(this, (_) =>
+        {
+            _fileTransferManager.CancelUpload();
+            _previouslyVisiblePlayers.Clear();
+            _usersToPushDataTo.Clear();
+            _uploadingCharacterData = null;
+            _fileUploadTask = null;
+        });
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _runtimeCts.Cancel();
+            _runtimeCts.Dispose();
+            _pushLock.Dispose();
+        }
+        base.Dispose(disposing);
+    }
+
+    private void PushToAllVisibleUsers(bool forced = false)
+    {
+        foreach (var user in GetVisibleUsers())
+        {
+            _usersToPushDataTo.Add(user);
+        }
+
+        if (_usersToPushDataTo.Count > 0)
+        {
+            Logger.LogDebug("Push programmé pour {count} joueurs visibles (hash: {hash})",
+                _usersToPushDataTo.Count, _lastCreatedData?.DataHash.Value ?? "UNKNOWN");
+            PushCharacterData(forced);
+        }
     }
 
     private void FrameworkOnUpdate()
     {
         if (!_dalamudUtil.GetIsPlayerPresent() || !_apiController.IsConnected) return;
 
-        if (!_newVisiblePlayers.Any()) return;
-        var newVisiblePlayers = _newVisiblePlayers.ToList();
-        _newVisiblePlayers.Clear();
-        Logger.LogTrace("Has new visible players, pushing character data");
-        PushCharacterData(newVisiblePlayers.Select(c => c.Pair.UserData).ToList());
-    }
+        var allVisibleUsers = GetVisibleUsers();
+        var newVisibleUsers = allVisibleUsers.Except(_previouslyVisiblePlayers, UserDataComparer.Instance).ToList();
 
-    private void PlayerManagerOnPlayerHasChanged()
-    {
-        PushCharacterData(_pairManager.GetVisibleUsers());
-    }
+        _previouslyVisiblePlayers.Clear();
+        _previouslyVisiblePlayers.AddRange(allVisibleUsers);
 
-    private void PushCharacterData(List<UserData> visiblePlayers)
-    {
-        if (visiblePlayers.Any() && _lastSentData != null)
+        if (newVisibleUsers.Count == 0) return;
+
+        Logger.LogDebug("Nouveaux joueurs visibles détectés: {users}",
+            string.Join(", ", newVisibleUsers.Select(k => k.AliasOrUID)));
+
+        foreach (var user in newVisibleUsers)
         {
-            _ = Task.Run(async () =>
+            _usersToPushDataTo.Add(user);
+        }
+        PushCharacterData();
+    }
+
+    private void PushCharacterData(bool forced = false)
+    {
+        if (_lastCreatedData == null || _usersToPushDataTo.Count == 0) return;
+        _ = PushCharacterDataAsync(forced);
+    }
+
+    private async Task PushCharacterDataAsync(bool forced = false)
+    {
+        await _pushLock.WaitAsync(_runtimeCts.Token).ConfigureAwait(false);
+        try
+        {
+            if (_lastCreatedData == null || _usersToPushDataTo.Count == 0)
+                return;
+
+            var hashChanged = !string.Equals(_uploadingCharacterData?.DataHash.Value, _lastCreatedData.DataHash.Value, StringComparison.Ordinal);
+            forced |= hashChanged;
+
+            if (_fileUploadTask == null || _fileUploadTask.IsCompleted || forced)
             {
-                var dataToSend = await _fileTransferManager.UploadFiles(_lastSentData.DeepClone(), visiblePlayers).ConfigureAwait(false);
-                await _apiController.PushCharacterData(dataToSend, visiblePlayers).ConfigureAwait(false);
-            });
+                _uploadingCharacterData = _lastCreatedData.DeepClone();
+                var uploadTargets = _usersToPushDataTo.ToList();
+
+                Logger.LogDebug("Démarrage upload (hash: {hash}). Raison: TaskNull={taskNull}, TaskCompleted={taskCpl}, Forced={forced}",
+                    _lastCreatedData.DataHash.Value,
+                    _fileUploadTask == null,
+                    _fileUploadTask?.IsCompleted ?? false,
+                    forced);
+
+                _fileUploadTask = _fileTransferManager.UploadFiles(_uploadingCharacterData, uploadTargets);
+            }
+
+            var dataToSend = await _fileUploadTask.ConfigureAwait(false);
+
+            var users = _usersToPushDataTo.ToList();
+            if (users.Count == 0)
+                return;
+
+            Logger.LogDebug("Push de {hash} vers {users}",
+                dataToSend.DataHash.Value,
+                string.Join(", ", users.Select(k => k.AliasOrUID)));
+
+            await _apiController.PushCharacterData(dataToSend, users).ConfigureAwait(false);
+            _usersToPushDataTo.Clear();
+        }
+        finally
+        {
+            _pushLock.Release();
         }
     }
+
+    private List<UserData> GetVisibleUsers() => _pairManager.GetVisibleUsers();
 }

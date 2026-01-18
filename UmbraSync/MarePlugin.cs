@@ -149,6 +149,7 @@ public class MarePlugin : MediatorSubscriberBase, IHostedService
             _runtimeServiceScope.ServiceProvider.GetRequiredService<CacheCreationService>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<TransientResourceManager>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<OnlinePlayerManager>();
+            _runtimeServiceScope.ServiceProvider.GetRequiredService<PairLedger>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<NotificationService>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<SyncDefaultsService>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<ChatService>();

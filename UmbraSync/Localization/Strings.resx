@@ -3168,10 +3168,10 @@ Click to change.</value>
     <value>Umbra Character Data Hub</value>
   </data>
   <data name="ContextMenu.AutoDetect.SendRequest" xml:space="preserve">
-    <value>Send Umbra pairing request [Umbra U]</value>
+    <value>Send Umbra pairing request</value>
   </data>
   <data name="ContextMenu.AutoDetect.AddPair" xml:space="preserve">
-    <value>Add as Umbra pair [Umbra +]</value>
+    <value>Add as Umbra pair</value>
   </data>
   <data name="GroupPair.Unknown" xml:space="preserve">
     <value>Unknown: {0}</value>

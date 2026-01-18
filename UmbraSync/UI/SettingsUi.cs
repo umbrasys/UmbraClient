@@ -286,7 +286,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         ImGui.Indent();
         int maxConcurrentPairApplications = _configService.Current.MaxConcurrentPairApplications;
         ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
-        if (ImGui.SliderInt(Loc.Get("Settings.Transfer.PairProcessing.MaxConcurrent"), ref maxConcurrentPairApplications, 2, 16))
+        if (ImGui.SliderInt(Loc.Get("Settings.Transfer.PairProcessing.MaxConcurrent"), ref maxConcurrentPairApplications, 2, 50))
         {
             _configService.Current.MaxConcurrentPairApplications = maxConcurrentPairApplications;
             _configService.Save();

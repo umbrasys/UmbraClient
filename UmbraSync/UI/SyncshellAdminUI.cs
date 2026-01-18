@@ -67,7 +67,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
     private float _slotX;
     private float _slotY;
     private float _slotZ;
-    private float _slotRadius = 25f;
+    private float _slotRadius = 10f;
     private bool _slotLoading = false;
     private readonly DalamudUtilService _dalamudUtilService;
 
@@ -697,7 +697,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                 _slotX = 0;
                 _slotY = 0;
                 _slotZ = 0;
-                _slotRadius = 25f;
+                _slotRadius = 10f;
             }
         }
         else
@@ -716,7 +716,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
 
             ImGuiHelpers.ScaledDummy(5);
             ImGui.TextUnformatted(Loc.Get("SyncshellAdmin.Slot.Radius"));
-            ImGui.SliderFloat("##slotradius", ref _slotRadius, 5f, 100f, "%.1f m");
+            ImGui.SliderFloat("##slotradius", ref _slotRadius, 5f, 20f, "%.1f m");
             _uiSharedService.DrawHelpText(Loc.Get("SyncshellAdmin.Slot.RadiusHelp"));
 
             ImGuiHelpers.ScaledDummy(5);

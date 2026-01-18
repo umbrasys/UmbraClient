@@ -40,7 +40,7 @@ public class MareConfig : IMareConfiguration
     public int ParallelDownloads { get; set; } = 10;
     public bool EnableDownloadQueue { get; set; } = true;
     public bool EnableParallelPairProcessing { get; set; } = false;
-    public int MaxConcurrentPairApplications { get; set; } = 4;
+    public int MaxConcurrentPairApplications { get; set; } = 10;
     public int DownloadSpeedLimitInBytes { get; set; }
     public DownloadSpeeds DownloadSpeedType { get; set; } = DownloadSpeeds.MBps;
     public float ProfileDelay { get; set; } = 1.5f;
@@ -101,7 +101,7 @@ public class MareConfig : IMareConfiguration
 
     public bool UmbraAPI { get; set; } = true;
     public bool EnableSlotNotifications { get; set; } = true;
-    public float DefaultSlotRadius { get; set; } = 25f;
+    public float DefaultSlotRadius { get; set; } = 10f;
 
     [SuppressMessage("Major Code Smell", "S1133:Do not forget to remove this deprecated code someday", Justification = "Legacy config needed for migration")]
     [SuppressMessage("Major Code Smell", "S1123:Add an explanation", Justification = "Legacy config needed for migration")]

@@ -572,6 +572,49 @@ public class DalamudUtilService : IHostedService, IMediatorSubscriber
         }
     }
 
+    public async Task WaitForFullyLoadedAsync(GameObjectHandler handler, CancellationToken cancellationToken = default)
+    {
+        if (!_clientState.IsLoggedIn) return;
+        if (handler.Address == IntPtr.Zero) return;
+
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var isLoaded = await RunOnFrameworkThread(() => IsObjectFullyLoaded(handler.Address)).ConfigureAwait(false);
+            if (!IsZoning && isLoaded)
+                return;
+
+            await Task.Delay(100, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static unsafe bool IsObjectFullyLoaded(nint address)
+    {
+        if (address == nint.Zero)
+            return false;
+
+        var gameObject = (GameObject*)address;
+        if (gameObject == null)
+            return false;
+
+        var drawObject = gameObject->DrawObject;
+        if (drawObject == null)
+            return false;
+
+        if ((ulong)gameObject->RenderFlags == 2048)
+            return false;
+
+        var characterBase = (CharacterBase*)drawObject;
+        if (characterBase->HasModelInSlotLoaded != 0)
+            return false;
+
+        if (characterBase->HasModelFilesInSlotLoaded != 0)
+            return false;
+
+        return true;
+    }
+
     public unsafe void WaitWhileGposeCharacterIsDrawing(IntPtr characterAddress, int timeOut = 5000)
     {
         Thread.Sleep(500);
