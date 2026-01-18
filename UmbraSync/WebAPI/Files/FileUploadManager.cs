@@ -117,6 +117,12 @@ public sealed class FileUploadManager : DisposableMediatorSubscriberBase
 
     public async Task<CharacterData> UploadFiles(CharacterData data, List<UserData> visiblePlayers)
     {
+        if (!_orchestrator.IsInitialized)
+        {
+            Logger.LogWarning("FileTransferOrchestrator n'est pas initialisé, upload ignoré pour {hash}", data.DataHash.Value);
+            return data;
+        }
+
         CancelUpload();
 
         _uploadCancellationTokenSource = new CancellationTokenSource();

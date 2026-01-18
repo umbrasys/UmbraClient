@@ -179,9 +179,9 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
 
                 _mareHub = await _hubFactory.GetOrCreate(token).ConfigureAwait(false);
 
-                await _mareHub.StartAsync(token).ConfigureAwait(false);
-
                 InitializeApiHooks();
+
+                await _mareHub.StartAsync(token).ConfigureAwait(false);
 
                 _connectionDto = await GetConnectionDto().ConfigureAwait(false);
 
@@ -230,6 +230,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
 
                 await LoadInitialPairs().ConfigureAwait(false);
                 await LoadOnlinePairs().ConfigureAwait(false);
+                _pairManager.ApplyPendingCharacterData();
             }
             catch (OperationCanceledException)
             {
@@ -346,9 +347,9 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
     {
         while (!ct.IsCancellationRequested && _mareHub != null)
         {
+            await Task.Delay(TimeSpan.FromSeconds(30), ct).ConfigureAwait(false);
             Logger.LogDebug("Checking Client Health State");
             _ = await CheckClientHealth().ConfigureAwait(false);
-            await Task.Delay(TimeSpan.FromSeconds(15), ct).ConfigureAwait(false);
         }
     }
 
@@ -471,6 +472,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
             ServerState = ServerState.Connected;
             await LoadInitialPairs().ConfigureAwait(false);
             await LoadOnlinePairs().ConfigureAwait(false);
+            _pairManager.ApplyPendingCharacterData();
             Mediator.Publish(new ConnectedMessage(_connectionDto));
         }
         catch (Exception ex)
