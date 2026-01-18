@@ -171,6 +171,15 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
     {
         return new List<ChangelogEntry>
         {
+            new(new Version(2, 1, 1, 0), "2.1.1.0", new List<ChangelogLine>
+            {
+                new("Nouveau système de cache pour les données de personnages"),
+                new("Cache métrique pour éviter des recalculs inutiles lors de la synchronisation"),
+                new("Limite de traitement simultané des paires augmentée de 16 à 50"),
+                new("Correction d'un problème de pause user"),
+                new("Radius de detection SlotSync réduit à 20m maximum"),
+
+            }),
             new(new Version(2, 1, 0, 0), "2.1.0.0", new List<ChangelogLine>
             {
                 new("Nouvelle fonctionnalité : Ajout du support complet des profils RP (Roleplay) avec gestion d'images et descriptions séparées par personnage."),
