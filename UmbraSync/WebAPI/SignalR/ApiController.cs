@@ -318,6 +318,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
             else
             {
                 _pairManager.CancelPendingOffline(userData.UID);
+                // ApplyLastReceivedData gère maintenant la création du CachedPlayer si nécessaire
                 pair.ApplyLastReceivedData(forced: true);
             }
         }
