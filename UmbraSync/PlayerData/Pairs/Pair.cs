@@ -23,18 +23,21 @@ public class Pair : DisposableMediatorSubscriberBase
     private readonly ILogger<Pair> _logger;
     private readonly MareConfigService _mareConfig;
     private readonly ServerConfigurationManager _serverConfigurationManager;
+    private readonly PairStateCache _pairStateCache;
     private CancellationTokenSource _applicationCts = new();
     private OnlineUserIdentDto? _onlineUserIdentDto = null;
     private ushort? _worldId = null;
 
     public Pair(ILogger<Pair> logger, UserData userData, PairHandlerFactory cachedPlayerFactory,
-        MareMediator mediator, MareConfigService mareConfig, ServerConfigurationManager serverConfigurationManager)
+        MareMediator mediator, MareConfigService mareConfig, ServerConfigurationManager serverConfigurationManager,
+        PairStateCache pairStateCache)
         : base(logger, mediator)
     {
         _logger = logger;
         _cachedPlayerFactory = cachedPlayerFactory;
         _mareConfig = mareConfig;
         _serverConfigurationManager = serverConfigurationManager;
+        _pairStateCache = pairStateCache;
 
         UserData = userData;
 
@@ -185,6 +188,13 @@ public class Pair : DisposableMediatorSubscriberBase
         _applicationCts = _applicationCts.CancelRecreate();
         LastReceivedCharacterData = data.CharaData;
 
+        // Stocke les données dans le cache pour pouvoir les récupérer après un unpause
+        if (!string.IsNullOrEmpty(Ident) && data.CharaData != null)
+        {
+            _pairStateCache.Store(Ident, data.CharaData);
+            _logger.LogDebug("Stored character data in cache for {uid} (ident: {ident})", data.User.UID, Ident);
+        }
+
         if (CachedPlayer == null)
         {
             if (_logger.IsEnabled(LogLevel.Debug))
@@ -215,13 +225,53 @@ public class Pair : DisposableMediatorSubscriberBase
 
     public void ApplyLastReceivedData(bool forced = false)
     {
-        if (CachedPlayer == null) return;
-        if (LastReceivedCharacterData == null) return;
-        if (IsDownloadBlocked || IsPaused) return;
+        _logger.LogDebug("ApplyLastReceivedData called for {uid} (forced: {forced}, Ident: {ident}, HasCachedPlayer: {hasCP}, HasLastData: {hasData})",
+            UserData.UID, forced, Ident, CachedPlayer != null, LastReceivedCharacterData != null);
+
+        // Si CachedPlayer n'existe pas mais qu'on a un Ident valide, essayer de le créer
+        if (CachedPlayer == null && !string.IsNullOrEmpty(Ident))
+        {
+            _logger.LogDebug("CachedPlayer null but Ident available for {uid}, attempting to create", UserData.UID);
+            CreateCachedPlayer();
+        }
+
+        if (CachedPlayer == null)
+        {
+            _logger.LogDebug("ApplyLastReceivedData: CachedPlayer still null for {uid}, aborting", UserData.UID);
+            return;
+        }
+
+        // Si LastReceivedCharacterData est null, tente de récupérer du cache
+        if (LastReceivedCharacterData == null && !string.IsNullOrEmpty(Ident))
+        {
+            var cachedData = _pairStateCache.TryLoad(Ident);
+            if (cachedData != null)
+            {
+                _logger.LogDebug("Recovered character data from cache for {uid} (ident: {ident})", UserData.UID, Ident);
+                LastReceivedCharacterData = cachedData;
+            }
+            else
+            {
+                _logger.LogDebug("No cached data found for {uid} (ident: {ident})", UserData.UID, Ident);
+            }
+        }
+
+        if (LastReceivedCharacterData == null)
+        {
+            _logger.LogDebug("ApplyLastReceivedData: LastReceivedCharacterData is null for {uid}, aborting", UserData.UID);
+            return;
+        }
+
+        if (IsDownloadBlocked || IsPaused)
+        {
+            _logger.LogDebug("ApplyLastReceivedData: Blocked or paused for {uid} (DownloadBlocked: {db}, Paused: {p})", UserData.UID, IsDownloadBlocked, IsPaused);
+            return;
+        }
 
         if (_serverConfigurationManager.IsUidBlacklisted(UserData.UID))
             HoldApplication("Blacklist", maxValue: 1);
 
+        _logger.LogDebug("ApplyLastReceivedData: Applying character data for {uid}", UserData.UID);
         CachedPlayer.ApplyCharacterData(Guid.NewGuid(), RemoveNotSyncedFiles(LastReceivedCharacterData.DeepClone())!, forced);
     }
 
@@ -387,12 +437,7 @@ public class Pair : DisposableMediatorSubscriberBase
         if (!skipApplication && wasHeld && !IsApplicationBlocked)
             ApplyLastReceivedData(forced: true);
     }
-
-    /// <summary>
-    /// Filtre les fichiers non synchronisés selon TES propres permissions (unilatéral).
-    /// Si tu désactives les animations, tu ne vois pas ses animations.
-    /// Si l'autre désactive les animations, tu les vois quand même.
-    /// </summary>
+    
     private CharacterData? RemoveNotSyncedFiles(CharacterData? data)
     {
         _logger.LogTrace("Removing not synced files");

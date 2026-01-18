@@ -665,11 +665,9 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
 
             EnableSync();
 
-            if (_cachedData is not null)
-            {
-                Logger.LogDebug("Applying last received data for {name} ({user})", PlayerName, Pair.UserData.UID);
-                Pair.ApplyLastReceivedData(forced: true);
-            }
+            // Toujours appeler ApplyLastReceivedData - les données sont dans Pair.LastReceivedCharacterData ou le cache
+            Logger.LogDebug("Applying last received data for {name} ({user})", PlayerName, Pair.UserData.UID);
+            Pair.ApplyLastReceivedData(forced: true);
 
             Logger.LogInformation("Resume complete for {name} ({user})", PlayerName, Pair.UserData.UID);
         }
