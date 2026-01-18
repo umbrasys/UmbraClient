@@ -51,6 +51,15 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     private readonly object _pauseLock = new();
     private Task _pauseTransitionTask = Task.CompletedTask;
     private bool _pauseRequested = false;
+    private readonly object _visibilityGraceGate = new();
+    private CancellationTokenSource? _visibilityGraceCts;
+    private static readonly TimeSpan VisibilityEvictionGrace = TimeSpan.FromMinutes(1);
+    private DateTime? _invisibleSinceUtc;
+    private DateTime? _visibilityEvictionDueAtUtc;
+
+    public bool ScheduledForDeletion { get; private set; }
+    public DateTime? InvisibleSinceUtc => _invisibleSinceUtc;
+    public DateTime? VisibilityEvictionDueAtUtc => _visibilityEvictionDueAtUtc;
 
     public PairHandler(ILogger<PairHandler> logger, Pair pair, PairAnalyzer pairAnalyzer,
         GameObjectHandlerFactory gameObjectHandlerFactory,
@@ -86,20 +95,26 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             _charaHandler?.Invalidate();
             IsVisible = false;
         });
-        Mediator.Subscribe<CutsceneEndMessage>(this, (_) =>
+        Mediator.Subscribe<CutsceneStartMessage>(this, _ => DisableSync());
+        Mediator.Subscribe<CutsceneEndMessage>(this, _ =>
         {
             if (_deferred != Guid.Empty && _cachedData != null)
             {
                 ApplyCharacterData(_deferred, _cachedData, forceApplyCustomization: true);
             }
+            EnableSync();
         });
-        Mediator.Subscribe<GposeEndMessage>(this, (_) =>
+        Mediator.Subscribe<GposeStartMessage>(this, _ => DisableSync());
+        Mediator.Subscribe<GposeEndMessage>(this, _ =>
         {
             if (_deferred != Guid.Empty && _cachedData != null)
             {
                 ApplyCharacterData(_deferred, _cachedData, forceApplyCustomization: true);
             }
+            EnableSync();
         });
+        Mediator.Subscribe<InstanceOrDutyStartMessage>(this, _ => DisableSync());
+        Mediator.Subscribe<InstanceOrDutyEndMessage>(this, _ => EnableSync());
         Mediator.Subscribe<PenumbraInitializedMessage>(this, (_) =>
         {
             _penumbraCollection = Guid.Empty;
@@ -122,22 +137,13 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
                 _redrawOnNextApplication = true;
             }
         });
-        Mediator.Subscribe<CombatOrPerformanceEndMessage>(this, (msg) =>
-        {
-            if (IsVisible && _dataReceivedInDowntime != null)
-            {
-                ApplyCharacterData(_dataReceivedInDowntime.ApplicationId,
-                    _dataReceivedInDowntime.CharacterData, _dataReceivedInDowntime.Forced);
-                _dataReceivedInDowntime = null;
-            }
-        });
+        Mediator.Subscribe<CombatOrPerformanceEndMessage>(this, _ => EnableSync());
         Mediator.Subscribe<CombatOrPerformanceStartMessage>(this, _ =>
         {
             if (_configService.Current.HoldCombatApplication)
             {
                 _dataReceivedInDowntime = null;
-                _downloadCancellationTokenSource = _downloadCancellationTokenSource?.CancelRecreate();
-                _applicationCancellationTokenSource = _applicationCancellationTokenSource?.CancelRecreate();
+                DisableSync();
             }
         });
         Mediator.Subscribe<RecalculatePerformanceMessage>(this, (msg) =>
@@ -161,6 +167,15 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
                 string text = "User Visibility Changed, now: " + (_isVisible ? "Is Visible" : "Is not Visible");
                 Mediator.Publish(new EventMessage(new Event(PlayerName, Pair.UserData, nameof(PairHandler),
                     EventSeverity.Informational, text)));
+
+                if (_isVisible)
+                {
+                    CancelVisibilityGraceTask();
+                }
+                else
+                {
+                    StartVisibilityGraceTask();
+                }
             }
         }
     }
@@ -319,6 +334,12 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             _applicationCancellationTokenSource = null;
             _downloadCancellationTokenSource?.Dispose();
             _downloadCancellationTokenSource = null;
+            lock (_visibilityGraceGate)
+            {
+                _visibilityGraceCts?.Cancel();
+                _visibilityGraceCts?.Dispose();
+                _visibilityGraceCts = null;
+            }
             _charaHandler?.Dispose();
             _charaHandler = null;
         }
@@ -535,6 +556,75 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             });
         }
     }
+
+    private void StartVisibilityGraceTask()
+    {
+        CancellationToken token;
+        lock (_visibilityGraceGate)
+        {
+            _visibilityGraceCts = _visibilityGraceCts?.CancelRecreate() ?? new CancellationTokenSource();
+            token = _visibilityGraceCts.Token;
+            _invisibleSinceUtc = DateTime.UtcNow;
+            _visibilityEvictionDueAtUtc = _invisibleSinceUtc.Value + VisibilityEvictionGrace;
+        }
+
+        Logger.LogDebug("Starting visibility grace period for {name} ({user}), eviction due at {time}",
+            PlayerName, Pair.UserData.UID, _visibilityEvictionDueAtUtc);
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(VisibilityEvictionGrace, token).ConfigureAwait(false);
+                token.ThrowIfCancellationRequested();
+
+                if (IsVisible) return;
+
+                Logger.LogInformation("Visibility grace period expired for {name} ({user}), scheduling for deletion",
+                    PlayerName, Pair.UserData.UID);
+                ScheduledForDeletion = true;
+
+                // Clean up Penumbra collection when the grace period expires
+                if (_penumbraCollection != Guid.Empty)
+                {
+                    var applicationId = Guid.NewGuid();
+                    try
+                    {
+                        await _ipcManager.Penumbra.RemoveTemporaryCollectionAsync(Logger, applicationId, _penumbraCollection).ConfigureAwait(false);
+                        _penumbraCollection = Guid.Empty;
+                        Logger.LogDebug("[{applicationId}] Removed temporary collection after visibility grace timeout", applicationId);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogDebug(ex, "[{applicationId}] Failed to remove temporary collection after visibility grace timeout", applicationId);
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Grace period was cancelled (player became visible again)
+            }
+        }, CancellationToken.None);
+    }
+
+    private void CancelVisibilityGraceTask()
+    {
+        lock (_visibilityGraceGate)
+        {
+            if (_visibilityGraceCts != null)
+            {
+                Logger.LogDebug("Cancelling visibility grace period for {name} ({user})", PlayerName, Pair.UserData.UID);
+                _visibilityGraceCts.Cancel();
+                _visibilityGraceCts.Dispose();
+                _visibilityGraceCts = null;
+            }
+
+            _invisibleSinceUtc = null;
+            _visibilityEvictionDueAtUtc = null;
+            ScheduledForDeletion = false;
+        }
+    }
+
     private async Task PauseInternalAsync()
     {
         try
@@ -889,19 +979,29 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
 
         downloadToken.ThrowIfCancellationRequested();
 
-        var appToken = _applicationCancellationTokenSource?.Token;
-        while ((!_applicationTask?.IsCompleted ?? false)
-               && !downloadToken.IsCancellationRequested
-               && (!appToken?.IsCancellationRequested ?? false))
+        if (_applicationTask != null && !_applicationTask.IsCompleted)
         {
-            // block until current application is done
-            Logger.LogDebug("[BASE-{appBase}] Waiting for current data application (Id: {id}) for player ({handler}) to finish", applicationBase, _applicationId, PlayerName);
-            await Task.Delay(250).ConfigureAwait(false);
+            Logger.LogDebug("[BASE-{appBase}] Cancelling current data application (Id: {id}) for player ({handler})", applicationBase, _applicationId, PlayerName);
+            _applicationCancellationTokenSource = _applicationCancellationTokenSource?.CancelRecreate() ?? new CancellationTokenSource();
+
+            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(downloadToken, timeoutCts.Token);
+            try
+            {
+                await _applicationTask.WaitAsync(combinedCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                Logger.LogWarning("[BASE-{appBase}] Timeout waiting for application task {id} to complete, proceeding anyway", applicationBase, _applicationId);
+            }
+        }
+        else
+        {
+            _applicationCancellationTokenSource = _applicationCancellationTokenSource?.CancelRecreate() ?? new CancellationTokenSource();
         }
 
-        if (downloadToken.IsCancellationRequested || (appToken?.IsCancellationRequested ?? false)) return;
+        if (downloadToken.IsCancellationRequested) return;
 
-        _applicationCancellationTokenSource = _applicationCancellationTokenSource.CancelRecreate();
         var token = _applicationCancellationTokenSource.Token;
 
         _applicationTask = ApplyCharacterDataAsync(applicationBase, charaData, updatedData, updateModdedPaths, updateManip, moddedPaths, token);
@@ -925,6 +1025,10 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
 
             Logger.LogDebug("[{applicationId}] Waiting for initial draw for for {handler}", _applicationId, _charaHandler);
             await _dalamudUtil.WaitWhileCharacterIsDrawing(Logger, _charaHandler!, _applicationId, 30000, token).ConfigureAwait(false);
+            if (_charaHandler!.Address != nint.Zero)
+            {
+                await _dalamudUtil.WaitForFullyLoadedAsync(_charaHandler!, token).ConfigureAwait(false);
+            }
 
             token.ThrowIfCancellationRequested();
 
@@ -964,6 +1068,12 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
 
             Logger.LogDebug("[{applicationId}] Application finished", _applicationId);
             IsVisible = true;
+        }
+        catch (OperationCanceledException)
+        {
+            Logger.LogDebug("[{applicationId}] Application cancelled for {handler}", _applicationId, this);
+            _cachedData = charaData;
+            Mediator.Publish(new PairDataAppliedMessage(Pair.UserData.UID, charaData));
         }
         catch (Exception ex)
         {

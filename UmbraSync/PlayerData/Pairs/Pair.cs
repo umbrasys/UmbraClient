@@ -45,11 +45,11 @@ public class Pair : DisposableMediatorSubscriberBase
     public Dictionary<GroupFullInfoDto, GroupPairFullInfoDto> GroupPair { get; set; } = new(GroupDtoComparer.Instance);
     public bool HasCachedPlayer => CachedPlayer != null && !string.IsNullOrEmpty(CachedPlayer.PlayerName) && _onlineUserIdentDto != null;
     public bool IsOnline => CachedPlayer != null;
-
+    
     public bool IsPaused
     {
         get
-        {
+        { 
             if (_serverConfigurationManager.IsUidPaused(UserData.UID))
             {
                 if (_logger.IsEnabled(LogLevel.Trace))
@@ -57,20 +57,11 @@ public class Pair : DisposableMediatorSubscriberBase
                 return true;
             }
 
-            if (UserPair != null && UserPair.OtherPermissions.IsPaired())
+            if (UserPair != null && UserPair.OwnPermissions.IsPaused())
             {
-                if (UserPair.OtherPermissions.IsPaused())
-                {
-                    if (_logger.IsEnabled(LogLevel.Trace))
-                        _logger.LogTrace("IsPaused: true (Individual OtherPaused) for {uid}", UserData.UID);
-                    return true;
-                }
-                if (UserPair.OwnPermissions.IsPaused())
-                {
-                    if (_logger.IsEnabled(LogLevel.Trace))
-                        _logger.LogTrace("IsPaused: true (Individual OwnPaused) for {uid}", UserData.UID);
-                    return true;
-                }
+                if (_logger.IsEnabled(LogLevel.Trace))
+                    _logger.LogTrace("IsPaused: true (Individual OwnPaused) for {uid}", UserData.UID);
+                return true;
             }
 
             if (GroupPair.Count > 0)
@@ -81,12 +72,6 @@ public class Pair : DisposableMediatorSubscriberBase
                     {
                         if (_logger.IsEnabled(LogLevel.Trace))
                             _logger.LogTrace("IsPaused: true (Group {gid} OwnPaused) for {uid}", p.Key.Group.GID, UserData.UID);
-                        return true;
-                    }
-                    if (p.Value.GroupUserPermissions.IsPaused())
-                    {
-                        if (_logger.IsEnabled(LogLevel.Trace))
-                            _logger.LogTrace("IsPaused: true (Group {gid} OtherPaused) for {uid}", p.Key.Group.GID, UserData.UID);
                         return true;
                     }
                     if (p.Key.GroupPermissions.IsPaused())
@@ -137,7 +122,7 @@ public class Pair : DisposableMediatorSubscriberBase
         {
             args.AddMenuItem(new MenuItem()
             {
-                Name = name + " [Umbra U]",
+                Name = name,
                 OnClicked = action,
                 PrefixColor = 708,
                 PrefixChar = 'U',
@@ -153,19 +138,19 @@ public class Pair : DisposableMediatorSubscriberBase
         bool isBlacklisted = _serverConfigurationManager.IsUidBlacklisted(UserData.UID);
         bool isWhitelisted = _serverConfigurationManager.IsUidWhitelisted(UserData.UID);
 
-        Add("Open Profile", _ => Mediator.Publish(new ProfileOpenStandaloneMessage(this)));
+        Add("Ouvrir le profil", _ => Mediator.Publish(new ProfileOpenStandaloneMessage(this)));
 
-        Add(IsPaused ? "Resume syncing" : "Pause immediately", _ => Mediator.Publish(new PauseMessage(UserData)));
+        Add(IsPaused ? "Reprendre la synchronisation" : "Mettre en pause", _ => Mediator.Publish(new PauseMessage(UserData)));
 
         if (!isBlocked && !isBlacklisted)
-            Add("Always Block Modded Appearance", _ =>
+            Add("Toujours bloquer les apparences moddées.", _ =>
             {
                 _serverConfigurationManager.AddBlacklistUid(UserData.UID);
                 HoldApplication("Blacklist", maxValue: 1);
                 ApplyLastReceivedData(forced: true);
             });
         else if (isBlocked && !isWhitelisted)
-            Add("Always Allow Modded Appearance", _ =>
+            Add("Toujours autoriser les apparences moddées", _ =>
             {
                 _serverConfigurationManager.AddWhitelistUid(UserData.UID);
                 UnholdApplication("Blacklist", skipApplication: true);
@@ -173,24 +158,24 @@ public class Pair : DisposableMediatorSubscriberBase
             });
 
         if (isWhitelisted)
-            Add("Remove from Whitelist", _ =>
+            Add("Retirer de la liste blanche", _ =>
             {
                 _serverConfigurationManager.RemoveWhitelistUid(UserData.UID);
                 ApplyLastReceivedData(forced: true);
             });
         else if (isBlacklisted)
-            Add("Remove from Blacklist", _ =>
+            Add("Retirer de la liste noire", _ =>
             {
                 _serverConfigurationManager.RemoveBlacklistUid(UserData.UID);
                 UnholdApplication("Blacklist", skipApplication: true);
                 ApplyLastReceivedData(forced: true);
             });
 
-        Add("Reapply last data", _ => ApplyLastReceivedData(forced: true));
+        Add("Réappliquer les dernières données", _ => ApplyLastReceivedData(forced: true));
 
         if (UserPair != null)
         {
-            Add("Change Permissions", _ => Mediator.Publish(new OpenPermissionWindow(this)));
+            Add("Changer les permissions", _ => Mediator.Publish(new OpenPermissionWindow(this)));
         }
     }
 
@@ -403,6 +388,11 @@ public class Pair : DisposableMediatorSubscriberBase
             ApplyLastReceivedData(forced: true);
     }
 
+    /// <summary>
+    /// Filtre les fichiers non synchronisés selon TES propres permissions (unilatéral).
+    /// Si tu désactives les animations, tu ne vois pas ses animations.
+    /// Si l'autre désactive les animations, tu les vois quand même.
+    /// </summary>
     private CharacterData? RemoveNotSyncedFiles(CharacterData? data)
     {
         _logger.LogTrace("Removing not synced files");
@@ -412,18 +402,14 @@ public class Pair : DisposableMediatorSubscriberBase
             return data;
         }
 
-        var ActiveGroupPairs = GroupPair.Where(p => !p.Value.GroupUserPermissions.IsPaused() && !p.Key.GroupUserPermissions.IsPaused()).ToList();
-
-        bool disableIndividualAnimations = UserPair != null && (UserPair.OtherPermissions.IsDisableAnimations() || UserPair.OwnPermissions.IsDisableAnimations());
-        bool disableIndividualVFX = UserPair != null && (UserPair.OtherPermissions.IsDisableVFX() || UserPair.OwnPermissions.IsDisableVFX());
-        bool disableGroupAnimations = ActiveGroupPairs.Any() && ActiveGroupPairs.All(pair => pair.Value.GroupUserPermissions.IsDisableAnimations() || pair.Key.GroupPermissions.IsDisableAnimations() || pair.Key.GroupUserPermissions.IsDisableAnimations());
-
+        var ActiveGroupPairs = GroupPair.Where(p => !p.Key.GroupUserPermissions.IsPaused()).ToList();
+        bool disableIndividualAnimations = UserPair != null && UserPair.OwnPermissions.IsDisableAnimations();
+        bool disableIndividualVFX = UserPair != null && UserPair.OwnPermissions.IsDisableVFX();
+        bool disableIndividualSounds = UserPair != null && UserPair.OwnPermissions.IsDisableSounds();
+        bool disableGroupAnimations = ActiveGroupPairs.Any() && ActiveGroupPairs.All(pair => pair.Key.GroupPermissions.IsDisableAnimations() || pair.Key.GroupUserPermissions.IsDisableAnimations());
+        bool disableGroupSounds = ActiveGroupPairs.Any() && ActiveGroupPairs.All(pair => pair.Key.GroupPermissions.IsDisableSounds() || pair.Key.GroupUserPermissions.IsDisableSounds());
+        bool disableGroupVFX = ActiveGroupPairs.Any() && ActiveGroupPairs.All(pair => pair.Key.GroupPermissions.IsDisableVFX() || pair.Key.GroupUserPermissions.IsDisableVFX());
         bool disableAnimations = (UserPair != null && disableIndividualAnimations) || (UserPair == null && disableGroupAnimations);
-
-        bool disableIndividualSounds = UserPair != null && (UserPair.OtherPermissions.IsDisableSounds() || UserPair.OwnPermissions.IsDisableSounds());
-        bool disableGroupSounds = ActiveGroupPairs.Any() && ActiveGroupPairs.All(pair => pair.Value.GroupUserPermissions.IsDisableSounds() || pair.Key.GroupPermissions.IsDisableSounds() || pair.Key.GroupUserPermissions.IsDisableSounds());
-        bool disableGroupVFX = ActiveGroupPairs.Any() && ActiveGroupPairs.All(pair => pair.Value.GroupUserPermissions.IsDisableVFX() || pair.Key.GroupPermissions.IsDisableVFX() || pair.Key.GroupUserPermissions.IsDisableVFX());
-
         bool disableSounds = (UserPair != null && disableIndividualSounds) || (UserPair == null && disableGroupSounds);
         bool disableVFX = (UserPair != null && disableIndividualVFX) || (UserPair == null && disableGroupVFX);
 

@@ -34,6 +34,7 @@ public sealed class TypingIndicatorStateService : IMediatorSubscriber, IDisposab
 
     public void SetSelfTypingLocal(bool isTyping)
     {
+        var wasTyping = _selfTypingActive;
         if (isTyping)
         {
             if (!_selfTypingActive)
@@ -46,6 +47,10 @@ public sealed class TypingIndicatorStateService : IMediatorSubscriber, IDisposab
         }
 
         _selfTypingActive = isTyping;
+        if (wasTyping != _selfTypingActive)
+        {
+            _logger.LogDebug("Typing state self -> {state}", _selfTypingActive);
+        }
     }
 
     private void OnTypingState(UserTypingStateMessage msg)
@@ -55,6 +60,7 @@ public sealed class TypingIndicatorStateService : IMediatorSubscriber, IDisposab
 
         if (string.Equals(uid, _apiController.UID, StringComparison.Ordinal))
         {
+            var wasTyping = _selfTypingActive;
             _selfTypingActive = msg.Typing.IsTyping;
             if (_selfTypingActive)
             {
@@ -66,7 +72,8 @@ public sealed class TypingIndicatorStateService : IMediatorSubscriber, IDisposab
             {
                 _selfTypingStart = DateTime.MinValue;
             }
-            _logger.LogInformation("Typing state self -> {state}", _selfTypingActive);
+            if (wasTyping != _selfTypingActive)
+                _logger.LogDebug("Typing state self -> {state}", _selfTypingActive);
         }
         else if (msg.Typing.IsTyping)
         {
