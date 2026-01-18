@@ -117,6 +117,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton<SyncDefaultsService>();
             collection.AddSingleton<UidDisplayHandler>();
             collection.AddSingleton<PluginWatcherService>();
+            collection.AddSingleton<PairPerformanceMetricsCache>();
             collection.AddSingleton<PlayerPerformanceService>();
 
             collection.AddSingleton<CharaDataManager>();
@@ -134,6 +135,8 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton<DalamudUtilService>();
             collection.AddSingleton<DtrEntry>();
             collection.AddSingleton<PairManager>();
+            collection.AddSingleton<PairStateCache>();
+            collection.AddSingleton<PairLedger>();
             collection.AddSingleton<RedrawManager>();
             collection.AddSingleton<IpcCallerPenumbra>();
             collection.AddSingleton<IpcCallerGlamourer>();

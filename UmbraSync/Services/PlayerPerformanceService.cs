@@ -26,11 +26,13 @@ public class PlayerPerformanceService : DisposableMediatorSubscriberBase
     private readonly ServerConfigurationManager _serverConfigurationManager;
     private readonly PlayerPerformanceConfigService _playerPerformanceConfigService;
     private readonly NotificationTracker _notificationTracker;
+    private readonly PairPerformanceMetricsCache _metricsCache;
 
     public PlayerPerformanceService(ILogger<PlayerPerformanceService> logger, MareMediator mediator,
         ServerConfigurationManager serverConfigurationManager,
         PlayerPerformanceConfigService playerPerformanceConfigService, FileCacheManager fileCacheManager,
-        XivDataAnalyzer xivDataAnalyzer, NotificationTracker notificationTracker)
+        XivDataAnalyzer xivDataAnalyzer, NotificationTracker notificationTracker,
+        PairPerformanceMetricsCache metricsCache)
         : base(logger, mediator)
     {
         _logger = logger;
@@ -40,16 +42,47 @@ public class PlayerPerformanceService : DisposableMediatorSubscriberBase
         _fileCacheManager = fileCacheManager;
         _xivDataAnalyzer = xivDataAnalyzer;
         _notificationTracker = notificationTracker;
+        _metricsCache = metricsCache;
     }
 
     public async Task<bool> CheckBothThresholds(PairHandler pairHandler, CharacterData charaData)
     {
+        var pair = pairHandler.Pair;
+        var ident = pair.Ident;
+        var dataHash = charaData.DataHash.Value;
+
+        // Tente de récupérer les métriques du cache
+        if (!string.IsNullOrEmpty(ident) && !string.IsNullOrEmpty(dataHash) &&
+            _metricsCache.TryGetMetrics(ident, dataHash, out var cachedMetrics))
+        {
+            _logger.LogDebug("Métriques récupérées du cache pour {ident} (hash: {hash})", ident, dataHash);
+            pair.LastAppliedApproximateVRAMBytes = cachedMetrics.ApproximateVramBytes;
+            pair.LastAppliedDataTris = cachedMetrics.TriangleCount;
+            return true;
+        }
+
         bool notPausedAfterVram = ComputeAndAutoPauseOnVRAMUsageThresholds(pairHandler, charaData, []);
         if (!notPausedAfterVram) return false;
         bool notPausedAfterTris = await CheckTriangleUsageThresholds(pairHandler, charaData).ConfigureAwait(false);
         if (!notPausedAfterTris) return false;
 
+        // Stocke les métriques dans le cache
+        if (!string.IsNullOrEmpty(ident) && !string.IsNullOrEmpty(dataHash))
+        {
+            var metrics = new PairPerformanceMetrics(pair.LastAppliedDataTris, pair.LastAppliedApproximateVRAMBytes);
+            _metricsCache.StoreMetrics(ident, dataHash, metrics);
+            _logger.LogDebug("Métriques stockées dans le cache pour {ident} (hash: {hash})", ident, dataHash);
+        }
+
         return true;
+    }
+
+
+    // Tente de récupérer les métriques depuis le cache sans recalculer.
+    // Utile pour le PairLedger quand il vérifie les paires visibles.
+    public bool TryGetCachedMetrics(string ident, string dataHash, out PairPerformanceMetrics metrics)
+    {
+        return _metricsCache.TryGetMetrics(ident, dataHash, out metrics);
     }
 
     public async Task<bool> CheckTriangleUsageThresholds(PairHandler pairHandler, CharacterData charaData)

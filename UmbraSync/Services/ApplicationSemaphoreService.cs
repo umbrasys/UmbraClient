@@ -11,7 +11,7 @@ public readonly record struct ApplicationSemaphoreSnapshot(bool IsEnabled, int L
 
 public sealed class ApplicationSemaphoreService : DisposableMediatorSubscriberBase
 {
-    private const int HardLimit = 32;
+    private const int HardLimit = 50;
     private readonly MareConfigService _configService;
     private readonly SemaphoreSlim _semaphore;
     private readonly object _limitLock = new();

@@ -54,8 +54,6 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         _dalamudUtilService = dalamudUtilService;
         _apiController = new Lazy<ApiController>(() => serviceProvider.GetRequiredService<ApiController>());
         Mediator.Subscribe<DisconnectedMessage>(this, (_) => ClearPairs());
-        Mediator.Subscribe<CutsceneEndMessage>(this, (_) => ReapplyPairData());
-        Mediator.Subscribe<ConnectedMessage>(this, (_) => ReapplyPairData());
         _directPairsInternal = DirectPairsLazy();
         _groupPairsInternal = GroupPairsLazy();
 
@@ -841,14 +839,6 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
             }
             return outDict;
         });
-    }
-
-    private void ReapplyPairData()
-    {
-        foreach (var pair in _allClientPairs.Select(k => k.Value))
-        {
-            pair.ApplyLastReceivedData(forced: true);
-        }
     }
 
     private void RecreateLazy()
