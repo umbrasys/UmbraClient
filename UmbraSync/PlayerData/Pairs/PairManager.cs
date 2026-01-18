@@ -718,7 +718,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         }
 
         var entries = _nearbyDiscoveryService.SnapshotEntries();
-        var clickedPlayerName = clickedPlayer.Name;
+        var clickedPlayerName = clickedPlayer.Name.ToString();
 
         static bool NamesEqual(string left, string right)
         {

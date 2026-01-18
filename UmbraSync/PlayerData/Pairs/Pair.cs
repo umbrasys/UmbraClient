@@ -137,7 +137,7 @@ public class Pair : DisposableMediatorSubscriberBase
         {
             args.AddMenuItem(new MenuItem()
             {
-                Name = name + " [Umbra U]",
+                Name = name,
                 OnClicked = action,
                 PrefixColor = 708,
                 PrefixChar = 'U',
@@ -153,19 +153,19 @@ public class Pair : DisposableMediatorSubscriberBase
         bool isBlacklisted = _serverConfigurationManager.IsUidBlacklisted(UserData.UID);
         bool isWhitelisted = _serverConfigurationManager.IsUidWhitelisted(UserData.UID);
 
-        Add("Open Profile", _ => Mediator.Publish(new ProfileOpenStandaloneMessage(this)));
+        Add("Ouvrir le profil", _ => Mediator.Publish(new ProfileOpenStandaloneMessage(this)));
 
-        Add(IsPaused ? "Resume syncing" : "Pause immediately", _ => Mediator.Publish(new PauseMessage(UserData)));
+        Add(IsPaused ? "Reprendre la synchronisation" : "Mettre en pause", _ => Mediator.Publish(new PauseMessage(UserData)));
 
         if (!isBlocked && !isBlacklisted)
-            Add("Always Block Modded Appearance", _ =>
+            Add("Toujours bloquer les apparences moddées.", _ =>
             {
                 _serverConfigurationManager.AddBlacklistUid(UserData.UID);
                 HoldApplication("Blacklist", maxValue: 1);
                 ApplyLastReceivedData(forced: true);
             });
         else if (isBlocked && !isWhitelisted)
-            Add("Always Allow Modded Appearance", _ =>
+            Add("Toujours autoriser les apparences moddées", _ =>
             {
                 _serverConfigurationManager.AddWhitelistUid(UserData.UID);
                 UnholdApplication("Blacklist", skipApplication: true);
@@ -173,24 +173,24 @@ public class Pair : DisposableMediatorSubscriberBase
             });
 
         if (isWhitelisted)
-            Add("Remove from Whitelist", _ =>
+            Add("Retirer de la liste blanche", _ =>
             {
                 _serverConfigurationManager.RemoveWhitelistUid(UserData.UID);
                 ApplyLastReceivedData(forced: true);
             });
         else if (isBlacklisted)
-            Add("Remove from Blacklist", _ =>
+            Add("Retirer de la liste noire", _ =>
             {
                 _serverConfigurationManager.RemoveBlacklistUid(UserData.UID);
                 UnholdApplication("Blacklist", skipApplication: true);
                 ApplyLastReceivedData(forced: true);
             });
 
-        Add("Reapply last data", _ => ApplyLastReceivedData(forced: true));
+        Add("Réappliquer les dernières données", _ => ApplyLastReceivedData(forced: true));
 
         if (UserPair != null)
         {
-            Add("Change Permissions", _ => Mediator.Publish(new OpenPermissionWindow(this)));
+            Add("Changer les permissions", _ => Mediator.Publish(new OpenPermissionWindow(this)));
         }
     }
 

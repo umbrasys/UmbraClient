@@ -289,7 +289,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
             if ((byte)objectInfo.Value->GameObject->ObjectKind != 1)
                 continue;
 
-            if (objectInfo.Value->GameObject->YalmDistanceFromPlayerX > 20f)
+            if (objectInfo.Value->GameObject->YalmDistanceFromPlayerX > 10f)
                 return false;
 
             namePlate = &addonNamePlate->NamePlateObjectArray[objectInfo.Value->NamePlateIndex];
@@ -571,7 +571,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
             return false;
 
         var distance = Vector3.Distance(_objectTable.LocalPlayer.Position, position);
-        return distance <= 20f;
+        return distance <= 10f;
     }
 
     private static unsafe uint GetEntityId(nint address)
