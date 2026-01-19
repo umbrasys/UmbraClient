@@ -89,7 +89,7 @@ public class DrawGroupPair : DrawPairBase
         var spacing = ImGui.GetStyle().ItemSpacing.X;
 
         bool individuallyPaired = _pair.UserPair != null;
-        bool showPrefix = _pair.IsPaused || (individuallyPaired && (_pair.IsOnline || _pair.IsVisible));
+        bool showPrefix = _pair.IsEffectivelyPaused || (individuallyPaired && (_pair.IsOnline || _pair.IsVisible));
         bool showRole = _fullInfoDto.GroupPairStatusInfo.IsModerator()
             || string.Equals(_pair.UserData.UID, _group.OwnerUID, StringComparison.Ordinal)
             || _fullInfoDto.GroupPairStatusInfo.IsPinned();
@@ -97,7 +97,7 @@ public class DrawGroupPair : DrawPairBase
         float prefixWidth = 0f;
         if (showPrefix)
         {
-            var prefixIcon = _pair.IsPaused ? FontAwesomeIcon.PauseCircle : FontAwesomeIcon.Moon;
+            var prefixIcon = _pair.IsEffectivelyPaused ? FontAwesomeIcon.PauseCircle : FontAwesomeIcon.Moon;
             prefixWidth = UiSharedService.GetIconSize(prefixIcon).X;
         }
 
@@ -143,7 +143,7 @@ public class DrawGroupPair : DrawPairBase
         ImGui.SetCursorPosY(textPosY);
         bool drewPrefixIcon = false;
 
-        if (_pair.IsPaused)
+        if (_pair.IsEffectivelyPaused)
         {
             presenceText = string.Format(CultureInfo.CurrentCulture, Loc.Get("GroupPair.Unknown"), entryUID);
 
@@ -265,7 +265,7 @@ public class DrawGroupPair : DrawPairBase
         );
         float plusW = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Plus).X;
         float combinedW = MathF.Max(plusW, infoMaxW); // Même colonne pour Plus OU Info
-        var pauseIcon = _pair.IsPaused ? FontAwesomeIcon.Play : FontAwesomeIcon.Pause;
+        var pauseIcon = _pair.IsEffectivelyPaused ? FontAwesomeIcon.Play : FontAwesomeIcon.Pause;
         float pauseMaxW = MathF.Max(
             _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Pause).X,
             _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Play).X
@@ -420,7 +420,7 @@ public class DrawGroupPair : DrawPairBase
                 {
                     _apiController.Pause(_pair.UserData);
                 }
-                UiSharedService.AttachToolTip(AppendSeenInfo((_pair.IsPaused ? "Resume" : "Pause") + " syncing with " + entryUID));
+                UiSharedService.AttachToolTip(AppendSeenInfo((_pair.IsEffectivelyPaused ? "Resume" : "Pause") + " syncing with " + entryUID));
             }
         }
         currentX += pauseMaxW + spacing;
@@ -498,7 +498,7 @@ public class DrawGroupPair : DrawPairBase
                 _mediator.Publish(new TargetPairMessage(_pair));
                 ImGui.CloseCurrentPopup();
             }
-            if (!_pair.IsPaused && _uiSharedService.IconTextButton(FontAwesomeIcon.User, "Open Profile"))
+            if (!_pair.IsEffectivelyPaused && _uiSharedService.IconTextButton(FontAwesomeIcon.User, "Open Profile"))
             {
                 _displayHandler.OpenProfile(_pair);
                 ImGui.CloseCurrentPopup();

@@ -195,7 +195,7 @@
     <value>Pairs simultanés max</value>
   </data>
   <data name="Settings.Transfer.PairProcessing.MaxConcurrent.Help" xml:space="preserve">
-    <value>Nombre maximum de pairs pouvant être traités en même temps. Des valeurs plus élevées sont plus rapides mais utilisent plus de ressources. Recommandé : 4 (défaut : 4, max : 16)</value>
+    <value>Nombre maximum de pairs pouvant être traités en même temps. Des valeurs plus élevées sont plus rapides mais utilisent plus de ressources. Recommandé : 10 (défaut : 10, max : 50)</value>
   </data>
 
   <!-- Vanity / Custom ID in Edit Profile (FR) -->
