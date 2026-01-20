@@ -89,6 +89,8 @@ public class Pair : DisposableMediatorSubscriberBase
             return false;
         }
     }
+    
+    public bool IsEffectivelyPaused => IsPaused || IsApplicationBlocked;
 
     // Download locks apply earlier in the process than Application locks
     private ConcurrentDictionary<string, int> HoldDownloadLocks { get; set; } = new(StringComparer.Ordinal);
@@ -119,7 +121,8 @@ public class Pair : DisposableMediatorSubscriberBase
 
     public void AddContextMenu(IMenuOpenedArgs args)
     {
-        if (CachedPlayer == null || (args.Target is not MenuTargetDefault target) || target.TargetObjectId != CachedPlayer.PlayerCharacterId || IsPaused) return;
+        // Ne pas vérifier IsPaused ici - afficher le menu même si pausé pour permettre le unpause
+        if (CachedPlayer == null || (args.Target is not MenuTargetDefault target) || target.TargetObjectId != CachedPlayer.PlayerCharacterId) return;
 
         void Add(string name, Action<IMenuItemClickedArgs>? action)
         {
@@ -137,44 +140,48 @@ public class Pair : DisposableMediatorSubscriberBase
             });
         }
 
-        bool isBlocked = IsApplicationBlocked;
-        bool isBlacklisted = _serverConfigurationManager.IsUidBlacklisted(UserData.UID);
-        bool isWhitelisted = _serverConfigurationManager.IsUidWhitelisted(UserData.UID);
+        // Options disponibles uniquement si pas en pause
+        if (!IsPaused)
+        {
+            Add("Ouvrir le profil", _ => Mediator.Publish(new ProfileOpenStandaloneMessage(this)));
+            Add("Réappliquer les dernières données", _ => ApplyLastReceivedData(forced: true));
 
-        Add("Ouvrir le profil", _ => Mediator.Publish(new ProfileOpenStandaloneMessage(this)));
+            bool isBlocked = IsApplicationBlocked;
+            bool isBlacklisted = _serverConfigurationManager.IsUidBlacklisted(UserData.UID);
+            bool isWhitelisted = _serverConfigurationManager.IsUidWhitelisted(UserData.UID);
 
+            if (!isBlocked && !isBlacklisted)
+                Add("Toujours bloquer les apparences moddées.", _ =>
+                {
+                    _serverConfigurationManager.AddBlacklistUid(UserData.UID);
+                    HoldApplication("Blacklist", maxValue: 1);
+                    ApplyLastReceivedData(forced: true);
+                });
+            else if (isBlocked && !isWhitelisted)
+                Add("Toujours autoriser les apparences moddées", _ =>
+                {
+                    _serverConfigurationManager.AddWhitelistUid(UserData.UID);
+                    UnholdApplication("Blacklist", skipApplication: true);
+                    ApplyLastReceivedData(forced: true);
+                });
+
+            if (isWhitelisted)
+                Add("Retirer de la liste blanche", _ =>
+                {
+                    _serverConfigurationManager.RemoveWhitelistUid(UserData.UID);
+                    ApplyLastReceivedData(forced: true);
+                });
+            else if (isBlacklisted)
+                Add("Retirer de la liste noire", _ =>
+                {
+                    _serverConfigurationManager.RemoveBlacklistUid(UserData.UID);
+                    UnholdApplication("Blacklist", skipApplication: true);
+                    ApplyLastReceivedData(forced: true);
+                });
+        }
+
+        // Options toujours disponibles
         Add(IsPaused ? "Reprendre la synchronisation" : "Mettre en pause", _ => Mediator.Publish(new PauseMessage(UserData)));
-
-        if (!isBlocked && !isBlacklisted)
-            Add("Toujours bloquer les apparences moddées.", _ =>
-            {
-                _serverConfigurationManager.AddBlacklistUid(UserData.UID);
-                HoldApplication("Blacklist", maxValue: 1);
-                ApplyLastReceivedData(forced: true);
-            });
-        else if (isBlocked && !isWhitelisted)
-            Add("Toujours autoriser les apparences moddées", _ =>
-            {
-                _serverConfigurationManager.AddWhitelistUid(UserData.UID);
-                UnholdApplication("Blacklist", skipApplication: true);
-                ApplyLastReceivedData(forced: true);
-            });
-
-        if (isWhitelisted)
-            Add("Retirer de la liste blanche", _ =>
-            {
-                _serverConfigurationManager.RemoveWhitelistUid(UserData.UID);
-                ApplyLastReceivedData(forced: true);
-            });
-        else if (isBlacklisted)
-            Add("Retirer de la liste noire", _ =>
-            {
-                _serverConfigurationManager.RemoveBlacklistUid(UserData.UID);
-                UnholdApplication("Blacklist", skipApplication: true);
-                ApplyLastReceivedData(forced: true);
-            });
-
-        Add("Réappliquer les dernières données", _ => ApplyLastReceivedData(forced: true));
 
         if (UserPair != null)
         {
@@ -187,6 +194,9 @@ public class Pair : DisposableMediatorSubscriberBase
     {
         _applicationCts = _applicationCts.CancelRecreate();
         LastReceivedCharacterData = data.CharaData;
+
+        // Notifier le handler que des données ont été reçues (pour diagnostic)
+        CachedPlayer?.OnDataReceived();
 
         // Stocke les données dans le cache pour pouvoir les récupérer après un unpause
         if (!string.IsNullOrEmpty(Ident) && data.CharaData != null)

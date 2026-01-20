@@ -57,7 +57,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         Mediator.Subscribe<HubClosedMessage>(this, (msg) => MareHubOnClosed(msg.Exception));
         Mediator.Subscribe<HubReconnectedMessage>(this, (msg) => _ = MareHubOnReconnected());
         Mediator.Subscribe<HubReconnectingMessage>(this, (msg) => MareHubOnReconnecting(msg.Exception));
-        Mediator.Subscribe<CyclePauseMessage>(this, (msg) => Pause(msg.UserData));
+        Mediator.Subscribe<CyclePauseMessage>(this, (msg) => _ = CyclePauseAsync(msg.UserData));
         Mediator.Subscribe<CensusUpdateMessage>(this, (msg) => _lastCensus = msg);
         Mediator.Subscribe<PauseMessage>(this, (msg) => Pause(msg.UserData));
 
@@ -277,13 +277,14 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
             return;
         }
 
-        bool isCurrentlyPaused = pair.IsPaused;
+        // Utiliser IsEffectivelyPaused pour inclure les blocages automatiques (seuil de performance)
+        bool isCurrentlyPaused = pair.IsEffectivelyPaused;
         bool shouldPause = !isCurrentlyPaused;
 
         Logger.LogInformation("Toggling pause for {uid}: {isCurrentlyPaused} -> {shouldPause}", userData.UID, isCurrentlyPaused, shouldPause);
         if (shouldPause) _serverManager.AddPausedUid(userData.UID);
         else _serverManager.RemovePausedUid(userData.UID);
-        
+
         if (pair.UserPair != null)
         {
             var perm = pair.UserPair.OwnPermissions;
@@ -304,10 +305,25 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
                 _ = GroupChangeIndividualPermissionState(new GroupPairUserPermissionDto(groupEntry.Key.Group, userData, groupPerm));
             }
         }
+
+        // Si dépause, retirer aussi le verrou de performance automatique
+        if (!shouldPause)
+        {
+            pair.UnholdApplication("IndividualPerformanceThreshold");
+        }
+
         if (pair.Handler != null)
         {
             Logger.LogDebug("Using SetPaused mechanism for {uid}", userData.UID);
             pair.Handler.SetPaused(shouldPause);
+
+            // Après unpause, annuler le timer offline et réappliquer les données reçues
+            if (!shouldPause)
+            {
+                _pairManager.CancelPendingOffline(userData.UID);
+                Logger.LogDebug("Reapplying data after unpause for {uid}", userData.UID);
+                pair.ApplyLastReceivedData(forced: true);
+            }
         }
         else
         {
@@ -323,6 +339,83 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
                 pair.ApplyLastReceivedData(forced: true);
             }
         }
+    }
+
+    //Effectue un cycle pause/unpause avec confirmation du serveur.
+    // Pause le joueur, attend la confirmation (max 5s), puis unpause automatiquement.
+    public Task CyclePauseAsync(UserData userData)
+    {
+        var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        _ = Task.Run(async () =>
+        {
+            var token = timeoutCts.Token;
+            try
+            {
+                var pair = _pairManager.GetPairByUID(userData.UID);
+                if (pair?.UserPair == null)
+                {
+                    Logger.LogWarning("CyclePauseAsync: pair {uid} not found or has no UserPair", userData.UID);
+                    return;
+                }
+
+                // Pause
+                var targetPermissions = pair.UserPair.OwnPermissions;
+                targetPermissions.SetPaused(paused: true);
+                pair.UserPair.OwnPermissions = targetPermissions;
+
+                Logger.LogDebug("CyclePauseAsync: Sending pause for {uid}", userData.UID);
+                await UserSetPairPermissions(new UserPermissionsDto(userData, targetPermissions)).ConfigureAwait(false);
+
+                // Attendre confirmation du serveur (polling 250ms, timeout 5s)
+                var pauseApplied = false;
+                while (!token.IsCancellationRequested)
+                {
+                    var updatedPair = _pairManager.GetPairByUID(userData.UID);
+                    if (updatedPair?.UserPair != null && updatedPair.UserPair.OwnPermissions.IsPaused())
+                    {
+                        pauseApplied = true;
+                        pair = updatedPair;
+                        break;
+                    }
+
+                    await Task.Delay(250, token).ConfigureAwait(false);
+                    Logger.LogTrace("CyclePauseAsync: Waiting for pause confirmation for {uid}", userData.UID);
+                }
+
+                if (!pauseApplied)
+                {
+                    Logger.LogWarning("CyclePauseAsync: Timed out waiting for pause acknowledgement for {uid}", userData.UID);
+                    return;
+                }
+
+                //  Unpause
+                targetPermissions = pair.UserPair!.OwnPermissions;
+                targetPermissions.SetPaused(paused: false);
+                pair.UserPair.OwnPermissions = targetPermissions;
+
+                Logger.LogDebug("CyclePauseAsync: Sending unpause for {uid}", userData.UID);
+                await UserSetPairPermissions(new UserPermissionsDto(userData, targetPermissions)).ConfigureAwait(false);
+
+                // Réappliquer les données
+                pair.ApplyLastReceivedData(forced: true);
+
+                Logger.LogInformation("CyclePauseAsync: Completed pause cycle for {uid}", userData.UID);
+            }
+            catch (OperationCanceledException)
+            {
+                Logger.LogDebug("CyclePauseAsync: Cancelled for {uid}", userData.UID);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "CyclePauseAsync: Failed for {uid}", userData.UID);
+            }
+            finally
+            {
+                timeoutCts.Dispose();
+            }
+        }, CancellationToken.None);
+
+        return Task.CompletedTask;
     }
 
     public Task<ConnectionDto> GetConnectionDto() => GetConnectionDtoInternal(true);
