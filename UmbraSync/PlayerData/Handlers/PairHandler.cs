@@ -57,9 +57,23 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     private DateTime? _invisibleSinceUtc;
     private DateTime? _visibilityEvictionDueAtUtc;
 
+    // Traçabilité diagnostique
+    private DateTime? _lastDataReceivedAt;
+    private DateTime? _lastApplyAttemptAt;
+    private DateTime? _lastSuccessfulApplyAt;
+    private string? _lastFailureReason;
+    private IReadOnlyList<string> _lastBlockingConditions = Array.Empty<string>();
+
     public bool ScheduledForDeletion { get; private set; }
     public DateTime? InvisibleSinceUtc => _invisibleSinceUtc;
     public DateTime? VisibilityEvictionDueAtUtc => _visibilityEvictionDueAtUtc;
+
+    // Propriétés de diagnostic publiques
+    public DateTime? LastDataReceivedAt => _lastDataReceivedAt;
+    public DateTime? LastApplyAttemptAt => _lastApplyAttemptAt;
+    public DateTime? LastSuccessfulApplyAt => _lastSuccessfulApplyAt;
+    public string? LastFailureReason => _lastFailureReason;
+    public IReadOnlyList<string> LastBlockingConditions => _lastBlockingConditions;
 
     public PairHandler(ILogger<PairHandler> logger, Pair pair, PairAnalyzer pairAnalyzer,
         GameObjectHandlerFactory gameObjectHandlerFactory,
@@ -189,11 +203,34 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         : ((FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)_charaHandler!.Address)->EntityId;
     public string? PlayerName { get; private set; }
     public string PlayerNameHash => Pair.Ident;
+    
+    // Enregistre un échec d'application avec sa raison et les conditions bloquantes.
+    private void RecordFailure(string reason, params string[] conditions)
+    {
+        _lastFailureReason = reason;
+        _lastBlockingConditions = conditions.Length == 0 ? Array.Empty<string>() : conditions.ToArray();
+    }
+    // Efface l'état d'échec précédent.
+    private void ClearFailureState()
+    {
+        _lastFailureReason = null;
+        _lastBlockingConditions = Array.Empty<string>();
+    }
+    
+    // Appeles des données reçues pour ce handler.
+    public void OnDataReceived()
+    {
+        _lastDataReceivedAt = DateTime.UtcNow;
+    }
 
     public void ApplyCharacterData(Guid applicationBase, CharacterData characterData, bool forceApplyCustomization = false)
     {
+        _lastApplyAttemptAt = DateTime.UtcNow;
+        ClearFailureState();
+
         if (_configService.Current.HoldCombatApplication && _dalamudUtil.IsInCombatOrPerforming)
         {
+            RecordFailure("En combat ou en train de jouer de la musique", "Combat", "Performing");
             Mediator.Publish(new EventMessage(new Event(PlayerName, Pair.UserData, nameof(PairHandler), EventSeverity.Warning,
                 "Cannot apply character data: you are in combat or performing music, deferring application")));
             Logger.LogDebug("[BASE-{appBase}] Received data but player is in combat or performing", applicationBase);
@@ -204,6 +241,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
 
         if (_charaHandler == null || (PlayerCharacter == IntPtr.Zero))
         {
+            RecordFailure("Joueur dans un état invalide", "CharaHandlerNull", "PlayerPointerNull");
             Mediator.Publish(new EventMessage(new Event(PlayerName, Pair.UserData, nameof(PairHandler), EventSeverity.Warning,
                 "Cannot apply character data: Receiving Player is in an invalid state, deferring application")));
             Logger.LogDebug("[BASE-{appBase}] Received data but player was in invalid state, charaHandlerIsNull: {charaIsNull}, playerPointerIsNull: {ptrIsNull}",
@@ -227,6 +265,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         if (Pair.IsDownloadBlocked)
         {
             var reasons = string.Join(", ", Pair.HoldDownloadReasons);
+            RecordFailure($"Téléchargement bloqué: {reasons}", Pair.HoldDownloadReasons.ToArray());
             Mediator.Publish(new EventMessage(new Event(PlayerName, Pair.UserData, nameof(PairHandler), EventSeverity.Warning,
                 $"Not applying character data: {reasons}")));
             Logger.LogDebug("[BASE-{appBase}] Not applying due to hold: {reasons}", applicationBase, reasons);
@@ -248,6 +287,13 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
 
         if (_dalamudUtil.IsInCutscene || _dalamudUtil.IsInGpose || !_ipcManager.Penumbra.APIAvailable || !_ipcManager.Glamourer.APIAvailable)
         {
+            var conditions = new List<string>();
+            if (_dalamudUtil.IsInCutscene) conditions.Add("Cutscene");
+            if (_dalamudUtil.IsInGpose) conditions.Add("GPose");
+            if (!_ipcManager.Penumbra.APIAvailable) conditions.Add("PenumbraUnavailable");
+            if (!_ipcManager.Glamourer.APIAvailable) conditions.Add("GlamourerUnavailable");
+            RecordFailure("GPose, Cutscene ou Penumbra/Glamourer indisponible", conditions.ToArray());
+
             Mediator.Publish(new EventMessage(new Event(PlayerName, Pair.UserData, nameof(PairHandler), EventSeverity.Warning,
                 "Cannot apply character data: you are in GPose, a Cutscene or Penumbra/Glamourer is not available. Deferring application.")));
             if (Logger.IsEnabled(LogLevel.Information))
@@ -1065,6 +1111,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             Mediator.Publish(new PairDataAppliedMessage(Pair.UserData.UID, charaData));
 
             Logger.LogDebug("[{applicationId}] Application finished", _applicationId);
+            _lastSuccessfulApplyAt = DateTime.UtcNow;
             IsVisible = true;
         }
         catch (OperationCanceledException)
@@ -1147,6 +1194,16 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
                 _ = Task.Run(() =>
                 {
                     ApplyCharacterData(appData, _cachedData!, forceApplyCustomization: true);
+                });
+            }
+            else if (Pair.LastReceivedCharacterData != null)
+            {
+                Guid appData = Guid.NewGuid();
+                Logger.LogDebug("[BASE-{appBase}] {pairHandler} visibility changed, now: {visi}, using LastReceivedCharacterData fallback", appData, this, IsVisible);
+
+                _ = Task.Run(() =>
+                {
+                    Pair.ApplyLastReceivedData(forced: true);
                 });
             }
             else

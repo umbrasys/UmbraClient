@@ -27,6 +27,7 @@ public sealed class FileCacheManager : DisposableMediatorSubscriberBase, IHosted
     private readonly ConcurrentDictionary<string, List<FileCacheEntity>> _fileCaches = new(StringComparer.Ordinal);
     private readonly SemaphoreSlim _getCachesByPathsSemaphore = new(1, 1);
     private readonly Lock _fileWriteLock = new();
+    private readonly Lock _fileCachesLock = new();
     private readonly IpcManager _ipcManager;
     private readonly ILogger<FileCacheManager> _logger;
     private bool _hasCheckedPenumbraOnLogin;
@@ -304,14 +305,17 @@ public sealed class FileCacheManager : DisposableMediatorSubscriberBase, IHosted
 
     public void RemoveHashedFile(string hash, string prefixedFilePath)
     {
-        if (_fileCaches.TryGetValue(hash, out var caches))
+        lock (_fileCachesLock)
         {
-            var removedCount = caches.RemoveAll(c => string.Equals(c.PrefixedFilePath, prefixedFilePath, StringComparison.Ordinal));
-            _logger.LogTrace("Removed from DB: {count} file(s) with hash {hash} and file cache {path}", removedCount, hash, prefixedFilePath);
-
-            if (caches.Count == 0)
+            if (_fileCaches.TryGetValue(hash, out var caches))
             {
-                _fileCaches.Remove(hash, out var _);
+                var removedCount = caches.RemoveAll(c => string.Equals(c.PrefixedFilePath, prefixedFilePath, StringComparison.Ordinal));
+                _logger.LogTrace("Removed from DB: {count} file(s) with hash {hash} and file cache {path}", removedCount, hash, prefixedFilePath);
+
+                if (caches.Count == 0)
+                {
+                    _fileCaches.Remove(hash, out var _);
+                }
             }
         }
     }
@@ -399,14 +403,17 @@ public sealed class FileCacheManager : DisposableMediatorSubscriberBase, IHosted
 
     private void AddHashedFile(FileCacheEntity fileCache)
     {
-        if (!_fileCaches.TryGetValue(fileCache.Hash, out var entries))
+        lock (_fileCachesLock)
         {
-            _fileCaches[fileCache.Hash] = entries = [];
-        }
+            if (!_fileCaches.TryGetValue(fileCache.Hash, out var entries))
+            {
+                _fileCaches[fileCache.Hash] = entries = [];
+            }
 
-        if (!entries.Exists(u => string.Equals(u.PrefixedFilePath, fileCache.PrefixedFilePath, StringComparison.OrdinalIgnoreCase)))
-        {
-            entries.Add(fileCache);
+            if (!entries.Exists(u => string.Equals(u.PrefixedFilePath, fileCache.PrefixedFilePath, StringComparison.OrdinalIgnoreCase)))
+            {
+                entries.Add(fileCache);
+            }
         }
     }
 

@@ -25,6 +25,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
     private readonly ConcurrentDictionary<UserData, Pair> _allClientPairs = new(UserDataComparer.Instance);
     private readonly ConcurrentDictionary<GroupData, GroupFullInfoDto> _allGroups = new(GroupDataComparer.Instance);
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _pendingOffline = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, OnlineUserCharaDataDto> _pendingCharacterData = new(StringComparer.Ordinal);
     private static readonly TimeSpan OfflineDebounce = TimeSpan.FromSeconds(6);
     private readonly ConcurrentQueue<DateTime> _offlineBurstEvents = new();
     private static readonly TimeSpan OfflineBurstWindow = TimeSpan.FromSeconds(1);
@@ -150,6 +151,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         DisposePairs();
         _allClientPairs.Clear();
         _allGroups.Clear();
+        _pendingCharacterData.Clear();
         LastAddedUser = null;
         RecreateLazy();
     }
@@ -306,12 +308,28 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         if (!_allClientPairs.TryGetValue(dto.User, out var pair))
         {
             if (Logger.IsEnabled(LogLevel.Debug))
-                Logger.LogDebug("No user found for {uid}, ignoring character data (no existing pair)", dto.User.UID);
+                Logger.LogDebug("No user found for {uid}, queuing character data for later", dto.User.UID);
+            _pendingCharacterData[dto.User.UID] = dto;
             return;
         }
 
+        _pendingCharacterData.TryRemove(dto.User.UID, out _);
         Mediator.Publish(new EventMessage(new Event(pair.UserData, nameof(PairManager), EventSeverity.Informational, "Received Character Data")));
         pair.ApplyData(dto);
+    }
+
+    public void ApplyPendingCharacterData()
+    {
+        foreach (var pending in _pendingCharacterData.ToArray())
+        {
+            if (_allClientPairs.Values.FirstOrDefault(p => string.Equals(p.UserData.UID, pending.Key, StringComparison.Ordinal)) is { } pair)
+            {
+                Logger.LogInformation("Applying pending character data for {uid}", pending.Key);
+                _pendingCharacterData.TryRemove(pending.Key, out _);
+                Mediator.Publish(new EventMessage(new Event(pair.UserData, nameof(PairManager), EventSeverity.Informational, "Applied Pending Character Data")));
+                pair.ApplyData(pending.Value);
+            }
+        }
     }
 
     public void RemoveGroup(GroupData data)
