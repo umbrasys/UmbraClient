@@ -521,6 +521,10 @@ public sealed partial class CharaDataManager : DisposableMediatorSubscriberBase
         if (apply.CanApply)
         {
             McdfApplyToTarget(apply.TargetName);
+            if (McdfApplicationTask != null)
+            {
+                await McdfApplicationTask.ConfigureAwait(false);
+            }
         }
     }
 

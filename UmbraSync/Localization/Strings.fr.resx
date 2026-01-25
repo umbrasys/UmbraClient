@@ -3112,6 +3112,18 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="Notification.McdfShare.Created.ToastBody" xml:space="preserve">
     <value>"{0}" envoyé ({1})</value>
   </data>
+  <data name="Notification.McdfShare.Received.Title" xml:space="preserve">
+    <value>Partage MCDF reçu : {0}</value>
+  </data>
+  <data name="Notification.McdfShare.Received.Body" xml:space="preserve">
+    <value>De : {0}</value>
+  </data>
+  <data name="Notification.McdfShare.Received.ToastTitle" xml:space="preserve">
+    <value>Nouveau partage MCDF</value>
+  </data>
+  <data name="Notification.McdfShare.Received.ToastBody" xml:space="preserve">
+    <value>"{0}" reçu de {1}</value>
+  </data>
   <!-- Notifications d'état de Syncshell (public / non public) -->
   <data name="Notification.Syncshell.Public.Title" xml:space="preserve">
     <value>{0} est désormais public</value>

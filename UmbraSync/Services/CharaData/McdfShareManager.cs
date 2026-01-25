@@ -6,25 +6,24 @@ using UmbraSync.Localization;
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.Notification;
-using UmbraSync.Services.ServerConfiguration;
 
 namespace UmbraSync.Services.CharaData;
 
 public sealed class McdfShareManager(ILogger<McdfShareManager> logger, ApiController apiController,
     CharaDataFileHandler fileHandler, CharaDataManager charaDataManager,
-    ServerConfigurationManager serverConfigurationManager, MareMediator mediator, NotificationTracker notificationTracker)
+    MareMediator mediator, NotificationTracker notificationTracker)
 {
     private readonly ILogger<McdfShareManager> _logger = logger;
     private readonly ApiController _apiController = apiController;
     private readonly CharaDataFileHandler _fileHandler = fileHandler;
     private readonly CharaDataManager _charaDataManager = charaDataManager;
-    private readonly ServerConfigurationManager _serverConfigurationManager = serverConfigurationManager;
     private readonly MareMediator _mediator = mediator;
     private readonly NotificationTracker _notificationTracker = notificationTracker;
     private readonly SemaphoreSlim _operationSemaphore = new(1, 1);
     private readonly List<McdfShareEntryDto> _ownShares = new();
     private readonly List<McdfShareEntryDto> _sharedWithMe = new();
     private Task? _currentTask;
+    private bool _initialRefreshDone;
 
     public IReadOnlyList<McdfShareEntryDto> OwnShares => _ownShares;
     public IReadOnlyList<McdfShareEntryDto> SharedShares => _sharedWithMe;
@@ -50,23 +49,10 @@ public sealed class McdfShareManager(ILogger<McdfShareManager> logger, ApiContro
                 return;
             }
 
-            var secretKey = _serverConfigurationManager.GetSecretKey(out bool hasMultiple);
-            if (hasMultiple)
-            {
-                LastError = "Plusieurs clés secrètes sont configurées pour ce personnage. Corrigez cela dans les paramètres.";
-                return;
-            }
-
-            if (string.IsNullOrEmpty(secretKey))
-            {
-                LastError = "Aucune clé secrète n'est configurée pour ce personnage.";
-                return;
-            }
-
             var shareId = Guid.NewGuid();
             byte[] salt = RandomNumberGenerator.GetBytes(16);
             byte[] nonce = RandomNumberGenerator.GetBytes(12);
-            byte[] key = DeriveKey(secretKey, shareId, salt);
+            byte[] key = DeriveKey(shareId, salt);
 
             byte[] cipher = new byte[mcdfBytes.Length];
             byte[] tag = new byte[16];
@@ -207,20 +193,7 @@ public sealed class McdfShareManager(ILogger<McdfShareManager> logger, ApiContro
             return null;
         }
 
-        var secretKey = _serverConfigurationManager.GetSecretKey(out bool hasMultiple);
-        if (hasMultiple)
-        {
-            LastError = "Plusieurs clés secrètes sont configurées pour ce personnage.";
-            return null;
-        }
-
-        if (string.IsNullOrEmpty(secretKey))
-        {
-            LastError = "Aucune clé secrète n'est configurée pour ce personnage.";
-            return null;
-        }
-
-        byte[] key = DeriveKey(secretKey, payload.ShareId, payload.Salt);
+        byte[] key = DeriveKey(payload.ShareId, payload.Salt);
         byte[] plaintext = new byte[payload.CipherData.Length];
         try
         {
@@ -244,10 +217,24 @@ public sealed class McdfShareManager(ILogger<McdfShareManager> logger, ApiContro
         var own = await _apiController.McdfShareGetOwn().ConfigureAwait(false);
         token.ThrowIfCancellationRequested();
         var shared = await _apiController.McdfShareGetShared().ConfigureAwait(false);
+
+        // Detect new shares received (only after initial refresh to avoid spamming on startup)
+        if (_initialRefreshDone)
+        {
+            var existingIds = _sharedWithMe.Select(s => s.Id).ToHashSet();
+            var newShares = shared.Where(s => !existingIds.Contains(s.Id)).ToList();
+            foreach (var newShare in newShares)
+            {
+                NotifyShareReceived(newShare);
+            }
+        }
+
         _ownShares.Clear();
         _ownShares.AddRange(own);
         _sharedWithMe.Clear();
         _sharedWithMe.AddRange(shared);
+        _initialRefreshDone = true;
+
         LastSuccess = "Partages MCDF actualisés.";
     }
 
@@ -278,24 +265,12 @@ public sealed class McdfShareManager(ILogger<McdfShareManager> logger, ApiContro
         return task;
     }
 
-    private static byte[] DeriveKey(string secretKey, Guid shareId, byte[] salt)
+    private static byte[] DeriveKey(Guid shareId, byte[] salt)
     {
-        byte[] secretBytes;
-        try
-        {
-            secretBytes = Convert.FromHexString(secretKey);
-        }
-        catch (FormatException)
-        {
-            // fallback to UTF8 if not hex
-            secretBytes = System.Text.Encoding.UTF8.GetBytes(secretKey);
-        }
-
         byte[] shareBytes = shareId.ToByteArray();
-        byte[] material = new byte[secretBytes.Length + shareBytes.Length + salt.Length];
-        Buffer.BlockCopy(secretBytes, 0, material, 0, secretBytes.Length);
-        Buffer.BlockCopy(shareBytes, 0, material, secretBytes.Length, shareBytes.Length);
-        Buffer.BlockCopy(salt, 0, material, secretBytes.Length + shareBytes.Length, salt.Length);
+        byte[] material = new byte[shareBytes.Length + salt.Length];
+        Buffer.BlockCopy(shareBytes, 0, material, 0, shareBytes.Length);
+        Buffer.BlockCopy(salt, 0, material, shareBytes.Length, salt.Length);
         return SHA256.HashData(material);
     }
 
@@ -310,5 +285,20 @@ public sealed class McdfShareManager(ILogger<McdfShareManager> logger, ApiContro
 
         _mediator.Publish(new DualNotificationMessage(toastTitle, toastBody, NotificationType.Info, TimeSpan.FromSeconds(4)));
         _notificationTracker.Upsert(NotificationEntry.McdfShareCreated(shareId, safeDescription, individualCount, syncshellCount));
+    }
+
+    private void NotifyShareReceived(McdfShareEntryDto share)
+    {
+        string safeDescription = string.IsNullOrWhiteSpace(share.Description)
+            ? share.Id.ToString("D", CultureInfo.InvariantCulture)
+            : share.Description;
+        string ownerAliasOrUid = string.IsNullOrWhiteSpace(share.OwnerAlias) ? share.OwnerUid : share.OwnerAlias;
+
+        string toastTitle = Loc.Get("Notification.McdfShare.Received.ToastTitle");
+        string toastBody = string.Format(CultureInfo.CurrentCulture, Loc.Get("Notification.McdfShare.Received.ToastBody"), safeDescription, ownerAliasOrUid);
+
+        _mediator.Publish(new DualNotificationMessage(toastTitle, toastBody, NotificationType.Info, TimeSpan.FromSeconds(4)));
+        _notificationTracker.Upsert(NotificationEntry.McdfShareReceived(share.Id, safeDescription, ownerAliasOrUid));
+        _logger.LogInformation("MCDF share received: {ShareId} from {Owner}. Description: {Description}", share.Id, ownerAliasOrUid, safeDescription);
     }
 }
