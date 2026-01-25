@@ -289,7 +289,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
             if ((byte)objectInfo.Value->GameObject->ObjectKind != 1)
                 continue;
 
-            if (objectInfo.Value->GameObject->YalmDistanceFromPlayerX > 10f)
+            if (objectInfo.Value->GameObject->YalmDistanceFromPlayerX > 15f)
                 return false;
 
             namePlate = &addonNamePlate->NamePlateObjectArray[objectInfo.Value->NamePlateIndex];
@@ -304,31 +304,34 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         if (iconNode == null)
             return false;
 
-        var scaleX = namePlate->RootComponentNode->AtkResNode.ScaleX;
-        var scaleY = namePlate->RootComponentNode->AtkResNode.ScaleY;
+        var nameplateScaleX = namePlate->RootComponentNode->AtkResNode.ScaleX;
+        var nameplateScaleY = namePlate->RootComponentNode->AtkResNode.ScaleY;
         var iconVisible = iconNode->IsVisible();
-        var sizeScaleFactor = 1f;
-        var scaleVector = new Vector2(scaleX, scaleY);
+        var scaleVector = new Vector2(nameplateScaleX, nameplateScaleY);
+
+        // Calcul du scale de la bulle basé sur la distance :
+        // 0-10m : taille normale (1.0), 10-15m : petite (0.5), >15m : pas affiché (géré plus haut)
+        float bubbleScaleFactor = distance <= 10f ? 1.0f : 0.5f;
         var rootPosition = new Vector2(namePlate->RootComponentNode->AtkResNode.X, namePlate->RootComponentNode->AtkResNode.Y);
         var iconLocalPosition = new Vector2(iconNode->X, iconNode->Y) * scaleVector;
         var iconDimensions = new Vector2(iconNode->Width, iconNode->Height) * scaleVector;
 
         if (!iconVisible)
         {
-            sizeScaleFactor = 2.5f;
+            // Utiliser la même taille que quand la nameplate est visible
             var anchor = rootPosition + iconLocalPosition + new Vector2(iconDimensions.X * 0.5f, 0f);
 
             var distanceOffset = new Vector2(0f, -16f + distance) * scaleVector;
             if (iconNode->Height == 24)
             {
-                distanceOffset.Y += 16f * scaleY;
+                distanceOffset.Y += 16f * nameplateScaleY;
             }
-            distanceOffset.Y += 64f * scaleY;
+            distanceOffset.Y += 64f * nameplateScaleY;
 
-            var referenceSize = GetConfiguredBubbleSize(scaleX * sizeScaleFactor, scaleY * sizeScaleFactor, false, TypingIndicatorBubbleSize.Small);
-            var manualOffset = new Vector2(referenceSize.X * 2.00f, referenceSize.Y * 2.00f);
+            var referenceSize = GetConfiguredBubbleSize(bubbleScaleFactor, bubbleScaleFactor, true, TypingIndicatorBubbleSize.Small);
+            var manualOffset = new Vector2(referenceSize.X * 0.5f, referenceSize.Y * 0.5f);
 
-            var iconSize = GetConfiguredBubbleSize(scaleX * sizeScaleFactor, scaleY * sizeScaleFactor, false);
+            var iconSize = GetConfiguredBubbleSize(bubbleScaleFactor, bubbleScaleFactor, true);
             var center = anchor + distanceOffset + manualOffset;
             var topLeft = center - (iconSize / 2f);
 
@@ -343,12 +346,12 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         var iconOffset = new Vector2(distance / 1.5f, distance / 3.5f) * scaleVector;
         if (iconNode->Height == 24)
         {
-            iconOffset.Y -= 8f * scaleY;
+            iconOffset.Y -= 8f * nameplateScaleY;
         }
 
         iconPos += iconOffset;
 
-        var bubbleSize = GetConfiguredBubbleSize(scaleX * sizeScaleFactor, scaleY * sizeScaleFactor, true);
+        var bubbleSize = GetConfiguredBubbleSize(bubbleScaleFactor, bubbleScaleFactor, true);
 
         drawList.AddImage(textureWrap.Handle, iconPos, iconPos + bubbleSize, Vector2.Zero, Vector2.One,
             ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0.95f)));
@@ -571,7 +574,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
             return false;
 
         var distance = Vector3.Distance(_objectTable.LocalPlayer.Position, position);
-        return distance <= 10f;
+        return distance <= 15f;
     }
 
     private static unsafe uint GetEntityId(nint address)

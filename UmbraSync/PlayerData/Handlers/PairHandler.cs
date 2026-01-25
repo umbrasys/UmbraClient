@@ -203,6 +203,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         : ((FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)_charaHandler!.Address)->EntityId;
     public string? PlayerName { get; private set; }
     public string PlayerNameHash => Pair.Ident;
+    public bool IsInitialized => _charaHandler != null;
     
     // Enregistre un échec d'application avec sa raison et les conditions bloquantes.
     private void RecordFailure(string reason, params string[] conditions)

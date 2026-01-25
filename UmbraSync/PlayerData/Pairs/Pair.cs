@@ -25,8 +25,12 @@ public class Pair : DisposableMediatorSubscriberBase
     private readonly ServerConfigurationManager _serverConfigurationManager;
     private readonly PairStateCache _pairStateCache;
     private CancellationTokenSource _applicationCts = new();
+    private CancellationTokenSource? _handlerPollingCts = null;
+    private readonly object _pollingGate = new();
     private OnlineUserIdentDto? _onlineUserIdentDto = null;
     private ushort? _worldId = null;
+    private static readonly TimeSpan HandlerReadyTimeout = TimeSpan.FromMinutes(3);
+    private const int HandlerReadyPollDelayMs = 500;
 
     public Pair(ILogger<Pair> logger, UserData userData, PairHandlerFactory cachedPlayerFactory,
         MareMediator mediator, MareConfigService mareConfig, ServerConfigurationManager serverConfigurationManager,
@@ -251,6 +255,15 @@ public class Pair : DisposableMediatorSubscriberBase
             return;
         }
 
+        // Si le handler n'est pas encore initialisé, attendre avec un polling jusqu'à ce qu'il soit prêt
+        if (!CachedPlayer.IsInitialized)
+        {
+            _logger.LogDebug("ApplyLastReceivedData: Handler not initialized for {uid}, starting polling wait", UserData.UID);
+            _applicationCts = _applicationCts.CancelRecreate();
+            _ = WaitForHandlerInitializationAsync(forced, _applicationCts.Token);
+            return;
+        }
+
         // Si LastReceivedCharacterData est null, tente de récupérer du cache
         if (LastReceivedCharacterData == null && !string.IsNullOrEmpty(Ident))
         {
@@ -282,6 +295,103 @@ public class Pair : DisposableMediatorSubscriberBase
             HoldApplication("Blacklist", maxValue: 1);
 
         _logger.LogDebug("ApplyLastReceivedData: Applying character data for {uid}", UserData.UID);
+        CachedPlayer.ApplyCharacterData(Guid.NewGuid(), RemoveNotSyncedFiles(LastReceivedCharacterData.DeepClone())!, forced);
+    }
+
+
+    private async Task WaitForHandlerInitializationAsync(bool forced, CancellationToken externalToken)
+    {
+        CancellationTokenSource? previousCts = null;
+        CancellationTokenSource cts;
+
+        lock (_pollingGate)
+        {
+            previousCts = _handlerPollingCts;
+            cts = new CancellationTokenSource();
+            _handlerPollingCts = cts;
+        }
+
+        // Annuler le polling précédent (ignorer les exceptions car le CTS peut déjà être disposé)
+        try { previousCts?.Cancel(); } catch (ObjectDisposedException) { /* Intentionnellement ignoré */ }
+        try { previousCts?.Dispose(); } catch (ObjectDisposedException) { /* Intentionnellement ignoré */ }
+
+        cts.CancelAfter(HandlerReadyTimeout);
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, externalToken);
+
+        try
+        {
+            while (!linkedCts.Token.IsCancellationRequested)
+            {
+                // Vérifier si le handler est maintenant initialisé
+                if (CachedPlayer != null && CachedPlayer.IsInitialized)
+                {
+                    _logger.LogDebug("Handler initialized for {uid}, applying data", UserData.UID);
+                    ApplyLastReceivedDataInternal(forced);
+                    return;
+                }
+
+                // Le CachedPlayer a été supprimé, abandonner
+                if (CachedPlayer == null)
+                {
+                    _logger.LogDebug("CachedPlayer became null during polling for {uid}, aborting", UserData.UID);
+                    return;
+                }
+
+                await Task.Delay(HandlerReadyPollDelayMs, linkedCts.Token).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogDebug("Handler initialization polling cancelled for {uid}", UserData.UID);
+        }
+        finally
+        {
+            lock (_pollingGate)
+            {
+                if (ReferenceEquals(_handlerPollingCts, cts))
+                {
+                    _handlerPollingCts = null;
+                }
+            }
+            cts.Dispose();
+        }
+    }
+    
+    private void ApplyLastReceivedDataInternal(bool forced)
+    {
+        if (CachedPlayer == null)
+        {
+            _logger.LogDebug("ApplyLastReceivedDataInternal: CachedPlayer is null for {uid}, aborting", UserData.UID);
+            return;
+        }
+
+        // Si LastReceivedCharacterData est null, tente de récupérer du cache
+        if (LastReceivedCharacterData == null && !string.IsNullOrEmpty(Ident))
+        {
+            var cachedData = _pairStateCache.TryLoad(Ident);
+            if (cachedData != null)
+            {
+                _logger.LogDebug("Recovered character data from cache for {uid} (ident: {ident})", UserData.UID, Ident);
+                LastReceivedCharacterData = cachedData;
+            }
+        }
+
+        if (LastReceivedCharacterData == null)
+        {
+            _logger.LogDebug("ApplyLastReceivedDataInternal: LastReceivedCharacterData is null for {uid}, aborting", UserData.UID);
+            return;
+        }
+
+        if (IsDownloadBlocked || IsPaused)
+        {
+            _logger.LogDebug("ApplyLastReceivedDataInternal: Blocked or paused for {uid}", UserData.UID);
+            return;
+        }
+
+        if (_serverConfigurationManager.IsUidBlacklisted(UserData.UID))
+            HoldApplication("Blacklist", maxValue: 1);
+
+        _logger.LogDebug("ApplyLastReceivedDataInternal: Applying character data for {uid}", UserData.UID);
         CachedPlayer.ApplyCharacterData(Guid.NewGuid(), RemoveNotSyncedFiles(LastReceivedCharacterData.DeepClone())!, forced);
     }
 
@@ -398,6 +508,14 @@ public class Pair : DisposableMediatorSubscriberBase
         }
 
         _applicationCts.Dispose();
+
+        // Nettoyer le polling CTS
+        lock (_pollingGate)
+        {
+            try { _handlerPollingCts?.Cancel(); } catch (ObjectDisposedException) { /* Intentionnellement ignoré */ }
+            try { _handlerPollingCts?.Dispose(); } catch (ObjectDisposedException) { /* Intentionnellement ignoré */ }
+            _handlerPollingCts = null;
+        }
     }
 
     public void SetNote(string note)
