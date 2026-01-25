@@ -59,17 +59,39 @@ public sealed class PairRequestToastUi : WindowMediatorSubscriberBase
 
         DisableWindowSounds = true;
         ForceMainWindow = true;
+        IsOpen = false;
+        Mediator.Subscribe<NotificationStateChanged>(this, OnNotificationStateChanged);
+    }
+
+    private void OnNotificationStateChanged(NotificationStateChanged msg)
+    {
+        if (!_dalamudUtilService.IsLoggedIn) return;
+        if (!_configService.Current.UseInteractivePairRequestPopup) return;
+        if (_nearbyPending.Pending.Count == 0) return;
+
         IsOpen = true;
     }
 
     protected override void DrawInternal()
     {
-        if (!_dalamudUtilService.IsLoggedIn) return;
+        if (!_dalamudUtilService.IsLoggedIn)
+        {
+            IsOpen = false;
+            return;
+        }
 
-        if (!_configService.Current.UseInteractivePairRequestPopup) return;
+        if (!_configService.Current.UseInteractivePairRequestPopup)
+        {
+            IsOpen = false;
+            return;
+        }
 
         var pendingEntries = GetPendingEntries();
-        if (pendingEntries.Count == 0) return;
+        if (pendingEntries.Count == 0)
+        {
+            IsOpen = false;
+            return;
+        }
 
         var scale = ImGuiHelpers.GlobalScale;
         var toastWidth = ToastWidth * scale;

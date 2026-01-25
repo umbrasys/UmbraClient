@@ -171,6 +171,12 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
     {
         return new List<ChangelogEntry>
         {
+            new(new Version(2, 1, 2, 0), "2.1.2.0", new List<ChangelogLine>
+            {
+                new("Correction d'un problème de chargement utilisateur"),
+                new("Correction de l'affichage de la bulle d'écriture et de sa distance de visibilité"),
+                new("Correction de la zone de notification inférieur-droit qui pouvait bloquer l'interaction de la zone"),
+
             new(new Version(2, 1, 1, 0), "2.1.1.0", new List<ChangelogLine>
             {
                 new("Nouveau système de cache pour les données de personnages"),
