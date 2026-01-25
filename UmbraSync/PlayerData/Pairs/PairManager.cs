@@ -784,7 +784,6 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
             args.AddMenuItem(new MenuItem
             {
                 Name = Loc.Get("ContextMenu.AutoDetect.SendRequest"),
-                // Umbra-branded context entry styling: purple background with 'U'
                 PrefixColor = 708,
                 PrefixChar = 'U',
                 UseDefaultPrefix = false,
@@ -808,7 +807,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
             {
                 Name = Loc.Get("ContextMenu.AutoDetect.AddPair"),
                 PrefixColor = 708,
-                PrefixChar = '+',
+                PrefixChar = 'U',
                 UseDefaultPrefix = false,
                 IsEnabled = true,
                 IsSubmenu = false,
