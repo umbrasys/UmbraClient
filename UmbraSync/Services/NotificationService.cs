@@ -127,20 +127,32 @@ public class NotificationService : DisposableMediatorSubscriberBase, IHostedServ
     {
         try
         {
-            if (msg.Visible) return; // only handle transition to not visible
-
             var gid = msg.Gid;
             // Try to resolve alias from PairManager snapshot; fallback to gid
             var alias = _pairManager.Groups.Values.FirstOrDefault(g => string.Equals(g.GID, gid, StringComparison.OrdinalIgnoreCase))?.GroupAliasOrGID ?? gid;
 
-            var title = $"Syncshell non publique: {alias}";
-            var message = "La Syncshell n'est plus visible via AutoDetect.";
+            string title;
+            string message;
+            Services.Notification.NotificationEntry entry;
+
+            if (msg.Visible)
+            {
+                title = $"Syncshell publique: {alias}";
+                message = "La Syncshell est de nouveau visible via AutoDetect.";
+                entry = Services.Notification.NotificationEntry.SyncshellPublic(gid, alias);
+            }
+            else
+            {
+                title = $"Syncshell non publique: {alias}";
+                message = "La Syncshell n'est plus visible via AutoDetect.";
+                entry = Services.Notification.NotificationEntry.SyncshellNotPublic(gid, alias);
+            }
 
             // Show toast + chat
             ShowDualNotification(new DualNotificationMessage(title, message, NotificationType.Info, TimeSpan.FromSeconds(4)));
 
             // Persist into notification center
-            _notificationTracker.Upsert(Services.Notification.NotificationEntry.SyncshellNotPublic(gid, alias));
+            _notificationTracker.Upsert(entry);
         }
         catch
         {

@@ -3230,6 +3230,18 @@ Click to change.</value>
   <data name="Notification.McdfShare.Created.ToastBody" xml:space="preserve">
     <value>"{0}" sent ({1})</value>
   </data>
+  <data name="Notification.McdfShare.Received.Title" xml:space="preserve">
+    <value>MCDF share received: {0}</value>
+  </data>
+  <data name="Notification.McdfShare.Received.Body" xml:space="preserve">
+    <value>From: {0}</value>
+  </data>
+  <data name="Notification.McdfShare.Received.ToastTitle" xml:space="preserve">
+    <value>New MCDF share</value>
+  </data>
+  <data name="Notification.McdfShare.Received.ToastBody" xml:space="preserve">
+    <value>"{0}" received from {1}</value>
+  </data>
   <!-- Syncshell state notifications (public / not public) -->
   <data name="Notification.Syncshell.Public.Title" xml:space="preserve">
     <value>{0} is now public</value>
