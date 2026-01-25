@@ -176,6 +176,7 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
                 new("Correction d'un problème de chargement utilisateur"),
                 new("Correction de l'affichage de la bulle d'écriture et de sa distance de visibilité"),
                 new("Correction de la zone de notification inférieur-droit qui pouvait bloquer l'interaction de la zone"),
+                new("Mise à jour API Penumbra"),
 
             }),
 
