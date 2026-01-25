@@ -1202,15 +1202,14 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
         {
             ImGui.TextDisabled("Aucun partage MCDF reçu.");
         }
-        else if (ImGui.BeginTable("mcdf-shared-shares", 5, ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersOuter))
+        else if (ImGui.BeginTable("mcdf-shared-shares", 4, ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersOuter))
         {
             ImGui.TableSetupColumn("Description");
             ImGui.TableSetupColumn("Propriétaire");
             ImGui.TableSetupColumn("Expire");
-            ImGui.TableSetupColumn("Téléchargements");
             var style2 = ImGui.GetStyle();
             float BtnWidth2(string label) => ImGui.CalcTextSize(label).X + style2.FramePadding.X * 2f;
-            float sharedActionsWidth = BtnWidth2("Appliquer") + style2.ItemSpacing.X + BtnWidth2("Enregistrer") + 2f;
+            float sharedActionsWidth = BtnWidth2("Appliquer sur la cible") + style2.ItemSpacing.X + BtnWidth2("Enregistrer") + 2f;
             ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed, sharedActionsWidth);
             ImGui.TableHeadersRow();
 
@@ -1238,12 +1237,9 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
                 ImGui.TextUnformatted(entry.ExpiresAtUtc.HasValue ? entry.ExpiresAtUtc.Value.ToLocalTime().ToString("g", CultureInfo.CurrentCulture) : "Jamais");
 
                 ImGui.TableNextColumn();
-                ImGui.TextUnformatted(entry.DownloadCount.ToString(CultureInfo.CurrentCulture));
-
-                ImGui.TableNextColumn();
                 using (ImRaii.PushId("sharedShare" + entry.Id))
                 {
-                    if (ImGui.SmallButton("Appliquer"))
+                    if (ImGui.SmallButton("Appliquer sur la cible"))
                     {
                         _ = _mcdfShareManager.ApplyShareAsync(entry.Id, CancellationToken.None);
                     }
