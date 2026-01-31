@@ -24,6 +24,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
     private readonly FileCacheManager _fileDbManager;
     private readonly MareConfigService _mareConfigService;
     private readonly FileTransferOrchestrator _orchestrator;
+    private readonly FileDownloadDeduplicator _deduplicator;
     private readonly List<ThrottledStream> _activeDownloadStreams;
     private readonly Lock _queueLock = new();
     private SemaphoreSlim? _downloadQueueSemaphore;
@@ -31,13 +32,15 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
 
     public FileDownloadManager(ILogger<FileDownloadManager> logger, MareMediator mediator,
         FileTransferOrchestrator orchestrator,
-        FileCacheManager fileCacheManager, FileCompactor fileCompactor, MareConfigService mareConfigService) : base(logger, mediator)
+        FileCacheManager fileCacheManager, FileCompactor fileCompactor, MareConfigService mareConfigService,
+        FileDownloadDeduplicator deduplicator) : base(logger, mediator)
     {
         _downloadStatus = new Dictionary<string, FileDownloadStatus>(StringComparer.Ordinal);
         _orchestrator = orchestrator;
         _fileDbManager = fileCacheManager;
         _fileCompactor = fileCompactor;
         _mareConfigService = mareConfigService;
+        _deduplicator = deduplicator;
         _activeDownloadStreams = [];
 
         Mediator.Subscribe<DownloadLimitChangedMessage>(this, (msg) =>
@@ -440,6 +443,23 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
                 CancellationToken = ct
             }, async (file, token) =>
             {
+                var claim = _deduplicator.Claim(file.Hash);
+
+                if (!claim.IsOwner)
+                {
+                    var ownerSuccess = await claim.Completion.ConfigureAwait(false);
+                    if (ownerSuccess)
+                    {
+                        if (_downloadStatus.TryGetValue(cdnKey, out var status))
+                            status.TransferredFiles++;
+                    }
+                    else
+                    {
+                        lock (fallbackFiles) { fallbackFiles.Add(file); }
+                    }
+                    return;
+                }
+
                 var fileData = fileReplacement.FirstOrDefault(f => string.Equals(f.Hash, file.Hash, StringComparison.OrdinalIgnoreCase));
                 var fileExtension = fileData?.GamePaths[0].Split(".")[^1] ?? "tmp";
                 var filePath = _fileDbManager.GetCacheFilePath(file.Hash, fileExtension);
@@ -451,17 +471,25 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
                         status.TransferredBytes += bytes;
                 });
 
-                var success = await DownloadAndDecompressDirectAsync(file, tmpPath, filePath, progress, token).ConfigureAwait(false);
+                var success = false;
+                try
+                {
+                    success = await DownloadAndDecompressDirectAsync(file, tmpPath, filePath, progress, token).ConfigureAwait(false);
 
-                if (success)
-                {
-                    PersistFileToStorage(file.Hash, filePath, file.Total);
-                    if (_downloadStatus.TryGetValue(cdnKey, out var status))
-                        status.TransferredFiles++;
+                    if (success)
+                    {
+                        PersistFileToStorage(file.Hash, filePath, file.Total);
+                        if (_downloadStatus.TryGetValue(cdnKey, out var status))
+                            status.TransferredFiles++;
+                    }
+                    else
+                    {
+                        lock (fallbackFiles) { fallbackFiles.Add(file); }
+                    }
                 }
-                else
+                finally
                 {
-                    lock (fallbackFiles) { fallbackFiles.Add(file); }
+                    _deduplicator.Complete(file.Hash, success);
                 }
             }).ConfigureAwait(false);
 
@@ -596,6 +624,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
 
                     tasks.Add(Task.Run(() =>
                     {
+                        var hashSuccess = false;
                         try
                         {
                             using var tmpFileStream = new HashingStream(new FileStream(tmpPath, new FileStreamOptions()
@@ -635,6 +664,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
                             tmpFileStream.Close();
                             _fileCompactor.RenameAndCompact(filePath, tmpPath);
                             PersistFileToStorage(fileHash, filePath, fileLengthBytes);
+                            hashSuccess = true;
                         }
                         catch (EndOfStreamException)
                         {
@@ -651,6 +681,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
                         {
                             if (File.Exists(tmpPath))
                                 File.Delete(tmpPath);
+                            _deduplicator.Complete(fileHash, hashSuccess);
                         }
                     }, CancellationToken.None));
                 }

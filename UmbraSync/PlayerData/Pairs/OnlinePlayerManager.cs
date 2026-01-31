@@ -47,6 +47,12 @@ public class OnlinePlayerManager : DisposableMediatorSubscriberBase
             }
         });
 
+        Mediator.Subscribe<PairOnlineMessage>(this, (msg) =>
+        {
+            if (_lastCreatedData == null || !_apiController.IsConnected) return;
+            _usersToPushDataTo.Add(msg.User);
+            PushCharacterData(forced: true);
+        });
         Mediator.Subscribe<ConnectedMessage>(this, (_) => PushToAllVisibleUsers());
         Mediator.Subscribe<DisconnectedMessage>(this, (_) =>
         {
