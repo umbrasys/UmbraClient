@@ -171,6 +171,13 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
     {
         return new List<ChangelogEntry>
         {
+            new(new Version(2, 1, 3, 0), "2.1.3.0", new List<ChangelogLine>
+            {
+                new("Nouveau système de déduplication des téléchargements pour éviter les téléchargements en double."),
+                new("Système de retry automatique pour les applications de mods échouées."),
+                new("Détection des fichiers manquants avec réapplication forcée automatique."),
+                new("Traitement parallèle des paires activé par défaut."),
+            }),
             new(new Version(2, 1, 2, 1), "2.1.2.1", new List<ChangelogLine>
             {
                 new("Résolution d'un problème de décryptage lors d'un partage MCDF."),

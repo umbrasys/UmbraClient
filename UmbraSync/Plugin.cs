@@ -103,6 +103,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton<MarePlugin>();
             collection.AddSingleton<UmbraProfileManager>();
             collection.AddSingleton<GameObjectHandlerFactory>();
+            collection.AddSingleton<FileDownloadDeduplicator>();
             collection.AddSingleton<FileDownloadManagerFactory>();
             collection.AddSingleton<PairHandlerFactory>();
             collection.AddSingleton<PairAnalyzerFactory>();

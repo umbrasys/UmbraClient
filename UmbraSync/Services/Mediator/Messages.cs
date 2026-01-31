@@ -135,6 +135,7 @@ public record PairSyncOverrideChanged(string Uid, bool? DisableSounds, bool? Dis
 public record GroupSyncOverrideChanged(string Gid, bool? DisableSounds, bool? DisableAnimations, bool? DisableVfx) : MessageBase;
 public record NotificationStateChanged(int TotalCount) : MessageBase;
 
+public record PairOnlineMessage(UserData User) : MessageBase;
 public record PluginChangeMessage(string InternalName, Version Version, bool IsLoaded) : KeyedMessage(InternalName);
 #pragma warning restore S2094
 #pragma warning restore MA0048
