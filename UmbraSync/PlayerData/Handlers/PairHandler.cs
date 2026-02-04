@@ -34,11 +34,12 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     private readonly VisibilityService _visibilityService;
     private readonly ApplicationSemaphoreService _applicationSemaphoreService;
     private readonly ServerConfigurationManager _serverConfigurationManager;
-    private string _currentProcessingHash = string.Empty;
     private CancellationTokenSource? _applicationCancellationTokenSource = new();
     private Guid _applicationId;
     private Task? _applicationTask;
     private CharacterData? _cachedData = null;
+    private CharacterData? _lastAppliedData = null;
+    private bool _pendingModReapply;
     private GameObjectHandler? _charaHandler;
     private readonly Dictionary<ObjectKind, Guid?> _customizeIds = [];
     private CombatData? _dataReceivedInDowntime;
@@ -166,6 +167,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             Logger.LogDebug("Recalculating performance for {uid}", Pair.UserData.UID);
             pair.ApplyLastReceivedData(forced: true);
         });
+        Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, _ => TryReapplyPendingData());
 
         LastAppliedDataBytes = -1;
     }
@@ -284,7 +286,18 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             Logger.LogDebug("[BASE-{appbase}] Applying data for {player}, forceApplyCustomization: {forced}, forceApplyMods: {forceMods}", applicationBase, this, forceApplyCustomization, _forceApplyMods);
         Logger.LogDebug("[BASE-{appbase}] Hash for data is {newHash}, current cache hash is {oldHash}", applicationBase, characterData.DataHash.Value, _cachedData?.DataHash.Value ?? "NODATA");
 
-        if (string.Equals(characterData.DataHash.Value, _cachedData?.DataHash.Value ?? string.Empty, StringComparison.Ordinal) && !forceApplyCustomization) return;
+        var hasMissingFiles = false;
+        if (string.Equals(characterData.DataHash.Value, _cachedData?.DataHash.Value ?? string.Empty, StringComparison.Ordinal)
+            && !forceApplyCustomization
+            && !_forceApplyMods
+            && !_pendingModReapply)
+        {
+            hasMissingFiles = HasMissingFiles(characterData);
+            if (!hasMissingFiles)
+                return;
+
+            Logger.LogDebug("[BASE-{appbase}] Same hash {hash} but missing files detected, forcing reapply", applicationBase, characterData.DataHash.Value);
+        }
 
         if (_dalamudUtil.IsInCutscene || _dalamudUtil.IsInGpose || !_ipcManager.Penumbra.APIAvailable || !_ipcManager.Glamourer.APIAvailable)
         {
@@ -312,7 +325,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         Mediator.Publish(new EventMessage(new Event(PlayerName, Pair.UserData, nameof(PairHandler), EventSeverity.Informational,
             "Applying Character Data")));
 
-        _forceApplyMods |= forceApplyCustomization;
+        _forceApplyMods |= forceApplyCustomization || hasMissingFiles;
 
         var charaDataToUpdate = characterData.CheckUpdatedData(applicationBase, _cachedData?.DeepClone() ?? new(), Logger, this, forceApplyCustomization, _forceApplyMods);
 
@@ -397,6 +410,8 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         finally
         {
             _cachedData = null;
+            _lastAppliedData = null;
+            _pendingModReapply = false;
             Mediator.Publish(new PairDataAppliedMessage(Pair.UserData.UID, null));
             Logger.LogDebug("Disposing {name} complete", name);
         }
@@ -414,6 +429,8 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     {
         var name = PlayerName;
         Logger.LogDebug("Undoing application of {pair} (Name: {name})", Pair.UserData.UID, name);
+        _lastAppliedData = null;
+        _pendingModReapply = false;
         try
         {
             if (applicationId == Guid.Empty)
@@ -851,12 +868,15 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             return;
         }
 
-        if (string.Equals(charaData.DataHash.Value, _currentProcessingHash, StringComparison.Ordinal)
-            && !updatedData.Values.Any(v => v.Contains(PlayerChanges.ForcedRedraw)))
+        if (string.Equals(charaData.DataHash.Value, _lastAppliedData?.DataHash.Value ?? string.Empty, StringComparison.Ordinal)
+            && !updatedData.Values.Any(v => v.Contains(PlayerChanges.ForcedRedraw))
+            && !_pendingModReapply)
         {
-            Logger.LogDebug("[BASE-{appBase}] Already processing or applied hash {hash}, ignoring", applicationBase, charaData.DataHash.Value);
+            Logger.LogDebug("[BASE-{appBase}] Already applied hash {hash} and no pending reapply, ignoring", applicationBase, charaData.DataHash.Value);
             return;
         }
+
+        _pendingModReapply = false;
 
         var updateModdedPaths = updatedData.Values.Any(v => v.Any(p => p == PlayerChanges.ModFiles));
         var updateManip = updatedData.Values.Any(v => v.Any(p => p == PlayerChanges.ModManip));
@@ -877,8 +897,21 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
                 return;
             }
 
-            _currentProcessingHash = charaData.DataHash.Value;
-            await DownloadAndApplyCharacterAsync(applicationBase, charaData, updatedData, updateModdedPaths, updateManip, downloadToken).ConfigureAwait(false);
+            try
+            {
+                await DownloadAndApplyCharacterAsync(applicationBase, charaData, updatedData, updateModdedPaths, updateManip, downloadToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                _pendingModReapply = true;
+                RecordFailure("Téléchargement annulé", "Cancellation");
+            }
+            catch (Exception ex)
+            {
+                _pendingModReapply = true;
+                RecordFailure($"Échec de l'application: {ex.Message}", "Exception");
+                Logger.LogWarning(ex, "[BASE-{appBase}] DownloadAndApplyCharacterAsync failed, marking for reapply", applicationBase);
+            }
         }, downloadToken);
     }
     
@@ -964,6 +997,8 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
                 {
                     Pair.HoldApplication("IndividualPerformanceThreshold", maxValue: 1);
                     _downloadManager.ClearDownload();
+                    _pendingModReapply = true;
+                    RecordFailure("Seuil VRAM dépassé", "VRAMThreshold");
                     return;
                 }
 
@@ -975,6 +1010,8 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
                 if (downloadToken.IsCancellationRequested)
                 {
                     Logger.LogTrace("[BASE-{appBase}] Detected cancellation", applicationBase);
+                    _pendingModReapply = true;
+                    RecordFailure("Téléchargement annulé", "Cancellation");
                     return;
                 }
 
@@ -1009,6 +1046,8 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             if (exceedsThreshold)
             {
                 Logger.LogTrace("[BASE-{appBase}] Not applying due to performance thresholds", applicationBase);
+                _pendingModReapply = true;
+                RecordFailure("Seuils de performance dépassés", "PerformanceThreshold");
                 return;
             }
         }
@@ -1019,6 +1058,8 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             Mediator.Publish(new EventMessage(new Event(PlayerName, Pair.UserData, nameof(PairHandler), EventSeverity.Warning,
                 $"Not applying character data: {reasons}")));
             Logger.LogTrace("[BASE-{appBase}] Not applying due to hold: {reasons}", applicationBase, reasons);
+            _pendingModReapply = true;
+            RecordFailure($"Application bloquée: {reasons}", Pair.HoldApplicationReasons.ToArray());
             return;
         }
 
@@ -1045,11 +1086,17 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             _applicationCancellationTokenSource = _applicationCancellationTokenSource?.CancelRecreate() ?? new CancellationTokenSource();
         }
 
-        if (downloadToken.IsCancellationRequested) return;
+        if (downloadToken.IsCancellationRequested)
+        {
+            _pendingModReapply = true;
+            RecordFailure("Application annulée", "Cancellation");
+            return;
+        }
 
         var token = _applicationCancellationTokenSource.Token;
 
         _applicationTask = ApplyCharacterDataAsync(applicationBase, charaData, updatedData, updateModdedPaths, updateManip, moddedPaths, token);
+        await _applicationTask.ConfigureAwait(false);
     }
 
     private async Task ApplyCharacterDataAsync(Guid applicationBase, CharacterData charaData, Dictionary<ObjectKind, HashSet<PlayerChanges>> updatedData, bool updateModdedPaths, bool updateManip,
@@ -1109,34 +1156,94 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             }
 
             _cachedData = charaData;
+            _lastAppliedData = charaData;
+            _pendingModReapply = false;
             Mediator.Publish(new PairDataAppliedMessage(Pair.UserData.UID, charaData));
 
             Logger.LogDebug("[{applicationId}] Application finished", _applicationId);
             _lastSuccessfulApplyAt = DateTime.UtcNow;
+            ClearFailureState();
             IsVisible = true;
         }
         catch (OperationCanceledException)
         {
             Logger.LogDebug("[{applicationId}] Application cancelled for {handler}", _applicationId, this);
+            _pendingModReapply = true;
+            RecordFailure("Application annulée", "Cancellation");
             _cachedData = charaData;
             Mediator.Publish(new PairDataAppliedMessage(Pair.UserData.UID, charaData));
         }
         catch (Exception ex)
         {
-            _currentProcessingHash = string.Empty;
+            _pendingModReapply = true;
             if (ex is AggregateException aggr && aggr.InnerExceptions.Any(e => e is ArgumentNullException))
             {
                 IsVisible = false;
                 _forceApplyMods = true;
                 _cachedData = charaData;
                 Mediator.Publish(new PairDataAppliedMessage(Pair.UserData.UID, charaData));
+                RecordFailure("Joueur devenu null pendant l'application", "PlayerNull");
                 Logger.LogDebug("[{applicationId}] Cancelled, player turned null during application", _applicationId);
             }
             else
             {
-                Logger.LogWarning(ex, "[{applicationId}] Cancelled", _applicationId);
+                RecordFailure($"Échec de l'application: {ex.Message}", "Exception");
+                Logger.LogWarning(ex, "[{applicationId}] Application failed", _applicationId);
             }
         }
+    }
+
+    private bool HasMissingFiles(CharacterData data)
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var replacement in data.FileReplacements.SelectMany(k => k.Value))
+        {
+            if (!string.IsNullOrEmpty(replacement.FileSwapPath))
+                continue;
+
+            var hash = replacement.Hash;
+            if (string.IsNullOrWhiteSpace(hash) || !seen.Add(hash))
+                continue;
+
+            var fileCache = _fileDbManager.GetFileCacheByHash(hash);
+            if (fileCache is null || !File.Exists(fileCache.ResolvedFilepath))
+            {
+                if (fileCache is not null)
+                    _fileDbManager.RemoveHashedFile(fileCache.Hash, fileCache.PrefixedFilePath);
+
+                if (!_downloadManager.ForbiddenTransfers.Exists(f => string.Equals(f.Hash, hash, StringComparison.Ordinal)))
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void TryReapplyPendingData()
+    {
+        if (!_pendingModReapply || !IsVisible || (_applicationTask != null && !_applicationTask.IsCompleted))
+            return;
+
+        var now = DateTime.UtcNow;
+        if (_lastApplyAttemptAt.HasValue && now - _lastApplyAttemptAt.Value < TimeSpan.FromSeconds(5))
+            return;
+
+        var dataToApply = _cachedData ?? Pair.LastReceivedCharacterData;
+        if (dataToApply == null)
+            return;
+
+        Logger.LogDebug("Auto-retry: reapplying pending data for {handler} (pendingModReapply=true)", this);
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                ApplyCharacterData(Guid.NewGuid(), dataToApply, forceApplyCustomization: true);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to reapply pending data for {handler}", this);
+            }
+        });
     }
 
     private void UpdateVisibility(bool nowVisible, bool invalidate = false)
@@ -1211,6 +1318,9 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             {
                 Logger.LogTrace("{this} visibility changed, now: {visi}, no cached data exists", this, IsVisible);
             }
+
+            // Retry automatique si une application précédente a échoué
+            TryReapplyPendingData();
         }
         else if (IsVisible && !nowVisible)
         {

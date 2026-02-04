@@ -163,7 +163,9 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
 
     public int GetVisibleUserCount() => _allClientPairs.Count(p => p.Value.IsVisible);
 
-    public List<UserData> GetVisibleUsers() => _allClientPairs.Where(p => p.Value.IsVisible).Select(p => p.Key).ToList();
+    public List<UserData> GetVisibleUsers() => _allClientPairs
+        .Where(p => p.Value.IsVisible && p.Value.IsOnline)
+        .Select(p => p.Key).ToList();
 
     public void MarkPairOffline(UserData user)
     {
@@ -299,6 +301,8 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         }
 
         pair.ApplyLastReceivedData(forced: true);
+
+        Mediator.Publish(new PairOnlineMessage(dto.User));
 
         RecreateLazy();
     }
