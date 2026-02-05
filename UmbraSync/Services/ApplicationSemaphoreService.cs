@@ -1,9 +1,11 @@
+using System.Runtime.InteropServices;
 using UmbraSync.MareConfiguration;
 using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Logging;
 
 namespace UmbraSync.Services;
 
+[StructLayout(LayoutKind.Auto)]
 public readonly record struct ApplicationSemaphoreSnapshot(bool IsEnabled, int Limit, int InFlight, int Waiting)
 {
     public int Remaining => Math.Max(0, Limit - InFlight);
@@ -11,10 +13,10 @@ public readonly record struct ApplicationSemaphoreSnapshot(bool IsEnabled, int L
 
 public sealed class ApplicationSemaphoreService : DisposableMediatorSubscriberBase
 {
-    private const int HardLimit = 50;
+    private const int HardLimit = 10;
     private readonly MareConfigService _configService;
     private readonly SemaphoreSlim _semaphore;
-    private readonly object _limitLock = new();
+    private readonly Lock _limitLock = new();
     private int _currentLimit;
     private int _pendingReductions;
     private int _pendingIncrements;

@@ -8,7 +8,7 @@ public readonly record struct DownloadClaim(bool IsOwner, Task<bool> Completion)
 
 public sealed class FileDownloadDeduplicator : DisposableMediatorSubscriberBase
 {
-    private static readonly TimeSpan ClaimTimeout = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan ClaimTimeout = TimeSpan.FromMinutes(30);
     private readonly ConcurrentDictionary<string, TaskCompletionSource<bool>> _inFlight = new(StringComparer.Ordinal);
 
     public FileDownloadDeduplicator(ILogger<FileDownloadDeduplicator> logger, MareMediator mediator)

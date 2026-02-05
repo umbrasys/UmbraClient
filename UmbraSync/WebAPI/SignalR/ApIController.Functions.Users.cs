@@ -121,8 +121,8 @@ public partial class ApiController
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "Error during UserSetAlias");
-            throw;
+            Logger.LogWarning("Error during UserSetAlias: {Message}", ex.Message);
+            throw new InvalidOperationException("Failed to set user alias", ex);
         }
     }
 

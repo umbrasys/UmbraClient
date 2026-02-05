@@ -242,15 +242,7 @@ public class CompactUi : WindowMediatorSubscriberBase
 
         using (ImRaii.PushId("header")) DrawUIDHeader();
         using (ImRaii.PushId("serverstatus")) DrawServerStatus();
-        {
-            var hSepColor = UiSharedService.AccentColor with { W = 0.6f };
-            var hSepDrawList = ImGui.GetWindowDrawList();
-            var hSepCursor = ImGui.GetCursorScreenPos();
-            var hSepStart = new Vector2(hSepCursor.X, hSepCursor.Y);
-            var hSepEnd = new Vector2(hSepCursor.X + WindowContentWidth, hSepCursor.Y);
-            hSepDrawList.AddLine(hSepStart, hSepEnd, ImGui.GetColorU32(hSepColor), 1f * ImGuiHelpers.GlobalScale);
-            ImGuiHelpers.ScaledDummy(2f);
-        }
+        DrawAccentSeparator();
 
         DrawMainContent();
 
@@ -1697,6 +1689,17 @@ public class CompactUi : WindowMediatorSubscriberBase
         {
             return false;
         }
+    }
+
+    private void DrawAccentSeparator()
+    {
+        var hSepColor = UiSharedService.AccentColor with { W = 0.6f };
+        var hSepDrawList = ImGui.GetWindowDrawList();
+        var hSepCursor = ImGui.GetCursorScreenPos();
+        var hSepStart = new Vector2(hSepCursor.X, hSepCursor.Y);
+        var hSepEnd = new Vector2(hSepCursor.X + WindowContentWidth, hSepCursor.Y);
+        hSepDrawList.AddLine(hSepStart, hSepEnd, ImGui.GetColorU32(hSepColor), 1f * ImGuiHelpers.GlobalScale);
+        ImGuiHelpers.ScaledDummy(2f);
     }
 
     private void DrawServerStatus()

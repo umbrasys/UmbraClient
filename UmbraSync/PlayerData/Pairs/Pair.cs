@@ -26,7 +26,7 @@ public class Pair : DisposableMediatorSubscriberBase
     private readonly PairStateCache _pairStateCache;
     private CancellationTokenSource _applicationCts = new();
     private CancellationTokenSource? _handlerPollingCts = null;
-    private readonly object _pollingGate = new();
+    private readonly Lock _pollingGate = new();
     private OnlineUserIdentDto? _onlineUserIdentDto = null;
     private ushort? _worldId = null;
     private static readonly TimeSpan HandlerReadyTimeout = TimeSpan.FromMinutes(3);
@@ -312,7 +312,10 @@ public class Pair : DisposableMediatorSubscriberBase
         }
 
         // Annuler le polling précédent (ignorer les exceptions car le CTS peut déjà être disposé)
+        // On utilise Cancel() de manière synchrone intentionnellement car on ne veut pas attendre
+#pragma warning disable S6966 // Awaitable method should be used
         try { previousCts?.Cancel(); } catch (ObjectDisposedException) { /* Intentionnellement ignoré */ }
+#pragma warning restore S6966
         try { previousCts?.Dispose(); } catch (ObjectDisposedException) { /* Intentionnellement ignoré */ }
 
         cts.CancelAfter(HandlerReadyTimeout);

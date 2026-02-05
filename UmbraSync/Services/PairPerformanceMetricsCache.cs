@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Runtime.InteropServices;
 
 namespace UmbraSync.Services;
 
@@ -84,6 +85,7 @@ public sealed class PairPerformanceMetricsCache
     }
 }
 
+[StructLayout(LayoutKind.Auto)]
 public readonly record struct PairPerformanceMetrics(
     long TriangleCount,
     long ApproximateVramBytes);

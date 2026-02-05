@@ -49,10 +49,10 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     private Guid _deferred = Guid.Empty;
     private Guid _penumbraCollection = Guid.Empty;
     private bool _redrawOnNextApplication = false;
-    private readonly object _pauseLock = new();
+    private readonly Lock _pauseLock = new();
     private Task _pauseTransitionTask = Task.CompletedTask;
     private bool _pauseRequested = false;
-    private readonly object _visibilityGraceGate = new();
+    private readonly Lock _visibilityGraceGate = new();
     private CancellationTokenSource? _visibilityGraceCts;
     private static readonly TimeSpan VisibilityEvictionGrace = TimeSpan.FromMinutes(1);
     private DateTime? _invisibleSinceUtc;
@@ -887,9 +887,11 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
 
         _ = Task.Run(async () =>
         {
+#pragma warning disable MA0004 // ConfigureAwait on await using requires different syntax
             await using var semaphoreLease = await _applicationSemaphoreService
                 .AcquireAsync(downloadToken)
                 .ConfigureAwait(false);
+#pragma warning restore MA0004
             if ((updateModdedPaths || updateManip) && !hasOtherChanges && !_forceApplyMods)
             {
                 Logger.LogDebug("[BASE-{appBase}] Applying mod changes only - skipping full redraw", applicationBase);
