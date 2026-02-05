@@ -3321,4 +3321,63 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="EditProfile.SaveErrorBody" xml:space="preserve">
     <value>Une erreur est survenue lors de l'enregistrement de votre profil sur le serveur.</value>
   </data>
+
+  <!-- Cartes Syncshell -->
+  <data name="Syncshell.Cards.OnlineMembers" xml:space="preserve">
+    <value>{0} en ligne / {1} membres</value>
+  </data>
+  <data name="Syncshell.Cards.Paused" xml:space="preserve">
+    <value>En pause</value>
+  </data>
+  <data name="Syncshell.Cards.ShowMembers" xml:space="preserve">
+    <value>Afficher la liste des membres</value>
+  </data>
+  <data name="Syncshell.Cards.PauseTooltip" xml:space="preserve">
+    <value>{0} le pairing avec tous les utilisateurs de cette Syncshell</value>
+  </data>
+  <data name="Syncshell.Cards.Resume" xml:space="preserve">
+    <value>Reprendre</value>
+  </data>
+  <data name="Syncshell.Cards.Pause" xml:space="preserve">
+    <value>Mettre en pause</value>
+  </data>
+  <data name="Syncshell.Cards.VfxEnabled" xml:space="preserve">
+    <value>Sync VFX activée - Cliquez pour désactiver</value>
+  </data>
+  <data name="Syncshell.Cards.VfxDisabled" xml:space="preserve">
+    <value>Sync VFX désactivée - Cliquez pour activer</value>
+  </data>
+  <data name="Syncshell.Cards.SoundEnabled" xml:space="preserve">
+    <value>Sync son activée - Cliquez pour désactiver</value>
+  </data>
+  <data name="Syncshell.Cards.SoundDisabled" xml:space="preserve">
+    <value>Sync son désactivée - Cliquez pour activer</value>
+  </data>
+  <data name="Syncshell.Cards.AnimEnabled" xml:space="preserve">
+    <value>Sync animations activée - Cliquez pour désactiver</value>
+  </data>
+  <data name="Syncshell.Cards.AnimDisabled" xml:space="preserve">
+    <value>Sync animations désactivée - Cliquez pour activer</value>
+  </data>
+  <data name="Syncshell.Cards.Notification.Title" xml:space="preserve">
+    <value>Syncshell : {0}</value>
+  </data>
+  <data name="Syncshell.Cards.Notification.VfxEnabled" xml:space="preserve">
+    <value>Sync VFX activée pour {0} membre(s).</value>
+  </data>
+  <data name="Syncshell.Cards.Notification.VfxDisabled" xml:space="preserve">
+    <value>Sync VFX désactivée pour {0} membre(s).</value>
+  </data>
+  <data name="Syncshell.Cards.Notification.SoundEnabled" xml:space="preserve">
+    <value>Sync son activée pour {0} membre(s).</value>
+  </data>
+  <data name="Syncshell.Cards.Notification.SoundDisabled" xml:space="preserve">
+    <value>Sync son désactivée pour {0} membre(s).</value>
+  </data>
+  <data name="Syncshell.Cards.Notification.AnimEnabled" xml:space="preserve">
+    <value>Sync animations activée pour {0} membre(s).</value>
+  </data>
+  <data name="Syncshell.Cards.Notification.AnimDisabled" xml:space="preserve">
+    <value>Sync animations désactivée pour {0} membre(s).</value>
+  </data>
 </root>

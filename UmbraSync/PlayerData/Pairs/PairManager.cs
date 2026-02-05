@@ -619,6 +619,9 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
             return;
         }
 
+
+        var pairsInGroup = GroupPairs.TryGetValue(groupInfo, out var pairs) ? pairs : new List<Pair>();
+
         var prevPermissions = groupInfo.GroupPermissions;
         groupInfo.GroupPermissions = dto.Permissions;
 
@@ -630,10 +633,8 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         if (pauseChanged || filterChanged)
         {
             RecreateLazyDebounced();
-
-            // Collecter les paires à traiter
             var pairsToReapply = new List<Pair>();
-            foreach (var p in GroupPairs[groupInfo])
+            foreach (var p in pairsInGroup)
             {
                 if (!p.IsPaused)
                 {
@@ -675,6 +676,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
             Logger.LogDebug("No group found for {dto}, ignoring group user permissions update", dto);
             return;
         }
+        var pairsInGroup = GroupPairs.TryGetValue(groupInfo, out var pairs) ? pairs : new List<Pair>();
         var prevPermissions = groupInfo.GroupUserPermissions;
         groupInfo.GroupUserPermissions = dto.GroupPairPermissions;
 
@@ -689,7 +691,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
 
             // Collecter les paires à traiter
             var pairsToReapply = new List<Pair>();
-            foreach (var p in GroupPairs[groupInfo])
+            foreach (var p in pairsInGroup)
             {
                 // Our permissions in the group changed. This affects what we can see/hear from others.
                 // We only need to reapply data for the others based on our NEW filters.

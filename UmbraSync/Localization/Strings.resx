@@ -3439,4 +3439,63 @@ Click to change.</value>
   <data name="EditProfile.SaveErrorBody" xml:space="preserve">
     <value>An error occurred while saving your profile on the server.</value>
   </data>
+
+  <!-- Syncshell Cards -->
+  <data name="Syncshell.Cards.OnlineMembers" xml:space="preserve">
+    <value>{0} online / {1} members</value>
+  </data>
+  <data name="Syncshell.Cards.Paused" xml:space="preserve">
+    <value>Paused</value>
+  </data>
+  <data name="Syncshell.Cards.ShowMembers" xml:space="preserve">
+    <value>Show members list</value>
+  </data>
+  <data name="Syncshell.Cards.PauseTooltip" xml:space="preserve">
+    <value>{0} pairing with all users in this Syncshell</value>
+  </data>
+  <data name="Syncshell.Cards.Resume" xml:space="preserve">
+    <value>Resume</value>
+  </data>
+  <data name="Syncshell.Cards.Pause" xml:space="preserve">
+    <value>Pause</value>
+  </data>
+  <data name="Syncshell.Cards.VfxEnabled" xml:space="preserve">
+    <value>VFX sync enabled - Click to disable</value>
+  </data>
+  <data name="Syncshell.Cards.VfxDisabled" xml:space="preserve">
+    <value>VFX sync disabled - Click to enable</value>
+  </data>
+  <data name="Syncshell.Cards.SoundEnabled" xml:space="preserve">
+    <value>Sound sync enabled - Click to disable</value>
+  </data>
+  <data name="Syncshell.Cards.SoundDisabled" xml:space="preserve">
+    <value>Sound sync disabled - Click to enable</value>
+  </data>
+  <data name="Syncshell.Cards.AnimEnabled" xml:space="preserve">
+    <value>Animation sync enabled - Click to disable</value>
+  </data>
+  <data name="Syncshell.Cards.AnimDisabled" xml:space="preserve">
+    <value>Animation sync disabled - Click to enable</value>
+  </data>
+  <data name="Syncshell.Cards.Notification.Title" xml:space="preserve">
+    <value>Syncshell: {0}</value>
+  </data>
+  <data name="Syncshell.Cards.Notification.VfxEnabled" xml:space="preserve">
+    <value>VFX sync enabled for {0} member(s).</value>
+  </data>
+  <data name="Syncshell.Cards.Notification.VfxDisabled" xml:space="preserve">
+    <value>VFX sync disabled for {0} member(s).</value>
+  </data>
+  <data name="Syncshell.Cards.Notification.SoundEnabled" xml:space="preserve">
+    <value>Sound sync enabled for {0} member(s).</value>
+  </data>
+  <data name="Syncshell.Cards.Notification.SoundDisabled" xml:space="preserve">
+    <value>Sound sync disabled for {0} member(s).</value>
+  </data>
+  <data name="Syncshell.Cards.Notification.AnimEnabled" xml:space="preserve">
+    <value>Animation sync enabled for {0} member(s).</value>
+  </data>
+  <data name="Syncshell.Cards.Notification.AnimDisabled" xml:space="preserve">
+    <value>Animation sync disabled for {0} member(s).</value>
+  </data>
 </root>

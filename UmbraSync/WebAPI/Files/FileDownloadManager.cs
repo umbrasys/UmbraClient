@@ -623,10 +623,21 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
             var requestIdResponse = await _orchestrator.SendRequestAsync(HttpMethod.Post, MareFiles.RequestEnqueueFullPath(firstFile.DownloadUri),
                 fileGroup.Select(c => c.Hash), token).ConfigureAwait(false);
             var fileCount = fileGroup.Count();
-            Logger.LogDebug("Sent request for {n} files on server {uri} with result {result}", fileCount, firstFile.DownloadUri,
-                await requestIdResponse.Content.ReadAsStringAsync(token).ConfigureAwait(false));
+            var responseBody = await requestIdResponse.Content.ReadAsStringAsync(token).ConfigureAwait(false);
+            Logger.LogInformation("Sent request for {n} files on server {uri} with result {result}", fileCount, firstFile.DownloadUri,
+                responseBody);
 
-            Guid requestId = Guid.Parse((await requestIdResponse.Content.ReadAsStringAsync().ConfigureAwait(false)).Trim('"'));
+            if (!requestIdResponse.IsSuccessStatusCode)
+            {
+                Logger.LogError("CDN enqueue request failed with status {status}: {body}", requestIdResponse.StatusCode, responseBody);
+                return;
+            }
+
+            if (!Guid.TryParse(responseBody.Trim('"'), out Guid requestId))
+            {
+                Logger.LogError("CDN enqueue request returned invalid GUID: {body}", responseBody);
+                return;
+            }
 
             Logger.LogDebug("GUID {requestId} for {n} files on server {uri}", requestId, fileCount, firstFile.DownloadUri);
 
