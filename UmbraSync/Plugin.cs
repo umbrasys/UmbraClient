@@ -136,6 +136,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton<DalamudUtilService>();
             collection.AddSingleton<DtrEntry>();
             collection.AddSingleton<PairManager>();
+            collection.AddSingleton<PairHandlerRegistry>();
             collection.AddSingleton<PairStateCache>();
             collection.AddSingleton<PairLedger>();
             collection.AddSingleton<RedrawManager>();

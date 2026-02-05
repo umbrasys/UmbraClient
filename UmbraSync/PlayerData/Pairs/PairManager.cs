@@ -26,7 +26,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
     private readonly ConcurrentDictionary<GroupData, GroupFullInfoDto> _allGroups = new(GroupDataComparer.Instance);
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _pendingOffline = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, OnlineUserCharaDataDto> _pendingCharacterData = new(StringComparer.Ordinal);
-    private static readonly TimeSpan OfflineDebounce = TimeSpan.FromSeconds(6);
+    private static readonly TimeSpan OfflineDebounce = TimeSpan.FromSeconds(2);
     private readonly ConcurrentQueue<DateTime> _offlineBurstEvents = new();
     private static readonly TimeSpan OfflineBurstWindow = TimeSpan.FromSeconds(1);
     private const int OfflineBurstThreshold = 5;
@@ -40,6 +40,17 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
     private readonly Lazy<ApiController> _apiController;
     private Lazy<List<Pair>> _directPairsInternal;
     private Lazy<Dictionary<GroupFullInfoDto, List<Pair>>> _groupPairsInternal;
+    private static readonly TimeSpan LazyRecreateDebounce = TimeSpan.FromMilliseconds(150);
+    private CancellationTokenSource? _lazyRecreateDebounceCts;
+    private readonly Lock _lazyRecreateLock = new();
+    private bool _lazyRecreateScheduled;
+    private int _pendingLazyRecreateCount;
+    private static readonly TimeSpan GroupReapplyThrottleDelay = TimeSpan.FromMilliseconds(100);
+    private const int MaxConcurrentGroupReapplies = 5;
+    private readonly ConcurrentQueue<Pair> _pendingGroupReapplies = new();
+    private CancellationTokenSource? _groupReapplyCts;
+    private readonly Lock _groupReapplyLock = new();
+    private bool _groupReapplyProcessing;
 
     public PairManager(ILogger<PairManager> logger, PairFactory pairFactory,
                 MareConfigService configurationService, MareMediator mediator,
@@ -70,7 +81,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
     public void AddGroup(GroupFullInfoDto dto)
     {
         _allGroups[dto.Group] = dto;
-        RecreateLazy();
+        RecreateLazyDebounced();
     }
 
     public void AddGroupPair(GroupPairFullInfoDto dto, bool isInitialLoad = false)
@@ -92,7 +103,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
             Mediator.Publish(new PlayerVisibilityMessage(pair.Ident, IsVisible: false, Invalidate: true));
         }
 
-        RecreateLazy();
+        RecreateLazyDebounced();
 
         if (!isInitialLoad)
         {
@@ -137,7 +148,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
             Mediator.Publish(new PlayerVisibilityMessage(pair.Ident, IsVisible: false, Invalidate: true));
         }
 
-        RecreateLazy();
+        RecreateLazyDebounced();
 
         if (addToLastAddedUser)
         {
@@ -153,7 +164,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         _allGroups.Clear();
         _pendingCharacterData.Clear();
         LastAddedUser = null;
-        RecreateLazy();
+        RecreateLazyImmediate(); // Immédiat car nettoyage complet
     }
 
     public List<Pair> GetOnlineUserPairs() => _allClientPairs
@@ -222,7 +233,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
                 Mediator.Publish(new ClearProfileDataMessage(pair.UserData));
                 pair.MarkOffline();
 
-                RecreateLazy();
+                RecreateLazyDebounced();
             }
             catch (OperationCanceledException)
             {
@@ -282,7 +293,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
             if (Logger.IsEnabled(LogLevel.Trace))
                 Logger.LogTrace("Player {uid} already has cached player, forcing reapplication of data", dto.User.UID);
             pair.ApplyLastReceivedData(forced: true);
-            RecreateLazy();
+            RecreateLazyImmediate(); // Immédiat pour la réactivité lors de la connexion
             return;
         }
         pair.CreateCachedPlayer(dto);
@@ -304,7 +315,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
 
         Mediator.Publish(new PairOnlineMessage(dto.User));
 
-        RecreateLazy();
+        RecreateLazyImmediate(); // Immédiat pour la réactivité lors de la connexion
     }
 
     public void ReceiveCharaData(OnlineUserCharaDataDto dto)
@@ -353,7 +364,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
             }
         }
 
-        RecreateLazy();
+        RecreateLazyDebounced();
     }
 
     public void RemoveGroupPair(GroupPairDto dto)
@@ -370,7 +381,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
             }
         }
 
-        RecreateLazy();
+        RecreateLazyDebounced();
     }
 
     public void RemoveUserPair(UserDto dto)
@@ -386,7 +397,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
             }
         }
 
-        RecreateLazy();
+        RecreateLazyDebounced();
     }
 
     public void SetGroupInfo(GroupInfoDto dto)
@@ -405,7 +416,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         groupInfo.IsTemporary = dto.IsTemporary;
         groupInfo.ExpiresAt = dto.ExpiresAt;
 
-        RecreateLazy();
+        RecreateLazyDebounced();
     }
 
     public void UpdatePairPermissions(UserPermissionsDto dto)
@@ -460,7 +471,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
             }
         }
 
-        RecreateLazy();
+        RecreateLazyDebounced();
     }
 
     public void UpdateSelfPairPermissions(UserPermissionsDto dto)
@@ -515,7 +526,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
             }
         }
 
-        RecreateLazy();
+        RecreateLazyDebounced();
     }
 
     internal void ReceiveUploadStatus(UserDto dto)
@@ -548,7 +559,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         }
 
         groupPair.GroupPairStatusInfo = dto.GroupUserInfo;
-        RecreateLazy();
+        RecreateLazyDebounced();
     }
 
     internal void SetGroupPairUserPermissions(GroupPairUserPermissionDto dto)
@@ -597,7 +608,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
                 Mediator.Publish(new PlayerVisibilityMessage(pair.Ident, IsVisible: false, Invalidate: true));
             }
         }
-        RecreateLazy();
+        RecreateLazyDebounced();
     }
 
     internal void SetGroupPermissions(GroupPermissionDto dto)
@@ -618,14 +629,16 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
 
         if (pauseChanged || filterChanged)
         {
-            RecreateLazy();
+            RecreateLazyDebounced();
+
+            // Collecter les paires à traiter
+            var pairsToReapply = new List<Pair>();
             foreach (var p in GroupPairs[groupInfo])
             {
                 if (!p.IsPaused)
                 {
                     CancelPendingOffline(p.UserData.UID);
-                    Logger.LogDebug("SetGroupPermissions: triggering forced reapplication for {uid} in group {gid}", p.UserData.UID, groupInfo.Group.GID);
-                    p.ApplyLastReceivedData(forced: true);
+                    pairsToReapply.Add(p);
                 }
                 else if (pauseChanged && p.IsPaused)
                 {
@@ -633,8 +646,15 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
                     Mediator.Publish(new PlayerVisibilityMessage(p.Ident, IsVisible: false, Invalidate: true));
                 }
             }
+
+            // Utiliser le throttling pour les réapplications
+            if (pairsToReapply.Count > 0)
+            {
+                Logger.LogDebug("SetGroupPermissions: queueing {count} pairs for throttled reapplication in group {gid}", pairsToReapply.Count, groupInfo.Group.GID);
+                QueueGroupReapplication(pairsToReapply);
+            }
         }
-        RecreateLazy();
+        RecreateLazyDebounced();
     }
 
     internal void SetGroupStatusInfo(GroupPairUserInfoDto dto)
@@ -645,7 +665,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
             return;
         }
         groupInfo.GroupUserInfo = dto.GroupUserInfo;
-        RecreateLazy();
+        RecreateLazyDebounced();
     }
 
     internal void SetGroupUserPermissions(GroupPairUserPermissionDto dto)
@@ -665,7 +685,10 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
 
         if (pauseChanged || filterChanged)
         {
-            RecreateLazy();
+            RecreateLazyDebounced();
+
+            // Collecter les paires à traiter
+            var pairsToReapply = new List<Pair>();
             foreach (var p in GroupPairs[groupInfo])
             {
                 // Our permissions in the group changed. This affects what we can see/hear from others.
@@ -673,20 +696,26 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
                 if (!p.IsPaused)
                 {
                     CancelPendingOffline(p.UserData.UID);
-                    Logger.LogDebug("SetGroupUserPermissions: triggering forced reapplication for {uid} in group {gid} (reason: self filters changed)", p.UserData.UID, groupInfo.Group.GID);
-                    p.ApplyLastReceivedData(forced: true);
+                    pairsToReapply.Add(p);
                 }
                 else if (pauseChanged && p.IsPaused)
                 {
                     // If we paused ourselves in the group, we might want to hide others if we were only visible through this group.
-                    // But usually p.IsPaused includes many things. 
+                    // But usually p.IsPaused includes many things.
                     // To be safe and avoid flickers, we only invalidate if the global pause state for this pair actually changed to true.
                     Logger.LogDebug("SetGroupUserPermissions: triggering invalidation for {uid} in group {gid}", p.UserData.UID, groupInfo.Group.GID);
                     Mediator.Publish(new PlayerVisibilityMessage(p.Ident, IsVisible: false, Invalidate: true));
                 }
             }
+
+            // Utiliser le throttling pour les réapplications
+            if (pairsToReapply.Count > 0)
+            {
+                Logger.LogDebug("SetGroupUserPermissions: queueing {count} pairs for throttled reapplication in group {gid}", pairsToReapply.Count, groupInfo.Group.GID);
+                QueueGroupReapplication(pairsToReapply);
+            }
         }
-        RecreateLazy();
+        RecreateLazyDebounced();
     }
 
     protected override void Dispose(bool disposing)
@@ -694,6 +723,12 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         base.Dispose(disposing);
 
         _dalamudContextMenu.OnMenuOpened -= DalamudContextMenuOnOnOpenGameObjectContextMenu;
+
+        // Nettoyer les CancellationTokenSource pour le batching
+        _lazyRecreateDebounceCts?.Cancel();
+        _lazyRecreateDebounceCts?.Dispose();
+        _groupReapplyCts?.Cancel();
+        _groupReapplyCts?.Dispose();
 
         DisposePairs();
     }
@@ -846,7 +881,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
             item.Value.MarkOffline(wait: false);
         });
 
-        RecreateLazy();
+        RecreateLazyImmediate(); // Immédiat car nettoyage
     }
 
     private Lazy<Dictionary<GroupFullInfoDto, List<Pair>>> GroupPairsLazy()
@@ -861,11 +896,159 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
             return outDict;
         });
     }
-
-    private void RecreateLazy()
+    
+    private void RecreateLazyImmediate()
     {
         _directPairsInternal = DirectPairsLazy();
         _groupPairsInternal = GroupPairsLazy();
+    }
+    
+    private void RecreateLazyDebounced()
+    {
+        lock (_lazyRecreateLock)
+        {
+            _pendingLazyRecreateCount++;
+
+            if (_lazyRecreateScheduled)
+            {
+                // Un recalcul est déjà programmé
+                return;
+            }
+
+            _lazyRecreateScheduled = true;
+            _lazyRecreateDebounceCts?.Cancel();
+            _lazyRecreateDebounceCts?.Dispose();
+            _lazyRecreateDebounceCts = new CancellationTokenSource();
+            var token = _lazyRecreateDebounceCts.Token;
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(LazyRecreateDebounce, token).ConfigureAwait(false);
+
+                    int coalesced;
+                    lock (_lazyRecreateLock)
+                    {
+                        coalesced = _pendingLazyRecreateCount;
+                        _pendingLazyRecreateCount = 0;
+                        _lazyRecreateScheduled = false;
+                    }
+
+                    RecreateLazyImmediate();
+
+                    if (coalesced > 1 && Logger.IsEnabled(LogLevel.Debug))
+                    {
+                        Logger.LogDebug("RecreateLazy coalesced {count} state changes into single update", coalesced);
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    // Annulé par un nouveau changement
+                }
+            }, token);
+        }
+    }
+    
+    private void QueueGroupReapplication(IEnumerable<Pair> pairs)
+    {
+        foreach (var pair in pairs)
+        {
+            if (!pair.IsPaused)
+            {
+                CancelPendingOffline(pair.UserData.UID);
+                _pendingGroupReapplies.Enqueue(pair);
+            }
+        }
+
+        StartGroupReapplyProcessingIfNeeded();
+    }
+
+    private void StartGroupReapplyProcessingIfNeeded()
+    {
+        lock (_groupReapplyLock)
+        {
+            if (_groupReapplyProcessing || _pendingGroupReapplies.IsEmpty)
+                return;
+
+            _groupReapplyProcessing = true;
+            _groupReapplyCts?.Cancel();
+            _groupReapplyCts?.Dispose();
+            _groupReapplyCts = new CancellationTokenSource();
+            var token = _groupReapplyCts.Token;
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await ProcessGroupReappliesAsync(token).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Error during group reapplication processing");
+                }
+                finally
+                {
+                    lock (_groupReapplyLock)
+                    {
+                        _groupReapplyProcessing = false;
+                    }
+                }
+            }, token);
+        }
+    }
+
+    private async Task ProcessGroupReappliesAsync(CancellationToken token)
+    {
+        int processed = 0;
+        var batch = new List<Pair>();
+
+        while (!token.IsCancellationRequested && _pendingGroupReapplies.TryDequeue(out var pair))
+        {
+            // Vérifier que le pair est toujours valide et non-pausé
+            if (pair.IsPaused || pair.Handler == null)
+                continue;
+
+            batch.Add(pair);
+
+            // Traiter par batch de MaxConcurrentGroupReapplies
+            if (batch.Count >= MaxConcurrentGroupReapplies)
+            {
+                await ProcessBatchAsync(batch, token).ConfigureAwait(false);
+                processed += batch.Count;
+                batch.Clear();
+                await Task.Delay(GroupReapplyThrottleDelay, token).ConfigureAwait(false);
+            }
+        }
+
+        // Traiter le reste
+        if (batch.Count > 0)
+        {
+            await ProcessBatchAsync(batch, token).ConfigureAwait(false);
+            processed += batch.Count;
+        }
+
+        if (processed > 0)
+            Logger.LogDebug("Processed {count} group reapplications with throttling", processed);
+    }
+
+    private async Task ProcessBatchAsync(List<Pair> batch, CancellationToken token)
+    {
+        var tasks = batch.Select(p => Task.Run(() =>
+        {
+            try
+            {
+                if (Logger.IsEnabled(LogLevel.Debug))
+                    Logger.LogDebug("QueuedGroupReapply: triggering reapplication for {uid}", p.UserData.UID);
+                p.ApplyLastReceivedData(forced: true);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Failed to reapply data for {uid} during group permission change", p.UserData.UID);
+            }
+        }, token));
+
+        await Task.WhenAll(tasks).ConfigureAwait(false);
     }
 
     private static readonly CompareInfo CompareInfo = CultureInfo.InvariantCulture.CompareInfo;

@@ -528,7 +528,7 @@ public class Pair : DisposableMediatorSubscriberBase
 
     internal void SetIsUploading()
     {
-        CachedPlayer?.SetUploading();
+        CachedPlayer?.SetUploading(true);
     }
 
     public void HoldApplication(string source, int maxValue = int.MaxValue)
