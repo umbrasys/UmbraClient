@@ -58,7 +58,7 @@
   </resheader>
   <!-- Infobulles des permissions (manquantes auparavant) -->
   <data name="GroupPair.Permissions.Header" xml:space="preserve">
-    <value>Restrictions par paire</value>
+    <value>Synchronisation désactivée</value>
   </data>
   <data name="GroupPair.Permissions.SoundDisabled" xml:space="preserve">
     <value>{0} a désactivé les sons pour cette paire.</value>
@@ -71,6 +71,19 @@
   </data>
   <data name="GroupPair.Permissions.StatusLine" xml:space="preserve">
     <value>Vous : {0} • Lui/Elle : {1}</value>
+  </data>
+
+  <data name="GroupPair.Permissions.SyncshellOnly" xml:space="preserve">
+    <value>Synchronisé via Syncshell uniquement</value>
+  </data>
+  <data name="GroupPair.Permissions.SoundLabel" xml:space="preserve">
+    <value>Synchro son désactivée</value>
+  </data>
+  <data name="GroupPair.Permissions.AnimLabel" xml:space="preserve">
+    <value>Synchro animations désactivée</value>
+  </data>
+  <data name="GroupPair.Permissions.VfxLabel" xml:space="preserve">
+    <value>Synchro VFX désactivée</value>
   </data>
 
   <!-- Restrictions au niveau de la Syncshell -->
@@ -3379,5 +3392,56 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   </data>
   <data name="Syncshell.Cards.Notification.AnimDisabled" xml:space="preserve">
     <value>Sync animations désactivée pour {0} membre(s).</value>
+  </data>
+  <data name="Syncshell.Members.WindowTitle" xml:space="preserve">
+    <value>Membres - {0}</value>
+  </data>
+  <data name="Syncshell.Members.OnlineTotal" xml:space="preserve">
+    <value>En ligne : {0} / Total : {1}</value>
+  </data>
+  <data name="Syncshell.Members.OnlineSection" xml:space="preserve">
+    <value>En ligne ({0})</value>
+  </data>
+  <data name="Syncshell.Members.OfflineSection" xml:space="preserve">
+    <value>Hors ligne ({0})</value>
+  </data>
+  <data name="Syncshell.Join.ModalTitle" xml:space="preserve">
+    <value>Rejoindre une Syncshell</value>
+  </data>
+  <data name="Syncshell.Join.Warning" xml:space="preserve">
+    <value>Avant de rejoindre une Syncshell, sachez que vous serez automatiquement appairé avec tous les membres de la Syncshell.</value>
+  </data>
+  <data name="Syncshell.Join.PasswordPlaceholder" xml:space="preserve">
+    <value>Mot de passe</value>
+  </data>
+  <data name="Syncshell.Members.Leave" xml:space="preserve">
+    <value>Quitter</value>
+  </data>
+  <data name="Syncshell.Members.LeaveConfirm" xml:space="preserve">
+    <value>Êtes-vous sûr de vouloir quitter la Syncshell « {0} » ?</value>
+  </data>
+  <data name="Syncshell.Members.LeaveOwnerWarning" xml:space="preserve">
+    <value>ATTENTION : Vous êtes le propriétaire de cette Syncshell. La quitter transférera la propriété à un membre aléatoire. Cette action est irréversible.</value>
+  </data>
+  <data name="Syncshell.Members.LeaveConfirmButton" xml:space="preserve">
+    <value>Confirmer</value>
+  </data>
+  <data name="Syncshell.Members.LeaveCancelButton" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  <data name="Syncshell.Button.Create" xml:space="preserve">
+    <value>Créer</value>
+  </data>
+  <data name="Syncshell.Button.Join" xml:space="preserve">
+    <value>Rejoindre</value>
+  </data>
+  <data name="Syncshell.Join.GidPlaceholder" xml:space="preserve">
+    <value>ID ou alias de la Syncshell</value>
+  </data>
+  <data name="Syncshell.Filter.Placeholder" xml:space="preserve">
+    <value>Filtrer les syncshells par membre...</value>
+  </data>
+  <data name="Syncshell.Members.Filter.Placeholder" xml:space="preserve">
+    <value>Rechercher un membre...</value>
   </data>
 </root>

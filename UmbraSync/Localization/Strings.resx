@@ -73,6 +73,19 @@
     <value>You: {0} • Them: {1}</value>
   </data>
 
+  <data name="GroupPair.Permissions.SyncshellOnly" xml:space="preserve">
+    <value>Synced via Syncshell only</value>
+  </data>
+  <data name="GroupPair.Permissions.SoundLabel" xml:space="preserve">
+    <value>Sound sync disabled</value>
+  </data>
+  <data name="GroupPair.Permissions.AnimLabel" xml:space="preserve">
+    <value>Animation sync disabled</value>
+  </data>
+  <data name="GroupPair.Permissions.VfxLabel" xml:space="preserve">
+    <value>VFX sync disabled</value>
+  </data>
+
   <!-- Permissions tooltips for syncshell-level restrictions -->
   <data name="GroupPair.SyncshellPermissions.Header" xml:space="preserve">
     <value>Syncshell restrictions</value>
@@ -818,13 +831,13 @@ Please keep a copy of your secret key in case you need to reset your plugins, or
     <value>You cannot create more than {0} Syncshells</value>
   </data>
   <data name="Syncshell.Tooltip.JoinAllowed" xml:space="preserve">
-    <value>Join Syncshell {0}</value>
+    <value>Join a Syncshell</value>
   </data>
   <data name="Syncshell.Tooltip.JoinDenied" xml:space="preserve">
     <value>You cannot join more than {0} Syncshells</value>
   </data>
   <data name="Syncshell.Join.ModalTitle" xml:space="preserve">
-    <value>Enter Syncshell Password</value>
+    <value>Join a Syncshell</value>
   </data>
   <data name="Syncshell.Join.Warning" xml:space="preserve">
     <value>Before joining any Syncshells please be aware that you will be automatically paired with everyone in the Syncshell.</value>
@@ -833,7 +846,7 @@ Please keep a copy of your secret key in case you need to reset your plugins, or
     <value>Enter the password for Syncshell {0}:</value>
   </data>
   <data name="Syncshell.Join.PasswordPlaceholder" xml:space="preserve">
-    <value>{0} Password</value>
+    <value>Password</value>
   </data>
   <data name="Syncshell.Join.Error" xml:space="preserve">
     <value>An error occurred during joining of this Syncshell: you either have joined the maximum amount of Syncshells ({0}), it does not exist, the password you entered is wrong, you already joined the Syncshell, the Syncshell is full ({1} users) or the Syncshell has closed invites.</value>
@@ -3497,5 +3510,47 @@ Click to change.</value>
   </data>
   <data name="Syncshell.Cards.Notification.AnimDisabled" xml:space="preserve">
     <value>Animation sync disabled for {0} member(s).</value>
+  </data>
+  <data name="Syncshell.Members.WindowTitle" xml:space="preserve">
+    <value>Members - {0}</value>
+  </data>
+  <data name="Syncshell.Members.OnlineTotal" xml:space="preserve">
+    <value>Online: {0} / Total: {1}</value>
+  </data>
+  <data name="Syncshell.Members.OnlineSection" xml:space="preserve">
+    <value>Online ({0})</value>
+  </data>
+  <data name="Syncshell.Members.OfflineSection" xml:space="preserve">
+    <value>Offline ({0})</value>
+  </data>
+  <data name="Syncshell.Members.Leave" xml:space="preserve">
+    <value>Leave</value>
+  </data>
+  <data name="Syncshell.Members.LeaveConfirm" xml:space="preserve">
+    <value>Are you sure you want to leave the Syncshell "{0}"?</value>
+  </data>
+  <data name="Syncshell.Members.LeaveOwnerWarning" xml:space="preserve">
+    <value>WARNING: You are the owner of this Syncshell. Leaving will transfer ownership to a random member. This action is irreversible.</value>
+  </data>
+  <data name="Syncshell.Members.LeaveConfirmButton" xml:space="preserve">
+    <value>Confirm Leave</value>
+  </data>
+  <data name="Syncshell.Members.LeaveCancelButton" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Syncshell.Button.Create" xml:space="preserve">
+    <value>Create</value>
+  </data>
+  <data name="Syncshell.Button.Join" xml:space="preserve">
+    <value>Join</value>
+  </data>
+  <data name="Syncshell.Join.GidPlaceholder" xml:space="preserve">
+    <value>Syncshell ID or alias</value>
+  </data>
+  <data name="Syncshell.Filter.Placeholder" xml:space="preserve">
+    <value>Filter syncshells by member...</value>
+  </data>
+  <data name="Syncshell.Members.Filter.Placeholder" xml:space="preserve">
+    <value>Search members...</value>
   </data>
 </root>

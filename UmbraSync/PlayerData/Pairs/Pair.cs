@@ -578,6 +578,8 @@ public class Pair : DisposableMediatorSubscriberBase
             return data;
         }
 
+        var localOverride = _mareConfig.Current.PairSyncOverrides.TryGetValue(UserData.UID, out var ov) ? ov : null;
+
         var ActiveGroupPairs = GroupPair.Where(p => !p.Key.GroupUserPermissions.IsPaused()).ToList();
         bool disableIndividualAnimations = UserPair != null && UserPair.OwnPermissions.IsDisableAnimations();
         bool disableIndividualVFX = UserPair != null && UserPair.OwnPermissions.IsDisableVFX();
@@ -585,9 +587,12 @@ public class Pair : DisposableMediatorSubscriberBase
         bool disableGroupAnimations = ActiveGroupPairs.Any() && ActiveGroupPairs.All(pair => pair.Key.GroupPermissions.IsDisableAnimations() || pair.Key.GroupUserPermissions.IsDisableAnimations());
         bool disableGroupSounds = ActiveGroupPairs.Any() && ActiveGroupPairs.All(pair => pair.Key.GroupPermissions.IsDisableSounds() || pair.Key.GroupUserPermissions.IsDisableSounds());
         bool disableGroupVFX = ActiveGroupPairs.Any() && ActiveGroupPairs.All(pair => pair.Key.GroupPermissions.IsDisableVFX() || pair.Key.GroupUserPermissions.IsDisableVFX());
-        bool disableAnimations = (UserPair != null && disableIndividualAnimations) || (UserPair == null && disableGroupAnimations);
-        bool disableSounds = (UserPair != null && disableIndividualSounds) || (UserPair == null && disableGroupSounds);
-        bool disableVFX = (UserPair != null && disableIndividualVFX) || (UserPair == null && disableGroupVFX);
+        bool disableAnimations = localOverride?.DisableAnimations
+            ?? ((UserPair != null && disableIndividualAnimations) || (UserPair == null && disableGroupAnimations));
+        bool disableSounds = localOverride?.DisableSounds
+            ?? ((UserPair != null && disableIndividualSounds) || (UserPair == null && disableGroupSounds));
+        bool disableVFX = localOverride?.DisableVfx
+            ?? ((UserPair != null && disableIndividualVFX) || (UserPair == null && disableGroupVFX));
 
         _logger.LogTrace("Disable: Sounds: {disableSounds}, Anims: {disableAnimations}, VFX: {disableVFX}",
             disableSounds, disableAnimations, disableVFX);

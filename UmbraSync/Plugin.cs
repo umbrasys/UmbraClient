@@ -253,6 +253,11 @@ public sealed class Plugin : IDalamudPlugin
         })
         .Build();
 
+        // Enregistrer les callbacks UI immédiatement pour satisfaire la validation Dalamud.
+        // UiService ajoutera ses propres handlers fonctionnels plus tard lors du chargement.
+        pluginInterface.UiBuilder.OpenConfigUi += () => { };
+        pluginInterface.UiBuilder.OpenMainUi += () => { };
+
         var configService = _host.Services.GetRequiredService<MareConfigService>();
         Loc.Initialize(configService.Current.UiLanguage);
         if (!string.Equals(configService.Current.UiLanguage, Loc.CurrentLanguage, StringComparison.OrdinalIgnoreCase))
