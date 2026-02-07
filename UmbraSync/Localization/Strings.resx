@@ -3195,11 +3195,17 @@ Click to change.</value>
   <data name="GroupPair.Online" xml:space="preserve">
     <value>Online: {0}</value>
   </data>
+  <data name="GroupPair.OnlineSyncshellOnly" xml:space="preserve">
+    <value>Connected via Syncshell only</value>
+  </data>
   <data name="GroupPair.Paused" xml:space="preserve">
     <value>Sync paused for {0}</value>
   </data>
   <data name="GroupPair.IndividuallyPaired" xml:space="preserve">
     <value>Individually paired with {0}</value>
+  </data>
+  <data name="GroupPair.IndividuallyPaired.Short" xml:space="preserve">
+    <value>Individually paired</value>
   </data>
   <data name="GroupPair.Owner" xml:space="preserve">
     <value>Owner</value>
@@ -3516,6 +3522,9 @@ Click to change.</value>
   </data>
   <data name="Syncshell.Members.OnlineTotal" xml:space="preserve">
     <value>Online: {0} / Total: {1}</value>
+  </data>
+  <data name="Syncshell.Members.VisibleSection" xml:space="preserve">
+    <value>Visible ({0})</value>
   </data>
   <data name="Syncshell.Members.OnlineSection" xml:space="preserve">
     <value>Online ({0})</value>

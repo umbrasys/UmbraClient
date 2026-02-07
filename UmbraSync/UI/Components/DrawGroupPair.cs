@@ -121,12 +121,14 @@ public class DrawGroupPair : DrawPairBase
         }
 
         float total = 0f;
+        bool hideCloudMoon = !_pair.IsEffectivelyPaused && individuallyPaired && _pair.IsOnline && !_pair.IsVisible;
         if (showPrefix)
         {
             total += prefixWidth + spacing * 1.2f;
         }
 
-        total += presenceWidth;
+        if (!hideCloudMoon)
+            total += presenceWidth;
 
         if (showRole)
         {
@@ -170,45 +172,50 @@ public class DrawGroupPair : DrawPairBase
                 ImGui.PushFont(UiBuilder.IconFont);
                 UiSharedService.ColorText(FontAwesomeIcon.Moon.ToIconString(), violet);
                 ImGui.PopFont();
-                UiSharedService.AttachToolTip(string.Format(CultureInfo.CurrentCulture, Loc.Get("GroupPair.IndividuallyPaired"), entryUID));
+                UiSharedService.AttachToolTip(Loc.Get("GroupPair.IndividuallyPaired.Short"));
                 drewPrefixIcon = true;
             }
-        }
-        if (drewPrefixIcon)
-            ImGui.SameLine(0f, ImGui.GetStyle().ItemSpacing.X * 1.2f);
+        } 
+        bool hideCloudMoon = drewPrefixIcon && !_pair.IsEffectivelyPaused && !_pair.IsVisible;
 
-        ImGui.SetCursorPosY(textPosY);
-        ImGui.PushFont(UiBuilder.IconFont);
-        UiSharedService.ColorText(presenceIcon.ToIconString(), presenceColor);
-        ImGui.PopFont();
-
-        if (_pair.IsOnline && !_pair.IsVisible) presenceText = string.Format(CultureInfo.CurrentCulture, Loc.Get("GroupPair.Online"), entryUID);
-        else if (_pair.IsOnline && _pair.IsVisible) presenceText = string.Format(CultureInfo.CurrentCulture, Loc.Get("GroupPair.VisibleHeader"), entryUID, _pair.PlayerName) + Environment.NewLine + Loc.Get("GroupPair.VisibleTarget");
-
-        if (_pair.IsVisible)
+        if (!hideCloudMoon)
         {
-            if (ImGui.IsItemClicked())
-            {
-                _mediator.Publish(new TargetPairMessage(_pair));
-            }
-            if (_pair.LastAppliedDataBytes >= 0)
-            {
-                presenceText += UiSharedService.TooltipSeparator;
-                presenceText += ((!_pair.IsVisible) ? Loc.Get("GroupPair.VisibleLastPrefix") : string.Empty) + Loc.Get("GroupPair.VisibleMods") + Environment.NewLine;
-                presenceText += string.Format(CultureInfo.CurrentCulture, Loc.Get("GroupPair.VisibleFiles"), UiSharedService.ByteToString(_pair.LastAppliedDataBytes, true));
-                if (_pair.LastAppliedApproximateVRAMBytes >= 0)
-                {
-                    presenceText += Environment.NewLine + string.Format(CultureInfo.CurrentCulture, Loc.Get("GroupPair.VisibleVram"), UiSharedService.ByteToString(_pair.LastAppliedApproximateVRAMBytes, true));
-                }
-                if (_pair.LastAppliedDataTris >= 0)
-                {
-                    presenceText += Environment.NewLine + string.Format(CultureInfo.CurrentCulture, Loc.Get("GroupPair.VisibleTris"),
-                        _pair.LastAppliedDataTris > 1000 ? (_pair.LastAppliedDataTris / 1000d).ToString("0.0'k'", CultureInfo.CurrentCulture) : _pair.LastAppliedDataTris.ToString(CultureInfo.CurrentCulture));
-                }
-            }
-        }
+            if (drewPrefixIcon)
+                ImGui.SameLine(0f, ImGui.GetStyle().ItemSpacing.X * 1.2f);
 
-        UiSharedService.AttachToolTip(presenceText);
+            ImGui.SetCursorPosY(textPosY);
+            ImGui.PushFont(UiBuilder.IconFont);
+            UiSharedService.ColorText(presenceIcon.ToIconString(), presenceColor);
+            ImGui.PopFont();
+
+            if (_pair.IsOnline && !_pair.IsVisible) presenceText = Loc.Get("GroupPair.OnlineSyncshellOnly");
+            else if (_pair.IsOnline && _pair.IsVisible) presenceText = string.Format(CultureInfo.CurrentCulture, Loc.Get("GroupPair.VisibleHeader"), entryUID, _pair.PlayerName) + Environment.NewLine + Loc.Get("GroupPair.VisibleTarget");
+
+            if (_pair.IsVisible)
+            {
+                if (ImGui.IsItemClicked())
+                {
+                    _mediator.Publish(new TargetPairMessage(_pair));
+                }
+                if (_pair.LastAppliedDataBytes >= 0)
+                {
+                    presenceText += UiSharedService.TooltipSeparator;
+                    presenceText += ((!_pair.IsVisible) ? Loc.Get("GroupPair.VisibleLastPrefix") : string.Empty) + Loc.Get("GroupPair.VisibleMods") + Environment.NewLine;
+                    presenceText += string.Format(CultureInfo.CurrentCulture, Loc.Get("GroupPair.VisibleFiles"), UiSharedService.ByteToString(_pair.LastAppliedDataBytes, true));
+                    if (_pair.LastAppliedApproximateVRAMBytes >= 0)
+                    {
+                        presenceText += Environment.NewLine + string.Format(CultureInfo.CurrentCulture, Loc.Get("GroupPair.VisibleVram"), UiSharedService.ByteToString(_pair.LastAppliedApproximateVRAMBytes, true));
+                    }
+                    if (_pair.LastAppliedDataTris >= 0)
+                    {
+                        presenceText += Environment.NewLine + string.Format(CultureInfo.CurrentCulture, Loc.Get("GroupPair.VisibleTris"),
+                            _pair.LastAppliedDataTris > 1000 ? (_pair.LastAppliedDataTris / 1000d).ToString("0.0'k'", CultureInfo.CurrentCulture) : _pair.LastAppliedDataTris.ToString(CultureInfo.CurrentCulture));
+                    }
+                }
+            }
+
+            UiSharedService.AttachToolTip(presenceText);
+        }
 
         if (entryIsOwner)
         {

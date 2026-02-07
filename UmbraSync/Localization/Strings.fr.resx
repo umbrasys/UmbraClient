@@ -713,6 +713,18 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="DrawUserPair.Menu.PairGroupsTooltip" xml:space="preserve">
     <value>Choisir les groupes pour {0}</value>
   </data>
+  <data name="PairGroups.Tag.Online" xml:space="preserve">
+    <value>En ligne</value>
+  </data>
+  <data name="PairGroups.Tag.Offline" xml:space="preserve">
+    <value>Hors ligne</value>
+  </data>
+  <data name="PairGroups.FolderName" xml:space="preserve">
+    <value>{0} ({1}/{2}/{3} Paires)</value>
+  </data>
+  <data name="PairGroups.FolderNameNoTotal" xml:space="preserve">
+    <value>{0} ({1} Paires)</value>
+  </data>
   <data name="DrawUserPair.Menu.EnableSounds" xml:space="preserve">
     <value>Activer la synchro son</value>
   </data>
@@ -793,6 +805,12 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   </data>
   <data name="Syncshell.Create.Tooltip" xml:space="preserve">
     <value>Créer une Syncshell</value>
+  </data>
+  <data name="Syncshell.Tooltip.CreateAllowed" xml:space="preserve">
+    <value>Créer une Syncshell</value>
+  </data>
+  <data name="Syncshell.Tooltip.JoinAllowed" xml:space="preserve">
+    <value>Rejoindre une Syncshell</value>
   </data>
   <data name="Syncshell.Create.Result.Name" xml:space="preserve">
     <value>Nom de la Syncshell : {0}</value>
@@ -2778,16 +2796,16 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value />
   </data>
   <data name="UidDisplay.EditPlaceholder" xml:space="preserve">
-    <value />
+    <value>Surnom/Notes</value>
   </data>
   <data name="UidDisplay.EditTooltip" xml:space="preserve">
-    <value />
+    <value>Appuyez sur ENTRÉE pour enregistrer&#x0A;Clic droit pour annuler</value>
   </data>
   <data name="UidDisplay.Tooltip.LastSeenPrefix" xml:space="preserve">
     <value>Vu sous : {0}</value>
   </data>
   <data name="UidDisplay.Tooltip.Main" xml:space="preserve">
-    <value />
+    <value>Clic gauche pour alterner entre l'UID et le surnom&#x0A;Clic droit pour changer le surnom de {0}&#x0A;Clic molette pour ouvrir le profil dans une fenêtre séparée</value>
   </data>
   <data name="TypingOverlay.WindowTitle" xml:space="preserve">
     <value />
@@ -3077,11 +3095,17 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="GroupPair.Online" xml:space="preserve">
     <value>En ligne : {0}</value>
   </data>
+  <data name="GroupPair.OnlineSyncshellOnly" xml:space="preserve">
+    <value>Connecté via la Syncshell uniquement</value>
+  </data>
   <data name="GroupPair.Paused" xml:space="preserve">
     <value>Sync en pause pour {0}</value>
   </data>
   <data name="GroupPair.IndividuallyPaired" xml:space="preserve">
     <value>Paire individuelle avec {0}</value>
+  </data>
+  <data name="GroupPair.IndividuallyPaired.Short" xml:space="preserve">
+    <value>Paire individuelle</value>
   </data>
   <data name="GroupPair.Owner" xml:space="preserve">
     <value>Propriétaire</value>
@@ -3398,6 +3422,9 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   </data>
   <data name="Syncshell.Members.OnlineTotal" xml:space="preserve">
     <value>En ligne : {0} / Total : {1}</value>
+  </data>
+  <data name="Syncshell.Members.VisibleSection" xml:space="preserve">
+    <value>Visibles ({0})</value>
   </data>
   <data name="Syncshell.Members.OnlineSection" xml:space="preserve">
     <value>En ligne ({0})</value>

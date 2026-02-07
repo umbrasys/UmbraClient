@@ -75,6 +75,7 @@ internal sealed class GroupPanel
     private readonly Dictionary<string, List<Pair>> _sortedPairsCache = new(StringComparer.Ordinal);
     private readonly Dictionary<string, long> _sortedPairsLastUpdate = new(StringComparer.Ordinal);
     private string? _membersWindowGid = null;
+    private bool _membersVisibleExpanded = true;
     private bool _membersOnlineExpanded = true;
     private bool _membersOfflineExpanded = false;
     private bool _membersLeaveConfirm = false;
@@ -1170,10 +1171,18 @@ internal sealed class GroupPanel
                 {
                     if (_uiShared.IconButtonCentered(FontAwesomeIcon.Users, buttonSize, square: true))
                     {
-                        _membersWindowGid = groupDto.GID;
-                        _membersOnlineExpanded = true;
-                        _membersOfflineExpanded = false;
-                        _membersFilter = string.Empty;
+                        if (string.Equals(_membersWindowGid, groupDto.GID, StringComparison.Ordinal))
+                        {
+                            _membersWindowGid = null;
+                        }
+                        else
+                        {
+                            _membersWindowGid = groupDto.GID;
+                            _membersVisibleExpanded = true;
+                            _membersOnlineExpanded = true;
+                            _membersOfflineExpanded = false;
+                            _membersFilter = string.Empty;
+                        }
                     }
                 }
                 UiSharedService.AttachToolTip(Loc.Get("Syncshell.Cards.ShowMembers"));
@@ -1342,27 +1351,42 @@ internal sealed class GroupPanel
 
             if (ImGui.BeginChild("MembersList", Vector2.Zero, false))
             {
-                var allOnline = new List<DrawGroupPair>();
-                allOnline.AddRange(visibleUsers);
-                allOnline.AddRange(onlineUsers);
+                bool needsSpacer = false;
 
-                if (allOnline.Count > 0)
+                if (visibleUsers.Count > 0)
                 {
                     DrawMembersSectionHeader(
-                        string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Members.OnlineSection"), allOnline.Count),
+                        string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Members.VisibleSection"), visibleUsers.Count),
+                        new Vector4(0.4f, 0.75f, 1f, 1f),
+                        ref _membersVisibleExpanded,
+                        $"##members-visible-{groupDto.GID}");
+
+                    if (_membersVisibleExpanded)
+                    {
+                        UidDisplayHandler.RenderPairList(visibleUsers);
+                    }
+                    needsSpacer = true;
+                }
+
+                if (onlineUsers.Count > 0)
+                {
+                    if (needsSpacer) ImGuiHelpers.ScaledDummy(8f);
+                    DrawMembersSectionHeader(
+                        string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Members.OnlineSection"), onlineUsers.Count),
                         new Vector4(0.4f, 0.9f, 0.4f, 1f),
                         ref _membersOnlineExpanded,
                         $"##members-online-{groupDto.GID}");
 
                     if (_membersOnlineExpanded)
                     {
-                        UidDisplayHandler.RenderPairList(allOnline);
+                        UidDisplayHandler.RenderPairList(onlineUsers);
                     }
+                    needsSpacer = true;
                 }
 
                 if (offlineUsers.Count > 0)
                 {
-                    ImGuiHelpers.ScaledDummy(8f);
+                    if (needsSpacer) ImGuiHelpers.ScaledDummy(8f);
                     DrawMembersSectionHeader(
                         string.Format(CultureInfo.CurrentCulture, Loc.Get("Syncshell.Members.OfflineSection"), offlineUsers.Count),
                         ImGuiColors.DalamudGrey,
