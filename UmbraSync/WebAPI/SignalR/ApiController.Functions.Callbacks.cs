@@ -4,8 +4,8 @@ using UmbraSync.API.Data;
 using UmbraSync.API.Data.Enum;
 using UmbraSync.API.Dto;
 using UmbraSync.API.Dto.CharaData;
-using UmbraSync.API.Dto.Chat;
 using UmbraSync.API.Dto.Group;
+using UmbraSync.API.Dto.Ping;
 using UmbraSync.API.Dto.User;
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.Services.Mediator;
@@ -28,14 +28,6 @@ public partial class ApiController
         if (Logger.IsEnabled(LogLevel.Trace))
             Logger.LogTrace("Client_GroupChangePermissions: {gid}", groupPermission.Group.GID);
         ExecuteSafely(() => _pairManager.SetGroupPermissions(groupPermission));
-        return Task.CompletedTask;
-    }
-
-    public Task Client_GroupChatMsg(GroupChatMsgDto groupChatMsgDto)
-    {
-        if (Logger.IsEnabled(LogLevel.Debug))
-            Logger.LogDebug("Client_GroupChatMsg from {gid}", groupChatMsgDto.Group.GID);
-        Mediator.Publish(new GroupChatMsgMessage(groupChatMsgDto.Group, groupChatMsgDto.Message));
         return Task.CompletedTask;
     }
 
@@ -147,14 +139,6 @@ public partial class ApiController
         if (Logger.IsEnabled(LogLevel.Debug))
             Logger.LogDebug("Client_UserAddClientPair: {uid}", dto.User.UID);
         ExecuteSafely(() => _pairManager.AddUserPair(dto, addToLastAddedUser: true));
-        return Task.CompletedTask;
-    }
-
-    public Task Client_UserChatMsg(UserChatMsgDto chatMsgDto)
-    {
-        if (Logger.IsEnabled(LogLevel.Debug))
-            Logger.LogDebug("Client_UserChatMsg received");
-        Mediator.Publish(new UserChatMsgMessage(chatMsgDto.Message));
         return Task.CompletedTask;
     }
 
@@ -277,12 +261,6 @@ public partial class ApiController
         _mareHub!.On(nameof(Client_GroupChangePermissions), act);
     }
 
-    public void OnGroupChatMsg(Action<GroupChatMsgDto> groupChatMsgDto)
-    {
-        if (_initialized) return;
-        _mareHub!.On(nameof(Client_GroupChatMsg), groupChatMsgDto);
-    }
-
     public void OnGroupPairChangePermissions(Action<GroupPairUserPermissionDto> act)
     {
         if (_initialized) return;
@@ -341,12 +319,6 @@ public partial class ApiController
     {
         if (_initialized) return;
         _mareHub!.On(nameof(Client_UserAddClientPair), act);
-    }
-
-    public void OnUserChatMsg(Action<UserChatMsgDto> chatMsgDto)
-    {
-        if (_initialized) return;
-        _mareHub!.On(nameof(Client_UserChatMsg), chatMsgDto);
     }
 
     public void OnUserTypingState(Action<TypingStateDto> act)
@@ -431,6 +403,49 @@ public partial class ApiController
     {
         if (_initialized) return;
         _mareHub!.On(nameof(Client_GposeLobbyPushWorldData), act);
+    }
+
+    // Ping marker callbacks
+    public Task Client_GroupReceivePing(GroupPingMarkerDto dto)
+    {
+        if (Logger.IsEnabled(LogLevel.Debug))
+            Logger.LogDebug("Client_GroupReceivePing from {sender} in {gid}", dto.Sender.UID, dto.Group.GID);
+        Mediator.Publish(new PingMarkerReceivedMessage(dto));
+        return Task.CompletedTask;
+    }
+
+    public Task Client_GroupRemovePing(GroupData group, UserData sender, PingMarkerRemoveDto remove)
+    {
+        if (Logger.IsEnabled(LogLevel.Debug))
+            Logger.LogDebug("Client_GroupRemovePing {id} in {gid}", remove.PingId, group.GID);
+        Mediator.Publish(new PingMarkerRemovedMessage(group, sender, remove.PingId));
+        return Task.CompletedTask;
+    }
+
+    public Task Client_GroupClearPings(GroupData group)
+    {
+        if (Logger.IsEnabled(LogLevel.Debug))
+            Logger.LogDebug("Client_GroupClearPings in {gid}", group.GID);
+        Mediator.Publish(new PingMarkersClearedMessage(group));
+        return Task.CompletedTask;
+    }
+
+    public void OnGroupReceivePing(Action<GroupPingMarkerDto> act)
+    {
+        if (_initialized) return;
+        _mareHub!.On(nameof(Client_GroupReceivePing), act);
+    }
+
+    public void OnGroupRemovePing(Action<GroupData, UserData, PingMarkerRemoveDto> act)
+    {
+        if (_initialized) return;
+        _mareHub!.On(nameof(Client_GroupRemovePing), act);
+    }
+
+    public void OnGroupClearPings(Action<GroupData> act)
+    {
+        if (_initialized) return;
+        _mareHub!.On(nameof(Client_GroupClearPings), act);
     }
 
     private void ExecuteSafely(Action act)

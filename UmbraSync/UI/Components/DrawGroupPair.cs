@@ -32,8 +32,6 @@ public class DrawGroupPair : DrawPairBase
     private readonly AutoDetectRequestService _autoDetectRequestService;
     private readonly ServerConfigurationManager _serverConfigurationManager;
     private readonly MareConfigService _mareConfig;
-    private const string ManualPairInvitePrefix = "[UmbraPairInvite|";
-
     public void UpdateData(GroupFullInfoDto group, GroupPairFullInfoDto fullInfoDto)
     {
         _group = group;
@@ -608,59 +606,11 @@ public class DrawGroupPair : DrawPairBase
     {
         try
         {
-            var ok = await _autoDetectRequestService.SendDirectUidRequestAsync(targetUid, displayName).ConfigureAwait(false);
-            if (!ok) return;
-
-            await SendManualInviteSignalAsync(targetUid, displayName).ConfigureAwait(false);
+            await _autoDetectRequestService.SendDirectUidRequestAsync(targetUid, displayName).ConfigureAwait(false);
         }
         catch
         {
             // errors are logged within the request service; ignore here
         }
-    }
-
-    private async Task SendManualInviteSignalAsync(string targetUid, string displayName)
-    {
-        if (string.IsNullOrEmpty(_apiController.UID)) return;
-
-        var senderAliasRaw = string.IsNullOrEmpty(_apiController.DisplayName) ? _apiController.UID : _apiController.DisplayName;
-        var senderAlias = EncodeInviteField(senderAliasRaw);
-        var targetDisplay = EncodeInviteField(displayName);
-        var inviteId = Guid.NewGuid().ToString("N");
-        var payloadText = new StringBuilder()
-            .Append(ManualPairInvitePrefix)
-            .Append(_apiController.UID)
-            .Append('|')
-            .Append(senderAlias)
-            .Append('|')
-            .Append(targetUid)
-            .Append('|')
-            .Append(targetDisplay)
-            .Append('|')
-            .Append(inviteId)
-            .Append(']')
-            .ToString();
-
-        var payload = new SeStringBuilder().AddText(payloadText).Build().Encode();
-        var chatMessage = new ChatMessage
-        {
-            SenderName = senderAlias,
-            PayloadContent = payload
-        };
-
-        try
-        {
-            await _apiController.GroupChatSendMsg(new GroupDto(_group.Group), chatMessage).ConfigureAwait(false);
-        }
-        catch
-        {
-            // ignore - invite remains tracked locally even if group chat signal fails
-        }
-    }
-
-    private static string EncodeInviteField(string value)
-    {
-        var bytes = Encoding.UTF8.GetBytes(value);
-        return Convert.ToBase64String(bytes);
     }
 }

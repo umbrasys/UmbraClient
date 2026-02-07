@@ -13,7 +13,6 @@ public class ServerConfigurationManager
     private readonly NotesConfigService _notesConfig;
     private readonly ServerBlockConfigService _blockConfig;
     private readonly ServerTagConfigService _serverTagConfig;
-    private readonly SyncshellConfigService _syncshellConfig;
 
     private HashSet<string>? _cachedWhitelistedUIDs = null;
     private HashSet<string>? _cachedBlacklistedUIDs = null;
@@ -21,13 +20,12 @@ public class ServerConfigurationManager
     private string? _realApiUrl = null;
 
     public ServerConfigurationManager(ILogger<ServerConfigurationManager> logger, ServerConfigService configService,
-        ServerTagConfigService serverTagConfig, SyncshellConfigService syncshellConfig, NotesConfigService notesConfig,
+        ServerTagConfigService serverTagConfig, NotesConfigService notesConfig,
         ServerBlockConfigService blockConfig, DalamudUtilService dalamudUtil)
     {
         _logger = logger;
         _configService = configService;
         _serverTagConfig = serverTagConfig;
-        _syncshellConfig = syncshellConfig;
         _notesConfig = notesConfig;
         _blockConfig = blockConfig;
         _dalamudUtil = dalamudUtil;
@@ -293,30 +291,6 @@ public class ServerConfigurationManager
         return CurrentServerTagStorage().ServerAvailablePairTags;
     }
 
-    internal ShellConfig GetShellConfigForGid(string gid)
-    {
-        if (CurrentSyncshellStorage().GidShellConfig.TryGetValue(gid, out var config))
-            return config;
-
-        // Pick the next higher syncshell number that is available
-        int newShellNumber = CurrentSyncshellStorage().GidShellConfig.Count > 0 ? CurrentSyncshellStorage().GidShellConfig.Select(x => x.Value.ShellNumber).Max() + 1 : 1;
-
-        var shellConfig = new ShellConfig
-        {
-            ShellNumber = newShellNumber
-        };
-
-        // Save config to avoid auto-generated numbers shuffling around
-        SaveShellConfigForGid(gid, shellConfig);
-
-        return CurrentSyncshellStorage().GidShellConfig[gid];
-    }
-
-    internal int GetShellNumberForGid(string gid)
-    {
-        return GetShellConfigForGid(gid).ShellNumber;
-    }
-
     internal Dictionary<string, List<string>> GetUidServerPairedUserTags()
     {
         return CurrentServerTagStorage().UidServerPairedUserTags;
@@ -430,16 +404,6 @@ public class ServerConfigurationManager
         _notesConfig.Save();
     }
 
-    internal void SaveShellConfigForGid(string gid, ShellConfig config)
-    {
-        if (string.IsNullOrEmpty(gid)) return;
-
-        // This is somewhat pointless because ShellConfig is a ref type we returned to the caller anyway...
-        CurrentSyncshellStorage().GidShellConfig[gid] = config;
-
-        _syncshellConfig.Save();
-    }
-
     internal bool IsUidWhitelisted(string uid)
     {
         _cachedWhitelistedUIDs ??= [.. CurrentBlockStorage().Whitelist];
@@ -522,12 +486,6 @@ public class ServerConfigurationManager
         return _serverTagConfig.Current.ServerTagStorage[CurrentApiUrl];
     }
 
-    private ServerShellStorage CurrentSyncshellStorage()
-    {
-        TryCreateCurrentSyncshellStorage();
-        return _syncshellConfig.Current.ServerShellStorage[CurrentApiUrl];
-    }
-
     private ServerBlockStorage CurrentBlockStorage()
     {
         TryCreateCurrentBlockStorage();
@@ -566,14 +524,6 @@ public class ServerConfigurationManager
         if (!_serverTagConfig.Current.ServerTagStorage.ContainsKey(CurrentApiUrl))
         {
             _serverTagConfig.Current.ServerTagStorage[CurrentApiUrl] = new();
-        }
-    }
-
-    private void TryCreateCurrentSyncshellStorage()
-    {
-        if (!_syncshellConfig.Current.ServerShellStorage.ContainsKey(CurrentApiUrl))
-        {
-            _syncshellConfig.Current.ServerShellStorage[CurrentApiUrl] = new();
         }
     }
 

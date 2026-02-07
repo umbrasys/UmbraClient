@@ -114,7 +114,7 @@ public class CompactUi : WindowMediatorSubscriberBase
 
     private readonly Dictionary<string, DrawUserPair> _drawUserPairCache = new(StringComparer.Ordinal);
 
-    public CompactUi(ILogger<CompactUi> logger, UiSharedService uiShared, MareConfigService configService, ApiController apiController, PairManager pairManager, ChatService chatService,
+    public CompactUi(ILogger<CompactUi> logger, UiSharedService uiShared, MareConfigService configService, ApiController apiController, PairManager pairManager,
         ServerConfigurationManager serverManager, MareMediator mediator, FileUploadManager fileTransferManager, UidDisplayHandler uidDisplayHandler, CharaDataManager charaDataManager,
         NearbyPendingService nearbyPendingService,
         AutoDetectRequestService autoDetectRequestService,
@@ -147,7 +147,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         _notificationTracker = notificationTracker;
         var tagHandler = new TagHandler(_serverManager);
 
-        _groupPanel = new(this, uiShared, _pairManager, chatService, uidDisplayHandler, _serverManager, _charaDataManager, _autoDetectRequestService, _configService);
+        _groupPanel = new(this, uiShared, _pairManager, uidDisplayHandler, _serverManager, _charaDataManager, _autoDetectRequestService, _configService);
         _selectGroupForPairUi = new(tagHandler, uidDisplayHandler, _uiSharedService);
         _selectPairsForGroupUi = new(tagHandler, uidDisplayHandler);
         _pairGroupsUi = new(configService, tagHandler, apiController, _selectPairsForGroupUi, _uiSharedService);

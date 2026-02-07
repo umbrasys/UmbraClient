@@ -84,11 +84,6 @@ public class MareConfig : IMareConfiguration
     public List<string> PrecacheExcludePatterns { get; set; } = new();
     public int Version { get; set; } = 1;
     public NotificationLocation WarningNotification { get; set; } = NotificationLocation.Both;
-    public bool DisableSyncshellChat { get; set; }
-    public int ChatColor { get; set; } // 0 means "use plugin default"
-    public int ChatLogKind { get; set; } = 1; // XivChatType.Debug
-    public bool ExtraChatAPI { get; set; }
-    public bool ExtraChatTags { get; set; }
     public bool TypingIndicatorShowOnNameplates { get; set; } = true;
     public bool TypingIndicatorShowOnPartyList { get; set; } = true;
     public bool TypingIndicatorEnabled { get; set; } = true;
@@ -98,10 +93,16 @@ public class MareConfig : IMareConfiguration
     public TypingIndicatorNameplateStyle TypingIndicatorNameplateStyle { get; set; } = TypingIndicatorNameplateStyle.Side;
     public float TypingIndicatorNameplateOpacity { get; set; } = 1.0f;
     public float TypingIndicatorPartyOpacity { get; set; } = 0.9f;
-
     public bool UmbraAPI { get; set; } = true;
     public bool EnableSlotNotifications { get; set; } = true;
     public float DefaultSlotRadius { get; set; } = 10f;
+    public bool PingEnabled { get; set; } = true;
+    public int PingKeybind { get; set; } = 0x50; // VirtualKey.P
+    public float PingUiScale { get; set; } = 1.0f;
+    public float PingOpacity { get; set; } = 0.9f;
+    public bool PingShowAuthorName { get; set; } = true;
+    public bool PingShowInParty { get; set; } = true;
+    public bool PingShowInSyncshell { get; set; } = true;
 
     [SuppressMessage("Major Code Smell", "S1133:Do not forget to remove this deprecated code someday", Justification = "Legacy config needed for migration")]
     [SuppressMessage("Major Code Smell", "S1123:Add an explanation", Justification = "Legacy config needed for migration")]

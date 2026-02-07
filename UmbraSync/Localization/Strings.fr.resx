@@ -3471,4 +3471,43 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="Syncshell.Members.Filter.Placeholder" xml:space="preserve">
     <value>Rechercher un membre...</value>
   </data>
+  <data name="Settings.Ping.Header" xml:space="preserve">
+    <value>Marqueurs Ping</value>
+  </data>
+  <data name="Settings.Ping.Enabled" xml:space="preserve">
+    <value>Activer les marqueurs ping</value>
+  </data>
+  <data name="Settings.Ping.EnabledHelp" xml:space="preserve">
+    <value>Active l'affichage et le placement des marqueurs ping. Quand désactivé, vous ne verrez ni ne placerez de marqueurs.</value>
+  </data>
+  <data name="Settings.Ping.Keybind" xml:space="preserve">
+    <value>Touche de ping</value>
+  </data>
+  <data name="Settings.Ping.UiScale" xml:space="preserve">
+    <value>Taille des marqueurs</value>
+  </data>
+  <data name="Settings.Ping.Opacity" xml:space="preserve">
+    <value>Opacité des marqueurs</value>
+  </data>
+  <data name="Settings.Ping.ShowAuthorName" xml:space="preserve">
+    <value>Afficher le nom de l'auteur</value>
+  </data>
+  <data name="Settings.Ping.ShowInParty" xml:space="preserve">
+    <value>Afficher les marqueurs de groupe</value>
+  </data>
+  <data name="Settings.Ping.ShowInPartyHelp" xml:space="preserve">
+    <value>Affiche les marqueurs placés par le chef de groupe/alliance.</value>
+  </data>
+  <data name="Settings.Ping.ShowInSyncshell" xml:space="preserve">
+    <value>Afficher les marqueurs de syncshell</value>
+  </data>
+  <data name="Settings.Ping.ShowInSyncshellHelp" xml:space="preserve">
+    <value>Affiche les marqueurs placés par les membres de la syncshell ayant la permission de ping.</value>
+  </data>
+  <data name="SyncshellAdmin.Users.GrantPing" xml:space="preserve">
+    <value>Accorder la permission de ping</value>
+  </data>
+  <data name="SyncshellAdmin.Users.RevokePing" xml:space="preserve">
+    <value>Retirer la permission de ping</value>
+  </data>
 </root>

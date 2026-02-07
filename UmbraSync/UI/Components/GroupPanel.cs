@@ -27,7 +27,6 @@ internal sealed class GroupPanel
     private readonly Dictionary<string, bool> _expandedGroupState = new(StringComparer.Ordinal);
     private readonly CompactUi _mainUi;
     private readonly PairManager _pairManager;
-    private readonly ChatService _chatService;
     private readonly ServerConfigurationManager _serverConfigurationManager;
     private readonly CharaDataManager _charaDataManager;
     private readonly AutoDetectRequestService _autoDetectRequestService;
@@ -82,7 +81,7 @@ internal sealed class GroupPanel
     private string _syncshellFilter = string.Empty;
     private string _membersFilter = string.Empty;
 
-    public GroupPanel(CompactUi mainUi, UiSharedService uiShared, PairManager pairManager, ChatService chatServivce,
+    public GroupPanel(CompactUi mainUi, UiSharedService uiShared, PairManager pairManager,
         UidDisplayHandler uidDisplayHandler, ServerConfigurationManager serverConfigurationManager,
         CharaDataManager charaDataManager, AutoDetectRequestService autoDetectRequestService,
         MareConfigService mareConfig)
@@ -90,7 +89,6 @@ internal sealed class GroupPanel
         _mainUi = mainUi;
         _uiShared = uiShared;
         _pairManager = pairManager;
-        _chatService = chatServivce;
         _uidDisplayHandler = uidDisplayHandler;
         _serverConfigurationManager = serverConfigurationManager;
         _charaDataManager = charaDataManager;
@@ -351,8 +349,6 @@ internal sealed class GroupPanel
 
     private void DrawSyncshell(GroupFullInfoDto groupDto, List<Pair> pairsInGroup)
     {
-        int shellNumber = _serverConfigurationManager.GetShellNumberForGid(groupDto.GID);
-
         var name = groupDto.Group.Alias ?? groupDto.GID;
         if (!_expandedGroupState.ContainsKey(groupDto.GID))
         {
@@ -454,7 +450,6 @@ internal sealed class GroupPanel
                     _serverConfigurationManager.SetNoteForGid(_editGroupEntry, _editGroupComment);
                     _editGroupComment = _serverConfigurationManager.GetNoteForGid(groupDto.GID) ?? string.Empty;
                     _editGroupEntry = groupDto.GID;
-                    _chatService.MaybeUpdateShellName(shellNumber);
                 }
             }
             else
@@ -465,7 +460,6 @@ internal sealed class GroupPanel
                 {
                     _serverConfigurationManager.SetNoteForGid(groupDto.GID, _editGroupComment);
                     _editGroupEntry = string.Empty;
-                    _chatService.MaybeUpdateShellName(shellNumber);
                 }
 
                 if (ImGui.IsItemClicked(ImGuiMouseButton.Right))

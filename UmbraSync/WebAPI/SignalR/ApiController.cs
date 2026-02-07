@@ -465,7 +465,6 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         OnDownloadReady((guid) => _ = Client_DownloadReady(guid));
         OnReceiveServerMessage((sev, msg) => _ = Client_ReceiveServerMessage(sev, msg));
         OnUpdateSystemInfo((dto) => _ = Client_UpdateSystemInfo(dto));
-
         OnUserSendOffline((dto) => _ = Client_UserSendOffline(dto));
         OnUserAddClientPair((dto) => _ = Client_UserAddClientPair(dto));
         OnUserReceiveCharacterData((dto) => _ = Client_UserReceiveCharacterData(dto));
@@ -476,7 +475,6 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         OnUserReceiveUploadStatus(dto => _ = Client_UserReceiveUploadStatus(dto));
         OnUserUpdateProfile(dto => _ = Client_UserUpdateProfile(dto));
         OnUserTypingState(dto => _ = Client_UserTypingState(dto));
-
         OnGroupChangePermissions((dto) => _ = Client_GroupChangePermissions(dto));
         OnGroupDelete((dto) => _ = Client_GroupDelete(dto));
         OnGroupPairChangeUserInfo((dto) => _ = Client_GroupPairChangeUserInfo(dto));
@@ -485,15 +483,14 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         OnGroupSendFullInfo((dto) => _ = Client_GroupSendFullInfo(dto));
         OnGroupSendInfo((dto) => _ = Client_GroupSendInfo(dto));
         OnGroupPairChangePermissions((dto) => _ = Client_GroupPairChangePermissions(dto));
-
-        OnUserChatMsg((dto) => _ = Client_UserChatMsg(dto));
-        OnGroupChatMsg((dto) => _ = Client_GroupChatMsg(dto));
-
         OnGposeLobbyJoin((dto) => _ = Client_GposeLobbyJoin(dto));
         OnGposeLobbyLeave((dto) => _ = Client_GposeLobbyLeave(dto));
         OnGposeLobbyPushCharacterData((dto) => _ = Client_GposeLobbyPushCharacterData(dto));
         OnGposeLobbyPushPoseData((dto, data) => _ = Client_GposeLobbyPushPoseData(dto, data));
         OnGposeLobbyPushWorldData((dto, data) => _ = Client_GposeLobbyPushWorldData(dto, data));
+        OnGroupReceivePing((dto) => _ = Client_GroupReceivePing(dto));
+        OnGroupRemovePing((group, sender, remove) => _ = Client_GroupRemovePing(group, sender, remove));
+        OnGroupClearPings((group) => _ = Client_GroupClearPings(group));
 
         _healthCheckTokenSource?.Cancel();
         _healthCheckTokenSource?.Dispose();
