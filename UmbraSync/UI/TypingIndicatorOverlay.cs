@@ -5,6 +5,8 @@ using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
+using FFXIVClientStructs.FFXIV.Common.Component.BGCollision;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using Microsoft.Extensions.Logging;
 using System.Numerics;
@@ -187,9 +189,9 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
             && (now - selfLast) <= TypingDisplayFade)
         {
             var selfId = GetEntityId(_objectTable.LocalPlayer.Address);
-            if (selfId != 0 && !TryDrawNameplateBubble(drawList, iconWrap, selfId))
+            if (selfId != 0)
             {
-                DrawWorldFallbackIcon(drawList, iconWrap, _objectTable.LocalPlayer.Position);
+                TryDrawNameplateBubble(drawList, iconWrap, selfId);
             }
         }
 
@@ -228,7 +230,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
             _typedLogger.LogTrace("TypingIndicator: fallback draw for {uid} (objectId={objectId}, name={name}, ident={ident})",
                 uid, objectId, pairName, pairIdent);
 
-            if (hasWorldPosition)
+            if (hasWorldPosition && HasLineOfSightFromCamera(worldPos))
             {
                 DrawWorldFallbackIcon(drawList, iconWrap, worldPos);
                 _typedLogger.LogTrace("TypingIndicator: fallback world draw for {uid} at {pos}", uid, worldPos);
@@ -276,6 +278,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
 
         AddonNamePlate.NamePlateObject* namePlate = null;
         float distance = 0f;
+        var targetWorldPos = Vector3.Zero;
 
         for (var i = 0; i < ui3D->NamePlateObjectInfoCount; i++)
         {
@@ -294,10 +297,14 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
 
             namePlate = &addonNamePlate->NamePlateObjectArray[objectInfo.Value->NamePlateIndex];
             distance = objectInfo.Value->GameObject->YalmDistanceFromPlayerX;
+            targetWorldPos = objectInfo.Value->GameObject->Position;
             break;
         }
 
         if (namePlate == null || namePlate->RootComponentNode == null)
+            return false;
+
+        if (!HasLineOfSightFromCamera(targetWorldPos))
             return false;
 
         var iconNode = namePlate->RootComponentNode->Component->UldManager.NodeList[0];
@@ -308,9 +315,6 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         var nameplateScaleY = namePlate->RootComponentNode->AtkResNode.ScaleY;
         var iconVisible = iconNode->IsVisible();
         var scaleVector = new Vector2(nameplateScaleX, nameplateScaleY);
-
-        // Calcul du scale de la bulle basé sur la distance :
-        // 0-10m : taille normale (1.0), 10-15m : petite (0.5), >15m : pas affiché (géré plus haut)
         float bubbleScaleFactor = distance <= 10f ? 1.0f : 0.5f;
         var rootPosition = new Vector2(namePlate->RootComponentNode->AtkResNode.X, namePlate->RootComponentNode->AtkResNode.Y);
         var iconLocalPosition = new Vector2(iconNode->X, iconNode->Y) * scaleVector;
@@ -318,27 +322,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
 
         if (!iconVisible)
         {
-            // Utiliser la même taille que quand la nameplate est visible
-            var anchor = rootPosition + iconLocalPosition + new Vector2(iconDimensions.X * 0.5f, 0f);
-
-            var distanceOffset = new Vector2(0f, -16f + distance) * scaleVector;
-            if (iconNode->Height == 24)
-            {
-                distanceOffset.Y += 16f * nameplateScaleY;
-            }
-            distanceOffset.Y += 64f * nameplateScaleY;
-
-            var referenceSize = GetConfiguredBubbleSize(bubbleScaleFactor, bubbleScaleFactor, true, TypingIndicatorBubbleSize.Small);
-            var manualOffset = new Vector2(referenceSize.X * 0.5f, referenceSize.Y * 0.5f);
-
-            var iconSize = GetConfiguredBubbleSize(bubbleScaleFactor, bubbleScaleFactor, true);
-            var center = anchor + distanceOffset + manualOffset;
-            var topLeft = center - (iconSize / 2f);
-
-            drawList.AddImage(textureWrap.Handle, topLeft, topLeft + iconSize, Vector2.Zero, Vector2.One,
-                ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0.95f)));
-
-            return true;
+            return false;
         }
 
         var iconPos = rootPosition + iconLocalPosition + new Vector2(iconDimensions.X, 0f);
@@ -352,6 +336,9 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
         iconPos += iconOffset;
 
         var bubbleSize = GetConfiguredBubbleSize(bubbleScaleFactor, bubbleScaleFactor, true);
+
+        if (IsScreenPointBehindGameUI(iconPos + bubbleSize / 2f))
+            return false;
 
         drawList.AddImage(textureWrap.Handle, iconPos, iconPos + bubbleSize, Vector2.Zero, Vector2.One,
             ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0.95f)));
@@ -367,6 +354,10 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
 
         var iconSize = GetConfiguredBubbleSize(ImGuiHelpers.GlobalScale, ImGuiHelpers.GlobalScale, false);
         var iconPos = screenPos - (iconSize / 2f) - new Vector2(0f, iconSize.Y * 0.6f);
+
+        if (IsScreenPointBehindGameUI(iconPos + iconSize / 2f))
+            return;
+
         drawList.AddImage(textureWrap.Handle, iconPos, iconPos + iconSize, Vector2.Zero, Vector2.One,
             ImGui.ColorConvertFloat4ToU32(new Vector4(1f, 1f, 1f, 0.95f)));
     }
@@ -575,6 +566,83 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
 
         var distance = Vector3.Distance(_objectTable.LocalPlayer.Position, position);
         return distance <= 15f;
+    }
+    
+    private static unsafe bool IsScreenPointBehindGameUI(Vector2 screenPoint)
+    {
+        var stage = AtkStage.Instance();
+        if (stage == null) return false;
+
+        var unitManager = stage->RaptureAtkUnitManager;
+        if (unitManager == null) return false;
+
+        for (var i = 0; i < unitManager->AtkUnitManager.AllLoadedUnitsList.Count; i++)
+        {
+            var addon = unitManager->AtkUnitManager.AllLoadedUnitsList.Entries[i].Value;
+            if (addon == null || !addon->IsVisible || addon->RootNode == null)
+                continue;
+
+            var name = addon->NameString;
+            if (string.IsNullOrEmpty(name) || name[0] == '_')
+                continue;
+
+            if (name is "NamePlate" or "FadeMiddle" or "FadeBlack" or "NowLoading"
+                or "ScreenFrameSystem" or "ChatLog" or "ChatLogPanel_0" or "ChatLogPanel_1"
+                or "ChatLogPanel_2" or "ChatLogPanel_3")
+                continue;
+
+            var addonPos = new Vector2(addon->X, addon->Y);
+            var addonW = addon->RootNode->Width * addon->Scale;
+            var addonH = addon->RootNode->Height * addon->Scale;
+
+            if (screenPoint.X >= addonPos.X && screenPoint.X <= addonPos.X + addonW &&
+                screenPoint.Y >= addonPos.Y && screenPoint.Y <= addonPos.Y + addonH)
+                return true;
+        }
+
+        return false;
+    }
+
+    private static unsafe bool HasLineOfSightFromCamera(Vector3 target, float targetHeightOffset = 1.0f)
+    {
+        var cameraManager = CameraManager.Instance();
+        if (cameraManager == null || cameraManager->CurrentCamera == null)
+            return true;
+
+        var cameraPos = cameraManager->CurrentCamera->Position;
+        return HasLineOfSight(cameraPos, target, fromHeightOffset: 0f, toHeightOffset: targetHeightOffset);
+    }
+
+    private static unsafe bool HasLineOfSight(Vector3 from, Vector3 to, float fromHeightOffset = 0f, float toHeightOffset = 1.0f)
+    {
+        var origin = new Vector3(from.X, from.Y + fromHeightOffset, from.Z);
+        var target = new Vector3(to.X, to.Y + toHeightOffset, to.Z);
+
+        var direction = target - origin;
+        var distance = direction.Length();
+
+        if (distance < 0.001f)
+            return true;
+
+        direction /= distance;
+
+        var module = Framework.Instance()->BGCollisionModule;
+        if (module != null && module->SceneManager != null && module->SceneManager->FirstScene != null)
+        {
+            var originV4 = new Vector4(origin, 0f);
+            RaycastHit hit;
+            var raycastParams = new RaycastParams
+            {
+                Algorithm = 0,
+                Origin = &originV4,
+                Direction = &direction,
+                MaxDistance = &distance,
+            };
+            if (module->SceneManager->FirstScene->Raycast(&hit, ulong.MaxValue, &raycastParams))
+                return false;
+        }
+
+        return !BGCollisionModule.RaycastMaterialFilter(origin, direction, out _, distance);
     }
 
     private static unsafe uint GetEntityId(nint address)
