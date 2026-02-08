@@ -171,6 +171,13 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
     {
         return new List<ChangelogEntry>
         {
+            new(new Version(2, 2, 0, 0), "2.2.0.0", new List<ChangelogLine>
+            {
+                new("Restructuration interface et architecture des Syncshell"),
+                new("Implémentation système de ping"),
+                new("Divers correctifs"),
+                new("Plus d'informations sur le Discord"),
+            }),
             new(new Version(2, 1, 3, 1), "2.1.3.1", new List<ChangelogLine>
             {
                 new("Résolution d'un problème critique pouvant faire un téléchargement en boucle"),

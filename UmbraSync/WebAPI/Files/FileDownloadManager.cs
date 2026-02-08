@@ -35,6 +35,11 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
     private int _consecutiveDirectDownloadFailures;
     private bool _disableDirectDownloads;
 
+    // Circuit breaker for CDN enqueue requests - fallback to main server after consecutive failures
+    private const int MaxConsecutiveCdnEnqueueFailures = 2;
+    private int _consecutiveCdnEnqueueFailures;
+    private bool _disableCdnEnqueue;
+
     public FileDownloadManager(ILogger<FileDownloadManager> logger, MareMediator mediator,
         FileTransferOrchestrator orchestrator,
         FileCacheManager fileCacheManager, FileCompactor fileCompactor, MareConfigService mareConfigService,
@@ -66,11 +71,13 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
     private void ResetDirectDownloadCircuitBreaker()
     {
         if (_disableDirectDownloads)
-        {
             Logger.LogInformation("Resetting direct CDN download circuit breaker");
-        }
+        if (_disableCdnEnqueue)
+            Logger.LogInformation("Resetting CDN enqueue circuit breaker");
         _consecutiveDirectDownloadFailures = 0;
         _disableDirectDownloads = false;
+        _consecutiveCdnEnqueueFailures = 0;
+        _disableCdnEnqueue = false;
     }
 
     public List<DownloadFileTransfer> CurrentDownloads { get; private set; } = [];
@@ -189,16 +196,16 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
         }
     }
 
-    private async Task DownloadAndMungeFileHttpClient(string downloadGroup, Guid requestId, List<DownloadFileTransfer> fileTransfer, string tempPath, IProgress<long> progress, CancellationToken ct)
+    private async Task DownloadAndMungeFileHttpClient(string downloadGroup, Guid requestId, List<DownloadFileTransfer> fileTransfer, string tempPath, IProgress<long> progress, Uri effectiveBaseUri, CancellationToken ct)
     {
-        Logger.LogDebug("GUID {requestId} on server {uri} for files {files}", requestId, fileTransfer[0].DownloadUri, string.Join(", ", fileTransfer.Select(c => c.Hash).ToList()));
+        Logger.LogDebug("GUID {requestId} on server {uri} for files {files}", requestId, effectiveBaseUri, string.Join(", ", fileTransfer.Select(c => c.Hash).ToList()));
 
-        await WaitForDownloadReady(fileTransfer, requestId, ct).ConfigureAwait(false);
+        await WaitForDownloadReady(fileTransfer, requestId, effectiveBaseUri, ct).ConfigureAwait(false);
 
         _downloadStatus[downloadGroup].DownloadStatus = DownloadStatus.Downloading;
 
         HttpResponseMessage response = null!;
-        var requestUrl = MareFiles.CacheGetFullPath(fileTransfer[0].DownloadUri, requestId);
+        var requestUrl = MareFiles.CacheGetFullPath(effectiveBaseUri, requestId);
 
         Logger.LogDebug("Downloading {requestUrl} for request {id}", requestUrl, requestId);
         try
@@ -619,27 +626,64 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
         async (fileGroup, token) =>
         {
             var firstFile = fileGroup.First();
-            // let server predownload files
-            var requestIdResponse = await _orchestrator.SendRequestAsync(HttpMethod.Post, MareFiles.RequestEnqueueFullPath(firstFile.DownloadUri),
-                fileGroup.Select(c => c.Hash), token).ConfigureAwait(false);
             var fileCount = fileGroup.Count();
+
+            // Determine effective base URI: skip CDN if circuit breaker is active
+            var cdnUri = firstFile.DownloadUri;
+            var mainServerUri = _orchestrator.FilesCdnUri!;
+            var effectiveBaseUri = _disableCdnEnqueue ? mainServerUri : cdnUri;
+
+            if (_disableCdnEnqueue)
+            {
+                Logger.LogWarning("CDN enqueue disabled due to {failures} consecutive failures, using main server for {count} files",
+                    _consecutiveCdnEnqueueFailures, fileCount);
+            }
+
+            // let server predownload files
+            var requestIdResponse = await _orchestrator.SendRequestAsync(HttpMethod.Post, MareFiles.RequestEnqueueFullPath(effectiveBaseUri),
+                fileGroup.Select(c => c.Hash), token).ConfigureAwait(false);
             var responseBody = await requestIdResponse.Content.ReadAsStringAsync(token).ConfigureAwait(false);
-            Logger.LogInformation("Sent request for {n} files on server {uri} with result {result}", fileCount, firstFile.DownloadUri,
+            Logger.LogInformation("Sent request for {n} files on server {uri} with result {result}", fileCount, effectiveBaseUri,
                 responseBody);
+
+            // If CDN enqueue failed, try fallback to main server
+            if (!requestIdResponse.IsSuccessStatusCode && effectiveBaseUri == cdnUri && cdnUri != mainServerUri)
+            {
+                Logger.LogWarning("CDN enqueue failed with status {status}, trying main server fallback", requestIdResponse.StatusCode);
+                var failures = Interlocked.Increment(ref _consecutiveCdnEnqueueFailures);
+                if (failures >= MaxConsecutiveCdnEnqueueFailures)
+                {
+                    _disableCdnEnqueue = true;
+                    Logger.LogWarning("CDN enqueue disabled after {count} consecutive failures", failures);
+                }
+
+                effectiveBaseUri = mainServerUri;
+                requestIdResponse = await _orchestrator.SendRequestAsync(HttpMethod.Post, MareFiles.RequestEnqueueFullPath(effectiveBaseUri),
+                    fileGroup.Select(c => c.Hash), token).ConfigureAwait(false);
+                responseBody = await requestIdResponse.Content.ReadAsStringAsync(token).ConfigureAwait(false);
+                Logger.LogInformation("Main server fallback for {n} files: {result}", fileCount, responseBody);
+            }
 
             if (!requestIdResponse.IsSuccessStatusCode)
             {
-                Logger.LogError("CDN enqueue request failed with status {status}: {body}", requestIdResponse.StatusCode, responseBody);
+                Logger.LogError("Enqueue request failed with status {status}: {body}", requestIdResponse.StatusCode, responseBody);
                 return;
+            }
+
+            // CDN enqueue succeeded - reset counter if it was the CDN
+            if (effectiveBaseUri == cdnUri && _consecutiveCdnEnqueueFailures > 0)
+            {
+                Interlocked.Exchange(ref _consecutiveCdnEnqueueFailures, 0);
+                _disableCdnEnqueue = false;
             }
 
             if (!Guid.TryParse(responseBody.Trim('"'), out Guid requestId))
             {
-                Logger.LogError("CDN enqueue request returned invalid GUID: {body}", responseBody);
+                Logger.LogError("Enqueue request returned invalid GUID: {body}", responseBody);
                 return;
             }
 
-            Logger.LogDebug("GUID {requestId} for {n} files on server {uri}", requestId, fileCount, firstFile.DownloadUri);
+            Logger.LogDebug("GUID {requestId} for {n} files on server {uri}", requestId, fileCount, effectiveBaseUri);
 
             var blockFile = _fileDbManager.GetCacheFilePath(requestId.ToString("N"), "blk");
             FileInfo fi = new(blockFile);
@@ -664,7 +708,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
                         Logger.LogWarning(ex, "Could not set download progress");
                     }
                 });
-                await DownloadAndMungeFileHttpClient(fileGroup.Key, requestId, [.. fileGroup], blockFile, progress, token).ConfigureAwait(false);
+                await DownloadAndMungeFileHttpClient(fileGroup.Key, requestId, [.. fileGroup], blockFile, progress, effectiveBaseUri, token).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -1003,7 +1047,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
         }
     }
 
-    private async Task WaitForDownloadReady(List<DownloadFileTransfer> downloadFileTransfer, Guid requestId, CancellationToken downloadCt)
+    private async Task WaitForDownloadReady(List<DownloadFileTransfer> downloadFileTransfer, Guid requestId, Uri effectiveBaseUri, CancellationToken downloadCt)
     {
         bool alreadyCancelled = false;
         try
@@ -1022,7 +1066,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
                 {
                     if (downloadCt.IsCancellationRequested) throw;
 
-                    var req = await _orchestrator.SendRequestAsync(HttpMethod.Get, MareFiles.RequestCheckQueueFullPath(downloadFileTransfer[0].DownloadUri, requestId),
+                    var req = await _orchestrator.SendRequestAsync(HttpMethod.Get, MareFiles.RequestCheckQueueFullPath(effectiveBaseUri, requestId),
                         downloadFileTransfer.Select(c => c.Hash).ToList(), downloadCt).ConfigureAwait(false);
                     req.EnsureSuccessStatusCode();
                     localTimeoutCts.Dispose();
@@ -1042,7 +1086,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
         {
             try
             {
-                await _orchestrator.SendRequestAsync(HttpMethod.Get, MareFiles.RequestCancelFullPath(downloadFileTransfer[0].DownloadUri, requestId)).ConfigureAwait(false);
+                await _orchestrator.SendRequestAsync(HttpMethod.Get, MareFiles.RequestCancelFullPath(effectiveBaseUri, requestId)).ConfigureAwait(false);
                 alreadyCancelled = true;
             }
             catch
@@ -1058,7 +1102,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
             {
                 try
                 {
-                    await _orchestrator.SendRequestAsync(HttpMethod.Get, MareFiles.RequestCancelFullPath(downloadFileTransfer[0].DownloadUri, requestId)).ConfigureAwait(false);
+                    await _orchestrator.SendRequestAsync(HttpMethod.Get, MareFiles.RequestCancelFullPath(effectiveBaseUri, requestId)).ConfigureAwait(false);
                 }
                 catch
                 {
