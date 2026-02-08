@@ -125,7 +125,8 @@ public class CompactUi : WindowMediatorSubscriberBase
         AutoDetectUi autoDetectUi,
         DataAnalysisUi dataAnalysisUi,
         CharaDataHubUi charaDataHubUi,
-        NotificationTracker notificationTracker)
+        NotificationTracker notificationTracker,
+        UmbraProfileManager umbraProfileManager)
         : base(logger, mediator, "###UmbraSyncMainUI", performanceCollectorService)
     {
         _uiSharedService = uiShared;
@@ -147,7 +148,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         _notificationTracker = notificationTracker;
         var tagHandler = new TagHandler(_serverManager);
 
-        _groupPanel = new(this, uiShared, _pairManager, uidDisplayHandler, _serverManager, _charaDataManager, _autoDetectRequestService, _configService);
+        _groupPanel = new(this, uiShared, _pairManager, uidDisplayHandler, _serverManager, _charaDataManager, _autoDetectRequestService, _configService, umbraProfileManager);
         _selectGroupForPairUi = new(tagHandler, uidDisplayHandler, _uiSharedService);
         _selectPairsForGroupUi = new(tagHandler, uidDisplayHandler);
         _pairGroupsUi = new(configService, tagHandler, apiController, _selectPairsForGroupUi, _uiSharedService);

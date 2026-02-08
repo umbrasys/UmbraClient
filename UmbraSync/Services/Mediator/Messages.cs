@@ -135,6 +135,7 @@ public record GroupSyncOverrideChanged(string Gid, bool? DisableSounds, bool? Di
 public record NotificationStateChanged(int TotalCount) : MessageBase;
 public record PairOnlineMessage(UserData User) : MessageBase;
 public record PluginChangeMessage(string InternalName, Version Version, bool IsLoaded) : KeyedMessage(InternalName);
+public record GroupProfileUpdatedMessage(GroupProfileDto Profile) : MessageBase;
 public record PingMarkerReceivedMessage(GroupPingMarkerDto Dto) : MessageBase;
 public record PingMarkerRemovedMessage(GroupData Group, UserData Sender, Guid PingId) : MessageBase;
 public record PingMarkersClearedMessage(GroupData Group) : MessageBase;

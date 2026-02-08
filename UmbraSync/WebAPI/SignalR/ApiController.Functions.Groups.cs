@@ -132,6 +132,18 @@ public partial class ApiController
         await _mareHub!.SendAsync(nameof(GroupUnbanUser), groupPair).ConfigureAwait(false);
     }
 
+    public async Task<GroupProfileDto?> GroupGetProfile(GroupDto group)
+    {
+        CheckConnection();
+        return await _mareHub!.InvokeAsync<GroupProfileDto?>(nameof(GroupGetProfile), group).ConfigureAwait(false);
+    }
+
+    public async Task GroupSetProfile(GroupProfileDto profile)
+    {
+        CheckConnection();
+        await _mareHub!.SendAsync(nameof(GroupSetProfile), profile).ConfigureAwait(false);
+    }
+
     private void CheckConnection()
     {
         if (ServerState is not (ServerState.Connected or ServerState.Connecting or ServerState.Reconnecting)) throw new InvalidDataException("Not connected");

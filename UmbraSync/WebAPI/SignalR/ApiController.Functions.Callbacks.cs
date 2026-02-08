@@ -405,7 +405,20 @@ public partial class ApiController
         _mareHub!.On(nameof(Client_GposeLobbyPushWorldData), act);
     }
 
-    // Ping marker callbacks
+    public Task Client_GroupSendProfile(GroupProfileDto profile)
+    {
+        if (Logger.IsEnabled(LogLevel.Debug))
+            Logger.LogDebug("Client_GroupSendProfile: {gid}", profile.Group?.GID);
+        Mediator.Publish(new GroupProfileUpdatedMessage(profile));
+        return Task.CompletedTask;
+    }
+
+    public void OnGroupSendProfile(Action<GroupProfileDto> act)
+    {
+        if (_initialized) return;
+        _mareHub!.On(nameof(Client_GroupSendProfile), act);
+    }
+
     public Task Client_GroupReceivePing(GroupPingMarkerDto dto)
     {
         if (Logger.IsEnabled(LogLevel.Debug))

@@ -488,6 +488,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         OnGposeLobbyPushCharacterData((dto) => _ = Client_GposeLobbyPushCharacterData(dto));
         OnGposeLobbyPushPoseData((dto, data) => _ = Client_GposeLobbyPushPoseData(dto, data));
         OnGposeLobbyPushWorldData((dto, data) => _ = Client_GposeLobbyPushWorldData(dto, data));
+        OnGroupSendProfile((dto) => _ = Client_GroupSendProfile(dto));
         OnGroupReceivePing((dto) => _ = Client_GroupReceivePing(dto));
         OnGroupRemovePing((group, sender, remove) => _ = Client_GroupRemovePing(group, sender, remove));
         OnGroupClearPings((group) => _ = Client_GroupClearPings(group));

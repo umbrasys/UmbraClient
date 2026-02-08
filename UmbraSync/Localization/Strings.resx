@@ -2679,11 +2679,26 @@ Click to change.</value>
   <data name="SyncshellAdmin.AutoDetect.PasswordDisabled" xml:space="preserve">
     <value>The password is currently disabled while AutoDetect visibility is active.</value>
   </data>
+  <data name="SyncshellAdmin.AutoDetect.Fulltime" xml:space="preserve">
+    <value>Permanent</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.FulltimeHelp" xml:space="preserve">
+    <value>The Syncshell stays visible permanently until you manually disable it.</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.Duration" xml:space="preserve">
+    <value>One-time (duration)</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.DurationModeHelp" xml:space="preserve">
+    <value>The Syncshell is visible for a set number of hours, then turns off automatically.</value>
+  </data>
   <data name="SyncshellAdmin.AutoDetect.Recurring" xml:space="preserve">
-    <value>Recurring display</value>
+    <value>Recurring schedule</value>
   </data>
   <data name="SyncshellAdmin.AutoDetect.RecurringHelp" xml:space="preserve">
-    <value>If enabled, you can choose recurring days and a time range. If disabled, only the duration is used.</value>
+    <value>The Syncshell is visible on chosen days within a specific time range, repeating each week.</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.Status.Fulltime" xml:space="preserve">
+    <value>Permanent visibility (always on).</value>
   </data>
   <data name="SyncshellAdmin.AutoDetect.Refresh" xml:space="preserve">
     <value>Reload state</value>
@@ -3469,6 +3484,12 @@ Click to change.</value>
   <data name="Syncshell.Cards.ShowMembers" xml:space="preserve">
     <value>Show members list</value>
   </data>
+  <data name="Syncshell.Cards.ShowProfile" xml:space="preserve">
+    <value>Show syncshell profile</value>
+  </data>
+  <data name="Syncshell.Cards.OpenAdmin" xml:space="preserve">
+    <value>Open admin panel</value>
+  </data>
   <data name="Syncshell.Cards.PauseTooltip" xml:space="preserve">
     <value>{0} pairing with all users in this Syncshell</value>
   </data>
@@ -3600,5 +3621,83 @@ Click to change.</value>
   </data>
   <data name="SyncshellAdmin.Users.RevokePing" xml:space="preserve">
     <value>Revoke ping permission</value>
+  </data>
+  <data name="SyncshellAdmin.Tab.Profile" xml:space="preserve">
+    <value>Profile</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.Intro" xml:space="preserve">
+    <value>Configure the public profile for this syncshell.</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.Loading" xml:space="preserve">
+    <value>Loading profile...</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.NoProfile" xml:space="preserve">
+    <value>No profile available for this syncshell.</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.ProfileImage" xml:space="preserve">
+    <value>Profile Picture (512x512)</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.NoImage" xml:space="preserve">
+    <value>No image</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.UploadImage" xml:space="preserve">
+    <value>Upload...</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.ClearImage" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.BannerImage" xml:space="preserve">
+    <value>Banner (840x260)</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.NoBanner" xml:space="preserve">
+    <value>No banner</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.UploadBanner" xml:space="preserve">
+    <value>Upload banner...</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.ClearBanner" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.Tags" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.AddTag" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.NSFW" xml:space="preserve">
+    <value>NSFW content</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.NSFWHelp" xml:space="preserve">
+    <value>Hide by default in discovery (opt-in)</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.Disabled" xml:space="preserve">
+    <value>Profile disabled</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.DisabledHelp" xml:space="preserve">
+    <value>Completely hide from discovery</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.Save" xml:space="preserve">
+    <value>Save profile</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.Saved" xml:space="preserve">
+    <value>Profile saved.</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.SaveFailed" xml:space="preserve">
+    <value>Failed to save profile.</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.ImageTooLarge" xml:space="preserve">
+    <value>Image too large (max 2 MB).</value>
+  </data>
+  <data name="AutoDetectUi.ShowNSFW" xml:space="preserve">
+    <value>Show NSFW syncshells</value>
+  </data>
+  <data name="AutoDetectUi.Syncshell.Table.Description" xml:space="preserve">
+    <value>Description</value>
   </data>
 </root>

@@ -6,6 +6,7 @@ using Dalamud.Interface.Utility.Raii;
 using Dalamud.Utility;
 using System.Globalization;
 using System.Numerics;
+using Dalamud.Interface.Textures.TextureWraps;
 using UmbraSync.API.Data;
 using UmbraSync.API.Data.Enum;
 using UmbraSync.API.Data.Extensions;
@@ -80,11 +81,17 @@ internal sealed class GroupPanel
     private bool _membersLeaveConfirm = false;
     private string _syncshellFilter = string.Empty;
     private string _membersFilter = string.Empty;
+    private readonly UmbraProfileManager _profileManager;
+    private string? _profileWindowGid = null;
+    private bool _profileLoading = false;
+    private GroupProfileDto? _currentProfile = null;
+    private IDalamudTextureWrap? _profileTexture = null;
+    private IDalamudTextureWrap? _bannerTexture = null;
 
     public GroupPanel(CompactUi mainUi, UiSharedService uiShared, PairManager pairManager,
         UidDisplayHandler uidDisplayHandler, ServerConfigurationManager serverConfigurationManager,
         CharaDataManager charaDataManager, AutoDetectRequestService autoDetectRequestService,
-        MareConfigService mareConfig)
+        MareConfigService mareConfig, UmbraProfileManager profileManager)
     {
         _mainUi = mainUi;
         _uiShared = uiShared;
@@ -94,6 +101,7 @@ internal sealed class GroupPanel
         _charaDataManager = charaDataManager;
         _autoDetectRequestService = autoDetectRequestService;
         _mareConfig = mareConfig;
+        _profileManager = profileManager;
     }
 
     private ApiController ApiController => _uiShared.ApiController;
@@ -1038,10 +1046,54 @@ internal sealed class GroupPanel
             }
 
             var memberSize = ImGui.CalcTextSize(memberText);
-            var memberPos = new Vector2(
-                cardMin.X + (cardSize - memberSize.X) / 2f,
-                nextLineY);
+
+            // Info button sizing
+            float infoBtnSize = memberSize.Y + 2f * ImGuiHelpers.GlobalScale;
+            float infoSpacing = 4f * ImGuiHelpers.GlobalScale;
+            float totalMemberLineWidth = memberSize.X + infoSpacing + infoBtnSize;
+
+            float memberLineStartX = cardMin.X + (cardSize - totalMemberLineWidth) / 2f;
+            var memberPos = new Vector2(memberLineStartX, nextLineY);
             drawList.AddText(memberPos, ImGui.ColorConvertFloat4ToU32(new Vector4(0.7f, 0.7f, 0.7f, 1f)), memberText);
+
+            // Info button
+            float infoButtonX = memberLineStartX + memberSize.X + infoSpacing;
+            float infoButtonY = nextLineY + (memberSize.Y - infoBtnSize) / 2f;
+            ImGui.SetCursorScreenPos(new Vector2(infoButtonX, infoButtonY));
+            using (ImRaii.PushId($"info-{groupDto.GID}"))
+            {
+                using (ImRaii.PushColor(ImGuiCol.Button, Vector4.Zero))
+                using (ImRaii.PushColor(ImGuiCol.ButtonHovered, new Vector4(0.3f, 0.3f, 0.35f, 0.5f)))
+                using (ImRaii.PushColor(ImGuiCol.ButtonActive, new Vector4(0.25f, 0.25f, 0.3f, 0.5f)))
+                using (ImRaii.PushColor(ImGuiCol.Text, new Vector4(0.7f, 0.7f, 0.7f, 1f)))
+                using (ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 3f * ImGuiHelpers.GlobalScale))
+                {
+                    if (_uiShared.IconButtonCentered(FontAwesomeIcon.InfoCircle, infoBtnSize, square: true))
+                    {
+                        if (string.Equals(_profileWindowGid, groupDto.GID, StringComparison.Ordinal))
+                        {
+                            _profileWindowGid = null;
+                            _currentProfile = null;
+                            _profileTexture?.Dispose();
+                            _profileTexture = null;
+                            _bannerTexture?.Dispose();
+                            _bannerTexture = null;
+                        }
+                        else
+                        {
+                            _profileWindowGid = groupDto.GID;
+                            _profileLoading = true;
+                            _currentProfile = null;
+                            _profileTexture?.Dispose();
+                            _profileTexture = null;
+                            _bannerTexture?.Dispose();
+                            _bannerTexture = null;
+                            _ = LoadGroupProfileAsync(groupDto);
+                        }
+                    }
+                }
+                UiSharedService.AttachToolTip(Loc.Get("Syncshell.Cards.ShowProfile"));
+            }
 
             float bottomRowY = cardMax.Y - padding - buttonSize;
             float topRowY = bottomRowY - buttonSize - buttonSpacing;
@@ -1130,7 +1182,10 @@ internal sealed class GroupPanel
                 UiSharedService.AttachToolTip(Loc.Get(isVfxDisabled ? "Syncshell.Cards.VfxDisabled" : "Syncshell.Cards.VfxEnabled"));
             }
             
-            float bottomRowButtonsWidth = buttonSize * 2 + buttonSpacing;
+            bool isAdmin = string.Equals(groupDto.OwnerUID, ApiController.UID, StringComparison.Ordinal)
+                           || groupDto.GroupUserInfo.IsModerator();
+            int bottomBtnCount = isAdmin ? 3 : 2;
+            float bottomRowButtonsWidth = buttonSize * bottomBtnCount + buttonSpacing * (bottomBtnCount - 1);
             float bottomRowStartX = cardMin.X + (cardSize - bottomRowButtonsWidth) / 2f;
 
             ImGui.SetCursorScreenPos(new Vector2(bottomRowStartX, bottomRowY));
@@ -1182,6 +1237,26 @@ internal sealed class GroupPanel
                 UiSharedService.AttachToolTip(Loc.Get("Syncshell.Cards.ShowMembers"));
             }
 
+            if (isAdmin)
+            {
+                ImGui.SetCursorScreenPos(new Vector2(bottomRowStartX + (buttonSize + buttonSpacing) * 2, bottomRowY));
+                using (ImRaii.PushId($"admin-{groupDto.GID}"))
+                {
+                    using (ImRaii.PushColor(ImGuiCol.Button, new Vector4(0.2f, 0.2f, 0.25f, 1f)))
+                    using (ImRaii.PushColor(ImGuiCol.ButtonHovered, new Vector4(0.3f, 0.3f, 0.35f, 1f)))
+                    using (ImRaii.PushColor(ImGuiCol.ButtonActive, new Vector4(0.25f, 0.25f, 0.3f, 1f)))
+                    using (ImRaii.PushColor(ImGuiCol.Text, new Vector4(1f, 1f, 1f, 1f)))
+                    using (ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 4f * ImGuiHelpers.GlobalScale))
+                    {
+                        if (_uiShared.IconButtonCentered(FontAwesomeIcon.Crown, buttonSize, square: true))
+                        {
+                            _mainUi.Mediator.Publish(new OpenSyncshellAdminPanel(groupDto));
+                        }
+                    }
+                    UiSharedService.AttachToolTip(Loc.Get("Syncshell.Cards.OpenAdmin"));
+                }
+            }
+
             var hoverAreaMax = new Vector2(cardMax.X, topRowY - buttonSpacing);
             if (ImGui.IsMouseHoveringRect(cardMin, hoverAreaMax) && ImGui.IsWindowHovered(ImGuiHoveredFlags.ChildWindows))
             {
@@ -1203,6 +1278,7 @@ internal sealed class GroupPanel
         }
 
         DrawMembersWindow();
+        DrawProfileWindow();
     }
 
     private void DrawMembersWindow()
@@ -1410,4 +1486,149 @@ internal sealed class GroupPanel
         UiSharedService.ColorText(label, color);
     }
 
+    private async Task LoadGroupProfileAsync(GroupFullInfoDto groupDto)
+    {
+        try
+        {
+            var profile = await ApiController.GroupGetProfile(new GroupDto(groupDto.Group)).ConfigureAwait(false);
+            _currentProfile = profile;
+
+            if (profile?.ProfileImageBase64 is { Length: > 0 } profileImg)
+            {
+                try
+                {
+                    var bytes = Convert.FromBase64String(profileImg);
+                    _profileTexture = _uiShared.LoadImage(bytes);
+                }
+                catch { /* ignore invalid image */ }
+            }
+
+            if (profile?.BannerImageBase64 is { Length: > 0 } bannerImg)
+            {
+                try
+                {
+                    var bytes = Convert.FromBase64String(bannerImg);
+                    _bannerTexture = _uiShared.LoadImage(bytes);
+                }
+                catch { /* ignore invalid image */ }
+            }
+        }
+        catch
+        {
+            _currentProfile = null;
+        }
+        finally
+        {
+            _profileLoading = false;
+        }
+    }
+
+    private void DrawProfileWindow()
+    {
+        if (_profileWindowGid == null) return;
+
+        var entry = _pairManager.GroupPairs
+            .FirstOrDefault(g => string.Equals(g.Key.Group.GID, _profileWindowGid, StringComparison.Ordinal));
+
+        if (entry.Key == null)
+        {
+            _profileWindowGid = null;
+            return;
+        }
+
+        var groupDto = entry.Key;
+        var groupName = _serverConfigurationManager.GetNoteForGid(groupDto.GID);
+        if (string.IsNullOrEmpty(groupName))
+        {
+            groupName = groupDto.Group.Alias ?? groupDto.GID;
+        }
+
+        var windowTitle = $"{groupName} — {Loc.Get("SyncshellAdmin.Tab.Profile")}###ProfileWindow{groupDto.GID}";
+        bool isOpen = true;
+
+        ImGui.SetNextWindowSize(new Vector2(420f * ImGuiHelpers.GlobalScale, 450f * ImGuiHelpers.GlobalScale), ImGuiCond.FirstUseEver);
+        if (ImGui.Begin(windowTitle, ref isOpen, ImGuiWindowFlags.NoCollapse))
+        {
+            if (_profileLoading)
+            {
+                ImGui.TextUnformatted(Loc.Get("SyncshellAdmin.Profile.Loading"));
+            }
+            else if (_currentProfile == null)
+            {
+                ImGui.TextUnformatted(Loc.Get("SyncshellAdmin.Profile.NoProfile"));
+            }
+            else
+            {
+                // Banner
+                if (_bannerTexture != null)
+                {
+                    float availWidth = ImGui.GetContentRegionAvail().X;
+                    float bannerHeight = availWidth * (260f / 840f);
+                    ImGui.Image(_bannerTexture.Handle, new Vector2(availWidth, bannerHeight));
+                    ImGuiHelpers.ScaledDummy(4f);
+                }
+
+                // Profile image + name
+                if (_profileTexture != null)
+                {
+                    float imgSize = 80f * ImGuiHelpers.GlobalScale;
+                    ImGui.Image(_profileTexture.Handle, new Vector2(imgSize, imgSize));
+                    ImGui.SameLine();
+                    ImGui.BeginGroup();
+                    ImGui.TextUnformatted(groupName);
+                    if (_currentProfile.IsNsfw)
+                    {
+                        ImGui.SameLine();
+                        UiSharedService.ColorText("NSFW", ImGuiColors.DalamudRed);
+                    }
+                    ImGui.EndGroup();
+                }
+                else
+                {
+                    ImGui.TextUnformatted(groupName);
+                    if (_currentProfile.IsNsfw)
+                    {
+                        ImGui.SameLine();
+                        UiSharedService.ColorText("NSFW", ImGuiColors.DalamudRed);
+                    }
+                }
+
+                ImGuiHelpers.ScaledDummy(6f);
+
+                // Tags
+                if (_currentProfile.Tags is { Length: > 0 })
+                {
+                    foreach (var tag in _currentProfile.Tags)
+                    {
+                        using (ImRaii.PushColor(ImGuiCol.Text, new Vector4(0.6f, 0.8f, 1f, 1f)))
+                        {
+                            ImGui.TextUnformatted($"#{tag}");
+                        }
+                        ImGui.SameLine();
+                    }
+                    ImGui.NewLine();
+                    ImGuiHelpers.ScaledDummy(4f);
+                }
+
+                // Description
+                if (!string.IsNullOrEmpty(_currentProfile.Description))
+                {
+                    ImGui.Separator();
+                    ImGuiHelpers.ScaledDummy(4f);
+                    UiSharedService.TextWrapped(_currentProfile.Description);
+                }
+            }
+        }
+        ImGui.End();
+
+        if (!isOpen)
+        {
+            _profileWindowGid = null;
+            _currentProfile = null;
+            _profileTexture?.Dispose();
+            _profileTexture = null;
+            _bannerTexture?.Dispose();
+            _bannerTexture = null;
+        }
+    }
 }
