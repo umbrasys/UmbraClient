@@ -896,7 +896,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase, IPairHandler
         {
 #pragma warning disable MA0004 // ConfigureAwait on await using requires different syntax
             await using var semaphoreLease = await _applicationSemaphoreService
-                .AcquireAsync(downloadToken)
+                .AcquireAsync(downloadToken, highPriority: IsVisible)
                 .ConfigureAwait(false);
 #pragma warning restore MA0004
             if ((updateModdedPaths || updateManip) && !hasOtherChanges && !_forceApplyMods)
