@@ -583,29 +583,37 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         }
 
         var prevPermissions = groupPair.GroupUserPermissions;
+        bool pauseChanged = prevPermissions.IsPaused() != dto.GroupPairPermissions.IsPaused();
+        bool filterChanged = prevPermissions.IsDisableAnimations() != dto.GroupPairPermissions.IsDisableAnimations()
+            || prevPermissions.IsDisableSounds() != dto.GroupPairPermissions.IsDisableSounds()
+            || prevPermissions.IsDisableVFX() != dto.GroupPairPermissions.IsDisableVFX();
+        bool wasPaused = pair.IsPaused;
+
         groupPair.GroupUserPermissions = dto.GroupPairPermissions;
 
         if (Logger.IsEnabled(LogLevel.Trace))
             Logger.LogTrace("SetGroupPairUserPermissions: Group {gid}, User {uid}. Paused: {paused}, Global IsPaused: {global}",
                 dto.Group.GID, pair.UserData.UID, groupPair.GroupUserPermissions.IsPaused(), pair.IsPaused);
 
-        bool pauseChanged = prevPermissions.IsPaused() != dto.GroupPairPermissions.IsPaused();
-        bool filterChanged = prevPermissions.IsDisableAnimations() != dto.GroupPairPermissions.IsDisableAnimations()
-            || prevPermissions.IsDisableSounds() != dto.GroupPairPermissions.IsDisableSounds()
-            || prevPermissions.IsDisableVFX() != dto.GroupPairPermissions.IsDisableVFX();
-
         if (pauseChanged || filterChanged)
         {
-            if (!pair.IsPaused)
+            bool nowPaused = pair.IsPaused;
+            if (!wasPaused && nowPaused)
+            {
+                Logger.LogDebug("SetGroupPairUserPermissions: pair {uid} became fully paused, invalidating", pair.UserData.UID);
+                Mediator.Publish(new PlayerVisibilityMessage(pair.Ident, IsVisible: false, Invalidate: true));
+            }
+            else if (wasPaused && !nowPaused)
             {
                 CancelPendingOffline(pair.UserData.UID);
-                Logger.LogDebug("SetGroupPairUserPermissions: triggering forced reapplication for {uid}", pair.UserData.UID);
+                Logger.LogDebug("SetGroupPairUserPermissions: pair {uid} became active, reapplying", pair.UserData.UID);
                 pair.ApplyLastReceivedData(forced: true);
             }
-            else if (pauseChanged && pair.IsPaused)
+            else if (!nowPaused && filterChanged)
             {
-                Logger.LogDebug("SetGroupPairUserPermissions: triggering invalidation for {uid}", pair.UserData.UID);
-                Mediator.Publish(new PlayerVisibilityMessage(pair.Ident, IsVisible: false, Invalidate: true));
+                CancelPendingOffline(pair.UserData.UID);
+                Logger.LogDebug("SetGroupPairUserPermissions: filters changed for active pair {uid}, reapplying", pair.UserData.UID);
+                pair.ApplyLastReceivedData(forced: true);
             }
         }
         RecreateLazyDebounced();
@@ -619,16 +627,24 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
             return;
         }
 
-
         var pairsInGroup = GroupPairs.TryGetValue(groupInfo, out var pairs) ? pairs : new List<Pair>();
 
         var prevPermissions = groupInfo.GroupPermissions;
-        groupInfo.GroupPermissions = dto.Permissions;
 
         bool pauseChanged = prevPermissions.IsPaused() != dto.Permissions.IsPaused();
         bool filterChanged = prevPermissions.IsDisableAnimations() != dto.Permissions.IsDisableAnimations()
             || prevPermissions.IsDisableSounds() != dto.Permissions.IsDisableSounds()
             || prevPermissions.IsDisableVFX() != dto.Permissions.IsDisableVFX();
+
+        Dictionary<string, bool>? prevPauseStates = null;
+        if (pauseChanged)
+        {
+            prevPauseStates = new Dictionary<string, bool>(StringComparer.Ordinal);
+            foreach (var p in pairsInGroup)
+                prevPauseStates[p.UserData.UID] = p.IsPaused;
+        }
+
+        groupInfo.GroupPermissions = dto.Permissions;
 
         if (pauseChanged || filterChanged)
         {
@@ -636,19 +652,26 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
             var pairsToReapply = new List<Pair>();
             foreach (var p in pairsInGroup)
             {
-                if (!p.IsPaused)
+                bool wasPaused = prevPauseStates != null && prevPauseStates.TryGetValue(p.UserData.UID, out var wp) && wp;
+                bool nowPaused = p.IsPaused;
+
+                if (!wasPaused && nowPaused)
+                {
+                    Logger.LogDebug("SetGroupPermissions: pair {uid} became fully paused in group {gid}, invalidating", p.UserData.UID, groupInfo.Group.GID);
+                    Mediator.Publish(new PlayerVisibilityMessage(p.Ident, IsVisible: false, Invalidate: true));
+                }
+                else if (wasPaused && !nowPaused)
                 {
                     CancelPendingOffline(p.UserData.UID);
                     pairsToReapply.Add(p);
                 }
-                else if (pauseChanged && p.IsPaused)
+                else if (!nowPaused && filterChanged)
                 {
-                    Logger.LogDebug("SetGroupPermissions: triggering invalidation for {uid} in group {gid}", p.UserData.UID, groupInfo.Group.GID);
-                    Mediator.Publish(new PlayerVisibilityMessage(p.Ident, IsVisible: false, Invalidate: true));
+                    CancelPendingOffline(p.UserData.UID);
+                    pairsToReapply.Add(p);
                 }
             }
 
-            // Utiliser le throttling pour les réapplications
             if (pairsToReapply.Count > 0)
             {
                 Logger.LogDebug("SetGroupPermissions: queueing {count} pairs for throttled reapplication in group {gid}", pairsToReapply.Count, groupInfo.Group.GID);
@@ -678,39 +701,51 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         }
         var pairsInGroup = GroupPairs.TryGetValue(groupInfo, out var pairs) ? pairs : new List<Pair>();
         var prevPermissions = groupInfo.GroupUserPermissions;
-        groupInfo.GroupUserPermissions = dto.GroupPairPermissions;
 
         bool pauseChanged = prevPermissions.IsPaused() != dto.GroupPairPermissions.IsPaused();
         bool filterChanged = prevPermissions.IsDisableAnimations() != dto.GroupPairPermissions.IsDisableAnimations()
             || prevPermissions.IsDisableSounds() != dto.GroupPairPermissions.IsDisableSounds()
             || prevPermissions.IsDisableVFX() != dto.GroupPairPermissions.IsDisableVFX();
 
+        Dictionary<string, bool>? prevPauseStates = null;
+        if (pauseChanged)
+        {
+            prevPauseStates = new Dictionary<string, bool>(StringComparer.Ordinal);
+            foreach (var p in pairsInGroup)
+                prevPauseStates[p.UserData.UID] = p.IsPaused;
+        }
+
+        groupInfo.GroupUserPermissions = dto.GroupPairPermissions;
+
         if (pauseChanged || filterChanged)
         {
             RecreateLazyDebounced();
 
-            // Collecter les paires à traiter
             var pairsToReapply = new List<Pair>();
             foreach (var p in pairsInGroup)
             {
-                // Our permissions in the group changed. This affects what we can see/hear from others.
-                // We only need to reapply data for the others based on our NEW filters.
-                if (!p.IsPaused)
+                bool wasPaused = prevPauseStates != null && prevPauseStates.TryGetValue(p.UserData.UID, out var wp) && wp;
+                bool nowPaused = p.IsPaused;
+
+                if (!wasPaused && nowPaused)
+                {
+                    // Pair est devenu entièrement pausé → invalider
+                    Logger.LogDebug("SetGroupUserPermissions: pair {uid} became fully paused in group {gid}, invalidating", p.UserData.UID, groupInfo.Group.GID);
+                    Mediator.Publish(new PlayerVisibilityMessage(p.Ident, IsVisible: false, Invalidate: true));
+                }
+                else if (wasPaused && !nowPaused)
                 {
                     CancelPendingOffline(p.UserData.UID);
                     pairsToReapply.Add(p);
                 }
-                else if (pauseChanged && p.IsPaused)
+                else if (!nowPaused && filterChanged)
                 {
-                    // If we paused ourselves in the group, we might want to hide others if we were only visible through this group.
-                    // But usually p.IsPaused includes many things.
-                    // To be safe and avoid flickers, we only invalidate if the global pause state for this pair actually changed to true.
-                    Logger.LogDebug("SetGroupUserPermissions: triggering invalidation for {uid} in group {gid}", p.UserData.UID, groupInfo.Group.GID);
-                    Mediator.Publish(new PlayerVisibilityMessage(p.Ident, IsVisible: false, Invalidate: true));
+                    CancelPendingOffline(p.UserData.UID);
+                    pairsToReapply.Add(p);
                 }
+                // else: état global inchangé → pas de redraw
             }
 
-            // Utiliser le throttling pour les réapplications
             if (pairsToReapply.Count > 0)
             {
                 Logger.LogDebug("SetGroupUserPermissions: queueing {count} pairs for throttled reapplication in group {gid}", pairsToReapply.Count, groupInfo.Group.GID);

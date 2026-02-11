@@ -56,37 +56,42 @@ public class Pair : DisposableMediatorSubscriberBase
     public bool IsPaused
     {
         get
-        { 
+        {
             if (_serverConfigurationManager.IsUidPaused(UserData.UID))
             {
                 if (_logger.IsEnabled(LogLevel.Trace))
                     _logger.LogTrace("IsPaused: true (LocalPaused) for {uid}", UserData.UID);
                 return true;
             }
-
-            if (UserPair != null && UserPair.OwnPermissions.IsPaused())
+            if (UserPair != null)
             {
+                bool directPaused = UserPair.OwnPermissions.IsPaused() || UserPair.OtherPermissions.IsPaused();
                 if (_logger.IsEnabled(LogLevel.Trace))
-                    _logger.LogTrace("IsPaused: true (Individual OwnPaused) for {uid}", UserData.UID);
-                return true;
+                    _logger.LogTrace("IsPaused: {paused} (DirectPair, Own={own}, Other={other}) for {uid}",
+                        directPaused, UserPair.OwnPermissions.IsPaused(), UserPair.OtherPermissions.IsPaused(), UserData.UID);
+                return directPaused;
             }
 
             if (GroupPair.Count > 0)
             {
+                bool allGroupsPaused = true;
                 foreach (var p in GroupPair)
                 {
-                    if (p.Key.GroupUserPermissions.IsPaused())
+                    bool groupPaused = p.Key.GroupUserPermissions.IsPaused()
+                                    || p.Key.GroupPermissions.IsPaused()
+                                    || p.Value.GroupUserPermissions.IsPaused();
+                    if (!groupPaused)
                     {
-                        if (_logger.IsEnabled(LogLevel.Trace))
-                            _logger.LogTrace("IsPaused: true (Group {gid} OwnPaused) for {uid}", p.Key.Group.GID, UserData.UID);
-                        return true;
+                        allGroupsPaused = false;
+                        break;
                     }
-                    if (p.Key.GroupPermissions.IsPaused())
-                    {
-                        if (_logger.IsEnabled(LogLevel.Trace))
-                            _logger.LogTrace("IsPaused: true (Group {gid} GroupPaused) for {uid}", p.Key.Group.GID, UserData.UID);
-                        return true;
-                    }
+                }
+
+                if (allGroupsPaused)
+                {
+                    if (_logger.IsEnabled(LogLevel.Trace))
+                        _logger.LogTrace("IsPaused: true (All {count} groups paused) for {uid}", GroupPair.Count, UserData.UID);
+                    return true;
                 }
             }
 
