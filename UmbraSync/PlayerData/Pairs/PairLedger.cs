@@ -7,7 +7,7 @@ public sealed class PairLedger : DisposableMediatorSubscriberBase
 {
     private readonly PairManager _pairManager;
     private readonly PairStateCache _stateCache;
-    private readonly object _metricsGate = new();
+    private readonly Lock _metricsGate = new();
     private CancellationTokenSource? _ensureMetricsCts;
 
     public PairLedger(

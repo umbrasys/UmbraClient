@@ -109,14 +109,16 @@ public class DownloadUi : WindowMediatorSubscriberBase
             {
                 foreach (var item in _currentDownloads.ToList())
                 {
-                    var dlSlot = item.Value.Count(c => c.Value.DownloadStatus == DownloadStatus.WaitingForSlot);
-                    var dlQueue = item.Value.Count(c => c.Value.DownloadStatus == DownloadStatus.WaitingForQueue);
-                    var dlProg = item.Value.Count(c => c.Value.DownloadStatus == DownloadStatus.Downloading);
-                    var dlDecomp = item.Value.Count(c => c.Value.DownloadStatus == DownloadStatus.Decompressing);
-                    var totalFiles = item.Value.Sum(c => c.Value.TotalFiles);
-                    var transferredFiles = item.Value.Sum(c => c.Value.TransferredFiles);
-                    var totalBytes = item.Value.Sum(c => c.Value.TotalBytes);
-                    var transferredBytes = item.Value.Sum(c => c.Value.TransferredBytes);
+                    var statusValues = item.Value?.Values.ToList();
+                    if (statusValues == null || statusValues.Count == 0) continue;
+                    var dlSlot = statusValues.Count(c => c?.DownloadStatus == DownloadStatus.WaitingForSlot);
+                    var dlQueue = statusValues.Count(c => c?.DownloadStatus == DownloadStatus.WaitingForQueue);
+                    var dlProg = statusValues.Count(c => c?.DownloadStatus == DownloadStatus.Downloading);
+                    var dlDecomp = statusValues.Count(c => c?.DownloadStatus == DownloadStatus.Decompressing);
+                    var totalFiles = statusValues.Sum(c => c?.TotalFiles ?? 0);
+                    var transferredFiles = statusValues.Sum(c => c?.TransferredFiles ?? 0);
+                    var totalBytes = statusValues.Sum(c => c?.TotalBytes ?? 0);
+                    var transferredBytes = statusValues.Sum(c => c?.TransferredBytes ?? 0);
 
                     UiSharedService.DrawOutlinedFont($"▼", ImGuiColors.DalamudWhite, new Vector4(0, 0, 0, 255), 1);
                     ImGui.SameLine();
@@ -147,8 +149,10 @@ public class DownloadUi : WindowMediatorSubscriberBase
                 var screenPos = _dalamudUtilService.WorldToScreen(transfer.Key.GetGameObject());
                 if (screenPos == Vector2.Zero) continue;
 
-                var totalBytes = transfer.Value.Sum(c => c.Value.TotalBytes);
-                var transferredBytes = transfer.Value.Sum(c => c.Value.TransferredBytes);
+                var statusValues = transfer.Value?.Values.ToList();
+                if (statusValues == null || statusValues.Count == 0) continue;
+                var totalBytes = statusValues.Sum(c => c?.TotalBytes ?? 0);
+                var transferredBytes = statusValues.Sum(c => c?.TransferredBytes ?? 0);
                 var displayTotalBytes = Math.Max(totalBytes, transferredBytes);
 
                 var maxDlText = $"{UiSharedService.ByteToString(displayTotalBytes, addSuffix: false)}/{UiSharedService.ByteToString(displayTotalBytes)}";

@@ -37,12 +37,6 @@ public partial class ApiController
         return await _mareHub!.InvokeAsync<bool>(nameof(GroupChangePassword), groupPassword).ConfigureAwait(false);
     }
 
-    public async Task GroupChatSendMsg(GroupDto group, ChatMessage message)
-    {
-        CheckConnection();
-        await _mareHub!.SendAsync(nameof(GroupChatSendMsg), group, message).ConfigureAwait(false);
-    }
-
     public async Task GroupClear(GroupDto group)
     {
         CheckConnection();
@@ -136,6 +130,18 @@ public partial class ApiController
     {
         CheckConnection();
         await _mareHub!.SendAsync(nameof(GroupUnbanUser), groupPair).ConfigureAwait(false);
+    }
+
+    public async Task<GroupProfileDto?> GroupGetProfile(GroupDto group)
+    {
+        CheckConnection();
+        return await _mareHub!.InvokeAsync<GroupProfileDto?>(nameof(GroupGetProfile), group).ConfigureAwait(false);
+    }
+
+    public async Task GroupSetProfile(GroupProfileDto profile)
+    {
+        CheckConnection();
+        await _mareHub!.SendAsync(nameof(GroupSetProfile), profile).ConfigureAwait(false);
     }
 
     private void CheckConnection()

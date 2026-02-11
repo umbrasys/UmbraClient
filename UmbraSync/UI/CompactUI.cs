@@ -114,7 +114,7 @@ public class CompactUi : WindowMediatorSubscriberBase
 
     private readonly Dictionary<string, DrawUserPair> _drawUserPairCache = new(StringComparer.Ordinal);
 
-    public CompactUi(ILogger<CompactUi> logger, UiSharedService uiShared, MareConfigService configService, ApiController apiController, PairManager pairManager, ChatService chatService,
+    public CompactUi(ILogger<CompactUi> logger, UiSharedService uiShared, MareConfigService configService, ApiController apiController, PairManager pairManager,
         ServerConfigurationManager serverManager, MareMediator mediator, FileUploadManager fileTransferManager, UidDisplayHandler uidDisplayHandler, CharaDataManager charaDataManager,
         NearbyPendingService nearbyPendingService,
         AutoDetectRequestService autoDetectRequestService,
@@ -125,7 +125,8 @@ public class CompactUi : WindowMediatorSubscriberBase
         AutoDetectUi autoDetectUi,
         DataAnalysisUi dataAnalysisUi,
         CharaDataHubUi charaDataHubUi,
-        NotificationTracker notificationTracker)
+        NotificationTracker notificationTracker,
+        UmbraProfileManager umbraProfileManager)
         : base(logger, mediator, "###UmbraSyncMainUI", performanceCollectorService)
     {
         _uiSharedService = uiShared;
@@ -147,7 +148,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         _notificationTracker = notificationTracker;
         var tagHandler = new TagHandler(_serverManager);
 
-        _groupPanel = new(this, uiShared, _pairManager, chatService, uidDisplayHandler, _serverManager, _charaDataManager, _autoDetectRequestService);
+        _groupPanel = new(this, uiShared, _pairManager, uidDisplayHandler, _serverManager, _charaDataManager, _autoDetectRequestService, _configService, umbraProfileManager);
         _selectGroupForPairUi = new(tagHandler, uidDisplayHandler, _uiSharedService);
         _selectPairsForGroupUi = new(tagHandler, uidDisplayHandler);
         _pairGroupsUi = new(configService, tagHandler, apiController, _selectPairsForGroupUi, _uiSharedService);
@@ -242,15 +243,7 @@ public class CompactUi : WindowMediatorSubscriberBase
 
         using (ImRaii.PushId("header")) DrawUIDHeader();
         using (ImRaii.PushId("serverstatus")) DrawServerStatus();
-        {
-            var hSepColor = UiSharedService.AccentColor with { W = 0.6f };
-            var hSepDrawList = ImGui.GetWindowDrawList();
-            var hSepCursor = ImGui.GetCursorScreenPos();
-            var hSepStart = new Vector2(hSepCursor.X, hSepCursor.Y);
-            var hSepEnd = new Vector2(hSepCursor.X + WindowContentWidth, hSepCursor.Y);
-            hSepDrawList.AddLine(hSepStart, hSepEnd, ImGui.GetColorU32(hSepColor), 1f * ImGuiHelpers.GlobalScale);
-            ImGuiHelpers.ScaledDummy(2f);
-        }
+        DrawAccentSeparator();
 
         DrawMainContent();
 
@@ -1697,6 +1690,17 @@ public class CompactUi : WindowMediatorSubscriberBase
         {
             return false;
         }
+    }
+
+    private void DrawAccentSeparator()
+    {
+        var hSepColor = UiSharedService.AccentColor with { W = 0.6f };
+        var hSepDrawList = ImGui.GetWindowDrawList();
+        var hSepCursor = ImGui.GetCursorScreenPos();
+        var hSepStart = new Vector2(hSepCursor.X, hSepCursor.Y);
+        var hSepEnd = new Vector2(hSepCursor.X + WindowContentWidth, hSepCursor.Y);
+        hSepDrawList.AddLine(hSepStart, hSepEnd, ImGui.GetColorU32(hSepColor), 1f * ImGuiHelpers.GlobalScale);
+        ImGuiHelpers.ScaledDummy(2f);
     }
 
     private void DrawServerStatus()
