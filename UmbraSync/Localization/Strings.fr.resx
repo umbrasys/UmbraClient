@@ -2282,6 +2282,12 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="Settings.DownloadQueue.MaxWhenEnabled" xml:space="preserve">
     <value>Nombre maximal de téléchargements de personnages autorisés simultanément lorsque la file est activée.</value>
   </data>
+  <data name="Settings.RpNamesOnNameplates" xml:space="preserve">
+    <value>Afficher les noms RP sur les plaques de nom</value>
+  </data>
+  <data name="Settings.RpNamesInChat" xml:space="preserve">
+    <value>Afficher les noms RP dans le chat</value>
+  </data>
   <data name="Settings.Typing.BlockedNameColor" xml:space="preserve">
     <value>Couleur des noms bloqués</value>
   </data>

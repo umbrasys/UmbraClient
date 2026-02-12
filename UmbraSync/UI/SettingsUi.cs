@@ -989,6 +989,21 @@ public class SettingsUi : WindowMediatorSubscriberBase
             }
         }
 
+        var useRpNamesOnNameplates = _configService.Current.UseRpNamesOnNameplates;
+        if (ImGui.Checkbox(Loc.Get("Settings.RpNamesOnNameplates"), ref useRpNamesOnNameplates))
+        {
+            _configService.Current.UseRpNamesOnNameplates = useRpNamesOnNameplates;
+            _configService.Save();
+            _guiHookService.RequestRedraw(force: true);
+        }
+
+        var useRpNamesInChat = _configService.Current.UseRpNamesInChat;
+        if (ImGui.Checkbox(Loc.Get("Settings.RpNamesInChat"), ref useRpNamesInChat))
+        {
+            _configService.Current.UseRpNamesInChat = useRpNamesInChat;
+            _configService.Save();
+        }
+
         if (ImGui.Checkbox("Show separate Visible group", ref showVisibleSeparate))
         {
             _configService.Current.ShowVisibleUsersSeparately = showVisibleSeparate;

@@ -25,6 +25,8 @@ public class MareConfig : IMareConfiguration
     public bool UseNameColors { get; set; }
     public DtrEntry.Colors NameColors { get; set; } = new(Foreground: 0x67EBF5u, Glow: 0x00303Cu);
     public DtrEntry.Colors BlockedNameColors { get; set; } = new(Foreground: 0x8AADC7, Glow: 0x000080u);
+    public bool UseRpNamesOnNameplates { get; set; }
+    public bool UseRpNamesInChat { get; set; }
     public bool EnableRightClickMenus { get; set; } = true;
     public NotificationLocation ErrorNotification { get; set; } = NotificationLocation.Both;
     public string ExportFolder { get; set; } = string.Empty;

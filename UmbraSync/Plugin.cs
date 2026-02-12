@@ -230,6 +230,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddScoped<CommandManagerService>();
             collection.AddScoped<UiSharedService>();
             collection.AddScoped<ChatService>();
+            collection.AddScoped<ChatNameReplacementService>();
             collection.AddScoped<GuiHookService>();
             collection.AddScoped<ChatTypingDetectionService>();
 
