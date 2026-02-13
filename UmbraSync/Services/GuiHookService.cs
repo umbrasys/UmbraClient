@@ -46,6 +46,7 @@ public class GuiHookService : DisposableMediatorSubscriberBase
         Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, (_) => GameSettingsCheck());
         Mediator.Subscribe<PairHandlerVisibleMessage>(this, (_) => RequestRedraw());
         Mediator.Subscribe<NameplateRedrawMessage>(this, (_) => RequestRedraw());
+        Mediator.Subscribe<ClearProfileDataMessage>(this, (_) => RequestRedraw());
         Mediator.Subscribe<UserTypingStateMessage>(this, (_) => RequestRedraw());
     }
 

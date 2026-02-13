@@ -424,8 +424,8 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                 ImGui.InputText("##" + label, ref text, maxLength);
             }
 
-            DrawLabeledInput(Loc.Get("UserProfile.RpFirstName"), ref _rpFirstNameText, 100);
-            DrawLabeledInput(Loc.Get("UserProfile.RpLastName"), ref _rpLastNameText, 100, true);
+            DrawLabeledInput(Loc.Get("UserProfile.RpFirstName"), ref _rpFirstNameText, 30);
+            DrawLabeledInput(Loc.Get("UserProfile.RpLastName"), ref _rpLastNameText, 30, true);
 
             var vanillaFirstName = GetVanillaFirstName();
             if (!string.IsNullOrEmpty(_rpFirstNameText) && vanillaFirstName != null

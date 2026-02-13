@@ -199,6 +199,8 @@ public class UmbraProfileManager : MediatorSubscriberBase
             {
                 _umbraProfiles[key] = profileData;
             }
+
+            Mediator.Publish(new NameplateRedrawMessage());
         }
         catch (Exception ex)
         {
