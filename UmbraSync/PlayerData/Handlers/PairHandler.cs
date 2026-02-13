@@ -19,7 +19,7 @@ using PlayerChanges = UmbraSync.PlayerData.Data.PlayerChanges;
 
 namespace UmbraSync.PlayerData.Handlers;
 
-public sealed class PairHandler : DisposableMediatorSubscriberBase
+public sealed class PairHandler : DisposableMediatorSubscriberBase, IPairHandlerAdapter
 {
     private sealed record CombatData(Guid ApplicationId, CharacterData CharacterData, bool Forced);
 
@@ -49,32 +49,30 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     private Guid _deferred = Guid.Empty;
     private Guid _penumbraCollection = Guid.Empty;
     private bool _redrawOnNextApplication = false;
-    private readonly object _pauseLock = new();
+    private readonly Lock _pauseLock = new();
     private Task _pauseTransitionTask = Task.CompletedTask;
     private bool _pauseRequested = false;
-    private readonly object _visibilityGraceGate = new();
+    private readonly Lock _visibilityGraceGate = new();
     private CancellationTokenSource? _visibilityGraceCts;
-    private static readonly TimeSpan VisibilityEvictionGrace = TimeSpan.FromMinutes(1);
+    private static readonly TimeSpan VisibilityEvictionGrace = TimeSpan.FromMinutes(5);
     private DateTime? _invisibleSinceUtc;
     private DateTime? _visibilityEvictionDueAtUtc;
-
-    // Traçabilité diagnostique
     private DateTime? _lastDataReceivedAt;
     private DateTime? _lastApplyAttemptAt;
     private DateTime? _lastSuccessfulApplyAt;
     private string? _lastFailureReason;
     private IReadOnlyList<string> _lastBlockingConditions = Array.Empty<string>();
-
-    public bool ScheduledForDeletion { get; private set; }
+    public bool ScheduledForDeletion { get; set; }
     public DateTime? InvisibleSinceUtc => _invisibleSinceUtc;
     public DateTime? VisibilityEvictionDueAtUtc => _visibilityEvictionDueAtUtc;
-
-    // Propriétés de diagnostic publiques
     public DateTime? LastDataReceivedAt => _lastDataReceivedAt;
     public DateTime? LastApplyAttemptAt => _lastApplyAttemptAt;
     public DateTime? LastSuccessfulApplyAt => _lastSuccessfulApplyAt;
     public string? LastFailureReason => _lastFailureReason;
     public IReadOnlyList<string> LastBlockingConditions => _lastBlockingConditions;
+    public string Ident => Pair.Ident;
+    public bool Initialized => _charaHandler != null;
+    public CharacterData? LastReceivedCharacterData => _cachedData;
 
     public PairHandler(ILogger<PairHandler> logger, Pair pair, PairAnalyzer pairAnalyzer,
         GameObjectHandlerFactory gameObjectHandlerFactory,
@@ -356,7 +354,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         return Pair.UserData.AliasOrUID + ":" + PlayerName + ":" + (PlayerCharacter != nint.Zero ? "HasChar" : "NoChar");
     }
 
-    internal void SetUploading(bool isUploading = true)
+    public void SetUploading(bool isUploading)
     {
         if (Logger.IsEnabled(LogLevel.Trace))
             Logger.LogTrace("Setting {pairHandler} uploading {uploading}", this, isUploading);
@@ -364,6 +362,15 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         {
             Mediator.Publish(new PlayerUploadingMessage(_charaHandler, isUploading));
         }
+    }
+
+ 
+    public void Invalidate()
+    {
+        Logger.LogDebug("Invalidating handler for {uid}", Pair.UserData.UID);
+        _charaHandler?.Invalidate();
+        _forceApplyMods = true;
+        _pendingModReapply = true;
     }
 
     protected override void Dispose(bool disposing)
@@ -887,9 +894,11 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
 
         _ = Task.Run(async () =>
         {
+#pragma warning disable MA0004 // ConfigureAwait on await using requires different syntax
             await using var semaphoreLease = await _applicationSemaphoreService
-                .AcquireAsync(downloadToken)
+                .AcquireAsync(downloadToken, highPriority: IsVisible)
                 .ConfigureAwait(false);
+#pragma warning restore MA0004
             if ((updateModdedPaths || updateManip) && !hasOtherChanges && !_forceApplyMods)
             {
                 Logger.LogDebug("[BASE-{appBase}] Applying mod changes only - skipping full redraw", applicationBase);
@@ -1333,7 +1342,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         }
     }
 
-    private void Initialize(string name)
+    public void Initialize(string name)
     {
         PlayerName = name;
         _charaHandler = _gameObjectHandlerFactory.Create(ObjectKind.Player, () => _dalamudUtil.GetPlayerCharacterFromCachedTableByIdent(Pair.Ident), isWatched: false).GetAwaiter().GetResult();

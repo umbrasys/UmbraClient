@@ -70,11 +70,10 @@ public sealed class SyncshellDiscoveryService : IHostedService, IMediatorSubscri
 
     public async Task<bool> SetVisibilityAsync(string gid, bool visible, int? displayDurationHours,
         int[]? activeWeekdays, TimeSpan? timeStartLocal, TimeSpan? timeEndLocal, string? timeZone,
-        CancellationToken ct)
+        CancellationToken ct, AutoDetectMode? modeOverride = null)
     {
         try
         {
-            // Pre‑serialize log of the intent (raw inputs from UI)
             _logger.LogInformation(
                 "[AutoDetect][CLIENT] SetVisibility gid={gid} visible={visible} duration={duration} weekdays=[{weekdays}] start={start} end={end} tz={tz}",
                 gid,
@@ -85,27 +84,28 @@ public sealed class SyncshellDiscoveryService : IHostedService, IMediatorSubscri
                 timeEndLocal?.ToString(),
                 timeZone ?? string.Empty);
 
-            // Traduire vers la nouvelle "policy" (Off / Duration / Recurring)
-            AutoDetectMode mode = visible ? AutoDetectMode.Duration : AutoDetectMode.Off;
+            // Traduire vers la nouvelle "policy" (Off / Duration / Recurring / Fulltime)
+            AutoDetectMode mode = modeOverride ?? (visible ? AutoDetectMode.Duration : AutoDetectMode.Off);
             int? duration = null;
             string? startLocal = timeStartLocal.HasValue ? new DateTime(timeStartLocal.Value.Ticks, DateTimeKind.Unspecified).ToString("HH:mm", CultureInfo.InvariantCulture) : null;
             string? endLocal = timeEndLocal.HasValue ? new DateTime(timeEndLocal.Value.Ticks, DateTimeKind.Unspecified).ToString("HH:mm", CultureInfo.InvariantCulture) : null;
 
-            // Récurrent valide seulement si: au moins un jour, start/end non vides et différents, tz non vide
-            bool canRecurring = visible
-                                && activeWeekdays != null && activeWeekdays.Length > 0
-                                && !string.IsNullOrWhiteSpace(startLocal)
-                                && !string.IsNullOrWhiteSpace(endLocal)
-                                && !string.Equals(startLocal, endLocal, StringComparison.Ordinal)
-                                && !string.IsNullOrWhiteSpace(timeZone);
-            if (canRecurring)
+            if (mode != AutoDetectMode.Fulltime)
             {
-                mode = AutoDetectMode.Recurring;
-            }
-            else if (visible && displayDurationHours.HasValue)
-            {
-                // Ponctuel
-                duration = Math.Clamp(displayDurationHours.Value, 1, 240);
+                bool canRecurring = visible
+                                    && activeWeekdays != null && activeWeekdays.Length > 0
+                                    && !string.IsNullOrWhiteSpace(startLocal)
+                                    && !string.IsNullOrWhiteSpace(endLocal)
+                                    && !string.Equals(startLocal, endLocal, StringComparison.Ordinal)
+                                    && !string.IsNullOrWhiteSpace(timeZone);
+                if (canRecurring)
+                {
+                    mode = AutoDetectMode.Recurring;
+                }
+                else if (visible && displayDurationHours.HasValue)
+                {
+                    duration = Math.Clamp(displayDurationHours.Value, 1, 240);
+                }
             }
 
             var policy = new SyncshellDiscoverySetPolicyRequestDto
@@ -119,7 +119,6 @@ public sealed class SyncshellDiscoveryService : IHostedService, IMediatorSubscri
                 TimeZone = mode == AutoDetectMode.Recurring ? timeZone : null,
             };
 
-            // Log du payload effectivement envoyé au serveur (policy)
             _logger.LogInformation(
                 "[AutoDetect][CLIENT] Payload(SetPolicy) gid={gid} mode={mode} duration={duration} weekdays=[{weekdays}] startLocal={start} endLocal={end} tz={tz}",
                 policy.GID,

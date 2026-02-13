@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using UmbraSync.API.Data;
+using UmbraSync.API.Dto.Group;
 using UmbraSync.MareConfiguration;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services.Mediator;
@@ -19,6 +20,7 @@ public class UmbraProfileManager : MediatorSubscriberBase
     private readonly PairManager _pairManager;
     private readonly ServerConfigurationManager _serverConfigurationManager;
     private readonly ConcurrentDictionary<(UserData User, string? CharName, uint? WorldId), UmbraProfileData> _umbraProfiles = new();
+    private readonly ConcurrentDictionary<string, GroupProfileDto> _groupProfiles = new(StringComparer.OrdinalIgnoreCase);
 
     private readonly UmbraProfileData _defaultProfileData = new(IsFlagged: false, IsNSFW: false, string.Empty, _noDescription);
     private readonly UmbraProfileData _loadingProfileData = new(IsFlagged: false, IsNSFW: false, string.Empty, "Loading Data from server...");
@@ -50,7 +52,34 @@ public class UmbraProfileManager : MediatorSubscriberBase
             else
                 _umbraProfiles.Clear();
         });
-        Mediator.Subscribe<DisconnectedMessage>(this, (_) => _umbraProfiles.Clear());
+        Mediator.Subscribe<DisconnectedMessage>(this, (_) =>
+        {
+            _umbraProfiles.Clear();
+            _groupProfiles.Clear();
+        });
+        Mediator.Subscribe<GroupProfileUpdatedMessage>(this, (msg) =>
+        {
+            if (msg.Profile.Group != null)
+            {
+                _groupProfiles[msg.Profile.Group.GID] = msg.Profile;
+            }
+        });
+    }
+
+    public GroupProfileDto? GetGroupProfile(string gid)
+    {
+        _groupProfiles.TryGetValue(gid, out var profile);
+        return profile;
+    }
+
+    public void SetGroupProfile(string gid, GroupProfileDto profile)
+    {
+        _groupProfiles[gid] = profile;
+    }
+
+    public void ClearGroupProfile(string gid)
+    {
+        _groupProfiles.TryRemove(gid, out _);
     }
 
     public UmbraProfileData GetUmbraProfile(UserData data)

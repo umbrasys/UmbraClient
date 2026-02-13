@@ -44,7 +44,7 @@ public sealed class Plugin : IDalamudPlugin
         IFramework framework, IObjectTable objectTable, IClientState clientState, ICondition condition, IChatGui chatGui,
         IGameGui gameGui, IDtrBar dtrBar, IToastGui toastGui, IPluginLog pluginLog, ITargetManager targetManager, INotificationManager notificationManager,
         ITextureProvider textureProvider, IContextMenu contextMenu, IGameInteropProvider gameInteropProvider,
-        INamePlateGui namePlateGui, IGameConfig gameConfig, IPartyList partyList)
+        INamePlateGui namePlateGui, IGameConfig gameConfig, IPartyList partyList, IKeyState keyState)
     {
         Instance = this;
         _host = new HostBuilder()
@@ -82,6 +82,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton(_ => namePlateGui);
             collection.AddSingleton(_ => gameConfig);
             collection.AddSingleton(_ => partyList);
+            collection.AddSingleton(_ => keyState);
 
             // add mare related singletons
             collection.AddSingleton<MareMediator>();
@@ -136,6 +137,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton<DalamudUtilService>();
             collection.AddSingleton<DtrEntry>();
             collection.AddSingleton<PairManager>();
+            collection.AddSingleton<PairHandlerRegistry>();
             collection.AddSingleton<PairStateCache>();
             collection.AddSingleton<PairLedger>();
             collection.AddSingleton<RedrawManager>();
@@ -154,6 +156,8 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton<PartyListTypingService>();
             collection.AddSingleton<TypingIndicatorStateService>();
             collection.AddSingleton<TypingRemoteNotificationService>();
+            collection.AddSingleton<UmbraSync.Services.Ping.PingMarkerStateService>();
+            collection.AddSingleton<UmbraSync.Services.Ping.PingPermissionService>();
             collection.AddSingleton<ChatTwoCompatibilityService>();
             collection.AddSingleton<NotificationTracker>();
             collection.AddSingleton<PenumbraPrecacheService>();
@@ -217,6 +221,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddScoped<WindowMediatorSubscriberBase, CharaDataHubUi>();
             collection.AddScoped<WindowMediatorSubscriberBase>(sp => sp.GetRequiredService<EditProfileUi>());
             collection.AddScoped<WindowMediatorSubscriberBase, TypingIndicatorOverlay>();
+            collection.AddScoped<WindowMediatorSubscriberBase, PingMarkerOverlay>();
             collection.AddScoped<CacheCreationService>();
             collection.AddScoped<TransientResourceManager>();
             collection.AddScoped<PlayerDataFactory>();
@@ -251,6 +256,11 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddHostedService(p => p.GetRequiredService<HousingMonitorService>());
         })
         .Build();
+
+        // Enregistrer les callbacks UI immédiatement pour satisfaire la validation Dalamud.
+        // UiService ajoutera ses propres handlers fonctionnels plus tard lors du chargement.
+        pluginInterface.UiBuilder.OpenConfigUi += () => { };
+        pluginInterface.UiBuilder.OpenMainUi += () => { };
 
         var configService = _host.Services.GetRequiredService<MareConfigService>();
         Loc.Initialize(configService.Current.UiLanguage);

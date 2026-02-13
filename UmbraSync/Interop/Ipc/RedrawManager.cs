@@ -14,7 +14,7 @@ public class RedrawManager
     private readonly ConcurrentDictionary<nint, bool> _penumbraRedrawRequests = [];
     private CancellationTokenSource _disposalCts = new();
 
-    public SemaphoreSlim RedrawSemaphore { get; init; } = new(2, 2);
+    public SemaphoreSlim RedrawSemaphore { get; init; } = new(4, 4);
 
     public RedrawManager(MareMediator mareMediator, DalamudUtilService dalamudUtil)
     {

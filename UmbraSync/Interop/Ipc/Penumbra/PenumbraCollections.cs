@@ -146,7 +146,7 @@ public sealed class PenumbraCollections : IDisposable
                 _core.Logger.LogDebug("Cleaning up stale temporary collection {CollectionName} ({CollectionId})", name, collectionId);
                 var deleteResult = await _core.DalamudUtil.RunOnFrameworkThread(() =>
                 {
-                    var result = (PenumbraEnum.PenumbraApiEc)_penumbraRemoveTemporaryCollection.Invoke(collectionId);
+                    var result = _penumbraRemoveTemporaryCollection.Invoke(collectionId);
                     _core.Logger.LogTrace("Cleanup RemoveTemporaryCollection result for {CollectionName} ({CollectionId}): {Result}", name, collectionId, result);
                     return result;
                 }).ConfigureAwait(false);

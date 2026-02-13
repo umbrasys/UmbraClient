@@ -1,4 +1,5 @@
 ﻿using Dalamud.Bindings.ImGui;
+using Dalamud.Game.ClientState.Keys;
 using Dalamud.Game.Text;
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
@@ -44,7 +45,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private readonly FileTransferOrchestrator _fileTransferOrchestrator;
     private readonly FileCacheManager _fileCacheManager;
     private readonly PairManager _pairManager;
-    private readonly ChatService _chatService;
     private readonly GuiHookService _guiHookService;
     private readonly AutoDetectSuppressionService _autoDetectSuppressionService;
     private readonly PerformanceCollectorService _performanceCollector;
@@ -72,7 +72,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
     public SettingsUi(ILogger<SettingsUi> logger,
         UiSharedService uiShared, MareConfigService configService,
-        PairManager pairManager, ChatService chatService, GuiHookService guiHookService,
+        PairManager pairManager, GuiHookService guiHookService,
         ServerConfigurationManager serverConfigurationManager,
         PlayerPerformanceConfigService playerPerformanceConfigService,
         MareMediator mediator, PerformanceCollectorService performanceCollector,
@@ -88,7 +88,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
     {
         _configService = configService;
         _pairManager = pairManager;
-        _chatService = chatService;
         _guiHookService = guiHookService;
         _serverConfigurationManager = serverConfigurationManager;
         _playerPerformanceConfigService = playerPerformanceConfigService;
@@ -263,12 +262,12 @@ public class SettingsUi : WindowMediatorSubscriberBase
         ImGui.AlignTextToFramePadding();
         ImGui.TextUnformatted("0 = No limit/infinite");
         ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
-        if (ImGui.SliderInt("Maximum Parallel Downloads", ref maxParallelDownloads, 1, 50))
+        if (ImGui.SliderInt("Maximum Parallel Downloads", ref maxParallelDownloads, 1, 10))
         {
             _configService.Current.ParallelDownloads = maxParallelDownloads;
             _configService.Save();
         }
-        UiSharedService.AttachToolTip("Limite le nombre de téléchargements simultanés pour éviter la surcharge. Recommandé : 10 (défaut: 10, max: 50)");
+        UiSharedService.AttachToolTip("Limite le nombre de téléchargements simultanés pour éviter la surcharge. (défaut: 10)");
 
         ImGui.Spacing();
         _uiShared.BigText(Loc.Get("Settings.Transfer.PairProcessing.Title"));
@@ -286,7 +285,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         ImGui.Indent();
         int maxConcurrentPairApplications = _configService.Current.MaxConcurrentPairApplications;
         ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
-        if (ImGui.SliderInt(Loc.Get("Settings.Transfer.PairProcessing.MaxConcurrent"), ref maxConcurrentPairApplications, 2, 50))
+        if (ImGui.SliderInt(Loc.Get("Settings.Transfer.PairProcessing.MaxConcurrent"), ref maxConcurrentPairApplications, 2, 10))
         {
             _configService.Current.MaxConcurrentPairApplications = maxConcurrentPairApplications;
             _configService.Save();
@@ -458,18 +457,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
         }
     }
 
-    private static readonly List<(XivChatType, string)> _syncshellChatTypes = [
-        (XivChatType.None, "(use global setting)"),
-        (XivChatType.Debug, "Debug"),
-        (XivChatType.Echo, "Echo"),
-        (XivChatType.StandardEmote, "Standard Emote"),
-        (XivChatType.CustomEmote, "Custom Emote"),
-        (XivChatType.SystemMessage, "System Message"),
-        (XivChatType.SystemError, "System Error"),
-        (XivChatType.GatheringSystemMessage, "Gathering Message"),
-        (XivChatType.ErrorMessage, "Error message"),
-    ];
-
     private void DrawChatConfig()
     {
         _lastTab = "Chat";
@@ -477,190 +464,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
         using (ImRaii.PushIndent())
         {
             DrawTypingSettings();
-        }
-
-        ImGui.Separator();
-        _uiShared.BigText("Chat Settings");
-
-        var disableSyncshellChat = _configService.Current.DisableSyncshellChat;
-
-        if (ImGui.Checkbox("Disable chat globally", ref disableSyncshellChat))
-        {
-            _configService.Current.DisableSyncshellChat = disableSyncshellChat;
-            _configService.Save();
-        }
-        _uiShared.DrawHelpText("Global setting to disable chat for all syncshells.");
-
-        var uiColors = _dalamudUtilService.UiColors.Value;
-        int globalChatColor = _configService.Current.ChatColor;
-
-        using (ImRaii.Disabled(disableSyncshellChat))
-        {
-            if (globalChatColor != 0 && !uiColors.ContainsKey(globalChatColor))
-            {
-                globalChatColor = 0;
-                _configService.Current.ChatColor = 0;
-                _configService.Save();
-            }
-
-            ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
-            _uiShared.DrawColorCombo("Chat text color", Enumerable.Concat([0], uiColors.Keys),
-            i => i switch
-            {
-                0 => (uiColors[ChatService.DefaultColor].Dark, "Plugin Default"),
-                _ => (uiColors[i].Dark, $"[{i}] Sample Text")
-            },
-            i =>
-            {
-                _configService.Current.ChatColor = i;
-                _configService.Save();
-            }, globalChatColor);
-
-            int globalChatType = _configService.Current.ChatLogKind;
-            int globalChatTypeIdx = _syncshellChatTypes.FindIndex(x => globalChatType == (int)x.Item1);
-
-            if (globalChatTypeIdx == -1)
-                globalChatTypeIdx = 0;
-
-            ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
-            _uiShared.DrawCombo("Chat channel", Enumerable.Range(1, _syncshellChatTypes.Count - 1), i => $"{_syncshellChatTypes[i].Item2}",
-            i =>
-            {
-                if (_configService.Current.ChatLogKind == (int)_syncshellChatTypes[i].Item1)
-                    return;
-                _configService.Current.ChatLogKind = (int)_syncshellChatTypes[i].Item1;
-                _chatService.PrintChannelExample($"Selected channel: {_syncshellChatTypes[i].Item2}");
-                _configService.Save();
-            }, globalChatTypeIdx);
-            _uiShared.DrawHelpText("FFXIV chat channel to output chat messages on.");
-
-            UiSharedService.SetFontScale(0.6f);
-            UiSharedService.SetFontScale(1.0f);
-
-            var extraChatTags = _configService.Current.ExtraChatTags;
-            if (ImGui.Checkbox("Tag messages as ExtraChat", ref extraChatTags))
-            {
-                _configService.Current.ExtraChatTags = extraChatTags;
-                if (!extraChatTags)
-                    _configService.Current.ExtraChatAPI = false;
-                _configService.Save();
-            }
-            _uiShared.DrawHelpText("If enabled, messages will be filtered under the category \"ExtraChat channels: All\".\n\nThis works even if ExtraChat is also installed and enabled.");
-        }
-
-        ImGui.Separator();
-
-        _uiShared.BigText("Syncshell Settings");
-
-        if (!ApiController.ServerAlive)
-        {
-            ImGui.TextUnformatted("Connect to the server to configure individual syncshell settings.");
-            return;
-        }
-
-        if (_pairManager.Groups.Count == 0)
-        {
-            ImGui.TextUnformatted("Once you join a syncshell you can configure its chat settings here.");
-            return;
-        }
-
-        foreach (var group in _pairManager.Groups.OrderBy(k => k.Key.GID, StringComparer.Ordinal))
-        {
-            var gid = group.Key.GID;
-            using var pushId = ImRaii.PushId(gid);
-
-            var shellConfig = _serverConfigurationManager.GetShellConfigForGid(gid);
-            var shellNumber = shellConfig.ShellNumber;
-            var shellEnabled = shellConfig.Enabled;
-            var shellName = _serverConfigurationManager.GetNoteForGid(gid) ?? group.Key.AliasOrGID;
-
-            if (shellEnabled)
-                shellName = $"[{shellNumber}] {shellName}";
-
-            UiSharedService.SetFontScale(0.6f);
-            _uiShared.BigText(shellName);
-            UiSharedService.SetFontScale(1.0f);
-
-            using var pushIndent = ImRaii.PushIndent();
-
-            if (ImGui.Checkbox($"Enable chat for this syncshell##{gid}", ref shellEnabled))
-            {
-                int nextNumber = 1;
-                bool conflict = false;
-                foreach (var otherGroup in _pairManager.Groups)
-                {
-                    if (gid.Equals(otherGroup.Key.GID, StringComparison.Ordinal)) continue;
-                    var otherShellConfig = _serverConfigurationManager.GetShellConfigForGid(otherGroup.Key.GID);
-                    if (otherShellConfig.Enabled && otherShellConfig.ShellNumber == shellNumber)
-                        conflict = true;
-                    nextNumber = Math.Max(nextNumber, otherShellConfig.ShellNumber) + 1;
-                }
-                if (conflict)
-                    shellConfig.ShellNumber = nextNumber;
-                shellConfig.Enabled = shellEnabled;
-                _serverConfigurationManager.SaveShellConfigForGid(gid, shellConfig);
-            }
-
-            using var pushDisabled = ImRaii.Disabled(!shellEnabled);
-
-            ImGui.SetNextItemWidth(50 * ImGuiHelpers.GlobalScale);
-            if (ImGui.BeginCombo("Syncshell number##{gid}", $"{shellNumber}"))
-            {
-                for (int i = 1; i <= ChatService.CommandMaxNumber; ++i)
-                {
-                    if (ImGui.Selectable($"{i}", i == shellNumber))
-                    {
-
-                        foreach (var otherGroup in _pairManager.Groups)
-                        {
-                            if (gid.Equals(otherGroup.Key.GID, StringComparison.Ordinal)) continue;
-                            var otherShellConfig = _serverConfigurationManager.GetShellConfigForGid(otherGroup.Key.GID);
-                            if (otherShellConfig.Enabled && otherShellConfig.ShellNumber == i)
-                            {
-                                otherShellConfig.ShellNumber = shellNumber;
-                                _serverConfigurationManager.SaveShellConfigForGid(otherGroup.Key.GID, otherShellConfig);
-                                break;
-                            }
-                        }
-                        shellConfig.ShellNumber = i;
-                        _serverConfigurationManager.SaveShellConfigForGid(gid, shellConfig);
-                    }
-                }
-                ImGui.EndCombo();
-            }
-
-            if (shellConfig.Color != 0 && !uiColors.ContainsKey(shellConfig.Color))
-            {
-                shellConfig.Color = 0;
-                _serverConfigurationManager.SaveShellConfigForGid(gid, shellConfig);
-            }
-
-            ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
-            _uiShared.DrawColorCombo($"Chat text color##{gid}", Enumerable.Concat([0], uiColors.Keys),
-            i => i switch
-            {
-                0 => (uiColors[globalChatColor > 0 ? globalChatColor : ChatService.DefaultColor].Dark, "(use global setting)"),
-                _ => (uiColors[i].Dark, $"[{i}] Sample Text")
-            },
-            i =>
-            {
-                shellConfig.Color = i;
-                _serverConfigurationManager.SaveShellConfigForGid(gid, shellConfig);
-            }, shellConfig.Color);
-
-            int shellChatTypeIdx = _syncshellChatTypes.FindIndex(x => shellConfig.LogKind == (int)x.Item1);
-
-            if (shellChatTypeIdx == -1)
-                shellChatTypeIdx = 0;
-
-            ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
-            _uiShared.DrawCombo($"Chat channel##{gid}", Enumerable.Range(0, _syncshellChatTypes.Count), i => $"{_syncshellChatTypes[i].Item2}",
-            i =>
-            {
-                shellConfig.LogKind = (int)_syncshellChatTypes[i].Item1;
-                _serverConfigurationManager.SaveShellConfigForGid(gid, shellConfig);
-            }, shellChatTypeIdx);
-            _uiShared.DrawHelpText("Override the FFXIV chat channel used for this syncshell.");
         }
     }
 
@@ -2033,6 +1836,12 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 ImGui.EndTabItem();
             }
 
+            if (ImGui.BeginTabItem("Pings"))
+            {
+                DrawPingSettings();
+                ImGui.EndTabItem();
+            }
+
             if (ImGui.BeginTabItem("Service Settings"))
             {
                 ImGui.BeginDisabled(_registrationInProgress);
@@ -2238,6 +2047,88 @@ public class SettingsUi : WindowMediatorSubscriberBase
                     _configService.Save();
                 }
                 _uiShared.DrawHelpText(Loc.Get("Settings.Typing.ShowSelfHelp"));
+            }
+        }
+    }
+
+    private void DrawPingSettings()
+    {
+        _lastTab = "Pings";
+        _uiShared.BigText(Loc.Get("Settings.Ping.Header"));
+        using (ImRaii.PushIndent())
+        {
+            var pingEnabled = _configService.Current.PingEnabled;
+            if (ImGui.Checkbox(Loc.Get("Settings.Ping.Enabled"), ref pingEnabled))
+            {
+                _configService.Current.PingEnabled = pingEnabled;
+                _configService.Save();
+            }
+            _uiShared.DrawHelpText(Loc.Get("Settings.Ping.EnabledHelp"));
+
+            if (!pingEnabled)
+            {
+                ImGui.BeginDisabled();
+            }
+            var currentKey = (VirtualKey)_configService.Current.PingKeybind;
+            var keyName = currentKey.GetFancyName();
+            ImGui.Text(Loc.Get("Settings.Ping.Keybind"));
+            ImGui.SameLine();
+            if (ImGui.BeginCombo("##PingKeybind", keyName))
+            {
+                foreach (var key in Enum.GetValues<VirtualKey>())
+                {
+                    if (key == VirtualKey.NO_KEY) continue;
+                    var name = key.GetFancyName();
+                    if (string.IsNullOrEmpty(name)) continue;
+                    if (ImGui.Selectable(name, key == currentKey))
+                    {
+                        _configService.Current.PingKeybind = (int)key;
+                        _configService.Save();
+                    }
+                }
+                ImGui.EndCombo();
+            }
+            var uiScale = _configService.Current.PingUiScale;
+            if (ImGui.SliderFloat(Loc.Get("Settings.Ping.UiScale"), ref uiScale, 0.5f, 3.0f, "%.1f"))
+            {
+                _configService.Current.PingUiScale = uiScale;
+                _configService.Save();
+            }
+            var opacity = _configService.Current.PingOpacity;
+            if (ImGui.SliderFloat(Loc.Get("Settings.Ping.Opacity"), ref opacity, 0.1f, 1.0f, "%.1f"))
+            {
+                _configService.Current.PingOpacity = opacity;
+                _configService.Save();
+            }
+
+            var showAuthor = _configService.Current.PingShowAuthorName;
+            if (ImGui.Checkbox(Loc.Get("Settings.Ping.ShowAuthorName"), ref showAuthor))
+            {
+                _configService.Current.PingShowAuthorName = showAuthor;
+                _configService.Save();
+            }
+
+            ImGui.Separator();
+
+            var showInParty = _configService.Current.PingShowInParty;
+            if (ImGui.Checkbox(Loc.Get("Settings.Ping.ShowInParty"), ref showInParty))
+            {
+                _configService.Current.PingShowInParty = showInParty;
+                _configService.Save();
+            }
+            _uiShared.DrawHelpText(Loc.Get("Settings.Ping.ShowInPartyHelp"));
+
+            var showInSyncshell = _configService.Current.PingShowInSyncshell;
+            if (ImGui.Checkbox(Loc.Get("Settings.Ping.ShowInSyncshell"), ref showInSyncshell))
+            {
+                _configService.Current.PingShowInSyncshell = showInSyncshell;
+                _configService.Save();
+            }
+            _uiShared.DrawHelpText(Loc.Get("Settings.Ping.ShowInSyncshellHelp"));
+
+            if (!pingEnabled)
+            {
+                ImGui.EndDisabled();
             }
         }
     }

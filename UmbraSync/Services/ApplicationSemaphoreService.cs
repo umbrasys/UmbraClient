@@ -1,9 +1,11 @@
+using System.Runtime.InteropServices;
 using UmbraSync.MareConfiguration;
 using UmbraSync.Services.Mediator;
 using Microsoft.Extensions.Logging;
 
 namespace UmbraSync.Services;
 
+[StructLayout(LayoutKind.Auto)]
 public readonly record struct ApplicationSemaphoreSnapshot(bool IsEnabled, int Limit, int InFlight, int Waiting)
 {
     public int Remaining => Math.Max(0, Limit - InFlight);
@@ -11,14 +13,15 @@ public readonly record struct ApplicationSemaphoreSnapshot(bool IsEnabled, int L
 
 public sealed class ApplicationSemaphoreService : DisposableMediatorSubscriberBase
 {
-    private const int HardLimit = 50;
+    private const int HardLimit = 10;
     private readonly MareConfigService _configService;
-    private readonly SemaphoreSlim _semaphore;
-    private readonly object _limitLock = new();
+    private readonly Lock _limitLock = new();
+    private readonly LinkedList<PriorityWaiter> _highQueue = new();
+    private readonly LinkedList<PriorityWaiter> _lowQueue = new();
     private int _currentLimit;
+    private int _availableSlots;
     private int _pendingReductions;
     private int _pendingIncrements;
-    private int _waiting;
     private int _inFlight;
 
     public ApplicationSemaphoreService(ILogger<ApplicationSemaphoreService> logger, MareMediator mediator,
@@ -27,7 +30,7 @@ public sealed class ApplicationSemaphoreService : DisposableMediatorSubscriberBa
     {
         _configService = configService;
         _currentLimit = CalculateLimit();
-        _semaphore = new SemaphoreSlim(_currentLimit, HardLimit);
+        _availableSlots = _currentLimit;
 
         Mediator.Subscribe<PairProcessingLimitChangedMessage>(this, _ => UpdateSemaphoreLimit());
     }
@@ -40,38 +43,53 @@ public sealed class ApplicationSemaphoreService : DisposableMediatorSubscriberBa
         {
             var enabled = IsEnabled;
             var limit = enabled ? _currentLimit : 1;
-            var waiting = Math.Max(0, Volatile.Read(ref _waiting));
+            var waiting = _highQueue.Count + _lowQueue.Count;
             var inFlight = Math.Max(0, Volatile.Read(ref _inFlight));
             return new ApplicationSemaphoreSnapshot(enabled, limit, inFlight, waiting);
         }
     }
 
-    public async ValueTask<IAsyncDisposable> AcquireAsync(CancellationToken cancellationToken)
+    public async ValueTask<IAsyncDisposable> AcquireAsync(CancellationToken cancellationToken, bool highPriority = false)
     {
-        Interlocked.Increment(ref _waiting);
+        PriorityWaiter? waiter = null;
+
+        lock (_limitLock)
+        {
+            if (_availableSlots > 0)
+            {
+                _availableSlots--;
+                Interlocked.Increment(ref _inFlight);
+                return new Releaser(this);
+            }
+
+            waiter = new PriorityWaiter(cancellationToken);
+            if (highPriority)
+                _highQueue.AddLast(waiter);
+            else
+                _lowQueue.AddLast(waiter);
+        }
+
         try
         {
-            await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
-        }
-        catch (ObjectDisposedException)
-        {
-            Interlocked.Decrement(ref _waiting);
-            Logger.LogDebug("Semaphore already disposed during acquire, returning noop releaser");
-            return NoopReleaser.Instance;
+            await waiter.Tcs.Task.ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
-            Interlocked.Decrement(ref _waiting);
+            lock (_limitLock)
+            {
+                // Remove from whichever queue it's in; the node may already have been
+                // removed by ReleaseOne if it completed the TCS just before cancellation
+                // was observed.  LinkedList.Remove(T) is O(n) but queues are tiny (≤ HardLimit).
+                _highQueue.Remove(waiter);
+                _lowQueue.Remove(waiter);
+            }
+
+            waiter.Dispose();
             Logger.LogTrace("Semaphore acquire was cancelled");
             throw;
         }
-        catch
-        {
-            Interlocked.Decrement(ref _waiting);
-            throw;
-        }
 
-        Interlocked.Decrement(ref _waiting);
+        waiter.Dispose();
         Interlocked.Increment(ref _inFlight);
         return new Releaser(this);
     }
@@ -92,21 +110,31 @@ public sealed class ApplicationSemaphoreService : DisposableMediatorSubscriberBa
                 var increment = desiredLimit - _currentLimit;
                 _pendingIncrements += increment;
 
-                var available = HardLimit - _semaphore.CurrentCount;
-                var toRelease = Math.Min(_pendingIncrements, available);
-                if (toRelease > 0 && TryReleaseSemaphore(toRelease))
+                // Release as many pending increments as possible by waking waiters or adding slots
+                while (_pendingIncrements > 0)
                 {
-                    _pendingIncrements -= toRelease;
+                    if (TryDequeueAndComplete())
+                    {
+                        _pendingIncrements--;
+                    }
+                    else if (_availableSlots < HardLimit)
+                    {
+                        _availableSlots++;
+                        _pendingIncrements--;
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
             }
             else
             {
                 var decrement = _currentLimit - desiredLimit;
-                var removed = 0;
-                while (removed < decrement && _semaphore.Wait(0))
-                {
-                    removed++;
-                }
+
+                // Try to reclaim available slots first
+                var removed = Math.Min(decrement, _availableSlots);
+                _availableSlots -= removed;
 
                 var remaining = decrement - removed;
                 if (remaining > 0)
@@ -135,21 +163,31 @@ public sealed class ApplicationSemaphoreService : DisposableMediatorSubscriberBa
         return Math.Clamp(_configService.Current.MaxConcurrentPairApplications, 1, HardLimit);
     }
 
-    private bool TryReleaseSemaphore(int count = 1)
+    /// <summary>
+    /// Tries to dequeue the highest-priority waiter and complete its TCS.
+    /// Must be called under <see cref="_limitLock"/>.
+    /// Returns true if a waiter was woken up.
+    /// </summary>
+    private bool TryDequeueAndComplete()
     {
-        if (count <= 0)
-            return true;
+        while (_highQueue.First != null)
+        {
+            var waiter = _highQueue.First.Value;
+            _highQueue.RemoveFirst();
+            if (waiter.Tcs.TrySetResult(true))
+                return true;
+            // If TrySetResult failed, the waiter was already cancelled — skip and try next
+        }
 
-        try
+        while (_lowQueue.First != null)
         {
-            _semaphore.Release(count);
-            return true;
+            var waiter = _lowQueue.First.Value;
+            _lowQueue.RemoveFirst();
+            if (waiter.Tcs.TrySetResult(true))
+                return true;
         }
-        catch (SemaphoreFullException ex)
-        {
-            Logger.LogDebug(ex, "Attempted to release {count} slots but semaphore is already at hard limit", count);
-            return false;
-        }
+
+        return false;
     }
 
     private void ReleaseOne()
@@ -170,15 +208,26 @@ public sealed class ApplicationSemaphoreService : DisposableMediatorSubscriberBa
 
             if (_pendingIncrements > 0)
             {
-                if (!TryReleaseSemaphore())
+                if (TryDequeueAndComplete())
+                {
+                    _pendingIncrements--;
                     return;
+                }
 
-                _pendingIncrements--;
+                if (_availableSlots < HardLimit)
+                {
+                    _availableSlots++;
+                    _pendingIncrements--;
+                }
                 return;
             }
-        }
 
-        TryReleaseSemaphore();
+            // Normal release: wake a waiter or return the slot
+            if (TryDequeueAndComplete())
+                return;
+
+            _availableSlots++;
+        }
     }
 
     protected override void Dispose(bool disposing)
@@ -187,7 +236,39 @@ public sealed class ApplicationSemaphoreService : DisposableMediatorSubscriberBa
         if (!disposing) return;
 
         Logger.LogDebug("Disposing ApplicationSemaphoreService");
-        _semaphore.Dispose();
+
+        lock (_limitLock)
+        {
+            foreach (var waiter in _highQueue)
+            {
+                waiter.Tcs.TrySetCanceled();
+                waiter.Dispose();
+            }
+            _highQueue.Clear();
+
+            foreach (var waiter in _lowQueue)
+            {
+                waiter.Tcs.TrySetCanceled();
+                waiter.Dispose();
+            }
+            _lowQueue.Clear();
+        }
+    }
+
+    private sealed class PriorityWaiter : IDisposable
+    {
+        public readonly TaskCompletionSource<bool> Tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly CancellationTokenRegistration _ctrRegistration;
+
+        public PriorityWaiter(CancellationToken ct)
+        {
+            _ctrRegistration = ct.Register(() => Tcs.TrySetCanceled(ct));
+        }
+
+        public void Dispose()
+        {
+            _ctrRegistration.Dispose();
+        }
     }
 
     private sealed class Releaser : IAsyncDisposable

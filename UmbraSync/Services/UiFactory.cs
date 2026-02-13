@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Dalamud.Interface.ImGuiFileDialog;
+using Microsoft.Extensions.Logging;
 using UmbraSync.API.Dto.Group;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services.AutoDetect;
@@ -20,12 +21,14 @@ public class UiFactory(
     UmbraProfileManager umbraProfileManager,
     PerformanceCollectorService performanceCollectorService,
     NotificationTracker notificationTracker,
-    DalamudUtilService dalamudUtilService)
+    DalamudUtilService dalamudUtilService,
+    FileDialogManager fileDialogManager)
 {
     public SyncshellAdminUI CreateSyncshellAdminUi(GroupFullInfoDto dto)
     {
         return new SyncshellAdminUI(loggerFactory.CreateLogger<SyncshellAdminUI>(), mareMediator,
-            apiController, uiSharedService, pairManager, syncshellDiscoveryService, dto, performanceCollectorService, notificationTracker, dalamudUtilService);
+            apiController, uiSharedService, pairManager, syncshellDiscoveryService, dto, performanceCollectorService, notificationTracker,
+            dalamudUtilService, fileDialogManager, umbraProfileManager);
     }
 
     public StandaloneProfileUi CreateStandaloneProfileUi(Pair pair)

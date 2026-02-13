@@ -93,7 +93,18 @@ public sealed class FileCompactor
         }
         catch (IOException)
         {
-            // File already exists
+            // File already exists - clean up the source temp file to avoid orphaned .cdntmp files
+            try
+            {
+                if (File.Exists(originalFilePath))
+                {
+                    File.Delete(originalFilePath);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to delete orphaned temp file {path}", originalFilePath);
+            }
             return;
         }
 
