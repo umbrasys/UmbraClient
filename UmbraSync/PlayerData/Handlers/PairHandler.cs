@@ -44,6 +44,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase, IPairHandler
     private readonly Dictionary<ObjectKind, Guid?> _customizeIds = [];
     private CombatData? _dataReceivedInDowntime;
     private CancellationTokenSource? _downloadCancellationTokenSource = new();
+    private Task? _downloadTask;
     private bool _forceApplyMods = false;
     private bool _isVisible;
     private Guid _deferred = Guid.Empty;
@@ -892,7 +893,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase, IPairHandler
         _downloadCancellationTokenSource = _downloadCancellationTokenSource?.CancelRecreate() ?? new CancellationTokenSource();
         var downloadToken = _downloadCancellationTokenSource.Token;
 
-        _ = Task.Run(async () =>
+        _downloadTask = Task.Run(async () =>
         {
 #pragma warning disable MA0004 // ConfigureAwait on await using requires different syntax
             await using var semaphoreLease = await _applicationSemaphoreService
@@ -1230,7 +1231,9 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase, IPairHandler
 
     private void TryReapplyPendingData()
     {
-        if (!_pendingModReapply || !IsVisible || (_applicationTask != null && !_applicationTask.IsCompleted))
+        if (!_pendingModReapply || !IsVisible
+            || (_applicationTask != null && !_applicationTask.IsCompleted)
+            || (_downloadTask != null && !_downloadTask.IsCompleted))
             return;
 
         var now = DateTime.UtcNow;

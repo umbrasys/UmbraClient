@@ -175,6 +175,7 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
             {
                 new("Nouvelle fonctionnalité : Possibilité de personnaliser l'identité de son personnage via le profil RP."),
                 new("Correctif : Dans certains cas, le profil RôlePlay ne s'affichait pas."),
+                new("Correctif : Dans certains cas, le téléchargement de mod pouvait se bloquer."),
             }),
             new(new Version(2, 2, 0, 0), "2.2.0.0", new List<ChangelogLine>
             {

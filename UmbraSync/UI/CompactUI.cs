@@ -38,7 +38,7 @@ public class CompactUi : WindowMediatorSubscriberBase
     public float WindowContentWidth { get; private set; }
     private readonly ApiController _apiController;
     private readonly MareConfigService _configService;
-    private readonly ConcurrentDictionary<GameObjectHandler, Dictionary<string, FileDownloadStatus>> _currentDownloads = new();
+    private readonly ConcurrentDictionary<GameObjectHandler, ConcurrentDictionary<string, FileDownloadStatus>> _currentDownloads = new();
     private readonly FileUploadManager _fileTransferManager;
     private readonly GroupPanel _groupPanel;
     private readonly PairGroupsUi _pairGroupsUi;
