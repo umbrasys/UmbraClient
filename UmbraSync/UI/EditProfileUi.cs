@@ -427,6 +427,13 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             DrawLabeledInput(Loc.Get("UserProfile.RpFirstName"), ref _rpFirstNameText, 100);
             DrawLabeledInput(Loc.Get("UserProfile.RpLastName"), ref _rpLastNameText, 100, true);
 
+            var vanillaFirstName = GetVanillaFirstName();
+            if (!string.IsNullOrEmpty(_rpFirstNameText) && vanillaFirstName != null
+                && !RpFirstNameContainsVanilla(_rpFirstNameText, vanillaFirstName))
+            {
+                UiSharedService.ColorTextWrapped(string.Format(Loc.Get("EditProfile.RpFirstNameMismatch"), vanillaFirstName), ImGuiColors.DalamudRed);
+            }
+
             DrawLabeledInput(Loc.Get("UserProfile.RpTitle"), ref _rpTitleText, 100);
             DrawLabeledInput(Loc.Get("UserProfile.RpAge"), ref _rpAgeText, 50, true);
 
@@ -501,6 +508,15 @@ public class EditProfileUi : WindowMediatorSubscriberBase
         {
             if (isRp)
             {
+                var vanillaFirst = GetVanillaFirstName();
+                if (vanillaFirst != null && !string.IsNullOrEmpty(_rpFirstNameText)
+                    && !RpFirstNameContainsVanilla(_rpFirstNameText, vanillaFirst))
+                {
+                    Mediator.Publish(new NotificationMessage(Loc.Get("EditProfile.SaveErrorTitle"),
+                        string.Format(Loc.Get("EditProfile.RpFirstNameMismatch"), vanillaFirst), NotificationType.Error));
+                    return;
+                }
+
                 var profile = _rpConfigService.GetCurrentCharacterProfile();
                 profile.RpDescription = _rpDescriptionText;
                 profile.RpFirstName = _rpFirstNameText;
@@ -651,6 +667,24 @@ public class EditProfileUi : WindowMediatorSubscriberBase
 
             ImGui.EndPopup();
         }
+    }
+
+    private string? GetVanillaFirstName()
+    {
+        var fullName = _dalamudUtil.GetPlayerName();
+        if (string.IsNullOrEmpty(fullName)) return null;
+        var spaceIndex = fullName.IndexOf(' ');
+        return spaceIndex >= 0 ? fullName[..spaceIndex] : fullName;
+    }
+
+    private static bool RpFirstNameContainsVanilla(string rpFirstName, string vanillaFirstName)
+    {
+        foreach (var part in rpFirstName.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (string.Equals(part, vanillaFirstName, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        return false;
     }
 
     private async Task SubmitVanityAsync(string input)

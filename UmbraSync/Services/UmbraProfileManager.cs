@@ -112,6 +112,7 @@ public class UmbraProfileManager : MediatorSubscriberBase
 
     public UmbraProfileData GetUmbraProfile(UserData data, string? charName, uint? worldId)
     {
+        if (worldId == 0) worldId = null;
         var key = (data, charName, worldId);
         if (!_umbraProfiles.TryGetValue(key, out var profile))
         {
@@ -130,6 +131,7 @@ public class UmbraProfileManager : MediatorSubscriberBase
 
     public async Task GetUmbraProfileFromService(UserData data, string? charName = null, uint? worldId = null)
     {
+        if (worldId == 0) worldId = null;
         var key = (data, charName, worldId);
         try
         {
@@ -139,6 +141,17 @@ public class UmbraProfileManager : MediatorSubscriberBase
                 CharacterName = charName,
                 WorldId = worldId
             }).ConfigureAwait(false);
+
+            Logger.LogInformation("Profile response for {uid} (charName={charName}, worldId={worldId}): RpFirstName={first}, RpLastName={last}, RpDesc={desc}",
+                data.UID, charName ?? "(null)", worldId?.ToString() ?? "(null)",
+                profile.RpFirstName ?? "(null)", profile.RpLastName ?? "(null)",
+                string.IsNullOrEmpty(profile.RpDescription) ? "(empty)" : "(set)");
+
+            // Stocker le charName/worldId retourné par le serveur pour les requêtes futures (résolution offline)
+            if (!string.IsNullOrEmpty(profile.CharacterName))
+                _serverConfigurationManager.SetNameForUid(data.UID, profile.CharacterName);
+            if (profile.WorldId is > 0)
+                _serverConfigurationManager.SetWorldIdForUid(data.UID, profile.WorldId.Value);
 
             UmbraProfileData profileData = new(profile.Disabled, profile.IsNSFW ?? false,
                 string.IsNullOrEmpty(profile.ProfilePictureBase64) ? string.Empty : profile.ProfilePictureBase64,

@@ -3379,6 +3379,9 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="EditProfile.SaveErrorBody" xml:space="preserve">
     <value>Une erreur est survenue lors de l'enregistrement de votre profil sur le serveur.</value>
   </data>
+  <data name="EditProfile.RpFirstNameMismatch" xml:space="preserve">
+    <value>Le prénom RP doit contenir le prénom de votre personnage ({0}).</value>
+  </data>
 
   <!-- Cartes Syncshell -->
   <data name="Syncshell.Cards.OnlineMembers" xml:space="preserve">

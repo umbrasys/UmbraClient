@@ -90,7 +90,7 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
         {
             var spacing = ImGui.GetStyle().ItemSpacing;
 
-            var umbraProfile = _umbraProfileManager.GetUmbraProfile(_pair.UserData, _pair.PlayerName, _pair.WorldId);
+            var umbraProfile = _umbraProfileManager.GetUmbraProfile(_pair.UserData);
 
             var accent = UiSharedService.AccentColor;
             if (accent.W <= 0f) accent = ImGuiColors.ParsedPurple;

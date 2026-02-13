@@ -122,7 +122,8 @@ public class ChatNameReplacementService : DisposableMediatorSubscriberBase
             if (_apiController.IsConnected && !string.IsNullOrEmpty(_apiController.UID))
             {
                 var profile = _umbraProfileManager.GetUmbraProfile(new UserData(_apiController.UID));
-                if (!string.IsNullOrEmpty(profile.RpFirstName) && !string.IsNullOrEmpty(profile.RpLastName))
+                if (!string.IsNullOrEmpty(profile.RpFirstName) && !string.IsNullOrEmpty(profile.RpLastName)
+                    && IsRpFirstNameValid(localPlayerName, profile.RpFirstName))
                     return BuildRpDisplayName(profile);
             }
         }
@@ -136,12 +137,25 @@ public class ChatNameReplacementService : DisposableMediatorSubscriberBase
             if (NameMatches(senderName, playerName))
             {
                 var profile = _umbraProfileManager.GetUmbraProfile(pair.UserData);
-                if (!string.IsNullOrEmpty(profile.RpFirstName) && !string.IsNullOrEmpty(profile.RpLastName))
+                if (!string.IsNullOrEmpty(profile.RpFirstName) && !string.IsNullOrEmpty(profile.RpLastName)
+                    && IsRpFirstNameValid(playerName, profile.RpFirstName))
                     return BuildRpDisplayName(profile);
             }
         }
 
         return null;
+    }
+
+    private static bool IsRpFirstNameValid(string vanillaFullName, string rpFirstName)
+    {
+        var spaceIndex = vanillaFullName.IndexOf(' ');
+        var vanillaFirstName = spaceIndex >= 0 ? vanillaFullName[..spaceIndex] : vanillaFullName;
+        foreach (var part in rpFirstName.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (string.Equals(part, vanillaFirstName, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        return false;
     }
 
     private static string BuildRpDisplayName(UmbraProfileData profile)

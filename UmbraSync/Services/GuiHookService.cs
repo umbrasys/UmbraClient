@@ -113,7 +113,9 @@ public class GuiHookService : DisposableMediatorSubscriberBase
             if (localPlayer != null)
             {
                 var localProfile = _umbraProfileManager.GetUmbraProfile(new API.Data.UserData(_apiController.UID));
-                if (!string.IsNullOrEmpty(localProfile.RpFirstName) && !string.IsNullOrEmpty(localProfile.RpLastName))
+                var localPlayerName = _dalamudUtil.GetPlayerName();
+                if (!string.IsNullOrEmpty(localProfile.RpFirstName) && !string.IsNullOrEmpty(localProfile.RpLastName)
+                    && !string.IsNullOrEmpty(localPlayerName) && IsRpFirstNameValid(localPlayerName, localProfile.RpFirstName))
                 {
                     var localObjectId = localPlayer.GameObjectId;
                     foreach (var handler in handlers)
@@ -157,7 +159,8 @@ public class GuiHookService : DisposableMediatorSubscriberBase
                 if (applyRpNames)
                 {
                     var profile = _umbraProfileManager.GetUmbraProfile(pair.UserData);
-                    if (!string.IsNullOrEmpty(profile.RpFirstName) && !string.IsNullOrEmpty(profile.RpLastName))
+                    if (!string.IsNullOrEmpty(profile.RpFirstName) && !string.IsNullOrEmpty(profile.RpLastName)
+                        && !string.IsNullOrEmpty(pair.PlayerName) && IsRpFirstNameValid(pair.PlayerName, profile.RpFirstName))
                     {
                         handler.NameParts.Text = new SeString(new TextPayload(BuildRpDisplayName(profile)));
                         _isModified = true;
@@ -178,6 +181,18 @@ public class GuiHookService : DisposableMediatorSubscriberBase
             _namePlateRoleColorsEnabled = namePlateRoleColorsEnabled;
             RequestRedraw(force: true);
         }
+    }
+
+    private static bool IsRpFirstNameValid(string vanillaFullName, string rpFirstName)
+    {
+        var spaceIndex = vanillaFullName.IndexOf(' ');
+        var vanillaFirstName = spaceIndex >= 0 ? vanillaFullName[..spaceIndex] : vanillaFullName;
+        foreach (var part in rpFirstName.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (string.Equals(part, vanillaFirstName, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        return false;
     }
 
     private static string BuildRpDisplayName(UmbraProfileData profile)
