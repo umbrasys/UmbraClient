@@ -272,7 +272,7 @@
     <value />
   </data>
   <data name="CompactUi.General.ConnectToServerNotice" xml:space="preserve">
-    <value />
+    <value>Connectez-vous au serveur pour accéder à cette section.</value>
   </data>
   <data name="CompactUi.IntroUi.Agreement.AccountRemoval" xml:space="preserve">
     <value>Les comptes inactifs pendant 90 jours seront supprimés pour des raisons de stockage et de confidentialité.</value>
@@ -573,13 +573,13 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value>Certaines entrées n'ont pas encore de taille calculée. Lancez l'analyse pour compléter les données.</value>
   </data>
   <data name="CompactUi.ServerErrors.AttemptingToConnect" xml:space="preserve">
-    <value />
+    <value>Tentative de connexion au serveur.</value>
   </data>
   <data name="CompactUi.ServerErrors.Disconnected" xml:space="preserve">
-    <value />
+    <value>Vous êtes actuellement déconnecté du serveur de synchronisation.</value>
   </data>
   <data name="CompactUi.ServerErrors.Disconnecting" xml:space="preserve">
-    <value />
+    <value>Déconnexion du serveur en cours</value>
   </data>
   <data name="CompactUi.ServerErrors.NoSecretKey" xml:space="preserve">
     <value />
@@ -597,10 +597,10 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value />
   </data>
   <data name="CompactUi.ServerErrors.VersionMismatch" xml:space="preserve">
-    <value />
+    <value>Votre plugin ou le serveur n'est pas à jour. Mettez à jour votre plugin maintenant. Si déjà mis à jour, contactez le développeur sur Discord.</value>
   </data>
   <data name="CompactUi.ServerStatus.NotConnected" xml:space="preserve">
-    <value />
+    <value>Non connecté à un serveur</value>
   </data>
   <data name="CompactUi.ServerStatus.ShardLabel" xml:space="preserve">
     <value />
@@ -894,13 +894,13 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value />
   </data>
   <data name="CompactUi.UidStatus.Connecting" xml:space="preserve">
-    <value />
+    <value>Connexion</value>
   </data>
   <data name="CompactUi.UidStatus.Disconnected" xml:space="preserve">
-    <value />
+    <value>Déconnecté</value>
   </data>
   <data name="CompactUi.UidStatus.Disconnecting" xml:space="preserve">
-    <value />
+    <value>Déconnexion</value>
   </data>
   <data name="CompactUi.UidStatus.MultiChara" xml:space="preserve">
     <value />
@@ -921,7 +921,7 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value />
   </data>
   <data name="CompactUi.UidStatus.VersionMismatch" xml:space="preserve">
-    <value />
+    <value>Incompatibilité de version</value>
   </data>
   <data name="CompactUi.UnsupportedVersion.Message" xml:space="preserve">
     <value>Votre installation d'UmbraSync n'est pas à jour, la version actuelle est {0}. Il est recommandé de maintenir UmbraSync à jour. Ouvrez /xlplugins et mettez à jour le plugin.</value>
@@ -2282,6 +2282,51 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="Settings.DownloadQueue.MaxWhenEnabled" xml:space="preserve">
     <value>Nombre maximal de téléchargements de personnages autorisés simultanément lorsque la file est activée.</value>
   </data>
+  <data name="Settings.RpNamesHeader" xml:space="preserve">
+    <value>Noms RP</value>
+  </data>
+  <data name="Settings.RpNamesOnNameplates" xml:space="preserve">
+    <value>Afficher les noms RP sur les plaques de nom</value>
+  </data>
+  <data name="Settings.RpNamesInChat" xml:space="preserve">
+    <value>Afficher les noms RP dans le chat</value>
+  </data>
+  <data name="Settings.EmoteHighlight.Header" xml:space="preserve">
+    <value>Coloration des emotes</value>
+  </data>
+  <data name="Settings.EmoteHighlight.Enable" xml:space="preserve">
+    <value>Colorer le texte d'emote dans le chat</value>
+  </data>
+  <data name="Settings.EmoteHighlight.Enable.Help" xml:space="preserve">
+    <value>Met en couleur le texte entre les délimiteurs *...*, &lt;...&gt; ou [...] dans la fenêtre de chat.</value>
+  </data>
+  <data name="Settings.EmoteHighlight.Asterisks" xml:space="preserve">
+    <value>Astérisques * ... *</value>
+  </data>
+  <data name="Settings.EmoteHighlight.AngleBrackets" xml:space="preserve">
+    <value>Chevrons &lt; ... &gt;</value>
+  </data>
+  <data name="Settings.EmoteHighlight.SquareBrackets" xml:space="preserve">
+    <value>Crochets [ ... ]</value>
+  </data>
+  <data name="Settings.EmoteHighlight.ColorKey" xml:space="preserve">
+    <value>Couleur de surbrillance</value>
+  </data>
+  <data name="Settings.EmoteHighlight.Parentheses" xml:space="preserve">
+    <value>Griser le texte HRP ( ... )</value>
+  </data>
+  <data name="Settings.EmoteHighlight.Parentheses.Help" xml:space="preserve">
+    <value>Atténue le texte entre parenthèses (...) pour les messages hors-RP.</value>
+  </data>
+  <data name="Settings.EmoteHighlight.Parentheses.Italic" xml:space="preserve">
+    <value>Afficher en italique</value>
+  </data>
+  <data name="Settings.EmoteHighlight.Parentheses.Italic.ChatTwoWarning" xml:space="preserve">
+    <value>L'italique n'est pas disponible lorsque ChatTwo est actif. ChatTwo affiche l'italique en gras.</value>
+  </data>
+  <data name="Settings.EmoteHighlight.HrpColorKey" xml:space="preserve">
+    <value>Couleur HRP</value>
+  </data>
   <data name="Settings.Typing.BlockedNameColor" xml:space="preserve">
     <value>Couleur des noms bloqués</value>
   </data>
@@ -3259,6 +3304,18 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="Notification.System.ClientOutdated.Body" xml:space="preserve">
     <value>Votre client ({0}) est obsolète. Dernière version : {1}. Veuillez mettre à jour Umbra.</value>
   </data>
+  <data name="Notification.Toast.ClientIncompatible.Title" xml:space="preserve">
+    <value>Client incompatible</value>
+  </data>
+  <data name="Notification.Toast.ClientIncompatible.Body" xml:space="preserve">
+    <value>Votre client est obsolète ({0}), la version actuelle est : {1}. Cette version du client est incompatible et ne pourra pas se connecter. Veuillez mettre à jour votre client Umbra.</value>
+  </data>
+  <data name="Notification.Toast.ClientOutdated.Title" xml:space="preserve">
+    <value>Client obsolète</value>
+  </data>
+  <data name="Notification.Toast.ClientOutdated.Body" xml:space="preserve">
+    <value>Votre client est obsolète ({0}), la version actuelle est : {1}. Veuillez garder votre client Umbra à jour.</value>
+  </data>
   <data name="Notification.System.ServerError.Title" xml:space="preserve">
     <value>Erreur serveur : {0}</value>
   </data>
@@ -3372,6 +3429,9 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   </data>
   <data name="EditProfile.SaveErrorBody" xml:space="preserve">
     <value>Une erreur est survenue lors de l'enregistrement de votre profil sur le serveur.</value>
+  </data>
+  <data name="EditProfile.RpFirstNameMismatch" xml:space="preserve">
+    <value>Le prénom RP doit contenir le prénom de votre personnage ({0}).</value>
   </data>
 
   <!-- Cartes Syncshell -->
@@ -3504,6 +3564,15 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="Settings.Ping.Keybind" xml:space="preserve">
     <value>Touche de ping</value>
   </data>
+  <data name="Settings.Ping.KeybindChange" xml:space="preserve">
+    <value>Changer</value>
+  </data>
+  <data name="Settings.Ping.KeybindCapture" xml:space="preserve">
+    <value>Appuyez sur une touche...</value>
+  </data>
+  <data name="Settings.Ping.KeybindCancel" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
   <data name="Settings.Ping.UiScale" xml:space="preserve">
     <value>Taille des marqueurs</value>
   </data>
@@ -3608,5 +3677,14 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   </data>
   <data name="AutoDetectUi.Syncshell.Table.Description" xml:space="preserve">
     <value>Description</value>
+  </data>
+  <data name="Notification.NearbyDetection.Title" xml:space="preserve">
+    <value>Détection de proximité</value>
+  </data>
+  <data name="Notification.NearbyDetection.Enabled" xml:space="preserve">
+    <value>Vous êtes maintenant visible.</value>
+  </data>
+  <data name="Notification.NearbyDetection.Disabled" xml:space="preserve">
+    <value>Vous n'êtes plus visible.</value>
   </data>
 </root>

@@ -511,6 +511,7 @@ public class DrawGroupPair : DrawPairBase
                 ImGui.CloseCurrentPopup();
             }
 
+#pragma warning disable S1199 // UI menu flow
             {
                 ImGui.Separator();
 

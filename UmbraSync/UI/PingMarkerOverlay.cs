@@ -130,6 +130,8 @@ public sealed class PingMarkerOverlay : WindowMediatorSubscriberBase
     // Input state
     private bool _cursorIsPing;
     private bool _wasKeyDown;
+    private DateTime? _keyHoldStartTime;
+    private const float KeyHoldDurationSeconds = 1.0f;
 
     // Ping wheel state
     private Vector2? _pingClickPos;
@@ -210,6 +212,7 @@ public sealed class PingMarkerOverlay : WindowMediatorSubscriberBase
         var drawList = ImGui.GetForegroundDrawList();
 
         DrawMarkers(drawList);
+        DrawKeyHoldProgress(drawList);
 
         if (_cursorIsPing)
             HandlePingInteraction(drawList);
@@ -222,18 +225,72 @@ public sealed class PingMarkerOverlay : WindowMediatorSubscriberBase
         var keybind = (VirtualKey)_configService.Current.PingKeybind;
         var isKeyDown = _keyState[keybind];
 
-        if (isKeyDown && !_wasKeyDown)
+        if (_cursorIsPing)
         {
-            var vanillaTextInputActive = RaptureAtkModule.Instance()->AtkModule.IsTextInputActive();
-            if (!vanillaTextInputActive && !_permissionService.IsInInstance())
+            // Already in ping mode — single press to deactivate
+            if (isKeyDown && !_wasKeyDown)
             {
-                _cursorIsPing = !_cursorIsPing;
-                if (!_cursorIsPing)
+                var vanillaTextInputActive = RaptureAtkModule.Instance()->AtkModule.IsTextInputActive();
+                if (!vanillaTextInputActive)
+                {
+                    _cursorIsPing = false;
                     CancelPingClick();
-                _keyState[keybind] = false;
+                    _keyState[keybind] = false;
+                }
+            }
+        }
+        else
+        {
+            if (isKeyDown)
+            {
+                var vanillaTextInputActive = RaptureAtkModule.Instance()->AtkModule.IsTextInputActive();
+                if (!vanillaTextInputActive && !_permissionService.IsInInstance())
+                {
+                    if (!_wasKeyDown)
+                    {
+                        _keyHoldStartTime = DateTime.UtcNow;
+                    }
+                    else if (_keyHoldStartTime.HasValue)
+                    {
+                        var elapsed = (float)(DateTime.UtcNow - _keyHoldStartTime.Value).TotalSeconds;
+                        if (elapsed >= KeyHoldDurationSeconds)
+                        {
+                            _cursorIsPing = true;
+                            _keyHoldStartTime = null;
+                            _keyState[keybind] = false;
+                        }
+                    }
+                }
+                else
+                {
+                    _keyHoldStartTime = null;
+                }
+            }
+            else
+            {
+                _keyHoldStartTime = null;
             }
         }
         _wasKeyDown = isKeyDown;
+    }
+
+    private void DrawKeyHoldProgress(ImDrawListPtr drawList)
+    {
+        if (!_keyHoldStartTime.HasValue || _cursorIsPing) return;
+
+        var elapsed = (float)(DateTime.UtcNow - _keyHoldStartTime.Value).TotalSeconds;
+        var progress = Math.Clamp(elapsed / KeyHoldDurationSeconds, 0f, 1f);
+
+        var viewport = ImGui.GetMainViewport();
+        var center = new Vector2(viewport.Size.X * 0.5f, viewport.Size.Y * 0.85f);
+        var barWidth = 200f;
+        var barHeight = 6f;
+        var barPos = new Vector2(center.X - barWidth * 0.5f, center.Y);
+        
+        drawList.AddRectFilled(barPos, barPos + new Vector2(barWidth, barHeight),
+            ImGui.GetColorU32(new Vector4(0f, 0f, 0f, 0.6f)), 3f);
+        drawList.AddRectFilled(barPos, barPos + new Vector2(barWidth * progress, barHeight),
+            ImGui.GetColorU32(new Vector4(1f, 0.85f, 0.2f, 0.9f)), 3f);
     }
 
     private void HandlePingInteraction(ImDrawListPtr drawList)
@@ -259,13 +316,11 @@ public sealed class PingMarkerOverlay : WindowMediatorSubscriberBase
             _pingHoldDuration += ImGui.GetIO().DeltaTime;
             var moveDistance = Vector2.Distance(ImGui.GetMousePos(), _pingClickPos.Value);
 
-            if (!_pingWheelActive)
+            if (!_pingWheelActive
+                && (_pingHoldDuration > WheelHoldDuration ||
+                    moveDistance > WheelCenterMultiplier * WheelSize * uiScale))
             {
-                if (_pingHoldDuration > WheelHoldDuration ||
-                    moveDistance > WheelCenterMultiplier * WheelSize * uiScale)
-                {
-                    _pingWheelActive = true;
-                }
+                _pingWheelActive = true;
             }
 
             if (_pingWheelActive)

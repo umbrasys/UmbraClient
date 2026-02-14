@@ -5,6 +5,7 @@ using Glamourer.Api.IpcSubscribers;
 using Microsoft.Extensions.Logging;
 using UmbraSync.MareConfiguration.Models;
 using UmbraSync.PlayerData.Handlers;
+using UmbraSync.Localization;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.Notification;
@@ -61,6 +62,11 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
             _pluginLoaded = msg.IsLoaded;
             _pluginVersion = msg.Version;
             CheckAPI();
+            if (msg.IsLoaded && !APIAvailable)
+            {
+                _shownGlamourerUnavailable = false;
+                _ = Task.Run(CheckAPIWithRetryAsync);
+            }
         });
 
         _glamourerStateChanged = StateChanged.Subscriber(pi, GlamourerChanged);
@@ -93,6 +99,15 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         }
 
         _logger.LogWarning("Glamourer API still not available after {maxRetries} attempts", maxRetries);
+        if (!APIAvailable && !_shownGlamourerUnavailable)
+        {
+            _shownGlamourerUnavailable = true;
+            _mareMediator.Publish(new NotificationMessage(
+                Loc.Get("Notification.PluginIntegration.GlamourerInactive.Title"),
+                Loc.Get("Notification.PluginIntegration.GlamourerInactive.Body"),
+                NotificationType.Error));
+            _notificationTracker.Upsert(NotificationEntry.GlamourerInactive());
+        }
     }
 
     protected override void Dispose(bool disposing)
@@ -133,13 +148,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         }
         finally
         {
-            if (!apiAvailable && !_shownGlamourerUnavailable)
-            {
-                _shownGlamourerUnavailable = true;
-                _mareMediator.Publish(new NotificationMessage("Glamourer inactive", "Your Glamourer installation is not active or out of date. Update Glamourer to continue to use Umbra. If you just updated Glamourer, ignore this message.",
-                    NotificationType.Error));
-                _notificationTracker.Upsert(NotificationEntry.GlamourerInactive());
-            }
+            // Notification is deferred to CheckAPIWithRetryAsync after all retries are exhausted
         }
     }
 

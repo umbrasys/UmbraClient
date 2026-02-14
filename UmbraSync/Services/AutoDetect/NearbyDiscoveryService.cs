@@ -6,6 +6,7 @@ using System.Numerics;
 using UmbraSync.MareConfiguration;
 using UmbraSync.MareConfiguration.Configurations;
 using UmbraSync.Services.Mediator;
+using UmbraSync.Localization;
 using UmbraSync.Utils;
 using UmbraSync.WebAPI.AutoDetect;
 
@@ -190,7 +191,7 @@ public class NearbyDiscoveryService(ILogger<NearbyDiscoveryService> logger, Mare
 
                         if (!_notifiedEnabled)
                         {
-                            _mediator.Publish(new NotificationMessage("Nearby Detection", "AutoDetect enabled : you are now visible.", default));
+                            _mediator.Publish(new NotificationMessage(Loc.Get("Notification.NearbyDetection.Title"), Loc.Get("Notification.NearbyDetection.Enabled"), default));
                             _notifiedEnabled = true;
                             _notifiedDisabled = false;
                             _disableSent = false;
@@ -214,7 +215,7 @@ public class NearbyDiscoveryService(ILogger<NearbyDiscoveryService> logger, Mare
                         }
                         if (!_notifiedDisabled)
                         {
-                            _mediator.Publish(new NotificationMessage("Nearby Detection", "AutoDetect disabled : you are not visible.", default));
+                            _mediator.Publish(new NotificationMessage(Loc.Get("Notification.NearbyDetection.Title"), Loc.Get("Notification.NearbyDetection.Disabled"), default));
                             _notifiedDisabled = true;
                             _notifiedEnabled = false;
                         }
@@ -240,7 +241,7 @@ public class NearbyDiscoveryService(ILogger<NearbyDiscoveryService> logger, Mare
 
                         if (!_notifiedDisabled)
                         {
-                            _mediator.Publish(new NotificationMessage("Nearby Detection", "AutoDetect disabled : you are not visible.", default));
+                            _mediator.Publish(new NotificationMessage(Loc.Get("Notification.NearbyDetection.Title"), Loc.Get("Notification.NearbyDetection.Disabled"), default));
                             _notifiedDisabled = true;
                             _notifiedEnabled = false;
                         }
@@ -344,7 +345,7 @@ public class NearbyDiscoveryService(ILogger<NearbyDiscoveryService> logger, Mare
                                         _lastHeartbeat = DateTime.UtcNow;
                                         if (!_notifiedEnabled)
                                         {
-                                            _mediator.Publish(new NotificationMessage("Nearby Detection", "AutoDetect enabled : you are now visible.", default));
+                                            _mediator.Publish(new NotificationMessage(Loc.Get("Notification.NearbyDetection.Title"), Loc.Get("Notification.NearbyDetection.Enabled"), default));
                                             _notifiedEnabled = true;
                                             _notifiedDisabled = false;
                                             _disableSent = false; // allow future /disable when turning off again

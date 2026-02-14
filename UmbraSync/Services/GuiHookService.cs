@@ -17,13 +17,17 @@ public class GuiHookService : DisposableMediatorSubscriberBase
     private readonly INamePlateGui _namePlateGui;
     private readonly IGameConfig _gameConfig;
     private readonly IPartyList _partyList;
+    private readonly IObjectTable _objectTable;
     private readonly PairManager _pairManager;
+    private readonly UmbraProfileManager _umbraProfileManager;
+    private readonly ApiController _apiController;
 
     private bool _isModified;
     private bool _namePlateRoleColorsEnabled;
 
     public GuiHookService(ILogger<GuiHookService> logger, DalamudUtilService dalamudUtil, MareMediator mediator, MareConfigService configService,
-        INamePlateGui namePlateGui, IGameConfig gameConfig, IPartyList partyList, PairManager pairManager)
+        INamePlateGui namePlateGui, IGameConfig gameConfig, IPartyList partyList, IObjectTable objectTable,
+        PairManager pairManager, UmbraProfileManager umbraProfileManager, ApiController apiController)
         : base(logger, mediator)
     {
         _dalamudUtil = dalamudUtil;
@@ -31,7 +35,10 @@ public class GuiHookService : DisposableMediatorSubscriberBase
         _namePlateGui = namePlateGui;
         _gameConfig = gameConfig;
         _partyList = partyList;
+        _objectTable = objectTable;
         _pairManager = pairManager;
+        _umbraProfileManager = umbraProfileManager;
+        _apiController = apiController;
 
         _namePlateGui.OnNamePlateUpdate += OnNamePlateUpdate;
         _namePlateGui.RequestRedraw();
@@ -39,14 +46,16 @@ public class GuiHookService : DisposableMediatorSubscriberBase
         Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, (_) => GameSettingsCheck());
         Mediator.Subscribe<PairHandlerVisibleMessage>(this, (_) => RequestRedraw());
         Mediator.Subscribe<NameplateRedrawMessage>(this, (_) => RequestRedraw());
+        Mediator.Subscribe<ClearProfileDataMessage>(this, (_) => RequestRedraw());
         Mediator.Subscribe<UserTypingStateMessage>(this, (_) => RequestRedraw());
     }
 
     public void RequestRedraw(bool force = false)
     {
         var useColors = _configService.Current.UseNameColors;
+        var useRpNames = _configService.Current.UseRpNamesOnNameplates;
 
-        if (!useColors)
+        if (!useColors && !useRpNames)
         {
             if (!_isModified && !force)
                 return;
@@ -73,7 +82,8 @@ public class GuiHookService : DisposableMediatorSubscriberBase
     private void OnNamePlateUpdate(INamePlateUpdateContext context, IReadOnlyList<INamePlateUpdateHandler> handlers)
     {
         var applyColors = _configService.Current.UseNameColors;
-        if (!applyColors)
+        var applyRpNames = _configService.Current.UseRpNamesOnNameplates;
+        if (!applyColors && !applyRpNames)
             return;
 
         var visibleUsers = _pairManager.GetOnlineUserPairs()
@@ -98,24 +108,65 @@ public class GuiHookService : DisposableMediatorSubscriberBase
             partyMembers[i] = gameObject != null ? gameObject.Address : nint.MaxValue;
         }
 
+        if (applyRpNames && _apiController.IsConnected && !string.IsNullOrEmpty(_apiController.UID))
+        {
+            var localPlayer = _objectTable.LocalPlayer;
+            if (localPlayer != null)
+            {
+                var localProfile = _umbraProfileManager.GetUmbraProfile(new API.Data.UserData(_apiController.UID));
+                var localPlayerName = _dalamudUtil.GetPlayerName();
+                if (!string.IsNullOrEmpty(localProfile.RpFirstName) && !string.IsNullOrEmpty(localProfile.RpLastName)
+                    && !string.IsNullOrEmpty(localPlayerName) && IsRpFirstNameValid(localPlayerName, localProfile.RpFirstName))
+                {
+                    var localObjectId = localPlayer.GameObjectId;
+                    foreach (var handler in handlers)
+                    {
+                        if (handler.GameObjectId == localObjectId)
+                        {
+                            handler.NameParts.Text = new SeString(new TextPayload(BuildRpDisplayName(localProfile)));
+                            _isModified = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
         foreach (var handler in handlers)
         {
             if (visibleUsersIds.Contains(handler.GameObjectId))
             {
+                var skipColors = false;
                 if (_namePlateRoleColorsEnabled)
                 {
                     var handlerGameObject = handler.GameObject;
                     var handlerObjectAddress = handlerGameObject != null ? handlerGameObject.Address : nint.MaxValue;
                     if (partyMembers.Contains(handlerObjectAddress))
-                        continue;
+                        skipColors = true;
                 }
+
                 var pair = visibleUsersDict[handler.GameObjectId];
-                var colors = !pair.IsApplicationBlocked ? _configService.Current.NameColors : _configService.Current.BlockedNameColors;
-                handler.NameParts.TextWrap = (
-                    BuildColorStartSeString(colors),
-                    BuildColorEndSeString(colors)
-                );
-                _isModified = true;
+
+                if (applyColors && !skipColors)
+                {
+                    var colors = !pair.IsApplicationBlocked ? _configService.Current.NameColors : _configService.Current.BlockedNameColors;
+                    handler.NameParts.TextWrap = (
+                        BuildColorStartSeString(colors),
+                        BuildColorEndSeString(colors)
+                    );
+                    _isModified = true;
+                }
+
+                if (applyRpNames)
+                {
+                    var profile = _umbraProfileManager.GetUmbraProfile(pair.UserData);
+                    if (!string.IsNullOrEmpty(profile.RpFirstName) && !string.IsNullOrEmpty(profile.RpLastName)
+                        && !string.IsNullOrEmpty(pair.PlayerName) && IsRpFirstNameValid(pair.PlayerName, profile.RpFirstName))
+                    {
+                        handler.NameParts.Text = new SeString(new TextPayload(BuildRpDisplayName(profile)));
+                        _isModified = true;
+                    }
+                }
             }
 
         }
@@ -131,6 +182,24 @@ public class GuiHookService : DisposableMediatorSubscriberBase
             _namePlateRoleColorsEnabled = namePlateRoleColorsEnabled;
             RequestRedraw(force: true);
         }
+    }
+
+    private static bool IsRpFirstNameValid(string vanillaFullName, string rpFirstName)
+    {
+        var spaceIndex = vanillaFullName.IndexOf(' ');
+        var vanillaFirstName = spaceIndex >= 0 ? vanillaFullName[..spaceIndex] : vanillaFullName;
+        foreach (var part in rpFirstName.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (string.Equals(part, vanillaFirstName, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        return false;
+    }
+
+    private static string BuildRpDisplayName(UmbraProfileData profile)
+    {
+        var name = $"{profile.RpFirstName} {profile.RpLastName}";
+        return !string.IsNullOrEmpty(profile.RpTitle) ? $"{profile.RpTitle} {name}" : name;
     }
 
     #region Colored SeString

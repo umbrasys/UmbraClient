@@ -171,6 +171,17 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
     {
         return new List<ChangelogEntry>
         {
+            new(new Version(2, 2, 1, 0), "2.2.1.0", new List<ChangelogLine>
+            {
+                new("Nouvelle fonctionnalité : Possibilité de personnaliser l'identité de son personnage via le profil RP."),
+                new("Nouvelle fonctionnalité : Possibilité de colorer les émotes dans le chat ( Entre <>, * et [] )."),
+                new("Nouvelle fonctionnalité : Les messages HRP entre parenthèse sont affiché grisée et en italique."),
+                new("Amélioration : Ajout d'un délais de 2 secondes avant de passer en mode ping."),
+                new("Correctif : Dans certains cas, le profil RôlePlay ne s'affichait pas."),
+                new("Correctif : Dans certains cas, le téléchargement de mod pouvait se bloquer."),
+                new("Correctif : La pause pouvait provoquer une erreur arrêtant la synchronisation de la cible."),
+                new("Optimisation diverses du code."),
+            }),
             new(new Version(2, 2, 0, 0), "2.2.0.0", new List<ChangelogLine>
             {
                 new("Restructuration interface et architecture des Syncshell"),
@@ -181,50 +192,6 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
             new(new Version(2, 1, 3, 1), "2.1.3.1", new List<ChangelogLine>
             {
                 new("Résolution d'un problème critique pouvant faire un téléchargement en boucle"),
-            }),
-            new(new Version(2, 1, 3, 0), "2.1.3.0", new List<ChangelogLine>
-            {
-                new("Nouveau système de déduplication des téléchargements pour éviter les téléchargements en double."),
-                new("Système de retry automatique pour les applications de mods échouées."),
-                new("Détection des fichiers manquants avec réapplication forcée automatique."),
-                new("Traitement parallèle des paires activé par défaut."),
-            }),
-            new(new Version(2, 1, 2, 1), "2.1.2.1", new List<ChangelogLine>
-            {
-                new("Résolution d'un problème de décryptage lors d'un partage MCDF."),
-                new("Résolution d'un problème lors de l'application d'un MCDF sur la cible en /gpose."),
-                new("Ajout de la notification lors de la réception d'un partage MCDF."),
-                new("Ajout de la notification lorsque une Syncshell (Avec droits admin) devient visible dans le SyncFinder"),
-
-            }),
-            new(new Version(2, 1, 2, 0), "2.1.2.0", new List<ChangelogLine>
-            {
-                new("Correction d'un problème de chargement utilisateur"),
-                new("Correction de l'affichage de la bulle d'écriture et de sa distance de visibilité"),
-                new("Correction de la zone de notification inférieur-droit qui pouvait bloquer l'interaction de la zone"),
-                new("Mise à jour API Penumbra"),
-
-            }),
-
-            new(new Version(2, 1, 1, 0), "2.1.1.0", new List<ChangelogLine>
-            {
-                new("Nouveau système de cache pour les données de personnages"),
-                new("Cache métrique pour éviter des recalculs inutiles lors de la synchronisation"),
-                new("Limite de traitement simultané des paires augmentée de 16 à 50"),
-                new("Correction d'un problème de pause user"),
-                new("Radius de detection SlotSync réduit à 20m maximum"),
-
-            }),
-            new(new Version(2, 1, 0, 0), "2.1.0.0", new List<ChangelogLine>
-            {
-                new("Nouvelle fonctionnalité : Ajout du support complet des profils RP (Roleplay) avec gestion d'images et descriptions séparées par personnage."),
-                new("Nouvelle fonctionnalité : gestion des SyncShells et Slots pour une synchronisation avancée."),
-                new("Nouvelle fonctionnalité : Ajout de notifications interactives pour les invitations de pair avec options de configuration."),
-                new("Réécriture complète de l'intégration Penumbra avec architecture modulaire pour une meilleure stabilité."),
-                new("Traitement parallèle des pairs avec limitation configurable et amélioration des performances."),
-                new("Migration vers MessagePack v2.5.187 suite à un problème de vulnérabilité."),
-                new("Nombreuses améliorations de stabilité, modernisation du code et optimisations."),
-
             }),
         };
     }

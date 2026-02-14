@@ -988,7 +988,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
 
         // Tags
         ImGui.TextUnformatted(Loc.Get("SyncshellAdmin.Profile.Tags"));
-        for (int i = 0; i < _profileTags.Count; i++)
+        for (int i = _profileTags.Count - 1; i >= 0; i--)
         {
             ImGui.TextUnformatted(_profileTags[i]);
             ImGui.SameLine();
@@ -996,7 +996,6 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
             if (_uiSharedService.IconButton(FontAwesomeIcon.Times))
             {
                 _profileTags.RemoveAt(i);
-                i--;
             }
         }
         ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);

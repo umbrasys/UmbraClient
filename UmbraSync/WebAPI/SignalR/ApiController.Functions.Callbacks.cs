@@ -103,6 +103,8 @@ public partial class ApiController
 
     public Task Client_ReceiveServerMessage(MessageSeverity messageSeverity, string message)
     {
+        if (ServerState is not Utils.ServerState.Connected) return Task.CompletedTask;
+
         switch (messageSeverity)
         {
             case MessageSeverity.Error:
