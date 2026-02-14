@@ -65,10 +65,10 @@ public class Pair : DisposableMediatorSubscriberBase
             }
             if (UserPair != null)
             {
-                bool directPaused = UserPair.OwnPermissions.IsPaused() || UserPair.OtherPermissions.IsPaused();
+                bool directPaused = UserPair.OwnPermissions.IsPaused();
                 if (_logger.IsEnabled(LogLevel.Trace))
-                    _logger.LogTrace("IsPaused: {paused} (DirectPair, Own={own}, Other={other}) for {uid}",
-                        directPaused, UserPair.OwnPermissions.IsPaused(), UserPair.OtherPermissions.IsPaused(), UserData.UID);
+                    _logger.LogTrace("IsPaused: {paused} (DirectPair, Own={own}) for {uid}",
+                        directPaused, UserPair.OwnPermissions.IsPaused(), UserData.UID);
                 return directPaused;
             }
 
@@ -78,8 +78,7 @@ public class Pair : DisposableMediatorSubscriberBase
                 foreach (var p in GroupPair)
                 {
                     bool groupPaused = p.Key.GroupUserPermissions.IsPaused()
-                                    || p.Key.GroupPermissions.IsPaused()
-                                    || p.Value.GroupUserPermissions.IsPaused();
+                                    || p.Key.GroupPermissions.IsPaused();
                     if (!groupPaused)
                     {
                         allGroupsPaused = false;

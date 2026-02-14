@@ -179,6 +179,7 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
                 new("Amélioration : Ajout d'un délais de 2 secondes avant de passer en mode ping."),
                 new("Correctif : Dans certains cas, le profil RôlePlay ne s'affichait pas."),
                 new("Correctif : Dans certains cas, le téléchargement de mod pouvait se bloquer."),
+                new("Correctif : La pause pouvait provoquer une erreur arrêtant la synchronisation de la cible."),
                 new("Optimisation diverses du code."),
             }),
             new(new Version(2, 2, 0, 0), "2.2.0.0", new List<ChangelogLine>
