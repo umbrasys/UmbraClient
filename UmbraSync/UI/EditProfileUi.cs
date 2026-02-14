@@ -421,7 +421,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                     try
                     {
                         var file = await File.ReadAllBytesAsync(name).ConfigureAwait(false);
-                        if (file.Length > 250 * 1024)
+                        if (file.Length > 5 * 1024 * 1024)
                         {
                             _showFileDialogError = true;
                             return;

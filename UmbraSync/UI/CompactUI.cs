@@ -196,9 +196,20 @@ public class CompactUi : WindowMediatorSubscriberBase
         };
     }
 
+    public override void PreDraw()
+    {
+        base.PreDraw();
+        ImGui.PushStyleColor(ImGuiCol.Border, UiSharedService.ThemeTitleBar);
+    }
+
+    public override void PostDraw()
+    {
+        ImGui.PopStyleColor(1);
+        base.PostDraw();
+    }
+
     protected override void DrawInternal()
     {
-        ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGui.GetStyle().WindowPadding.Y - 1f * ImGuiHelpers.GlobalScale + ImGui.GetStyle().ItemSpacing.Y);
         var sidebarWidth = ImGuiHelpers.ScaledVector2(SidebarWidth, 0).X;
 
         using var fontScale = UiSharedService.PushFontScale(ContentFontScale);
@@ -938,10 +949,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         ImGuiHelpers.ScaledDummy(12f);
         DrawSidebarButton(FontAwesomeIcon.UserCircle, Loc.Get("CompactUi.Sidebar.EditProfile"), CompactUiSection.EditProfile, isConnected);
         ImGuiHelpers.ScaledDummy(3f);
-        DrawSidebarButton(FontAwesomeIcon.Cog, Loc.Get("CompactUi.Sidebar.Settings"), CompactUiSection.Settings, true, _settingsUi.IsOpen, 0, () =>
-        {
-            Mediator.Publish(new UiToggleMessage(typeof(SettingsUi)));
-        });
+        DrawSidebarButton(FontAwesomeIcon.Cog, Loc.Get("CompactUi.Sidebar.Settings"), CompactUiSection.Settings);
 
         drawList.ChannelsSetCurrent(0);
         DrawSidebarIndicator(drawList);
@@ -1179,6 +1187,10 @@ public class CompactUi : WindowMediatorSubscriberBase
             case CompactUiSection.CharacterDataHub:
                 if (_charaDataHubUi.IsOpen) _charaDataHubUi.IsOpen = false;
                 _charaDataHubUi.DrawInline();
+                break;
+            case CompactUiSection.Settings:
+                if (_settingsUi.IsOpen) _settingsUi.IsOpen = false;
+                _settingsUi.DrawInline();
                 break;
         }
 

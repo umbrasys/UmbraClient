@@ -3439,6 +3439,9 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="EditProfile.SaveErrorBody" xml:space="preserve">
     <value>Une erreur est survenue lors de l'enregistrement de votre profil sur le serveur.</value>
   </data>
+  <data name="EditProfile.ImageSizeError" xml:space="preserve">
+    <value>Le fichier image est trop volumineux. Taille maximale : 5 Mo.</value>
+  </data>
   <data name="EditProfile.RpFirstNameMismatch" xml:space="preserve">
     <value>Le prénom RP doit contenir le prénom de votre personnage ({0}).</value>
   </data>
@@ -3695,5 +3698,44 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   </data>
   <data name="Notification.NearbyDetection.Disabled" xml:space="preserve">
     <value>Vous n'êtes plus visible.</value>
+  </data>
+  <data name="Settings.Section.General.Desc" xml:space="preserve">
+    <value>Personnalisez l'interface, les notes, les notifications et les préférences d'affichage.</value>
+  </data>
+  <data name="Settings.Section.Performance.Desc" xml:space="preserve">
+    <value>Configurez les seuils de performance, les blocages automatiques et les listes blanches/noires.</value>
+  </data>
+  <data name="Settings.Section.Storage.Desc" xml:space="preserve">
+    <value>Gérez le stockage des fichiers et contrôlez le cache local.</value>
+  </data>
+  <data name="Settings.Section.Transfers.Desc" xml:space="preserve">
+    <value>Configurez les téléchargements, les limites de vitesse et le traitement parallèle des paires.</value>
+  </data>
+  <data name="Settings.Section.AutoDetect.Desc" xml:space="preserve">
+    <value>Paramétrez la détection automatique des joueurs à proximité et la découverte de syncshells.</value>
+  </data>
+  <data name="Settings.Section.Chat.Desc" xml:space="preserve">
+    <value>Configurez les noms RP, les indicateurs de saisie et les intégrations chat.</value>
+  </data>
+  <data name="Settings.Section.Pings.Desc" xml:space="preserve">
+    <value>Configurez le système de marqueurs pour pointer des positions dans le monde.</value>
+  </data>
+  <data name="Settings.Section.Account.Desc" xml:space="preserve">
+    <value>Gérez votre compte, vos clés secrètes et les assignations de personnages.</value>
+  </data>
+  <data name="Settings.Section.Advanced.Desc" xml:space="preserve">
+    <value>Options avancées : API Umbra, journalisation des événements et paramètres système.</value>
+  </data>
+  <data name="Settings.Advanced.PluginCompatibility" xml:space="preserve">
+    <value>Compatibilité plugins</value>
+  </data>
+  <data name="Settings.Plugins.Mandatory" xml:space="preserve">
+    <value>Plugins obligatoires</value>
+  </data>
+  <data name="Settings.Plugins.Optional" xml:space="preserve">
+    <value>Plugins optionnels</value>
+  </data>
+  <data name="Settings.Plugins.Optional.Hint" xml:space="preserve">
+    <value>Ces plugins ne sont pas nécessaires au fonctionnement de base, mais sans eux vous pourriez ne pas voir les autres comme prévu.</value>
   </data>
 </root>

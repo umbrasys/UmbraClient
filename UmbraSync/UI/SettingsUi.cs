@@ -75,6 +75,31 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private bool _registrationSuccess = false;
     private string? _registrationMessage;
     private readonly PenumbraPrecacheService _precacheService;
+    private const float SettingsSidebarWidth = 140f;
+    private const float SettingsSidebarAnimSpeed = 18f;
+    private readonly Dictionary<int, (Vector2 Min, Vector2 Max)> _settingsSidebarRects = new();
+    private Vector2 _settingsSidebarIndicatorPos;
+    private Vector2 _settingsSidebarIndicatorSize;
+    private bool _settingsSidebarIndicatorInit;
+    private Vector2 _settingsSidebarWindowPos;
+
+    private static readonly string[] SettingsLabels = ["General", "Performance", "Storage", "Transfers", "AutoDetect", "Chat", "Pings", "Compte", "Avancé"];
+    private static readonly FontAwesomeIcon[] SettingsIcons = [
+        FontAwesomeIcon.Cog, FontAwesomeIcon.Bolt, FontAwesomeIcon.Database,
+        FontAwesomeIcon.Retweet, FontAwesomeIcon.BroadcastTower, FontAwesomeIcon.Comment,
+        FontAwesomeIcon.Bell, FontAwesomeIcon.UserCircle, FontAwesomeIcon.Wrench
+    ];
+    private static readonly string[] SettingsDescriptionKeys = [
+        "Settings.Section.General.Desc",
+        "Settings.Section.Performance.Desc",
+        "Settings.Section.Storage.Desc",
+        "Settings.Section.Transfers.Desc",
+        "Settings.Section.AutoDetect.Desc",
+        "Settings.Section.Chat.Desc",
+        "Settings.Section.Pings.Desc",
+        "Settings.Section.Account.Desc",
+        "Settings.Section.Advanced.Desc",
+    ];
 
     public SettingsUi(ILogger<SettingsUi> logger,
         UiSharedService uiShared, MareConfigService configService,
@@ -120,8 +145,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
         SizeConstraints = new WindowSizeConstraints()
         {
-            MinimumSize = new Vector2(600, 400),
-            MaximumSize = new Vector2(600, 2000),
+            MinimumSize = new Vector2(420, 400),
+            MaximumSize = new Vector2(900, 2000),
         };
 
         Mediator.Subscribe<OpenSettingsUiMessage>(this, (_) => Toggle());
@@ -138,14 +163,15 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
     protected override void DrawInternal()
     {
-        _ = _uiShared.DrawOtherPluginState();
-
         DrawSettingsContent();
     }
 
     public void DrawInline()
     {
-        DrawSettingsContent();
+        using (ImRaii.PushId("SettingsUiInline"))
+        {
+            DrawSettingsContent();
+        }
     }
 
     public override void OnClose()
@@ -192,7 +218,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private void DrawCurrentTransfers()
     {
         _lastTab = "Transfers";
-        _uiShared.BigText(Loc.Get("Settings.Transfer.Title"));
+        DrawSectionHeader(3);
+
 
         bool enablePenumbraPrecache = _configService.Current.EnablePenumbraPrecache;
         if (ImGui.Checkbox(Loc.Get("Settings.Transfer.Precache.Enable"), ref enablePenumbraPrecache))
@@ -244,7 +271,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         ImGui.AlignTextToFramePadding();
         ImGui.TextUnformatted("Global Download Speed Limit");
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(100 * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(MathF.Min(100 * ImGuiHelpers.GlobalScale, ImGui.GetContentRegionAvail().X * 0.3f));
         if (ImGui.InputInt("###speedlimit", ref downloadSpeedLimit))
         {
             _configService.Current.DownloadSpeedLimitInBytes = downloadSpeedLimit;
@@ -252,7 +279,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             Mediator.Publish(new DownloadLimitChangedMessage());
         }
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(100 * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(MathF.Min(100 * ImGuiHelpers.GlobalScale, ImGui.GetContentRegionAvail().X * 0.3f));
         _uiShared.DrawCombo("###speed", [DownloadSpeeds.Bps, DownloadSpeeds.KBps, DownloadSpeeds.MBps],
             (s) => s switch
             {
@@ -269,7 +296,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         ImGui.SameLine();
         ImGui.AlignTextToFramePadding();
         ImGui.TextUnformatted("0 = No limit/infinite");
-        ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(MathF.Min(250 * ImGuiHelpers.GlobalScale, ImGui.GetContentRegionAvail().X - 200 * ImGuiHelpers.GlobalScale));
         if (ImGui.SliderInt("Maximum Parallel Downloads", ref maxParallelDownloads, 1, 10))
         {
             _configService.Current.ParallelDownloads = maxParallelDownloads;
@@ -292,7 +319,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         if (!enableParallelPairProcessing) ImGui.BeginDisabled();
         ImGui.Indent();
         int maxConcurrentPairApplications = _configService.Current.MaxConcurrentPairApplications;
-        ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(MathF.Min(200 * ImGuiHelpers.GlobalScale, ImGui.GetContentRegionAvail().X - 200 * ImGuiHelpers.GlobalScale));
         if (ImGui.SliderInt(Loc.Get("Settings.Transfer.PairProcessing.MaxConcurrent"), ref maxConcurrentPairApplications, 2, 10))
         {
             _configService.Current.MaxConcurrentPairApplications = maxConcurrentPairApplications;
@@ -345,7 +372,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         }
         _uiShared.DrawHelpText("Shows download text (amount of MiB downloaded) in the transfer bars");
         int transferBarWidth = _configService.Current.TransferBarsWidth;
-        ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(MathF.Min(250 * ImGuiHelpers.GlobalScale, ImGui.GetContentRegionAvail().X - 200 * ImGuiHelpers.GlobalScale));
         if (ImGui.SliderInt("Transfer Bar Width", ref transferBarWidth, 0, 500))
         {
             if (transferBarWidth < 10)
@@ -355,7 +382,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         }
         _uiShared.DrawHelpText("Width of the displayed transfer bars (will never be less wide than the displayed text)");
         int transferBarHeight = _configService.Current.TransferBarsHeight;
-        ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(MathF.Min(250 * ImGuiHelpers.GlobalScale, ImGui.GetContentRegionAvail().X - 200 * ImGuiHelpers.GlobalScale));
         if (ImGui.SliderInt("Transfer Bar Height", ref transferBarHeight, 0, 50))
         {
             if (transferBarHeight < 2)
@@ -468,6 +495,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private void DrawChatConfig()
     {
         _lastTab = "Chat";
+        DrawSectionHeader(5);
 
         _uiShared.BigText(Loc.Get("Settings.RpNamesHeader"));
 
@@ -661,8 +689,12 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private void DrawAdvanced()
     {
         _lastTab = "Advanced";
+        DrawSectionHeader(8);
 
-        _uiShared.BigText("Advanced");
+        _uiShared.BigText(Loc.Get("Settings.Advanced.PluginCompatibility"));
+        _ = _uiShared.DrawOtherPluginState();
+        ImGui.Separator();
+        ImGuiHelpers.ScaledDummy(4f);
 
         bool umbraApi = _configService.Current.UmbraAPI;
         if (ImGui.Checkbox("Enable Umbra Sync API", ref umbraApi))
@@ -678,7 +710,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
         using (_ = ImRaii.PushIndent())
         {
-            ImGui.SameLine(300.0f * ImGuiHelpers.GlobalScale);
+            ImGui.SameLine(MathF.Min(300f * ImGuiHelpers.GlobalScale, ImGui.GetContentRegionAvail().X * 0.55f));
             if (_ipcProvider.ImpersonationActive)
             {
                 UiSharedService.ColorTextWrapped("Umbra API active!", UiSharedService.AccentColor);
@@ -701,7 +733,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             _configService.Save();
         }
 
-        ImGui.SameLine(300.0f * ImGuiHelpers.GlobalScale);
+        ImGui.SameLine(MathF.Min(300f * ImGuiHelpers.GlobalScale, ImGui.GetContentRegionAvail().X * 0.55f));
         if (_uiShared.IconTextButton(FontAwesomeIcon.NotesMedical, "Open Event Viewer"))
         {
             Mediator.Publish(new UiToggleMessage(typeof(EventViewerUI)));
@@ -795,22 +827,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private void DrawFileStorageSettings()
     {
         _lastTab = "FileCache";
-
-        _uiShared.BigText("Export MCDF");
-
-        ImGuiHelpers.ScaledDummy(10);
-
-        UiSharedService.ColorTextWrapped("Exporting MCDF has moved.", ImGuiColors.DalamudYellow);
-        ImGuiHelpers.ScaledDummy(5);
-        UiSharedService.TextWrapped("It is now found in the Main UI under \"Character Data Hub\"");
-        if (_uiShared.IconTextButton(FontAwesomeIcon.Running, "Open Character Data Hub"))
-        {
-            Mediator.Publish(new UiToggleMessage(typeof(CharaDataHubUi)));
-        }
-
-        ImGui.Separator();
-
-        _uiShared.BigText("Storage");
+        DrawSectionHeader(2);
 
         UiSharedService.TextWrapped("Umbra stores downloaded files from paired people permanently. This is to improve loading performance and requiring less downloads. " +
             "The storage governs itself by clearing data beyond the set storage size. Please set the storage size accordingly. It is not necessary to manually clear the storage.");
@@ -1002,6 +1019,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         }
 
         _lastTab = "General";
+        DrawSectionHeader(0);
 
         _uiShared.BigText("Notes");
         if (_uiShared.IconTextButton(FontAwesomeIcon.StickyNote, "Export all your user notes to clipboard"))
@@ -1047,7 +1065,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         }
 
         var languageLabel = Loc.GetLanguageDisplayName(selectedLanguage);
-        ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(MathF.Min(250 * ImGuiHelpers.GlobalScale, ImGui.GetContentRegionAvail().X - 200 * ImGuiHelpers.GlobalScale));
         if (ImGui.BeginCombo("Interface Language##uiLanguage", string.IsNullOrEmpty(languageLabel) ? selectedLanguage : languageLabel))
         {
             foreach (var option in Loc.AvailableLanguages)
@@ -1217,7 +1235,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             Mediator.Publish(new CompactUiChange(Vector2.Zero, Vector2.Zero));
         }
         _uiShared.DrawHelpText("Will show profiles on the right side of the main UI");
-        ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(MathF.Min(250 * ImGuiHelpers.GlobalScale, ImGui.GetContentRegionAvail().X - 200 * ImGuiHelpers.GlobalScale));
         if (ImGui.SliderFloat("Hover Delay", ref profileDelay, 1, 10))
         {
             _configService.Current.ProfileDelay = profileDelay;
@@ -1250,7 +1268,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         var onlineNotifsNamedOnly = _configService.Current.ShowOnlineNotificationsOnlyForNamedPairs;
         _uiShared.BigText("Notifications");
 
-        ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(MathF.Min(250 * ImGuiHelpers.GlobalScale, ImGui.GetContentRegionAvail().X - 200 * ImGuiHelpers.GlobalScale));
         _uiShared.DrawCombo("Info Notification Display##settingsUi", (NotificationLocation[])Enum.GetValues(typeof(NotificationLocation)), (i) => i.ToString(),
         (i) =>
         {
@@ -1263,7 +1281,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                       + Environment.NewLine + "'Toast' will show Warning toast notifications in the bottom right corner"
                       + Environment.NewLine + "'Both' will show chat as well as the toast notification");
 
-        ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(MathF.Min(250 * ImGuiHelpers.GlobalScale, ImGui.GetContentRegionAvail().X - 200 * ImGuiHelpers.GlobalScale));
         _uiShared.DrawCombo("Warning Notification Display##settingsUi", (NotificationLocation[])Enum.GetValues(typeof(NotificationLocation)), (i) => i.ToString(),
         (i) =>
         {
@@ -1276,7 +1294,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                               + Environment.NewLine + "'Toast' will show Warning toast notifications in the bottom right corner"
                               + Environment.NewLine + "'Both' will show chat as well as the toast notification");
 
-        ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(MathF.Min(250 * ImGuiHelpers.GlobalScale, ImGui.GetContentRegionAvail().X - 200 * ImGuiHelpers.GlobalScale));
         _uiShared.DrawCombo("Error Notification Display##settingsUi", (NotificationLocation[])Enum.GetValues(typeof(NotificationLocation)), (i) => i.ToString(),
         (i) =>
         {
@@ -1324,9 +1342,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
     private void DrawPerformance()
     {
-        _uiShared.BigText("Performance Settings");
-        UiSharedService.TextWrapped("The configuration options here are to give you more informed warnings and automation when it comes to other performance-intensive synced players.");
-        ImGui.Separator();
+        DrawSectionHeader(1);
+
         bool recalculatePerformance = false;
         string? recalculatePerformanceUID = null;
 
@@ -1416,7 +1433,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             }
             var vramAuto = _playerPerformanceConfigService.Current.VRAMSizeAutoPauseThresholdMiB;
             var trisAuto = _playerPerformanceConfigService.Current.TrisAutoPauseThresholdThousands;
-            ImGui.SetNextItemWidth(100 * ImGuiHelpers.GlobalScale);
+            ImGui.SetNextItemWidth(MathF.Min(100 * ImGuiHelpers.GlobalScale, ImGui.GetContentRegionAvail().X * 0.3f));
             if (ImGui.InputInt("Auto Block VRAM threshold", ref vramAuto))
             {
                 _playerPerformanceConfigService.Current.VRAMSizeAutoPauseThresholdMiB = vramAuto;
@@ -1427,7 +1444,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             ImGui.Text("(MiB)");
             _uiShared.DrawHelpText("When a loading in player and their VRAM usage exceeds this amount, automatically blocks the synced player." + UiSharedService.TooltipSeparator
                 + "Default: 550 MiB");
-            ImGui.SetNextItemWidth(100 * ImGuiHelpers.GlobalScale);
+            ImGui.SetNextItemWidth(MathF.Min(100 * ImGuiHelpers.GlobalScale, ImGui.GetContentRegionAvail().X * 0.3f));
             if (ImGui.InputInt("Auto Block Triangle threshold", ref trisAuto))
             {
                 _playerPerformanceConfigService.Current.TrisAutoPauseThresholdThousands = trisAuto;
@@ -1461,13 +1478,15 @@ public class SettingsUi : WindowMediatorSubscriberBase
         _uiShared.DrawHelpText("Individual pairs will never be affected by auto blocks.");
         ImGui.Dummy(new Vector2(5));
         UiSharedService.TextWrapped("The entries in the list below will be not have auto block thresholds enforced.");
-        ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
+        var whitelistAvail = ImGui.GetContentRegionAvail().X;
+        float whitelistRightCol = MathF.Min(240 * ImGuiHelpers.GlobalScale, whitelistAvail * 0.55f);
+        ImGui.SetNextItemWidth(MathF.Min(200 * ImGuiHelpers.GlobalScale, whitelistAvail * 0.5f));
         var whitelistPos = ImGui.GetCursorPos();
-        ImGui.SetCursorPosX(240 * ImGuiHelpers.GlobalScale);
+        ImGui.SetCursorPosX(whitelistRightCol);
         ImGui.InputText("##whitelistuid", ref _uidToAddForIgnore, 20);
         using (ImRaii.Disabled(string.IsNullOrEmpty(_uidToAddForIgnore)))
         {
-            ImGui.SetCursorPosX(240 * ImGuiHelpers.GlobalScale);
+            ImGui.SetCursorPosX(whitelistRightCol);
             if (_uiShared.IconTextButton(FontAwesomeIcon.Plus, "Add UID/Vanity ID to whitelist"))
             {
                 if (!_serverConfigurationManager.IsUidWhitelisted(_uidToAddForIgnore))
@@ -1479,13 +1498,13 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 _uidToAddForIgnore = string.Empty;
             }
         }
-        ImGui.SetCursorPosX(240 * ImGuiHelpers.GlobalScale);
+        ImGui.SetCursorPosX(whitelistRightCol);
         _uiShared.DrawHelpText("Hint: UIDs are case sensitive.\nVanity IDs are also acceptable.");
         ImGui.Dummy(new Vector2(10));
         var playerList = _serverConfigurationManager.Whitelist;
         if (_selectedEntry > playerList.Count - 1)
             _selectedEntry = -1;
-        ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(MathF.Min(200 * ImGuiHelpers.GlobalScale, whitelistAvail * 0.5f));
         ImGui.SetCursorPosY(whitelistPos.Y);
         using (var lb = ImRaii.ListBox("##whitelist"))
         {
@@ -1526,13 +1545,15 @@ public class SettingsUi : WindowMediatorSubscriberBase
         ImGui.Separator();
         _uiShared.BigText("Blacklisted UIDs");
         UiSharedService.TextWrapped("The entries in the list below will never have their characters displayed.");
-        ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
+        var blacklistAvail = ImGui.GetContentRegionAvail().X;
+        float blacklistRightCol = MathF.Min(240 * ImGuiHelpers.GlobalScale, blacklistAvail * 0.55f);
+        ImGui.SetNextItemWidth(MathF.Min(200 * ImGuiHelpers.GlobalScale, blacklistAvail * 0.5f));
         var blacklistPos = ImGui.GetCursorPos();
-        ImGui.SetCursorPosX(240 * ImGuiHelpers.GlobalScale);
+        ImGui.SetCursorPosX(blacklistRightCol);
         ImGui.InputText("##uid", ref _uidToAddForIgnoreBlacklist, 20);
         using (ImRaii.Disabled(string.IsNullOrEmpty(_uidToAddForIgnoreBlacklist)))
         {
-            ImGui.SetCursorPosX(240 * ImGuiHelpers.GlobalScale);
+            ImGui.SetCursorPosX(blacklistRightCol);
             if (_uiShared.IconTextButton(FontAwesomeIcon.Plus, "Add UID/Vanity ID to blacklist"))
             {
                 if (!_serverConfigurationManager.IsUidBlacklisted(_uidToAddForIgnoreBlacklist))
@@ -1549,7 +1570,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         var blacklist = _serverConfigurationManager.Blacklist;
         if (_selectedEntryBlacklist > blacklist.Count - 1)
             _selectedEntryBlacklist = -1;
-        ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(MathF.Min(200 * ImGuiHelpers.GlobalScale, blacklistAvail * 0.5f));
         ImGui.SetCursorPosY(blacklistPos.Y);
         using (var lb = ImRaii.ListBox("##blacklist"))
         {
@@ -1624,9 +1645,9 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private void DrawServerConfiguration()
     {
         _lastTab = "Compte";
+        DrawSectionHeader(7);
         if (ApiController.ServerAlive)
         {
-            _uiShared.BigText("Compte");
             ImGuiHelpers.ScaledDummy(new Vector2(5, 5));
             if (ImGui.Button("Delete account"))
             {
@@ -1986,120 +2007,203 @@ public class SettingsUi : WindowMediatorSubscriberBase
         ImGui.Separator();
         ImGuiHelpers.ScaledDummy(2f);
 
+        float sidebarWidth = SettingsSidebarWidth * ImGuiHelpers.GlobalScale;
+
+        // Left: sidebar
+        ImGui.BeginChild("settings-sidebar", new Vector2(sidebarWidth, 0), false, ImGuiWindowFlags.NoScrollbar);
+        DrawSettingsSidebar();
+        ImGui.EndChild();
+
+        // Separator line
+        ImGui.SameLine();
+        float separatorHeight = ImGui.GetContentRegionAvail().Y;
+        float separatorX = ImGui.GetCursorPosX();
+        float separatorY = ImGui.GetCursorPosY();
+        var drawList = ImGui.GetWindowDrawList();
+        var separatorStart = ImGui.GetCursorScreenPos();
+        var separatorEnd = new Vector2(separatorStart.X, separatorStart.Y + separatorHeight);
+        var separatorColor = UiSharedService.AccentColor with { W = 0.6f };
+        drawList.AddLine(separatorStart, separatorEnd, ImGui.GetColorU32(separatorColor), 1f * ImGuiHelpers.GlobalScale);
+        ImGui.SetCursorPos(new Vector2(separatorX + 6f * ImGuiHelpers.GlobalScale, separatorY));
+
+        // Right: content
+        ImGui.BeginChild("settings-content", Vector2.Zero, false);
+        switch (_activeSettingsTab)
         {
-            var accent = UiSharedService.AccentColor;
-            var labels = new[] { "General", "Performance", "Storage", "Transfers", "AutoDetect", "Chat", "Pings", "Compte", "Advanced" };
-            var icons = new[] {
-                FontAwesomeIcon.Cog, FontAwesomeIcon.Running, FontAwesomeIcon.Database,
-                FontAwesomeIcon.Retweet, FontAwesomeIcon.BroadcastTower, FontAwesomeIcon.Comment,
-                FontAwesomeIcon.Bell, FontAwesomeIcon.UserCircle, FontAwesomeIcon.Wrench
-            };
-            const float btnH = 26f;
-            const float btnSpacing = 4f;
-            const float rounding = 4f;
-            const float iconTextGap = 5f;
-
-            var dl = ImGui.GetWindowDrawList();
-            var availWidth = ImGui.GetContentRegionAvail().X;
-
-            var borderColor = new Vector4(0.29f, 0.21f, 0.41f, 0.7f);
-            var bgColor = new Vector4(0.11f, 0.11f, 0.11f, 0.9f);
-            var hoverBg = new Vector4(0.17f, 0.13f, 0.22f, 1f);
-
-            // Measure all buttons to determine how many rows we need
-            var btnWidths = new float[labels.Length];
-            for (int i = 0; i < labels.Length; i++)
-            {
-                ImGui.PushFont(UiBuilder.IconFont);
-                var iconW = ImGui.CalcTextSize(icons[i].ToIconString()).X;
-                ImGui.PopFont();
-                btnWidths[i] = iconW + iconTextGap + ImGui.CalcTextSize(labels[i]).X + 16f;
-            }
-
-            // Layout buttons in rows that fit within available width
-            int idx = 0;
-            while (idx < labels.Length)
-            {
-                // Determine how many buttons fit on this row
-                float rowWidth = 0f;
-                int rowStart = idx;
-                int rowCount = 0;
-                for (int i = idx; i < labels.Length; i++)
-                {
-                    float needed = btnWidths[i] + (rowCount > 0 ? btnSpacing : 0f);
-                    if (rowCount > 0 && rowWidth + needed > availWidth) break;
-                    rowWidth += needed;
-                    rowCount++;
-                }
-
-                // Expand buttons to fill the row
-                float extraPerBtn = (availWidth - rowWidth) / rowCount;
-
-                for (int i = rowStart; i < rowStart + rowCount; i++)
-                {
-                    if (i > rowStart) ImGui.SameLine(0, btnSpacing);
-                    float w = btnWidths[i] + extraPerBtn;
-
-                    var p = ImGui.GetCursorScreenPos();
-                    bool clicked = ImGui.InvisibleButton($"##settingsTab_{i}", new Vector2(w, btnH));
-                    bool hovered = ImGui.IsItemHovered();
-                    bool isActive = _activeSettingsTab == i;
-
-                    var bg = isActive ? accent : hovered ? hoverBg : bgColor;
-                    dl.AddRectFilled(p, p + new Vector2(w, btnH), ImGui.GetColorU32(bg), rounding);
-                    if (!isActive)
-                        dl.AddRect(p, p + new Vector2(w, btnH), ImGui.GetColorU32(borderColor with { W = hovered ? 0.9f : 0.5f }), rounding);
-
-                    ImGui.PushFont(UiBuilder.IconFont);
-                    var iconStr = icons[i].ToIconString();
-                    var iconSz = ImGui.CalcTextSize(iconStr);
-                    ImGui.PopFont();
-
-                    var labelSz = ImGui.CalcTextSize(labels[i]);
-                    var totalW = iconSz.X + iconTextGap + labelSz.X;
-                    var startX = p.X + (w - totalW) / 2f;
-
-                    var textColor = isActive ? new Vector4(1f, 1f, 1f, 1f) : hovered ? new Vector4(0.9f, 0.85f, 1f, 1f) : new Vector4(0.7f, 0.65f, 0.8f, 1f);
-                    var textColorU32 = ImGui.GetColorU32(textColor);
-
-                    ImGui.PushFont(UiBuilder.IconFont);
-                    dl.AddText(new Vector2(startX, p.Y + (btnH - iconSz.Y) / 2f), textColorU32, iconStr);
-                    ImGui.PopFont();
-
-                    dl.AddText(new Vector2(startX + iconSz.X + iconTextGap, p.Y + (btnH - labelSz.Y) / 2f), textColorU32, labels[i]);
-
-                    if (hovered) ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
-                    if (clicked) _activeSettingsTab = i;
-                }
-
-                idx = rowStart + rowCount;
-            }
-
-            ImGuiHelpers.ScaledDummy(2f);
-
-            switch (_activeSettingsTab)
-            {
-                case 0: DrawGeneral(); break;
-                case 1: DrawPerformance(); break;
-                case 2: DrawFileStorageSettings(); break;
-                case 3: DrawCurrentTransfers(); break;
-                case 4: DrawAutoDetect(); break;
-                case 5: DrawChatConfig(); break;
-                case 6: DrawPingSettings(); break;
-                case 7:
-                    ImGui.BeginDisabled(_registrationInProgress);
-                    DrawServerConfiguration();
-                    ImGui.EndDisabled();
-                    break;
-                case 8: DrawAdvanced(); break;
-            }
+            case 0: DrawGeneral(); break;
+            case 1: DrawPerformance(); break;
+            case 2: DrawFileStorageSettings(); break;
+            case 3: DrawCurrentTransfers(); break;
+            case 4: DrawAutoDetect(); break;
+            case 5: DrawChatConfig(); break;
+            case 6: DrawPingSettings(); break;
+            case 7:
+                ImGui.BeginDisabled(_registrationInProgress);
+                DrawServerConfiguration();
+                ImGui.EndDisabled();
+                break;
+            case 8: DrawAdvanced(); break;
         }
+        ImGui.EndChild();
+    }
+
+    private void DrawSectionHeader(int tabIndex)
+    {
+        var icon = SettingsIcons[tabIndex];
+        var title = SettingsLabels[tabIndex];
+        var description = Loc.Get(SettingsDescriptionKeys[tabIndex]);
+        var availWidth = ImGui.GetContentRegionAvail().X;
+
+        ImGuiHelpers.ScaledDummy(6f);
+
+        // Icon — large, centered
+        string iconStr = icon.ToIconString();
+        using (_uiShared.IconFont.Push())
+        {
+            var iconSz = ImGui.CalcTextSize(iconStr);
+            float scale = 1.6f;
+            var scaledSz = iconSz * scale;
+            var pos = ImGui.GetCursorScreenPos();
+            float iconX = pos.X + (availWidth - scaledSz.X) / 2f;
+            float iconY = pos.Y;
+            ImGui.Dummy(new Vector2(0, scaledSz.Y));
+            var dl = ImGui.GetWindowDrawList();
+            dl.AddText(ImGui.GetFont(), ImGui.GetFontSize() * scale, new Vector2(iconX, iconY), ImGui.GetColorU32(UiSharedService.AccentColor), iconStr);
+        }
+
+        ImGuiHelpers.ScaledDummy(4f);
+
+        // Title — bold, centered
+        using (_uiShared.UidFont.Push())
+        {
+            var titleSz = ImGui.CalcTextSize(title);
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (availWidth - titleSz.X) / 2f);
+            ImGui.TextUnformatted(title);
+        }
+
+        ImGuiHelpers.ScaledDummy(2f);
+
+        // Description — gray, centered wrap zone
+        float margin = availWidth * 0.05f;
+        using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudGrey3))
+        {
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + margin);
+            ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + availWidth - margin * 2f);
+            ImGui.TextWrapped(description);
+            ImGui.PopTextWrapPos();
+        }
+
+        ImGuiHelpers.ScaledDummy(6f);
+        ImGui.Separator();
+        ImGuiHelpers.ScaledDummy(4f);
+    }
+
+    private void DrawSettingsSidebar()
+    {
+        var drawList = ImGui.GetWindowDrawList();
+        drawList.ChannelsSplit(2);
+        drawList.ChannelsSetCurrent(1);
+        _settingsSidebarRects.Clear();
+
+        ImGuiHelpers.ScaledDummy(4f);
+
+        for (int i = 0; i < SettingsLabels.Length; i++)
+        {
+            DrawSettingsSidebarButton(i);
+            ImGuiHelpers.ScaledDummy(1f);
+        }
+
+        drawList.ChannelsSetCurrent(0);
+        DrawSettingsSidebarIndicator(drawList);
+        drawList.ChannelsMerge();
+    }
+
+    private void DrawSettingsSidebarButton(int tabIndex)
+    {
+        using var id = ImRaii.PushId(tabIndex);
+
+        const float btnH = 24f;
+        const float iconTextGap = 6f;
+        const float paddingX = 8f;
+        float scaledBtnH = btnH * ImGuiHelpers.GlobalScale;
+        float availWidth = ImGui.GetContentRegionAvail().X;
+
+        bool isActive = _activeSettingsTab == tabIndex;
+
+        var p = ImGui.GetCursorScreenPos();
+        bool clicked = ImGui.InvisibleButton("##settingsSidebarBtn", new Vector2(availWidth, scaledBtnH));
+        bool hovered = ImGui.IsItemHovered();
+
+        _settingsSidebarRects[tabIndex] = (p, p + new Vector2(availWidth, scaledBtnH));
+
+        // Background: only draw on hover (indicator handles active state)
+        if (hovered && !isActive)
+        {
+            var hoverColor = new Vector4(0x30 / 255f, 0x19 / 255f, 0x46 / 255f, 1f);
+            var dl = ImGui.GetWindowDrawList();
+            float rounding = 6f * ImGuiHelpers.GlobalScale;
+            float padding = 2f * ImGuiHelpers.GlobalScale;
+            dl.AddRectFilled(p - new Vector2(padding), p + new Vector2(availWidth + padding, scaledBtnH + padding), ImGui.GetColorU32(hoverColor), rounding);
+        }
+
+        // Icon
+        var dl2 = ImGui.GetWindowDrawList();
+        string iconStr = SettingsIcons[tabIndex].ToIconString();
+        ImGui.PushFont(UiBuilder.IconFont);
+        var iconSz = ImGui.CalcTextSize(iconStr);
+        ImGui.PopFont();
+
+        var textColor = isActive ? new Vector4(1f, 1f, 1f, 1f) : hovered ? new Vector4(0.9f, 0.85f, 1f, 1f) : new Vector4(0.7f, 0.65f, 0.8f, 1f);
+        var textColorU32 = ImGui.GetColorU32(textColor);
+
+        float startX = p.X + paddingX * ImGuiHelpers.GlobalScale;
+
+        ImGui.PushFont(UiBuilder.IconFont);
+        dl2.AddText(new Vector2(startX, p.Y + (scaledBtnH - iconSz.Y) / 2f), textColorU32, iconStr);
+        ImGui.PopFont();
+
+        dl2.AddText(new Vector2(startX + iconSz.X + iconTextGap * ImGuiHelpers.GlobalScale, p.Y + (scaledBtnH - iconSz.Y) / 2f), textColorU32, SettingsLabels[tabIndex]);
+
+        if (hovered) ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
+        if (clicked) _activeSettingsTab = tabIndex;
+    }
+
+    private void DrawSettingsSidebarIndicator(ImDrawListPtr drawList)
+    {
+        if (!_settingsSidebarRects.TryGetValue(_activeSettingsTab, out var rect))
+            return;
+
+        var windowPos = ImGui.GetWindowPos();
+        var targetPos = rect.Min;
+        var targetSize = rect.Max - rect.Min;
+
+        if (!_settingsSidebarIndicatorInit || _settingsSidebarWindowPos != windowPos)
+        {
+            _settingsSidebarIndicatorPos = targetPos;
+            _settingsSidebarIndicatorSize = targetSize;
+            _settingsSidebarIndicatorInit = true;
+            _settingsSidebarWindowPos = windowPos;
+        }
+        else
+        {
+            float dt = ImGui.GetIO().DeltaTime;
+            float lerpT = 1f - MathF.Exp(-SettingsSidebarAnimSpeed * dt);
+            _settingsSidebarIndicatorPos = Vector2.Lerp(_settingsSidebarIndicatorPos, targetPos, lerpT);
+            _settingsSidebarIndicatorSize = Vector2.Lerp(_settingsSidebarIndicatorSize, targetSize, lerpT);
+        }
+
+        float padding = 2f * ImGuiHelpers.GlobalScale;
+        var min = _settingsSidebarIndicatorPos - new Vector2(padding);
+        var max = _settingsSidebarIndicatorPos + _settingsSidebarIndicatorSize + new Vector2(padding);
+        float rounding = 6f * ImGuiHelpers.GlobalScale;
+        drawList.AddRectFilled(min, max, ImGui.GetColorU32(UiSharedService.AccentColor), rounding);
     }
 
     private void DrawAutoDetect()
     {
         _lastTab = "AutoDetect";
-        _uiShared.BigText("AutoDetect");
+        DrawSectionHeader(4);
+
 
         bool isAutoDetectSuppressed = _autoDetectSuppressionService.IsSuppressed;
         bool enableDiscovery = _configService.Current.EnableAutoDetectDiscovery;
@@ -2184,7 +2288,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         var styleIndex = _configService.Current.DtrStyle;
         string previewText = styleIndex == 0 ? DtrDefaultPreviewText : DtrEntry.RenderDtrStyle(styleIndex, "123");
 
-        ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(MathF.Min(250 * ImGuiHelpers.GlobalScale, ImGui.GetContentRegionAvail().X - 200 * ImGuiHelpers.GlobalScale));
         bool comboOpen = ImGui.BeginCombo("Server Info Bar style", previewText);
 
         if (comboOpen)
@@ -2250,7 +2354,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             {
                 using var indentTyping = ImRaii.PushIndent();
                 var bubbleSize = _configService.Current.TypingIndicatorBubbleSize;
-                ImGui.SetNextItemWidth(140 * ImGuiHelpers.GlobalScale);
+                ImGui.SetNextItemWidth(MathF.Min(140 * ImGuiHelpers.GlobalScale, ImGui.GetContentRegionAvail().X - 200 * ImGuiHelpers.GlobalScale));
                 TypingIndicatorBubbleSize? selectedBubbleSize = _uiShared.DrawCombo($"{Loc.Get("Settings.Typing.BubbleSize")}##typingBubbleSize",
                     Enum.GetValues<TypingIndicatorBubbleSize>(),
                     size => size switch
@@ -2289,7 +2393,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private void DrawPingSettings()
     {
         _lastTab = "Pings";
-        _uiShared.BigText(Loc.Get("Settings.Ping.Header"));
+        DrawSectionHeader(6);
+
         using (ImRaii.PushIndent())
         {
             var pingEnabled = _configService.Current.PingEnabled;

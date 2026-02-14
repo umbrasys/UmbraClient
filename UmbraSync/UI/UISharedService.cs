@@ -23,6 +23,7 @@ using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Models;
+using UmbraSync.Localization;
 using UmbraSync.Services.ServerConfiguration;
 
 namespace UmbraSync.UI;
@@ -902,7 +903,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     {
         ColorTextWrapped("Note: The storage folder should be somewhere close to root (i.e. C:\\UmbraStorage) in a new empty folder. DO NOT point this to your game folder. DO NOT point this to your Penumbra folder.", ImGuiColors.DalamudYellow);
         var cacheDirectory = _configService.Current.CacheFolder;
-        ImGui.SetNextItemWidth(400 * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(MathF.Min(400 * ImGuiHelpers.GlobalScale, ImGui.GetContentRegionAvail().X - 200 * ImGuiHelpers.GlobalScale));
         ImGui.InputText("Storage Folder##cache", ref cacheDirectory, 255, ImGuiInputTextFlags.ReadOnly);
 
         ImGui.SameLine();
@@ -979,7 +980,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         }
 
         float maxCacheSize = (float)_configService.Current.MaxLocalCacheInGiB;
-        ImGui.SetNextItemWidth(400 * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(MathF.Min(400 * ImGuiHelpers.GlobalScale, ImGui.GetContentRegionAvail().X - 200 * ImGuiHelpers.GlobalScale));
         if (ImGui.SliderFloat("Maximum Storage Size", ref maxCacheSize, 1f, 200f, "%.2f GiB"))
         {
             _configService.Current.MaxLocalCacheInGiB = maxCacheSize;
@@ -1132,96 +1133,41 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         if (intro)
         {
             SetFontScale(0.8f);
-            BigText("Mandatory Plugins");
+            BigText(Loc.Get("Settings.Plugins.Mandatory"));
             SetFontScale(1.0f);
-        }
-        else
-        {
-            ImGui.TextUnformatted("Mandatory Plugins:");
-            ImGui.SameLine();
-        }
 
-        ImGui.TextUnformatted("Penumbra");
-        ImGui.SameLine();
-        IconText(_penumbraExists ? check : cross, GetBoolColor(_penumbraExists));
-        ImGui.SameLine();
-        AttachToolTip($"Penumbra is " + (_penumbraExists ? "available and up to date." : "unavailable or not up to date."));
+            DrawPluginEntry("Penumbra", _penumbraExists, check, cross);
+            DrawPluginEntry("Glamourer", _glamourerExists, check, cross);
 
-        ImGui.TextUnformatted("Glamourer");
-        ImGui.SameLine();
-        IconText(_glamourerExists ? check : cross, GetBoolColor(_glamourerExists));
-        AttachToolTip($"Glamourer is " + (_glamourerExists ? "available and up to date." : "unavailable or not up to date."));
-
-        if (intro)
-        {
             SetFontScale(0.8f);
-            BigText("Optional Addons");
+            BigText(Loc.Get("Settings.Plugins.Optional"));
             SetFontScale(1.0f);
-            UiSharedService.TextWrapped("These addons are not required for basic operation, but without them you may not see others as intended.");
+            UiSharedService.TextWrapped(Loc.Get("Settings.Plugins.Optional.Hint"));
+
+            DrawPluginEntry("SimpleHeels", _heelsExists, check, cross);
+            DrawPluginEntry("Customize+", _customizePlusExists, check, cross);
+            DrawPluginEntry("Honorific", _honorificExists, check, cross);
+            DrawPluginEntry("PetNicknames", _petNamesExists, check, cross);
+            DrawPluginEntry("Moodles", _moodlesExists, check, cross);
+            DrawPluginEntry("Brio", _brioExists, check, cross);
+            DrawPluginEntry("Chat2", _chatTwoExists, check, cross);
         }
         else
         {
-            ImGui.TextUnformatted("Optional Addons:");
-            ImGui.SameLine();
+            ImGui.TextUnformatted(Loc.Get("Settings.Plugins.Mandatory"));
+            DrawPluginEntry("Penumbra", _penumbraExists, check, cross);
+            DrawPluginEntry("Glamourer", _glamourerExists, check, cross);
+
+            ImGuiHelpers.ScaledDummy(4f);
+            ImGui.TextUnformatted(Loc.Get("Settings.Plugins.Optional"));
+            DrawPluginEntry("SimpleHeels", _heelsExists, check, cross);
+            DrawPluginEntry("Customize+", _customizePlusExists, check, cross);
+            DrawPluginEntry("Honorific", _honorificExists, check, cross);
+            DrawPluginEntry("PetNicknames", _petNamesExists, check, cross);
+            DrawPluginEntry("Moodles", _moodlesExists, check, cross);
+            DrawPluginEntry("Brio", _brioExists, check, cross);
+            DrawPluginEntry("Chat2", _chatTwoExists, check, cross);
         }
-
-        var alignPos = ImGui.GetCursorPosX();
-
-        ImGui.TextUnformatted("SimpleHeels");
-        ImGui.SameLine();
-        IconText(_heelsExists ? check : cross, GetBoolColor(_heelsExists));
-        ImGui.SameLine();
-        AttachToolTip($"SimpleHeels is " + (_heelsExists ? "available and up to date." : "unavailable or not up to date."));
-        ImGui.Spacing();
-
-        ImGui.SameLine();
-        ImGui.TextUnformatted("Customize+");
-        ImGui.SameLine();
-        IconText(_customizePlusExists ? check : cross, GetBoolColor(_customizePlusExists));
-        ImGui.SameLine();
-        AttachToolTip($"Customize+ is " + (_customizePlusExists ? "available and up to date." : "unavailable or not up to date."));
-        ImGui.Spacing();
-
-        ImGui.SameLine();
-        ImGui.TextUnformatted("Honorific");
-        ImGui.SameLine();
-        IconText(_honorificExists ? check : cross, GetBoolColor(_honorificExists));
-        ImGui.SameLine();
-        AttachToolTip($"Honorific is " + (_honorificExists ? "available and up to date." : "unavailable or not up to date."));
-        ImGui.Spacing();
-
-        ImGui.SameLine();
-        ImGui.TextUnformatted("PetNicknames");
-        ImGui.SameLine();
-        IconText(_petNamesExists ? check : cross, GetBoolColor(_petNamesExists));
-        ImGui.SameLine();
-        AttachToolTip($"PetNicknames is " + (_petNamesExists ? "available and up to date." : "unavailable or not up to date."));
-        ImGui.Spacing();
-
-
-        ImGui.SetCursorPosX(alignPos);
-        ImGui.TextUnformatted("Moodles");
-        ImGui.SameLine();
-        IconText(_moodlesExists ? check : cross, GetBoolColor(_moodlesExists));
-        ImGui.SameLine();
-        AttachToolTip($"Moodles is " + (_moodlesExists ? "available and up to date." : "unavailable or not up to date."));
-        ImGui.Spacing();
-
-        ImGui.SameLine();
-        ImGui.TextUnformatted("Brio");
-        ImGui.SameLine();
-        IconText(_brioExists ? check : cross, GetBoolColor(_brioExists));
-        ImGui.SameLine();
-        AttachToolTip($"Brio is " + (_brioExists ? "available and up to date." : "unavailable or not up to date."));
-        ImGui.Spacing();
-
-        ImGui.SameLine();
-        ImGui.TextUnformatted("Chat2");
-        ImGui.SameLine();
-        IconText(_chatTwoExists ? check : cross, GetBoolColor(_chatTwoExists));
-        ImGui.SameLine();
-        AttachToolTip($"Chat2 est " + (_chatTwoExists ? "disponible et à jour." : "indisponible ou pas à jour."));
-        ImGui.Spacing();
 
         if (!_penumbraExists || !_glamourerExists)
         {
@@ -1230,6 +1176,13 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         }
 
         return true;
+    }
+
+    private void DrawPluginEntry(string name, bool exists, FontAwesomeIcon check, FontAwesomeIcon cross)
+    {
+        ImGui.TextUnformatted(name);
+        ImGui.SameLine();
+        IconText(exists ? check : cross, GetBoolColor(exists));
     }
 
     public int DrawServiceSelection(bool selectOnChange = false, bool intro = false)
@@ -1249,7 +1202,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             if (string.Equals(_serverConfigurationManager.CurrentServer?.ServerName, comboEntries[i], StringComparison.OrdinalIgnoreCase))
                 comboEntries[i] += " [Current]";
         }
-        ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(MathF.Min(250 * ImGuiHelpers.GlobalScale, ImGui.GetContentRegionAvail().X - 200 * ImGuiHelpers.GlobalScale));
         if (ImGui.BeginCombo("Select Service", comboEntries[_serverSelectionIndex]))
         {
             for (int i = 0; i < comboEntries.Length; i++)
@@ -1287,9 +1240,9 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
         if (ImGui.TreeNode("Add Custom Service"))
         {
-            ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
+            ImGui.SetNextItemWidth(MathF.Min(250 * ImGuiHelpers.GlobalScale, ImGui.GetContentRegionAvail().X - 200 * ImGuiHelpers.GlobalScale));
             ImGui.InputText("Custom Service URI", ref _customServerUri, 255);
-            ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
+            ImGui.SetNextItemWidth(MathF.Min(250 * ImGuiHelpers.GlobalScale, ImGui.GetContentRegionAvail().X - 200 * ImGuiHelpers.GlobalScale));
             ImGui.InputText("Custom Service Name", ref _customServerName, 255);
             if (IconTextButton(FontAwesomeIcon.Plus, "Add Custom Service")
                 && !string.IsNullOrEmpty(_customServerUri)
