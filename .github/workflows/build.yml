@@ -14,8 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: write
-      checks: write
     env:
       DOTNET_NOLOGO: true
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
@@ -66,7 +64,13 @@ jobs:
           QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
         with:
           args: --baseline,baseline.sarif.json
+          upload-result: false
+          post-pr-comment: false
           use-shell: true
+
+      - name: Rapport Qodana
+        if: always()
+        run: echo "Rapport Qodana disponible sur https://qodana.cloud"
 
       - name: Restauration des dépendances (post-Qodana)
         run: dotnet restore UmbraSync.sln

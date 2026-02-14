@@ -5,6 +5,7 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
@@ -39,7 +40,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private readonly CacheMonitor _cacheMonitor;
     private readonly DalamudUtilService _dalamudUtilService;
     private readonly MareConfigService _configService;
-    private readonly ConcurrentDictionary<GameObjectHandler, Dictionary<string, FileDownloadStatus>> _currentDownloads = new();
+    private readonly ConcurrentDictionary<GameObjectHandler, ConcurrentDictionary<string, FileDownloadStatus>> _currentDownloads = new();
     private readonly FileCompactor _fileCompactor;
     private readonly FileUploadManager _fileTransferManager;
     private readonly FileTransferOrchestrator _fileTransferOrchestrator;
@@ -53,8 +54,12 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private readonly ServerConfigurationManager _serverConfigurationManager;
     private readonly UiSharedService _uiShared;
     private readonly ChatTypingDetectionService _chatTypingDetectionService;
+    private readonly IKeyState _keyState;
     private static readonly string DtrDefaultPreviewText = DtrEntry.DefaultGlyph + " 123";
     private bool _deleteAccountPopupModalShown = false;
+    private bool _isCapturingPingKey = false;
+    private bool _emoteColorPaletteOpen = false;
+    private bool _hrpColorPaletteOpen = false;
     private string _lastTab = string.Empty;
     private bool? _notesSuccessfullyApplied = null;
     private bool _overwriteExistingLabels = false;
@@ -84,7 +89,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
         DalamudUtilService dalamudUtilService, AccountRegistrationService registerService,
         AutoDetectSuppressionService autoDetectSuppressionService,
         PenumbraPrecacheService precacheService,
-        ChatTypingDetectionService chatTypingDetectionService) : base(logger, mediator, "Umbra Settings", performanceCollector)
+        ChatTypingDetectionService chatTypingDetectionService,
+        IKeyState keyState) : base(logger, mediator, "Umbra Settings", performanceCollector)
     {
         _configService = configService;
         _pairManager = pairManager;
@@ -106,6 +112,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         _uiShared = uiShared;
         _precacheService = precacheService;
         _chatTypingDetectionService = chatTypingDetectionService;
+        _keyState = keyState;
         AllowClickthrough = false;
         AllowPinning = false;
         _validationProgress = new Progress<(int, int, FileCacheEntity)>(v => _currentProgress = v);
@@ -460,11 +467,194 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private void DrawChatConfig()
     {
         _lastTab = "Chat";
+
+        _uiShared.BigText(Loc.Get("Settings.RpNamesHeader"));
+
+        var useRpNamesOnNameplates = _configService.Current.UseRpNamesOnNameplates;
+        if (ImGui.Checkbox(Loc.Get("Settings.RpNamesOnNameplates"), ref useRpNamesOnNameplates))
+        {
+            _configService.Current.UseRpNamesOnNameplates = useRpNamesOnNameplates;
+            _configService.Save();
+            _guiHookService.RequestRedraw(force: true);
+        }
+
+        var useRpNamesInChat = _configService.Current.UseRpNamesInChat;
+        if (ImGui.Checkbox(Loc.Get("Settings.RpNamesInChat"), ref useRpNamesInChat))
+        {
+            _configService.Current.UseRpNamesInChat = useRpNamesInChat;
+            _configService.Save();
+        }
+
+        ImGui.Spacing();
+
+        _uiShared.BigText(Loc.Get("Settings.EmoteHighlight.Header"));
+
+        var emoteHighlightEnabled = _configService.Current.EmoteHighlightEnabled;
+        if (ImGui.Checkbox(Loc.Get("Settings.EmoteHighlight.Enable"), ref emoteHighlightEnabled))
+        {
+            _configService.Current.EmoteHighlightEnabled = emoteHighlightEnabled;
+            _configService.Save();
+        }
+        _uiShared.DrawHelpText(Loc.Get("Settings.EmoteHighlight.Enable.Help"));
+
+        if (emoteHighlightEnabled)
+        {
+            using (ImRaii.PushIndent())
+            {
+                var asterisks = _configService.Current.EmoteHighlightAsterisks;
+                if (ImGui.Checkbox(Loc.Get("Settings.EmoteHighlight.Asterisks"), ref asterisks))
+                {
+                    _configService.Current.EmoteHighlightAsterisks = asterisks;
+                    _configService.Save();
+                }
+
+                var angleBrackets = _configService.Current.EmoteHighlightAngleBrackets;
+                if (ImGui.Checkbox(Loc.Get("Settings.EmoteHighlight.AngleBrackets"), ref angleBrackets))
+                {
+                    _configService.Current.EmoteHighlightAngleBrackets = angleBrackets;
+                    _configService.Save();
+                }
+
+                var squareBrackets = _configService.Current.EmoteHighlightSquareBrackets;
+                if (ImGui.Checkbox(Loc.Get("Settings.EmoteHighlight.SquareBrackets"), ref squareBrackets))
+                {
+                    _configService.Current.EmoteHighlightSquareBrackets = squareBrackets;
+                    _configService.Save();
+                }
+
+                DrawColorPaletteRow(
+                    "emote",
+                    Loc.Get("Settings.EmoteHighlight.ColorKey"),
+                    _configService.Current.EmoteHighlightColorKey,
+                    ref _emoteColorPaletteOpen,
+                    key => { _configService.Current.EmoteHighlightColorKey = key; _configService.Save(); });
+
+                ImGui.Spacing();
+
+                var parentheses = _configService.Current.EmoteHighlightParenthesesGray;
+                if (ImGui.Checkbox(Loc.Get("Settings.EmoteHighlight.Parentheses"), ref parentheses))
+                {
+                    _configService.Current.EmoteHighlightParenthesesGray = parentheses;
+                    _configService.Save();
+                }
+                _uiShared.DrawHelpText(Loc.Get("Settings.EmoteHighlight.Parentheses.Help"));
+
+                if (parentheses)
+                {
+                    using (ImRaii.PushIndent())
+                    {
+                        var chatTwoActive = _uiShared.ChatTwoExists;
+                        using (ImRaii.Disabled(chatTwoActive))
+                        {
+                            var italic = !chatTwoActive && _configService.Current.EmoteHighlightParenthesesItalic;
+                            if (ImGui.Checkbox(Loc.Get("Settings.EmoteHighlight.Parentheses.Italic"), ref italic))
+                            {
+                                _configService.Current.EmoteHighlightParenthesesItalic = italic;
+                                _configService.Save();
+                            }
+                        }
+                        if (chatTwoActive && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+                            ImGui.SetTooltip(Loc.Get("Settings.EmoteHighlight.Parentheses.Italic.ChatTwoWarning"));
+
+                        DrawColorPaletteRow(
+                            "hrp",
+                            Loc.Get("Settings.EmoteHighlight.HrpColorKey"),
+                            _configService.Current.EmoteHighlightParenthesesColorKey,
+                            ref _hrpColorPaletteOpen,
+                            key => { _configService.Current.EmoteHighlightParenthesesColorKey = key; _configService.Save(); });
+                    }
+                }
+            }
+        }
+
+        ImGui.Spacing();
+
         _uiShared.BigText(Loc.Get("Settings.Typing.BubbleHeader"));
         using (ImRaii.PushIndent())
         {
             DrawTypingSettings();
         }
+    }
+
+    private void DrawColorPaletteRow(string id, string label, ushort currentKey, ref bool paletteOpen, Action<ushort> onSelect)
+    {
+        var uiColors = _dalamudUtilService.UiColors.Value;
+        var previewSize = new Vector2(20 * ImGuiHelpers.GlobalScale, 20 * ImGuiHelpers.GlobalScale);
+
+        var currentColor = uiColors.TryGetValue(currentKey, out var currentUiColor)
+            ? UiColorToVector4(currentUiColor.Dark)
+            : new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+
+        using (ImRaii.PushColor(ImGuiCol.Button, currentColor))
+        using (ImRaii.PushColor(ImGuiCol.ButtonHovered, currentColor))
+        using (ImRaii.PushColor(ImGuiCol.ButtonActive, currentColor))
+        {
+            ImGui.Button($"##{id}_preview", previewSize);
+        }
+
+        ImGui.SameLine();
+        var arrow = paletteOpen ? FontAwesomeIcon.ChevronDown : FontAwesomeIcon.ChevronRight;
+        using (ImRaii.PushFont(UiBuilder.IconFont))
+        {
+            if (ImGui.Button(arrow.ToIconString() + $"##{id}_toggle"))
+                paletteOpen = !paletteOpen;
+        }
+
+        ImGui.SameLine();
+        ImGui.TextUnformatted(label);
+
+        if (!paletteOpen)
+            return;
+
+        var buttonSize = new Vector2(20 * ImGuiHelpers.GlobalScale, 20 * ImGuiHelpers.GlobalScale);
+        var spacing = 2 * ImGuiHelpers.GlobalScale;
+        var contentWidth = ImGui.GetContentRegionAvail().X;
+        var buttonsPerRow = Math.Max(1, (int)((contentWidth + spacing) / (buttonSize.X + spacing)));
+
+        using (ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, new Vector2(spacing, spacing)))
+        using (ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 2.0f))
+        {
+            var col = 0;
+            foreach (var (rowId, uiColor) in uiColors.OrderBy(kv => kv.Key))
+            {
+                var rgba = uiColor.Dark;
+                if ((rgba & 0xFFFFFF00) == 0)
+                    continue;
+
+                var color = UiColorToVector4(rgba);
+                var isSelected = currentKey == (ushort)rowId;
+
+                using (ImRaii.PushColor(ImGuiCol.Button, color))
+                using (ImRaii.PushColor(ImGuiCol.ButtonHovered, new Vector4(Math.Min(color.X * 1.2f, 1.0f), Math.Min(color.Y * 1.2f, 1.0f), Math.Min(color.Z * 1.2f, 1.0f), 1.0f)))
+                using (ImRaii.PushColor(ImGuiCol.ButtonActive, new Vector4(color.X * 0.8f, color.Y * 0.8f, color.Z * 0.8f, 1.0f)))
+                using (ImRaii.PushStyle(ImGuiStyleVar.FrameBorderSize, isSelected ? 2.0f : 0.0f))
+                using (ImRaii.PushColor(ImGuiCol.Border, new Vector4(1.0f, 1.0f, 1.0f, 1.0f)))
+                {
+                    if (ImGui.Button($"##{id}_color_{rowId}", buttonSize))
+                        onSelect((ushort)rowId);
+                }
+
+                if (ImGui.IsItemHovered())
+                    ImGui.SetTooltip($"#{rowId}");
+
+                col++;
+                if (col < buttonsPerRow)
+                    ImGui.SameLine();
+                else
+                    col = 0;
+            }
+            if (col != 0)
+                ImGui.NewLine();
+        }
+    }
+
+    private static Vector4 UiColorToVector4(uint rgba)
+    {
+        var r = ((rgba >> 24) & 0xFF) / 255.0f;
+        var g = ((rgba >> 16) & 0xFF) / 255.0f;
+        var b = ((rgba >> 8) & 0xFF) / 255.0f;
+        var a = (rgba & 0xFF) / 255.0f;
+        return new Vector4(r, g, b, a);
     }
 
     private void DrawAdvanced()
@@ -2073,20 +2263,38 @@ public class SettingsUi : WindowMediatorSubscriberBase
             var keyName = currentKey.GetFancyName();
             ImGui.Text(Loc.Get("Settings.Ping.Keybind"));
             ImGui.SameLine();
-            if (ImGui.BeginCombo("##PingKeybind", keyName))
+            if (_isCapturingPingKey)
             {
-                foreach (var key in Enum.GetValues<VirtualKey>())
+                ImGui.TextColored(ImGuiColors.DalamudYellow, Loc.Get("Settings.Ping.KeybindCapture"));
+                ImGui.SameLine();
+                if (ImGui.Button(Loc.Get("Settings.Ping.KeybindCancel") + "##PingKeybindCancel"))
+                {
+                    _isCapturingPingKey = false;
+                }
+
+                foreach (var key in _keyState.GetValidVirtualKeys())
                 {
                     if (key == VirtualKey.NO_KEY) continue;
+                    if (key is VirtualKey.ESCAPE) continue;
+                    if (!_keyState[key]) continue;
                     var name = key.GetFancyName();
                     if (string.IsNullOrEmpty(name)) continue;
-                    if (ImGui.Selectable(name, key == currentKey))
-                    {
-                        _configService.Current.PingKeybind = (int)key;
-                        _configService.Save();
-                    }
+
+                    _configService.Current.PingKeybind = (int)key;
+                    _configService.Save();
+                    _isCapturingPingKey = false;
+                    _keyState[key] = false;
+                    break;
                 }
-                ImGui.EndCombo();
+            }
+            else
+            {
+                ImGui.Text($"[ {keyName} ]");
+                ImGui.SameLine();
+                if (ImGui.Button(Loc.Get("Settings.Ping.KeybindChange") + "##PingKeybindChange"))
+                {
+                    _isCapturingPingKey = true;
+                }
             }
             var uiScale = _configService.Current.PingUiScale;
             if (ImGui.SliderFloat(Loc.Get("Settings.Ping.UiScale"), ref uiScale, 0.5f, 3.0f, "%.1f"))

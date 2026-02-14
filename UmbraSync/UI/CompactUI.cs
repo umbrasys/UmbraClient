@@ -38,7 +38,7 @@ public class CompactUi : WindowMediatorSubscriberBase
     public float WindowContentWidth { get; private set; }
     private readonly ApiController _apiController;
     private readonly MareConfigService _configService;
-    private readonly ConcurrentDictionary<GameObjectHandler, Dictionary<string, FileDownloadStatus>> _currentDownloads = new();
+    private readonly ConcurrentDictionary<GameObjectHandler, ConcurrentDictionary<string, FileDownloadStatus>> _currentDownloads = new();
     private readonly FileUploadManager _fileTransferManager;
     private readonly GroupPanel _groupPanel;
     private readonly PairGroupsUi _pairGroupsUi;
@@ -1725,7 +1725,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         else
         {
             ImGui.AlignTextToFramePadding();
-            ImGui.TextColored(UiSharedService.AccentColor, Loc.Get("CompactUi.ServerStatus.NotConnected"));
+            ImGui.TextColored(ImGuiColors.DalamudRed, Loc.Get("CompactUi.ServerStatus.NotConnected"));
         }
 
         if (printShard)
@@ -1900,7 +1900,7 @@ public class CompactUi : WindowMediatorSubscriberBase
             ServerState.Disconnected => ImGuiColors.DalamudYellow,
             ServerState.Disconnecting => ImGuiColors.DalamudYellow,
             ServerState.Unauthorized => UiSharedService.AccentColor,
-            ServerState.VersionMisMatch => UiSharedService.AccentColor,
+            ServerState.VersionMisMatch => ImGuiColors.DalamudRed,
             ServerState.Offline => UiSharedService.AccentColor,
             ServerState.RateLimited => ImGuiColors.DalamudYellow,
             ServerState.NoSecretKey => ImGuiColors.DalamudYellow,

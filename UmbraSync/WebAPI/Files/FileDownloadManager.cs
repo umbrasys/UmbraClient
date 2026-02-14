@@ -1,9 +1,10 @@
-﻿using Dalamud.Utility;
+using Dalamud.Utility;
 using K4os.Compression.LZ4.Streams;
 using Microsoft.Extensions.Logging;
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
+using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using UmbraSync.API.Data;
 using UmbraSync.API.Dto.Files;
@@ -19,14 +20,15 @@ namespace UmbraSync.WebAPI.Files;
 
 public partial class FileDownloadManager : DisposableMediatorSubscriberBase
 {
-    private readonly Dictionary<string, FileDownloadStatus> _downloadStatus;
+    private readonly ConcurrentDictionary<string, FileDownloadStatus> _downloadStatus;
     private readonly FileCompactor _fileCompactor;
     private readonly FileCacheManager _fileDbManager;
     private readonly MareConfigService _mareConfigService;
     private readonly FileTransferOrchestrator _orchestrator;
     private readonly FileDownloadDeduplicator _deduplicator;
-    private readonly List<ThrottledStream> _activeDownloadStreams;
+    private readonly ConcurrentDictionary<ThrottledStream, byte> _activeDownloadStreams;
     private readonly Lock _queueLock = new();
+    private readonly SemaphoreSlim _decompressGate;
     private SemaphoreSlim? _downloadQueueSemaphore;
     private int _downloadQueueCapacity = -1;
 
@@ -45,20 +47,21 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
         FileCacheManager fileCacheManager, FileCompactor fileCompactor, MareConfigService mareConfigService,
         FileDownloadDeduplicator deduplicator) : base(logger, mediator)
     {
-        _downloadStatus = new Dictionary<string, FileDownloadStatus>(StringComparer.Ordinal);
+        _downloadStatus = new ConcurrentDictionary<string, FileDownloadStatus>(StringComparer.Ordinal);
         _orchestrator = orchestrator;
         _fileDbManager = fileCacheManager;
         _fileCompactor = fileCompactor;
         _mareConfigService = mareConfigService;
         _deduplicator = deduplicator;
-        _activeDownloadStreams = [];
+        _activeDownloadStreams = new();
+        _decompressGate = new SemaphoreSlim(CalculateDecompressionLimit(mareConfigService.Current.ParallelDownloads));
 
-        Mediator.Subscribe<DownloadLimitChangedMessage>(this, (msg) =>
+        Mediator.Subscribe<DownloadLimitChangedMessage>(this, _ =>
         {
-            if (!_activeDownloadStreams.Any()) return;
+            if (_activeDownloadStreams.IsEmpty) return;
             var newLimit = _orchestrator.DownloadLimitPerSlot();
             Logger.LogTrace("Setting new Download Speed Limit to {newLimit}", newLimit);
-            foreach (var stream in _activeDownloadStreams)
+            foreach (var stream in _activeDownloadStreams.Keys)
             {
                 stream.BandwidthLimit = newLimit;
             }
@@ -126,7 +129,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
     protected override void Dispose(bool disposing)
     {
         ClearDownload();
-        foreach (var stream in _activeDownloadStreams.ToList())
+        foreach (var stream in _activeDownloadStreams.Keys.ToList())
         {
             try
             {
@@ -135,9 +138,9 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
             catch
             {
                 // do nothing
-                //
             }
         }
+        _activeDownloadStreams.Clear();
         base.Dispose(disposing);
     }
 
@@ -202,7 +205,8 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
 
         await WaitForDownloadReady(fileTransfer, requestId, effectiveBaseUri, ct).ConfigureAwait(false);
 
-        _downloadStatus[downloadGroup].DownloadStatus = DownloadStatus.Downloading;
+        if (_downloadStatus.TryGetValue(downloadGroup, out var dlStatus))
+            dlStatus.DownloadStatus = DownloadStatus.Downloading;
 
         HttpResponseMessage response = null!;
         var requestUrl = MareFiles.CacheGetFullPath(effectiveBaseUri, requestId);
@@ -235,7 +239,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
                 var limit = _orchestrator.DownloadLimitPerSlot();
                 Logger.LogTrace("Starting Download of {id} with a speed limit of {limit} to {tempPath}", requestId, limit, tempPath);
                 stream = new ThrottledStream(await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false), limit);
-                _activeDownloadStreams.Add(stream);
+                _activeDownloadStreams.TryAdd(stream, 0);
                 while ((bytesRead = await stream.ReadAsync(buffer, ct).ConfigureAwait(false)) > 0)
                 {
                     ct.ThrowIfCancellationRequested();
@@ -269,98 +273,26 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
         {
             if (stream != null)
             {
-                _activeDownloadStreams.Remove(stream);
+                _activeDownloadStreams.TryRemove(stream, out _);
                 await stream.DisposeAsync().ConfigureAwait(false);
             }
         }
     }
 
-#pragma warning disable S1144 // Unused private method kept for future use
-    private async Task<bool> DownloadFileDirectAsync(DownloadFileTransfer file, string destPath, IProgress<long> progress, CancellationToken ct)
-#pragma warning restore S1144
+    // --- CDN Direct Download: Phase 1 (download compressed to .lz4tmp) ---
+
+    private async Task<bool> DownloadDirectToLz4TmpAsync(DownloadFileTransfer file, string lz4TmpPath, IProgress<long> progress, CancellationToken ct)
     {
         if (!file.HasDirectDownload || file.DirectDownloadUri == null)
             return false;
 
         var url = file.DirectDownloadUri.ToString();
-        Logger.LogDebug("Direct CDN download: {hash} from {url}", file.Hash, url);
+        Logger.LogDebug("Direct CDN download (compressed): {hash} from {url}", file.Hash, url);
 
-        try
+        if (File.Exists(lz4TmpPath))
         {
-            var response = await _orchestrator.SendRequestAsync(HttpMethod.Get, new Uri(url), ct, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
-
-            if (response.StatusCode == HttpStatusCode.NotFound)
-            {
-                Logger.LogDebug("Direct CDN download 404 for {hash}, will fallback", file.Hash);
-                return false;
-            }
-
-            response.EnsureSuccessStatusCode();
-
-            ThrottledStream? stream = null;
-            try
-            {
-                using var fileStream = File.Create(destPath);
-                var bufferSize = response.Content.Headers.ContentLength > 1024 * 1024 ? 65536 : 8196;
-                var buffer = new byte[bufferSize];
-
-                var limit = _orchestrator.DownloadLimitPerSlot();
-                stream = new ThrottledStream(await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false), limit);
-                _activeDownloadStreams.Add(stream);
-
-                int bytesRead;
-                while ((bytesRead = await stream.ReadAsync(buffer, ct).ConfigureAwait(false)) > 0)
-                {
-                    ct.ThrowIfCancellationRequested();
-                    await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), ct).ConfigureAwait(false);
-                    progress.Report(bytesRead);
-                }
-
-                Logger.LogDebug("Direct CDN download complete: {hash}", file.Hash);
-                return true;
-            }
-            finally
-            {
-                if (stream != null)
-                {
-                    _activeDownloadStreams.Remove(stream);
-                    await stream.DisposeAsync().ConfigureAwait(false);
-                }
-            }
-        }
-        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
-        {
-            Logger.LogDebug("Direct CDN download 404 for {hash}, will fallback", file.Hash);
-            return false;
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            Logger.LogWarning(ex, "Direct CDN download failed for {hash}, will fallback", file.Hash);
-            if (File.Exists(destPath)) File.Delete(destPath);
-            return false;
-        }
-    }
-
-    private async Task<bool> DownloadAndDecompressDirectAsync(DownloadFileTransfer file, string tmpPath, string destPath, IProgress<long> progress, CancellationToken ct)
-    {
-        if (!file.HasDirectDownload || file.DirectDownloadUri == null)
-            return false;
-
-        var url = file.DirectDownloadUri.ToString();
-        Logger.LogDebug("Direct CDN download+decompress: {hash} from {url}", file.Hash, url);
-
-        // Clean up any existing .cdntmp file from a previous failed attempt
-        if (File.Exists(tmpPath))
-        {
-            try
-            {
-                File.Delete(tmpPath);
-                Logger.LogDebug("Deleted existing .cdntmp file before download: {path}", tmpPath);
-            }
-            catch (Exception ex)
-            {
-                Logger.LogWarning(ex, "Cannot delete existing .cdntmp file {path}, download may fail", tmpPath);
-            }
+            try { File.Delete(lz4TmpPath); }
+            catch (Exception ex) { Logger.LogWarning(ex, "Cannot delete existing .lz4tmp file {path}", lz4TmpPath); }
         }
 
         try
@@ -380,58 +312,28 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
             {
                 var limit = _orchestrator.DownloadLimitPerSlot();
                 throttledStream = new ThrottledStream(await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false), limit);
-                _activeDownloadStreams.Add(throttledStream);
+                _activeDownloadStreams.TryAdd(throttledStream, 0);
 
-                byte[] calculatedHashBytes;
-                using (var hashingStream = new HashingStream(
-                    new FileStream(tmpPath, FileMode.Create, FileAccess.Write, FileShare.None),
-                    SHA1.Create()))
+                var bufferSize = response.Content.Headers.ContentLength > 1024 * 1024 ? 65536 : 8196;
+                var buffer = new byte[bufferSize];
+
+                using var fileStream = new FileStream(lz4TmpPath, FileMode.Create, FileAccess.Write, FileShare.None);
+                int bytesRead;
+                while ((bytesRead = await throttledStream.ReadAsync(buffer, ct).ConfigureAwait(false)) > 0)
                 {
-                    using var lz4Decoder = LZ4Stream.Decode(throttledStream, leaveOpen: true);
-
-                    var buffer = new byte[65536];
-                    int bytesRead;
-                    long totalBytesWritten = 0;
-                    while ((bytesRead = await lz4Decoder.ReadAsync(buffer, ct).ConfigureAwait(false)) > 0)
-                    {
-                        ct.ThrowIfCancellationRequested();
-                        await hashingStream.WriteAsync(buffer.AsMemory(0, bytesRead), ct).ConfigureAwait(false);
-                        progress.Report(bytesRead);
-                        totalBytesWritten += bytesRead;
-                    }
-
-                    Logger.LogDebug("CDN download finished for {hash}, wrote {bytes} bytes, computing hash", file.Hash, totalBytesWritten);
-                    calculatedHashBytes = hashingStream.Finish();
-                }
-                // FileStream is now closed, safe to rename
-
-                var calculatedHash = BitConverter.ToString(calculatedHashBytes).Replace("-", "", StringComparison.Ordinal);
-                if (!string.Equals(calculatedHash, file.Hash, StringComparison.OrdinalIgnoreCase))
-                {
-                    Logger.LogWarning("CDN hash mismatch for {hash}: got {calculated}", file.Hash, calculatedHash);
-                    if (File.Exists(tmpPath)) File.Delete(tmpPath);
-                    return false;
+                    ct.ThrowIfCancellationRequested();
+                    await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), ct).ConfigureAwait(false);
+                    progress.Report(bytesRead);
                 }
 
-                Logger.LogDebug("CDN hash verified for {hash}, renaming to final destination", file.Hash);
-                _fileCompactor.RenameAndCompact(destPath, tmpPath);
-
-                // Verify the destination file exists after RenameAndCompact
-                if (!File.Exists(destPath))
-                {
-                    Logger.LogWarning("RenameAndCompact did not create destination file for {hash}, cleaning up", file.Hash);
-                    if (File.Exists(tmpPath)) File.Delete(tmpPath);
-                    return false;
-                }
-
-                Logger.LogDebug("Direct CDN download+decompress complete: {hash}", file.Hash);
+                Logger.LogDebug("CDN download (compressed) finished for {hash}", file.Hash);
                 return true;
             }
             finally
             {
                 if (throttledStream != null)
                 {
-                    _activeDownloadStreams.Remove(throttledStream);
+                    _activeDownloadStreams.TryRemove(throttledStream, out _);
                     await throttledStream.DisposeAsync().ConfigureAwait(false);
                 }
             }
@@ -444,10 +346,119 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             Logger.LogWarning(ex, "Direct CDN download failed for {hash}, will fallback", file.Hash);
-            if (File.Exists(tmpPath)) File.Delete(tmpPath);
+            if (File.Exists(lz4TmpPath)) try { File.Delete(lz4TmpPath); } catch { /* best-effort cleanup */ }
             return false;
         }
     }
+
+    // --- CDN Direct Download: Phase 2 (decompress + hash verify + persist) ---
+
+    private bool DecompressAndVerifyLz4(DownloadFileTransfer file, string lz4TmpPath, string cdnTmpPath, string destPath)
+    {
+        Logger.LogDebug("Decompressing CDN file: {hash}", file.Hash);
+
+        try
+        {
+            byte[] calculatedHashBytes;
+
+            using (var hashingStream = new HashingStream(
+                new FileStream(cdnTmpPath, FileMode.Create, FileAccess.Write, FileShare.None),
+                SHA1.Create()))
+            {
+                using var lz4Input = new FileStream(lz4TmpPath, FileMode.Open, FileAccess.Read, FileShare.Read, 65536);
+                using var lz4Decoder = LZ4Stream.Decode(lz4Input, leaveOpen: true);
+
+                var buffer = new byte[65536];
+                int bytesRead;
+                long totalBytesWritten = 0;
+                while ((bytesRead = lz4Decoder.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    hashingStream.Write(buffer, 0, bytesRead);
+                    totalBytesWritten += bytesRead;
+                }
+
+                Logger.LogDebug("LZ4 decompression finished for {hash}, wrote {bytes} bytes", file.Hash, totalBytesWritten);
+                calculatedHashBytes = hashingStream.Finish();
+            }
+
+            var calculatedHash = BitConverter.ToString(calculatedHashBytes).Replace("-", "", StringComparison.Ordinal);
+            if (!string.Equals(calculatedHash, file.Hash, StringComparison.OrdinalIgnoreCase))
+            {
+                Logger.LogWarning("CDN hash mismatch for {hash}: got {calculated}", file.Hash, calculatedHash);
+                if (File.Exists(cdnTmpPath)) File.Delete(cdnTmpPath);
+                return false;
+            }
+
+            Logger.LogDebug("CDN hash verified for {hash}, renaming to final destination", file.Hash);
+            _fileCompactor.RenameAndCompact(destPath, cdnTmpPath);
+
+            if (!File.Exists(destPath))
+            {
+                Logger.LogWarning("RenameAndCompact did not create destination file for {hash}", file.Hash);
+                return false;
+            }
+
+            PersistFileToStorage(file.Hash, destPath, file.Total);
+            Logger.LogDebug("Direct CDN decompress+persist complete: {hash}", file.Hash);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Decompression failed for {hash}", file.Hash);
+            if (File.Exists(cdnTmpPath)) try { File.Delete(cdnTmpPath); } catch { /* best-effort cleanup */ }
+            return false;
+        }
+        finally
+        {
+            if (File.Exists(lz4TmpPath)) try { File.Delete(lz4TmpPath); } catch { /* best-effort cleanup */ }
+        }
+    }
+
+    // --- Decompression helpers ---
+
+    private static int CalculateDecompressionLimit(int downloadSlots)
+    {
+        var cpuBound = Math.Max(1, Math.Min(Environment.ProcessorCount, 4));
+        return Math.Clamp(downloadSlots, 1, cpuBound);
+    }
+
+    private static void EnqueueLimitedTask(ConcurrentBag<Task> tasks, SemaphoreSlim limiter, Func<CancellationToken, Task> work, CancellationToken ct)
+    {
+        var task = Task.Run(async () =>
+        {
+            await limiter.WaitAsync(ct).ConfigureAwait(false);
+            try
+            {
+                await work(ct).ConfigureAwait(false);
+            }
+            finally
+            {
+                limiter.Release();
+            }
+        }, ct);
+
+        tasks.Add(task);
+    }
+
+    private static async Task WaitForAllTasksAsync(ConcurrentBag<Task> tasks)
+    {
+        while (true)
+        {
+            var snapshot = tasks.ToArray();
+            if (snapshot.Length == 0) return;
+            try
+            {
+                await Task.WhenAll(snapshot).ConfigureAwait(false);
+            }
+            catch
+            {
+                // Individual task exceptions are handled inside each task
+            }
+            if (tasks.Count <= snapshot.Length) return;
+        }
+    }
+
+    // --- Main download orchestration ---
 
     public async Task<List<DownloadFileTransfer>> InitiateDownloadList(GameObjectHandler gameObjectHandler, List<FileReplacementData> fileReplacement, CancellationToken ct)
     {
@@ -477,22 +488,20 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
     private async Task DownloadFilesInternal(GameObjectHandler gameObjectHandler, List<FileReplacementData> fileReplacement, CancellationToken ct)
     {
         var directDownloads = CurrentDownloads.Where(f => f.HasDirectDownload).ToList();
-        var fallbackFiles = new List<DownloadFileTransfer>();
-
-        // Track hashes that go to fallback - they should NOT be completed until fallback finishes
-        // This is defined at method level so it can be cleaned up at the end if fallback fails
-        var pendingFallbackHashes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        Lock pendingFallbackLock = new();
+        var fallbackFiles = new ConcurrentBag<DownloadFileTransfer>();
+        var pendingFallbackHashes = new ConcurrentDictionary<string, byte>(StringComparer.OrdinalIgnoreCase);
+        var decompressionTasks = new ConcurrentBag<Task>();
 
         // Circuit breaker: skip direct downloads if too many consecutive failures
         if (_disableDirectDownloads && directDownloads.Count > 0)
         {
             Logger.LogWarning("Direct CDN downloads disabled due to {failures} consecutive failures, using fallback for all {count} files",
                 _consecutiveDirectDownloadFailures, directDownloads.Count);
-            fallbackFiles.AddRange(directDownloads);
+            foreach (var d in directDownloads) fallbackFiles.Add(d);
             directDownloads.Clear();
         }
 
+        // Phase 1: CDN direct downloads (download only — decompression is enqueued separately)
         if (directDownloads.Count > 0)
         {
             Logger.LogInformation("Attempting direct CDN download for {count} files", directDownloads.Count);
@@ -509,11 +518,12 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
 
             Mediator.Publish(new DownloadStartedMessage(gameObjectHandler, _downloadStatus));
 
-            var parallelism = Math.Clamp(_mareConfigService.Current.ParallelDownloads, 1, 10);
+            var slots = Math.Clamp(_mareConfigService.Current.ParallelDownloads, 1, 10);
+            var workerDop = Math.Clamp(slots * 2, 2, 16);
 
             await Parallel.ForEachAsync(directDownloads, new ParallelOptions
             {
-                MaxDegreeOfParallelism = parallelism,
+                MaxDegreeOfParallelism = workerDop,
                 CancellationToken = ct
             }, async (file, token) =>
             {
@@ -525,11 +535,11 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
                     if (ownerSuccess)
                     {
                         if (_downloadStatus.TryGetValue(cdnKey, out var status))
-                            status.TransferredFiles++;
+                            status.TransferredFiles = status.TransferredFiles + 1;
                     }
                     else
                     {
-                        lock (fallbackFiles) { fallbackFiles.Add(file); }
+                        fallbackFiles.Add(file);
                     }
                     return;
                 }
@@ -537,29 +547,43 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
                 var fileData = fileReplacement.FirstOrDefault(f => string.Equals(f.Hash, file.Hash, StringComparison.OrdinalIgnoreCase));
                 var fileExtension = fileData?.GamePaths[0].Split(".")[^1] ?? "tmp";
                 var filePath = _fileDbManager.GetCacheFilePath(file.Hash, fileExtension);
-                var tmpPath = filePath + ".cdntmp";
+                var lz4TmpPath = filePath + ".lz4tmp";
+                var cdnTmpPath = filePath + ".cdntmp";
 
                 Progress<long> progress = new(bytes =>
                 {
                     if (_downloadStatus.TryGetValue(cdnKey, out var status))
-                        status.TransferredBytes += bytes;
+                        status.AddTransferredBytes(bytes);
                 });
 
-                var success = false;
+                var downloadSuccess = false;
                 var goesToFallback = false;
                 try
                 {
-                    success = await DownloadAndDecompressDirectAsync(file, tmpPath, filePath, progress, token).ConfigureAwait(false);
+                    downloadSuccess = await DownloadDirectToLz4TmpAsync(file, lz4TmpPath, progress, token).ConfigureAwait(false);
 
-                    if (success)
+                    if (downloadSuccess)
                     {
                         // Reset circuit breaker on success
                         Interlocked.Exchange(ref _consecutiveDirectDownloadFailures, 0);
                         _disableDirectDownloads = false;
 
-                        PersistFileToStorage(file.Hash, filePath, file.Total);
-                        if (_downloadStatus.TryGetValue(cdnKey, out var status))
-                            status.TransferredFiles++;
+                        // Enqueue decompression — worker is now FREE for next download
+                        EnqueueLimitedTask(decompressionTasks, _decompressGate, _ =>
+                        {
+                            var success = false;
+                            try
+                            {
+                                success = DecompressAndVerifyLz4(file, lz4TmpPath, cdnTmpPath, filePath);
+                                if (success && _downloadStatus.TryGetValue(cdnKey, out var st))
+                                    st.TransferredFiles = st.TransferredFiles + 1;
+                            }
+                            finally
+                            {
+                                _deduplicator.Complete(file.Hash, success);
+                            }
+                            return Task.CompletedTask;
+                        }, token);
                     }
                     else
                     {
@@ -571,31 +595,42 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
                             Logger.LogWarning("Direct CDN downloads disabled after {count} consecutive failures", failures);
                         }
 
-                        // Mark as going to fallback - DO NOT complete the deduplicator yet
                         goesToFallback = true;
-                        using (pendingFallbackLock.EnterScope()) { pendingFallbackHashes.Add(file.Hash); }
-                        lock (fallbackFiles) { fallbackFiles.Add(file); }
+                        pendingFallbackHashes.TryAdd(file.Hash, 0);
+                        fallbackFiles.Add(file);
                     }
                 }
                 finally
                 {
-                    // Only complete if NOT going to fallback - fallback will complete it later
-                    if (!goesToFallback)
+                    // Complete deduplicator only if download failed (not going to decompression or fallback)
+                    if (!downloadSuccess && !goesToFallback)
                     {
-                        _deduplicator.Complete(file.Hash, success);
+                        _deduplicator.Complete(file.Hash, false);
                     }
                 }
             }).ConfigureAwait(false);
 
-            _downloadStatus.Remove(cdnKey, out _);
+            _downloadStatus.TryRemove(cdnKey, out _);
 
-            if (fallbackFiles.Count > 0)
+            if (!fallbackFiles.IsEmpty)
                 Logger.LogInformation("CDN fallback needed for {count} files", fallbackFiles.Count);
         }
 
+        // Phase 2: Batch downloads (non-CDN + fallback from CDN failures)
         var queueFiles = CurrentDownloads.Where(f => !f.HasDirectDownload).Concat(fallbackFiles).ToList();
         if (queueFiles.Count == 0)
         {
+            // Wait for any pending decompression before returning
+            await WaitForAllTasksAsync(decompressionTasks).ConfigureAwait(false);
+
+            // Clean up pending fallback hashes
+            if (!pendingFallbackHashes.IsEmpty)
+            {
+                Logger.LogWarning("Completing {count} unprocessed fallback hashes with failure", pendingFallbackHashes.Count);
+                foreach (var hash in pendingFallbackHashes.Keys)
+                    _deduplicator.Complete(hash, false);
+            }
+
             ClearDownload();
             return;
         }
@@ -689,15 +724,17 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
             FileInfo fi = new(blockFile);
             try
             {
-                _downloadStatus[fileGroup.Key].DownloadStatus = DownloadStatus.WaitingForSlot;
+                if (_downloadStatus.TryGetValue(fileGroup.Key, out var slotStatus))
+                    slotStatus.DownloadStatus = DownloadStatus.WaitingForSlot;
                 await _orchestrator.WaitForDownloadSlotAsync(token).ConfigureAwait(false);
-                _downloadStatus[fileGroup.Key].DownloadStatus = DownloadStatus.WaitingForQueue;
+                if (_downloadStatus.TryGetValue(fileGroup.Key, out slotStatus))
+                    slotStatus.DownloadStatus = DownloadStatus.WaitingForQueue;
                 Progress<long> progress = new((bytesDownloaded) =>
                 {
                     try
                     {
                         if (!_downloadStatus.TryGetValue(fileGroup.Key, out FileDownloadStatus? value)) return;
-                        value.TransferredBytes += bytesDownloaded;
+                        value.AddTransferredBytes(bytesDownloaded);
                         if (value.TransferredBytes > value.TotalBytes)
                         {
                             value.TotalBytes = value.TransferredBytes;
@@ -739,7 +776,6 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
             }
 
             FileStream? fileBlockStream = null;
-            var threadCount = Math.Clamp((int)(Environment.ProcessorCount / 2.0f), 2, 8);
             var tasks = new List<Task>();
             try
             {
@@ -755,77 +791,85 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
                     var chunkPosition = fileBlockStream.Position;
                     fileBlockStream.Position += fileLengthBytes;
 
-                    while (tasks.Count > threadCount && tasks.Count(t => !t.IsCompleted) > 4)
-                        await Task.Delay(10, CancellationToken.None).ConfigureAwait(false);
-
                     var fileExtension = fileReplacement.First(f => string.Equals(f.Hash, fileHash, StringComparison.OrdinalIgnoreCase)).GamePaths[0].Split(".")[^1];
                     var tmpPath = _fileDbManager.GetCacheFilePath(Guid.NewGuid().ToString(), "tmp");
                     var filePath = _fileDbManager.GetCacheFilePath(fileHash, fileExtension);
 
                     Logger.LogDebug("{dlName}: Decompressing {file}:{le} => {dest}", fi.Name, fileHash, fileLengthBytes, filePath);
 
-                    tasks.Add(Task.Run(() =>
+                    // Enqueue via decompression gate to bound CPU usage
+                    var capturedHash = fileHash;
+                    var capturedLength = fileLengthBytes;
+                    var capturedChunkPos = chunkPosition;
+                    var capturedTmpPath = tmpPath;
+                    var capturedFilePath = filePath;
+                    var capturedBlockFile = blockFile;
+
+                    tasks.Add(Task.Run(async () =>
                     {
+                        await _decompressGate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
                         var hashSuccess = false;
                         try
                         {
-                            using var tmpFileStream = new HashingStream(new FileStream(tmpPath, new FileStreamOptions()
+                            using var tmpFileStream = new HashingStream(new FileStream(capturedTmpPath, new FileStreamOptions()
                             {
                                 Mode = FileMode.CreateNew,
                                 Access = FileAccess.Write,
                                 Share = FileShare.None
                             }), SHA1.Create());
 
-                            using var fileChunkStream = new FileStream(blockFile, new FileStreamOptions()
+                            using var fileChunkStream = new FileStream(capturedBlockFile, new FileStreamOptions()
                             {
                                 BufferSize = 80000,
                                 Mode = FileMode.Open,
                                 Access = FileAccess.Read
                             });
-                            fileChunkStream.Position = chunkPosition;
+                            fileChunkStream.Position = capturedChunkPos;
 
-                            using var innerFileStream = new LimitedStream(fileChunkStream, fileLengthBytes);
+                            using var innerFileStream = new LimitedStream(fileChunkStream, capturedLength);
                             using var decoder = LZ4Frame.Decode(innerFileStream);
                             long startPos = fileChunkStream.Position;
+#pragma warning disable S6966 // LZ4 decoder stream is synchronous, async would just wrap it
                             decoder.AsStream().CopyTo(tmpFileStream);
+#pragma warning restore S6966
                             long readBytes = fileChunkStream.Position - startPos;
 
-                            if (readBytes != fileLengthBytes)
+                            if (readBytes != capturedLength)
                             {
                                 throw new EndOfStreamException();
                             }
 
                             string calculatedHash = BitConverter.ToString(tmpFileStream.Finish()).Replace("-", "", StringComparison.Ordinal);
 
-                            if (!calculatedHash.Equals(fileHash, StringComparison.Ordinal))
+                            if (!calculatedHash.Equals(capturedHash, StringComparison.Ordinal))
                             {
-                                Logger.LogError("Hash mismatch after extracting, got {hash}, expected {expectedHash}, deleting file", calculatedHash, fileHash);
+                                Logger.LogError("Hash mismatch after extracting, got {hash}, expected {expectedHash}, deleting file", calculatedHash, capturedHash);
                                 return;
                             }
 
                             tmpFileStream.Close();
-                            _fileCompactor.RenameAndCompact(filePath, tmpPath);
-                            PersistFileToStorage(fileHash, filePath, fileLengthBytes);
+                            _fileCompactor.RenameAndCompact(capturedFilePath, capturedTmpPath);
+                            PersistFileToStorage(capturedHash, capturedFilePath, capturedLength);
                             hashSuccess = true;
                         }
                         catch (EndOfStreamException)
                         {
-                            Logger.LogWarning("{dlName}: Failure to extract file {fileHash}, stream ended prematurely", fi.Name, fileHash);
+                            Logger.LogWarning("{dlName}: Failure to extract file {fileHash}, stream ended prematurely", fi.Name, capturedHash);
                         }
                         catch (Exception e)
                         {
-                            Logger.LogWarning(e, "{dlName}: Error during decompression of {hash}", fi.Name, fileHash);
+                            Logger.LogWarning(e, "{dlName}: Error during decompression of {hash}", fi.Name, capturedHash);
 
                             foreach (var fr in fileReplacement)
                                 Logger.LogWarning(" - {h}: {x}", fr.Hash, fr.GamePaths[0]);
                         }
                         finally
                         {
-                            if (File.Exists(tmpPath))
-                                File.Delete(tmpPath);
-                            // Complete the deduplicator and remove from pending fallback hashes
-                            _deduplicator.Complete(fileHash, hashSuccess);
-                            using (pendingFallbackLock.EnterScope()) { pendingFallbackHashes.Remove(fileHash); }
+                            _decompressGate.Release();
+                            if (File.Exists(capturedTmpPath))
+                                File.Delete(capturedTmpPath);
+                            _deduplicator.Complete(capturedHash, hashSuccess);
+                            pendingFallbackHashes.TryRemove(capturedHash, out _);
                         }
                     }, CancellationToken.None));
                 }
@@ -850,20 +894,18 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
             }
         }).ConfigureAwait(false);
 
+        // Wait for all CDN decompression tasks to complete
+        await WaitForAllTasksAsync(decompressionTasks).ConfigureAwait(false);
+
         Logger.LogDebug("Download end: {id}", gameObjectHandler);
 
-        // Clean up any pending fallback hashes that were never processed (e.g., if block file download failed)
-        // This ensures other handlers waiting on these hashes don't stay blocked forever
-        using (pendingFallbackLock.EnterScope())
+        // Clean up any pending fallback hashes that were never processed
+        if (!pendingFallbackHashes.IsEmpty)
         {
-            if (pendingFallbackHashes.Count > 0)
+            Logger.LogWarning("Completing {count} unprocessed fallback hashes with failure", pendingFallbackHashes.Count);
+            foreach (var hash in pendingFallbackHashes.Keys)
             {
-                Logger.LogWarning("Completing {count} unprocessed fallback hashes with failure", pendingFallbackHashes.Count);
-                foreach (var hash in pendingFallbackHashes)
-                {
-                    _deduplicator.Complete(hash, false);
-                }
-                pendingFallbackHashes.Clear();
+                _deduplicator.Complete(hash, false);
             }
         }
 

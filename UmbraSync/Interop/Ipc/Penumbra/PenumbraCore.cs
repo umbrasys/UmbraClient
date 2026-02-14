@@ -1,6 +1,7 @@
 using Dalamud.Plugin;
 using Microsoft.Extensions.Logging;
 using UmbraSync.MareConfiguration.Models;
+using UmbraSync.Localization;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.Notification;
@@ -80,6 +81,11 @@ public sealed class PenumbraCore : DisposableMediatorSubscriberBase, IPenumbraCo
         _pluginLoaded = msg.IsLoaded;
         _pluginVersion = msg.Version;
         CheckAPI();
+        if (msg.IsLoaded && !APIAvailable)
+        {
+            _shownPenumbraUnavailable = false;
+            _ = Task.Run(CheckAPIWithRetryAsync);
+        }
     }
 
     private void HandleDalamudLogin()
@@ -108,6 +114,15 @@ public sealed class PenumbraCore : DisposableMediatorSubscriberBase, IPenumbraCo
         }
 
         Logger.LogWarning("Penumbra API still not available after {maxRetries} attempts", maxRetries);
+        if (!APIAvailable && !_shownPenumbraUnavailable)
+        {
+            _shownPenumbraUnavailable = true;
+            Mediator.Publish(new NotificationMessage(
+                Loc.Get("Notification.PluginIntegration.PenumbraInactive.Title"),
+                Loc.Get("Notification.PluginIntegration.PenumbraInactive.Body"),
+                NotificationType.Error));
+            NotificationTracker.Upsert(NotificationEntry.PenumbraInactive());
+        }
     }
     
     public void CheckAPI()
@@ -133,14 +148,7 @@ public sealed class PenumbraCore : DisposableMediatorSubscriberBase, IPenumbraCo
         }
         finally
         {
-            if (!penumbraAvailable && !_shownPenumbraUnavailable)
-            {
-                _shownPenumbraUnavailable = true;
-                Mediator.Publish(new NotificationMessage("Penumbra inactive",
-                    "Your Penumbra installation is not active or out of date. Update Penumbra and/or the Enable Mods setting in Penumbra to continue to use Umbra. If you just updated Penumbra, ignore this message.",
-                    NotificationType.Error));
-                NotificationTracker.Upsert(NotificationEntry.PenumbraInactive());
-            }
+            // Notification is deferred to CheckAPIWithRetryAsync after all retries are exhausted
         }
     }
     

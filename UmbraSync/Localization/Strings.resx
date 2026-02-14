@@ -2382,6 +2382,51 @@ Click to change.</value>
   <data name="Settings.DownloadQueue.MaxWhenEnabled" xml:space="preserve">
     <value>Maximum number of character downloads allowed simultaneously when the queue is enabled.</value>
   </data>
+  <data name="Settings.RpNamesHeader" xml:space="preserve">
+    <value>RP Names</value>
+  </data>
+  <data name="Settings.RpNamesOnNameplates" xml:space="preserve">
+    <value>Display RP names on nameplates</value>
+  </data>
+  <data name="Settings.RpNamesInChat" xml:space="preserve">
+    <value>Display RP names in chat</value>
+  </data>
+  <data name="Settings.EmoteHighlight.Header" xml:space="preserve">
+    <value>Emote Highlighting</value>
+  </data>
+  <data name="Settings.EmoteHighlight.Enable" xml:space="preserve">
+    <value>Color emote text in chat</value>
+  </data>
+  <data name="Settings.EmoteHighlight.Enable.Help" xml:space="preserve">
+    <value>Highlights text enclosed in *...*, &lt;...&gt;, or [...] delimiters with a custom color in the chat window.</value>
+  </data>
+  <data name="Settings.EmoteHighlight.Asterisks" xml:space="preserve">
+    <value>Asterisks *...*</value>
+  </data>
+  <data name="Settings.EmoteHighlight.AngleBrackets" xml:space="preserve">
+    <value>Angle brackets &lt;...&gt;</value>
+  </data>
+  <data name="Settings.EmoteHighlight.SquareBrackets" xml:space="preserve">
+    <value>Square brackets [...]</value>
+  </data>
+  <data name="Settings.EmoteHighlight.ColorKey" xml:space="preserve">
+    <value>Highlight color</value>
+  </data>
+  <data name="Settings.EmoteHighlight.Parentheses" xml:space="preserve">
+    <value>Gray out OOC text (...)</value>
+  </data>
+  <data name="Settings.EmoteHighlight.Parentheses.Help" xml:space="preserve">
+    <value>Dims text enclosed in parentheses (...) which is commonly used for out-of-character (OOC) messages in RP.</value>
+  </data>
+  <data name="Settings.EmoteHighlight.Parentheses.Italic" xml:space="preserve">
+    <value>Display in italic</value>
+  </data>
+  <data name="Settings.EmoteHighlight.Parentheses.Italic.ChatTwoWarning" xml:space="preserve">
+    <value>Italic is not available when ChatTwo is active. ChatTwo renders italic as bold text.</value>
+  </data>
+  <data name="Settings.EmoteHighlight.HrpColorKey" xml:space="preserve">
+    <value>OOC color</value>
+  </data>
   <data name="Settings.Typing.BlockedNameColor" xml:space="preserve">
     <value>Blocked name color</value>
   </data>
@@ -3359,6 +3404,18 @@ Click to change.</value>
   <data name="Notification.System.ClientOutdated.Body" xml:space="preserve">
     <value>Your client ({0}) is outdated. Latest version: {1}. Please update Umbra.</value>
   </data>
+  <data name="Notification.Toast.ClientIncompatible.Title" xml:space="preserve">
+    <value>Client incompatible</value>
+  </data>
+  <data name="Notification.Toast.ClientIncompatible.Body" xml:space="preserve">
+    <value>Your client is outdated ({0}), current is: {1}. This client version is incompatible and will not be able to connect. Please update your Umbra client.</value>
+  </data>
+  <data name="Notification.Toast.ClientOutdated.Title" xml:space="preserve">
+    <value>Client outdated</value>
+  </data>
+  <data name="Notification.Toast.ClientOutdated.Body" xml:space="preserve">
+    <value>Your client is outdated ({0}), current is: {1}. Please keep your Umbra client up-to-date.</value>
+  </data>
   <data name="Notification.System.ServerError.Title" xml:space="preserve">
     <value>Server Error: {0}</value>
   </data>
@@ -3472,6 +3529,9 @@ Click to change.</value>
   </data>
   <data name="EditProfile.SaveErrorBody" xml:space="preserve">
     <value>An error occurred while saving your profile on the server.</value>
+  </data>
+  <data name="EditProfile.RpFirstNameMismatch" xml:space="preserve">
+    <value>The RP first name must contain your character's first name ({0}).</value>
   </data>
 
   <!-- Syncshell Cards -->
@@ -3595,6 +3655,15 @@ Click to change.</value>
   <data name="Settings.Ping.Keybind" xml:space="preserve">
     <value>Ping keybind</value>
   </data>
+  <data name="Settings.Ping.KeybindChange" xml:space="preserve">
+    <value>Change</value>
+  </data>
+  <data name="Settings.Ping.KeybindCapture" xml:space="preserve">
+    <value>Press a key...</value>
+  </data>
+  <data name="Settings.Ping.KeybindCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
   <data name="Settings.Ping.UiScale" xml:space="preserve">
     <value>Marker size</value>
   </data>
@@ -3699,5 +3768,14 @@ Click to change.</value>
   </data>
   <data name="AutoDetectUi.Syncshell.Table.Description" xml:space="preserve">
     <value>Description</value>
+  </data>
+  <data name="Notification.NearbyDetection.Title" xml:space="preserve">
+    <value>Nearby Detection</value>
+  </data>
+  <data name="Notification.NearbyDetection.Enabled" xml:space="preserve">
+    <value>AutoDetect enabled: you are now visible.</value>
+  </data>
+  <data name="Notification.NearbyDetection.Disabled" xml:space="preserve">
+    <value>AutoDetect disabled: you are not visible.</value>
   </data>
 </root>
