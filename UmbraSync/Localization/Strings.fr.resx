@@ -3379,11 +3379,20 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="UserProfile.RpAge" xml:space="preserve">
     <value>Âge</value>
   </data>
+  <data name="UserProfile.RpRace" xml:space="preserve">
+    <value>Race</value>
+  </data>
+  <data name="UserProfile.RpEthnicity" xml:space="preserve">
+    <value>Ethnie</value>
+  </data>
   <data name="UserProfile.RpHeight" xml:space="preserve">
     <value>Taille</value>
   </data>
   <data name="UserProfile.RpBuild" xml:space="preserve">
     <value>Corpulence</value>
+  </data>
+  <data name="UserProfile.RpResidence" xml:space="preserve">
+    <value>Lieu de vie</value>
   </data>
   <data name="UserProfile.RpOccupation" xml:space="preserve">
     <value>Occupation</value>

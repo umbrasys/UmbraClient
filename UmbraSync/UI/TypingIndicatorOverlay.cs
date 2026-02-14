@@ -189,9 +189,13 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
             && (now - selfLast) <= TypingDisplayFade)
         {
             var selfId = GetEntityId(_objectTable.LocalPlayer.Address);
-            if (selfId != 0)
+            if (selfId != 0 && !TryDrawNameplateBubble(drawList, iconWrap, selfId))
             {
-                TryDrawNameplateBubble(drawList, iconWrap, selfId);
+                var selfWorldPos = _objectTable.LocalPlayer.Position;
+                if (HasLineOfSightFromCamera(selfWorldPos))
+                {
+                    DrawWorldFallbackIcon(drawList, iconWrap, selfWorldPos);
+                }
             }
         }
 

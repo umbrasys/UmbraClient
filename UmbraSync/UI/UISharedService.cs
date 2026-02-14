@@ -22,6 +22,7 @@ using UmbraSync.MareConfiguration.Models;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
+using UmbraSync.Models;
 using UmbraSync.Services.ServerConfiguration;
 
 namespace UmbraSync.UI;
@@ -37,9 +38,34 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
     public const float ContentFontScale = 0.92f;
 
-    public static Vector4 AccentColor { get; set; } = ImGuiColors.DalamudViolet;
-    public static Vector4 AccentHoverColor { get; set; } = new Vector4(0x3A / 255f, 0x15 / 255f, 0x50 / 255f, 1f);
+    public static Vector4 AccentColor { get; set; } = new Vector4(0x96 / 255f, 0x45 / 255f, 0xE6 / 255f, 1f);
+    public static Vector4 AccentHoverColor { get; set; } = new Vector4(0x38 / 255f, 0x29 / 255f, 0x52 / 255f, 1f);
     public static Vector4 AccentActiveColor { get; set; } = AccentHoverColor;
+
+    // --- Thème UmbraSync "Royal Smoke" — #6A0DAD accent, #1C1C1C fond, chrome désaturé ---
+    public static readonly Vector4 ThemeWindowBg      = new(0.11f, 0.11f, 0.11f, 1f);
+    public static readonly Vector4 ThemeChildBg        = new(0f, 0f, 0f, 0f);
+    public static readonly Vector4 ThemeBorder         = new(0x38 / 255f, 0x29 / 255f, 0x52 / 255f, 1f);
+    public static readonly Vector4 ThemeTitleBar       = new(0x2A / 255f, 0x1F / 255f, 0x3D / 255f, 1f);
+    public static readonly Vector4 ThemeSeparator      = new(0x38 / 255f, 0x29 / 255f, 0x52 / 255f, 0.60f);
+    public static readonly Vector4 ThemeFrameBg        = new(0.16f, 0.15f, 0.18f, 1f);
+    public static readonly Vector4 ThemeFrameBgHovered = new(0x38 / 255f, 0x29 / 255f, 0x52 / 255f, 0.7f);
+    public static readonly Vector4 ThemeFrameBgActive  = new(0x4A / 255f, 0x36 / 255f, 0x68 / 255f, 1f);
+    public static readonly Vector4 ThemeButtonBg       = new(0x2A / 255f, 0x1F / 255f, 0x3D / 255f, 1f);
+    public static readonly Vector4 ThemeButtonHovered   = new(0x38 / 255f, 0x29 / 255f, 0x52 / 255f, 1f);
+    public static readonly Vector4 ThemeButtonActive    = new(0x4A / 255f, 0x36 / 255f, 0x68 / 255f, 1f);
+    public static readonly Vector4 ThemeHeaderBg       = new(0x1C / 255f, 0x1C / 255f, 0x1C / 255f, 1f);
+    public static readonly Vector4 ThemeHeaderHovered   = new(0x38 / 255f, 0x29 / 255f, 0x52 / 255f, 0.7f);
+    public static readonly Vector4 ThemeHeaderActive    = new(0x4A / 255f, 0x36 / 255f, 0x68 / 255f, 1f);
+    public static readonly Vector4 ThemeScrollbarBg    = new(0.08f, 0.08f, 0.08f, 0.50f);
+    public static readonly Vector4 ThemeScrollbarGrab  = new(0x38 / 255f, 0x29 / 255f, 0x52 / 255f, 1f);
+    public static readonly Vector4 ThemeScrollbarHover = new(0x4A / 255f, 0x36 / 255f, 0x68 / 255f, 1f);
+    public static readonly Vector4 ThemeScrollbarActive = new(0x5E / 255f, 0x45 / 255f, 0x80 / 255f, 1f);
+    public static readonly Vector4 ThemeTabNormal      = new(0x1C / 255f, 0x1C / 255f, 0x1C / 255f, 0.90f);
+    public static readonly Vector4 ThemeTabHovered     = new(0x38 / 255f, 0x29 / 255f, 0x52 / 255f, 1f);
+    public static readonly Vector4 ThemeTabActive      = new(0x4A / 255f, 0x36 / 255f, 0x68 / 255f, 1f);
+    public const int ThemeColorCount = 23;
+    public const int ThemeStyleVarCount = 2;
 
     public readonly FileDialogManager FileDialogManager;
 
@@ -177,6 +203,70 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         }
     }
 
+    public void DrawMoodlesAtAGlance(string? moodlesJson, float iconHeight = 24f)
+    {
+        var moodles = MoodleStatusInfo.ParseMoodles(moodlesJson);
+        if (moodles.Count == 0) return;
+
+        var availableWidth = ImGui.GetContentRegionAvail().X;
+        var spacing = ImGui.GetStyle().ItemSpacing.X;
+        var scaledHeight = iconHeight * ImGuiHelpers.GlobalScale;
+
+        // Pre-load wraps and calculate display sizes respecting aspect ratio
+        var items = new List<(MoodleStatusInfo moodle, ImTextureID handle, Vector2 size)>();
+        float totalWidth = 0f;
+        foreach (var moodle in moodles)
+        {
+            if (moodle.IconID <= 0) continue;
+            var wrap = _textureProvider.GetFromGameIcon(new Dalamud.Interface.Textures.GameIconLookup((uint)moodle.IconID)).GetWrapOrEmpty();
+            if (wrap.Handle == IntPtr.Zero) continue;
+            var aspect = wrap.Height > 0 ? (float)wrap.Width / wrap.Height : 1f;
+            var displaySize = new Vector2(scaledHeight * aspect, scaledHeight);
+            items.Add((moodle, wrap.Handle, displaySize));
+            totalWidth += displaySize.X;
+        }
+        if (items.Count == 0) return;
+
+        totalWidth += (items.Count - 1) * spacing;
+        var baseX = ImGui.GetCursorPosX();
+        var startX = baseX + (availableWidth - totalWidth) / 2f;
+        if (startX < baseX) startX = baseX;
+
+        ImGui.SetCursorPosX(startX);
+
+        for (int i = 0; i < items.Count; i++)
+        {
+            var (moodle, handle, size) = items[i];
+
+            if (i > 0)
+                ImGui.SameLine();
+
+            ImGui.Image(handle, size);
+
+            if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+            {
+                ImGui.BeginTooltip();
+                ImGui.PushTextWrapPos(ImGui.GetFontSize() * 20f);
+                var title = moodle.CleanTitle;
+                if (!string.IsNullOrEmpty(title))
+                {
+                    var typeColor = moodle.Type switch
+                    {
+                        0 => new Vector4(0.4f, 0.9f, 0.4f, 1f),
+                        1 => new Vector4(0.9f, 0.4f, 0.4f, 1f),
+                        _ => new Vector4(0.5f, 0.6f, 1f, 1f),
+                    };
+                    ImGui.TextColored(typeColor, title);
+                }
+                var desc = moodle.CleanDescription;
+                if (!string.IsNullOrEmpty(desc))
+                    ImGui.TextUnformatted(desc);
+                ImGui.PopTextWrapPos();
+                ImGui.EndTooltip();
+            }
+        }
+    }
+
     public static string ByteToString(long bytes, bool addSuffix = true)
     {
         _ = addSuffix;
@@ -288,8 +378,8 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         var pad = padding ?? new Vector2(
             padBase.X + 4f * ImGuiHelpers.GlobalScale,
             padBase.Y + 3f * ImGuiHelpers.GlobalScale);
-        var cardBg = background ?? new Vector4(0.08f, 0.08f, 0.10f, 0.94f);
-        var cardBorder = border ?? new Vector4(0f, 0f, 0f, 0.85f);
+        var cardBg = background ?? new Vector4(0x1C / 255f, 0x1C / 255f, 0x1C / 255f, 1f);
+        var cardBorder = border ?? new Vector4(0x4A / 255f, 0x36 / 255f, 0x68 / 255f, 0.70f);
         float cardRounding = rounding ?? Math.Max(style.FrameRounding, 8f * ImGuiHelpers.GlobalScale);
         float borderThickness = Math.Max(1f, Math.Max(style.FrameBorderSize, 1f) * ImGuiHelpers.GlobalScale);
         float borderInset = borderThickness;

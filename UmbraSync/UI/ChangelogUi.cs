@@ -171,6 +171,15 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
     {
         return new List<ChangelogEntry>
         {
+            new(new Version(2, 2, 2, 0), "2.2.2.0", new List<ChangelogLine>
+            {
+                new("Amélioration : Modification de divers aspect de l'interface."),
+                new("Amélioration : Ajout de catégorie et des informations Moodles dans le profil RP."),
+                new("Correctif : La notification de connexion n'apparait plus au démarrage."),
+                new("Correctif : Dans certains cas, la bulle d'écriture ne s'affichait plus."),
+                new("Correctif : Dans certains cas, le téléchargement de mod s'annulait."),
+                new("Mise à jour SDK Dalamud."),
+            }),
             new(new Version(2, 2, 1, 0), "2.2.1.0", new List<ChangelogLine>
             {
                 new("Nouvelle fonctionnalité : Possibilité de personnaliser l'identité de son personnage via le profil RP."),

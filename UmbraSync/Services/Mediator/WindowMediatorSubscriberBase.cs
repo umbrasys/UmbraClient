@@ -1,5 +1,7 @@
-﻿using Dalamud.Interface.Windowing;
+﻿using Dalamud.Bindings.ImGui;
+using Dalamud.Interface.Windowing;
 using Microsoft.Extensions.Logging;
+using UmbraSync.UI;
 
 namespace UmbraSync.Services.Mediator;
 
@@ -31,6 +33,41 @@ public abstract class WindowMediatorSubscriberBase : Window, IMediatorSubscriber
     {
         Dispose(disposing: true);
         GC.SuppressFinalize(this);
+    }
+
+    public override void PreDraw()
+    {
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 2f);
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 4f);
+        ImGui.PushStyleColor(ImGuiCol.WindowBg, UiSharedService.ThemeWindowBg);
+        ImGui.PushStyleColor(ImGuiCol.ChildBg, UiSharedService.ThemeChildBg);
+        ImGui.PushStyleColor(ImGuiCol.Border, UiSharedService.ThemeBorder);
+        ImGui.PushStyleColor(ImGuiCol.Separator, UiSharedService.ThemeSeparator);
+        ImGui.PushStyleColor(ImGuiCol.TitleBg, UiSharedService.ThemeTitleBar);
+        ImGui.PushStyleColor(ImGuiCol.TitleBgActive, UiSharedService.ThemeTitleBar);
+        ImGui.PushStyleColor(ImGuiCol.TitleBgCollapsed, UiSharedService.ThemeTitleBar);
+        ImGui.PushStyleColor(ImGuiCol.FrameBg, UiSharedService.ThemeFrameBg);
+        ImGui.PushStyleColor(ImGuiCol.FrameBgHovered, UiSharedService.ThemeFrameBgHovered);
+        ImGui.PushStyleColor(ImGuiCol.FrameBgActive, UiSharedService.ThemeFrameBgActive);
+        ImGui.PushStyleColor(ImGuiCol.Button, UiSharedService.ThemeButtonBg);
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UiSharedService.ThemeButtonHovered);
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, UiSharedService.ThemeButtonActive);
+        ImGui.PushStyleColor(ImGuiCol.Header, UiSharedService.ThemeHeaderBg);
+        ImGui.PushStyleColor(ImGuiCol.HeaderHovered, UiSharedService.ThemeHeaderHovered);
+        ImGui.PushStyleColor(ImGuiCol.HeaderActive, UiSharedService.ThemeHeaderActive);
+        ImGui.PushStyleColor(ImGuiCol.ScrollbarBg, UiSharedService.ThemeScrollbarBg);
+        ImGui.PushStyleColor(ImGuiCol.ScrollbarGrab, UiSharedService.ThemeScrollbarGrab);
+        ImGui.PushStyleColor(ImGuiCol.ScrollbarGrabHovered, UiSharedService.ThemeScrollbarHover);
+        ImGui.PushStyleColor(ImGuiCol.ScrollbarGrabActive, UiSharedService.ThemeScrollbarActive);
+        ImGui.PushStyleColor(ImGuiCol.Tab, UiSharedService.ThemeTabNormal);
+        ImGui.PushStyleColor(ImGuiCol.TabHovered, UiSharedService.ThemeTabHovered);
+        ImGui.PushStyleColor(ImGuiCol.TabActive, UiSharedService.ThemeTabActive);
+    }
+
+    public override void PostDraw()
+    {
+        ImGui.PopStyleColor(UiSharedService.ThemeColorCount);
+        ImGui.PopStyleVar(UiSharedService.ThemeStyleVarCount);
     }
 
     public override void Draw()

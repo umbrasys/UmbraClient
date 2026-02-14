@@ -1018,10 +1018,11 @@ internal sealed class GroupPanel
                 windowPos.X + startX + col * (cardSize + cardSpacing),
                 windowPos.Y + startY + row * (cardSize + cardSpacing) - scrollY);
             var cardMax = new Vector2(cardMin.X + cardSize, cardMin.Y + cardSize);
-            var bgColor = new Vector4(0.12f, 0.12f, 0.15f, 0.95f);
+            var bgColor = new Vector4(0x1C / 255f, 0x1C / 255f, 0x1C / 255f, 1f);
             var pausedColor = ImGuiColors.DalamudOrange;
-            var borderColor = isPaused ? pausedColor with { W = 0.8f } : accent with { W = 0.8f };
-            var nameColor = isPaused ? pausedColor : accent;
+            var cardBorderColor = new Vector4(0x4A / 255f, 0x36 / 255f, 0x68 / 255f, 0.70f);
+            var borderColor = isPaused ? pausedColor with { W = 0.8f } : cardBorderColor;
+            var nameColor = isPaused ? pausedColor : new Vector4(0x9B / 255f, 0x82 / 255f, 0xC0 / 255f, 1f);
 
             drawList.AddRectFilled(cardMin, cardMax, ImGui.ColorConvertFloat4ToU32(bgColor), rounding);
             drawList.AddRect(cardMin, cardMax, ImGui.ColorConvertFloat4ToU32(borderColor), rounding, ImDrawFlags.None, borderThickness);

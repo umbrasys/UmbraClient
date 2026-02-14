@@ -3479,11 +3479,20 @@ Click to change.</value>
   <data name="UserProfile.RpAge" xml:space="preserve">
     <value>Age</value>
   </data>
+  <data name="UserProfile.RpRace" xml:space="preserve">
+    <value>Race</value>
+  </data>
+  <data name="UserProfile.RpEthnicity" xml:space="preserve">
+    <value>Ethnicity</value>
+  </data>
   <data name="UserProfile.RpHeight" xml:space="preserve">
     <value>Height</value>
   </data>
   <data name="UserProfile.RpBuild" xml:space="preserve">
     <value>Build</value>
+  </data>
+  <data name="UserProfile.RpResidence" xml:space="preserve">
+    <value>Residence</value>
   </data>
   <data name="UserProfile.RpOccupation" xml:space="preserve">
     <value>Occupation</value>

@@ -6,6 +6,7 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Microsoft.Extensions.Logging;
 using System.Numerics;
+using UmbraSync.Interop.Ipc;
 using UmbraSync.Localization;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
@@ -20,22 +21,29 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
     private readonly ServerConfigurationManager _serverManager;
     private readonly ApiController _apiController;
     private readonly UiSharedService _uiSharedService;
+    private readonly IpcManager _ipcManager;
+    private readonly DalamudUtilService _dalamudUtil;
     private byte[] _lastProfilePicture = [];
     private byte[] _lastRpProfilePicture = [];
     private IDalamudTextureWrap? _textureWrap;
     private IDalamudTextureWrap? _rpTextureWrap;
     private bool _isRpTab = false;
     private bool _windowSizeInitialized = false;
+    private string _localMoodlesJson = string.Empty;
+    private bool _moodlesFetching;
+    private DateTime _lastMoodlesFetch = DateTime.MinValue;
 
     public StandaloneProfileUi(ILogger<StandaloneProfileUi> logger, MareMediator mediator, UiSharedService uiBuilder,
         ServerConfigurationManager serverManager, UmbraProfileManager umbraProfileManager, ApiController apiController, Pair pair,
-        PerformanceCollectorService performanceCollector)
+        PerformanceCollectorService performanceCollector, IpcManager ipcManager, DalamudUtilService dalamudUtil)
         : base(logger, mediator, string.Format(System.Globalization.CultureInfo.CurrentCulture, Loc.Get("StandaloneProfile.WindowTitle"), pair.UserData.AliasOrUID) + "##UmbraSyncStandaloneProfileUI" + pair.UserData.AliasOrUID, performanceCollector)
     {
         _uiSharedService = uiBuilder;
         _serverManager = serverManager;
         _umbraProfileManager = umbraProfileManager;
         _apiController = apiController;
+        _ipcManager = ipcManager;
+        _dalamudUtil = dalamudUtil;
         Pair = pair;
         Flags = ImGuiWindowFlags.None;
 
@@ -45,7 +53,31 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
             MaximumSize = new(1200, 2000)
         };
 
+        bool isSelf = string.Equals(pair.UserData.UID, apiController.UID, StringComparison.Ordinal);
+        if (isSelf)
+        {
+            Mediator.Subscribe<MoodlesMessage>(this, (msg) => Task.Run(RefreshLocalMoodlesAsync));
+        }
+
         IsOpen = true;
+    }
+
+    private async Task RefreshLocalMoodlesAsync()
+    {
+        if (_moodlesFetching) return;
+        _moodlesFetching = true;
+        try
+        {
+            if (!_ipcManager.Moodles.APIAvailable) return;
+            var ptr = await _dalamudUtil.GetPlayerPointerAsync().ConfigureAwait(false);
+            if (ptr == IntPtr.Zero) return;
+            _localMoodlesJson = await _ipcManager.Moodles.GetStatusAsync(ptr).ConfigureAwait(false) ?? string.Empty;
+            _lastMoodlesFetch = DateTime.UtcNow;
+        }
+        finally
+        {
+            _moodlesFetching = false;
+        }
     }
 
     public Pair Pair { get; init; }
@@ -171,6 +203,18 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
                         ImGui.SameLine();
                         ImGui.TextWrapped(umbraProfile.RpAge);
                     }
+                    if (!string.IsNullOrEmpty(umbraProfile.RpRace))
+                    {
+                        UiSharedService.ColorText(Loc.Get("UserProfile.RpRace") + " : ", accent);
+                        ImGui.SameLine();
+                        ImGui.TextWrapped(umbraProfile.RpRace);
+                    }
+                    if (!string.IsNullOrEmpty(umbraProfile.RpEthnicity))
+                    {
+                        UiSharedService.ColorText(Loc.Get("UserProfile.RpEthnicity") + " : ", accent);
+                        ImGui.SameLine();
+                        ImGui.TextWrapped(umbraProfile.RpEthnicity);
+                    }
                     if (!string.IsNullOrEmpty(umbraProfile.RpHeight))
                     {
                         UiSharedService.ColorText(Loc.Get("UserProfile.RpHeight") + " : ", accent);
@@ -182,6 +226,12 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
                         UiSharedService.ColorText(Loc.Get("UserProfile.RpBuild") + " : ", accent);
                         ImGui.SameLine();
                         ImGui.TextWrapped(umbraProfile.RpBuild);
+                    }
+                    if (!string.IsNullOrEmpty(umbraProfile.RpResidence))
+                    {
+                        UiSharedService.ColorText(Loc.Get("UserProfile.RpResidence") + " : ", accent);
+                        ImGui.SameLine();
+                        ImGui.TextWrapped(umbraProfile.RpResidence);
                     }
                     if (!string.IsNullOrEmpty(umbraProfile.RpOccupation))
                     {
@@ -216,6 +266,30 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
                         ImGui.Spacing();
                         UiSharedService.ColorText(Loc.Get("UserProfile.RpAdditionalInfo") + " :", accent);
                         ImGui.TextWrapped(umbraProfile.RpAdditionalInfo);
+                    }
+
+                    bool isSelfProfile = string.Equals(Pair.UserData.UID, _apiController.UID, StringComparison.Ordinal);
+                    string? moodlesJson;
+                    if (isSelfProfile)
+                    {
+                        if (string.IsNullOrEmpty(_localMoodlesJson) && !_moodlesFetching
+                            && (DateTime.UtcNow - _lastMoodlesFetch).TotalSeconds > 3)
+                        {
+                            Task.Run(RefreshLocalMoodlesAsync);
+                        }
+                        moodlesJson = _localMoodlesJson;
+                    }
+                    else
+                    {
+                        moodlesJson = Pair.LastReceivedCharacterData?.MoodlesData;
+                    }
+
+                    if (!string.IsNullOrEmpty(moodlesJson))
+                    {
+                        ImGui.Spacing();
+                        ImGui.Spacing();
+                        UiSharedService.ColorText("Coups d'oeil (Gérés par Moodles) :", accent);
+                        _uiSharedService.DrawMoodlesAtAGlance(moodlesJson, 44f);
                     }
                 }
                 else

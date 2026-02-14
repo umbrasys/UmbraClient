@@ -80,9 +80,9 @@ public class CompactUi : WindowMediatorSubscriberBase
     private const float SidebarWidth = 42f;
     private const float SidebarIconSize = 22f;
     private const float ContentFontScale = UiSharedService.ContentFontScale;
-    private static readonly Vector4 SidebarButtonColor = new(0.08f, 0.08f, 0.10f, 0.92f);
-    private static readonly Vector4 SidebarButtonHoverColor = new(0.12f, 0.12f, 0.16f, 0.95f);
-    private static readonly Vector4 SidebarButtonActiveColor = new(0.16f, 0.16f, 0.22f, 0.95f);
+    private static readonly Vector4 SidebarButtonColor = new(0f, 0f, 0f, 0f);
+    private static readonly Vector4 SidebarButtonHoverColor = new(0x30 / 255f, 0x19 / 255f, 0x46 / 255f, 1f);
+    private static readonly Vector4 SidebarButtonActiveColor = new(0x50 / 255f, 0x17 / 255f, 0x83 / 255f, 1f);
     private static readonly Vector4 MutedCardBackground = new(0.10f, 0.10f, 0.13f, 0.78f);
     private static readonly Vector4 MutedCardBorder = new(0.55f, 0.55f, 0.62f, 0.82f);
     private const float SidebarIndicatorAnimSpeed = 18f;
@@ -91,9 +91,6 @@ public class CompactUi : WindowMediatorSubscriberBase
     private Vector2 _sidebarIndicatorSize;
     private bool _sidebarIndicatorInitialized;
     private Vector2 _sidebarWindowPos;
-    private float _socialSwitchAnimT = 1f;
-    private float _socialSwitchAnimTargetT = 1f;
-    private readonly float _socialSwitchAnimSpeed = 8f; // Vitesse d’animation (unités de t par seconde). 8 → transition ~125ms–200ms selon framerate
 
     private enum CompactUiSection
     {
@@ -201,15 +198,6 @@ public class CompactUi : WindowMediatorSubscriberBase
 
     protected override void DrawInternal()
     {
-        UiSharedService.AccentColor = new Vector4(0x8D / 255f, 0x37 / 255f, 0xC0 / 255f, 1f);
-        UiSharedService.AccentHoverColor = new Vector4(0x3A / 255f, 0x15 / 255f, 0x50 / 255f, 1f);
-        UiSharedService.AccentActiveColor = UiSharedService.AccentHoverColor;
-        var accent = UiSharedService.AccentColor;
-        using var titleBg = ImRaii.PushColor(ImGuiCol.TitleBg, accent);
-        using var titleBgActive = ImRaii.PushColor(ImGuiCol.TitleBgActive, accent);
-        using var titleBgCollapsed = ImRaii.PushColor(ImGuiCol.TitleBgCollapsed, accent);
-        using var buttonHover = ImRaii.PushColor(ImGuiCol.ButtonHovered, UiSharedService.AccentHoverColor);
-        using var buttonActive = ImRaii.PushColor(ImGuiCol.ButtonActive, UiSharedService.AccentActiveColor);
         ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGui.GetStyle().WindowPadding.Y - 1f * ImGuiHelpers.GlobalScale + ImGui.GetStyle().ItemSpacing.Y);
         var sidebarWidth = ImGuiHelpers.ScaledVector2(SidebarWidth, 0).X;
 
@@ -1231,7 +1219,9 @@ public class CompactUi : WindowMediatorSubscriberBase
     private void DrawSocialSection()
     {
         DrawDefaultSyncSettings();
+        ImGuiHelpers.ScaledDummy(2f);
         DrawSocialSwitchButtons();
+        ImGuiHelpers.ScaledDummy(2f);
         using var socialBody = ImRaii.Child(
             "social-body",
             new Vector2(0, 0),
@@ -1251,173 +1241,66 @@ public class CompactUi : WindowMediatorSubscriberBase
     {
         var individualLabel = Loc.Get("CompactUi.Sidebar.IndividualPairs");
         var syncshellLabel = Loc.Get("CompactUi.Sidebar.Syncshells");
-        float spacing = ImGui.GetStyle().ItemSpacing.X;
-        var regionMin = ImGui.GetWindowContentRegionMin();
-        var regionMax = ImGui.GetWindowContentRegionMax();
-        float available = Math.Max(0f, regionMax.X - regionMin.X);
-        float rightPad = MathF.Ceiling(ImGuiHelpers.GlobalScale);
-        available = MathF.Max(0f, available - rightPad);
-        var style = ImGui.GetStyle();
-        const float padYMultiplier = 2.4f;
-        const float fontScaleMul = 1.3f;
+        var icons = new[] { FontAwesomeIcon.User, FontAwesomeIcon.UserFriends };
+        var labels = new[] { individualLabel, syncshellLabel };
 
-        using var padPush = ImRaii.PushStyle(ImGuiStyleVar.FramePadding,
-            new Vector2(style.FramePadding.X, style.FramePadding.Y * padYMultiplier));
-        using var biggerFont = UiSharedService.PushFontScale(ContentFontScale * fontScaleMul);
+        const float btnH = 32f;
+        const float btnSpacing = 8f;
+        const float rounding = 4f;
+        const float iconTextGap = 6f;
 
-        float buttonHeight = ImGui.GetFrameHeight();
-        float inactiveSize = (float)Math.Floor(buttonHeight);
-        float maxActiveWidth = (float)Math.Floor(available - spacing - inactiveSize);
-        if (maxActiveWidth < inactiveSize) // garde-fou si espace trop réduit
-        {
-            maxActiveWidth = (float)Math.Floor((available - spacing) * 0.65f);
-            inactiveSize = (float)Math.Max(10f, Math.Floor((available - spacing) - maxActiveWidth));
-        }
-
-        bool individualActive = _socialSubSection == SocialSubSection.IndividualPairs;
-        bool syncshellActive = _socialSubSection == SocialSubSection.Syncshells;
-        _socialSwitchAnimTargetT = individualActive ? 1f : 0f;
-        var dt = ImGui.GetIO().DeltaTime;
-        if (dt > 0)
-        {
-            var step = _socialSwitchAnimSpeed * dt;
-            if (_socialSwitchAnimT < _socialSwitchAnimTargetT)
-                _socialSwitchAnimT = MathF.Min(_socialSwitchAnimT + step, _socialSwitchAnimTargetT);
-            else if (_socialSwitchAnimT > _socialSwitchAnimTargetT)
-                _socialSwitchAnimT = MathF.Max(_socialSwitchAnimT - step, _socialSwitchAnimTargetT);
-        }
-        float EaseInOut(float x)
-        {
-            x = Math.Clamp(x, 0f, 1f);
-            return x * x * (3f - 2f * x); // SmoothStep
-        }
-        var t = EaseInOut(_socialSwitchAnimT);
-        float leftWidth = MathF.Floor(inactiveSize + (maxActiveWidth - inactiveSize) * t);
-        float rightWidth = MathF.Floor(maxActiveWidth + (inactiveSize - maxActiveWidth) * t);
-        float epsilon = MathF.Max(0.5f, buttonHeight * 0.02f);
-        bool leftSquare = leftWidth <= inactiveSize + epsilon;
-        bool rightSquare = rightWidth <= inactiveSize + epsilon;
-        if (leftSquare)
-        {
-            leftWidth = inactiveSize;
-            rightWidth = MathF.Max(inactiveSize, MathF.Floor(available - spacing - leftWidth));
-        }
-        else if (rightSquare)
-        {
-            rightWidth = inactiveSize;
-            leftWidth = MathF.Max(inactiveSize, MathF.Floor(available - spacing - rightWidth));
-        }
+        var dl = ImGui.GetWindowDrawList();
+        var availWidth = ImGui.GetContentRegionAvail().X;
+        var btnW = (availWidth - btnSpacing * (labels.Length - 1)) / labels.Length;
 
         var accent = UiSharedService.AccentColor;
-        var accentHover = UiSharedService.AccentHoverColor;
-        var accentActive = UiSharedService.AccentActiveColor;
-        if (leftSquare)
-        {
-            if (individualActive)
-            {
-                using (ImRaii.PushColor(ImGuiCol.Button, accent))
-                using (ImRaii.PushColor(ImGuiCol.ButtonHovered, accentHover))
-                using (ImRaii.PushColor(ImGuiCol.ButtonActive, accentActive))
-                {
-                    if (_uiSharedService.IconButtonCentered(FontAwesomeIcon.User, buttonHeight, square: true))
-                    {
-                        _socialSubSection = SocialSubSection.IndividualPairs;
-                        _socialSwitchAnimTargetT = 1f;
-                    }
-                }
-            }
-            else
-            {
-                if (_uiSharedService.IconButtonCentered(FontAwesomeIcon.User, buttonHeight, square: true))
-                {
-                    _socialSubSection = SocialSubSection.IndividualPairs;
-                    _socialSwitchAnimTargetT = 1f;
-                }
-                UiSharedService.AttachToolTip(individualLabel);
-            }
-        }
-        else
-        {
-            if (individualActive)
-            {
-                using (ImRaii.PushColor(ImGuiCol.Button, accent))
-                using (ImRaii.PushColor(ImGuiCol.ButtonHovered, accentHover))
-                using (ImRaii.PushColor(ImGuiCol.ButtonActive, accentActive))
-                {
-                    if (_uiSharedService.IconTextButton(FontAwesomeIcon.User, individualLabel, leftWidth))
-                    {
-                        _socialSubSection = SocialSubSection.IndividualPairs;
-                        _socialSwitchAnimTargetT = 1f;
-                    }
-                }
-            }
-            else
-            {
-                if (_uiSharedService.IconTextButton(FontAwesomeIcon.User, individualLabel, leftWidth))
-                {
-                    _socialSubSection = SocialSubSection.IndividualPairs;
-                    _socialSwitchAnimTargetT = 1f;
-                }
-                UiSharedService.AttachToolTip(individualLabel);
-            }
-        }
+        var borderColor = new Vector4(0.29f, 0.21f, 0.41f, 0.7f);
+        var bgColor = new Vector4(0.11f, 0.11f, 0.11f, 0.9f);
+        var hoverBg = new Vector4(0.17f, 0.13f, 0.22f, 1f);
 
-        ImGui.SameLine();
+        for (int i = 0; i < labels.Length; i++)
+        {
+            if (i > 0) ImGui.SameLine(0, btnSpacing);
 
-        // Rendu du bouton de droite (Syncshell)
-        if (rightSquare)
-        {
-            if (syncshellActive)
+            var p = ImGui.GetCursorScreenPos();
+            bool clicked = ImGui.InvisibleButton($"##socialTab_{i}", new Vector2(btnW, btnH));
+            bool hovered = ImGui.IsItemHovered();
+            bool isActive = (i == 0 && _socialSubSection == SocialSubSection.IndividualPairs)
+                         || (i == 1 && _socialSubSection == SocialSubSection.Syncshells);
+
+            var bg = isActive ? accent : hovered ? hoverBg : bgColor;
+            dl.AddRectFilled(p, p + new Vector2(btnW, btnH), ImGui.GetColorU32(bg), rounding);
+            if (!isActive)
+                dl.AddRect(p, p + new Vector2(btnW, btnH), ImGui.GetColorU32(borderColor with { W = hovered ? 0.9f : 0.5f }), rounding);
+
+            // Measure icon
+            ImGui.PushFont(UiBuilder.IconFont);
+            var iconStr = icons[i].ToIconString();
+            var iconSz = ImGui.CalcTextSize(iconStr);
+            ImGui.PopFont();
+
+            var labelSz = ImGui.CalcTextSize(labels[i]);
+            var totalW = iconSz.X + iconTextGap + labelSz.X;
+            var startX = p.X + (btnW - totalW) / 2f;
+
+            var textColor = isActive ? new Vector4(1f, 1f, 1f, 1f) : hovered ? new Vector4(0.9f, 0.85f, 1f, 1f) : new Vector4(0.7f, 0.65f, 0.8f, 1f);
+            var textColorU32 = ImGui.GetColorU32(textColor);
+
+            // Draw icon
+            ImGui.PushFont(UiBuilder.IconFont);
+            dl.AddText(new Vector2(startX, p.Y + (btnH - iconSz.Y) / 2f), textColorU32, iconStr);
+            ImGui.PopFont();
+
+            // Draw label
+            dl.AddText(new Vector2(startX + iconSz.X + iconTextGap, p.Y + (btnH - labelSz.Y) / 2f), textColorU32, labels[i]);
+
+            if (hovered) ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
+            if (clicked)
             {
-                using (ImRaii.PushColor(ImGuiCol.Button, accent))
-                using (ImRaii.PushColor(ImGuiCol.ButtonHovered, accentHover))
-                using (ImRaii.PushColor(ImGuiCol.ButtonActive, accentActive))
-                {
-                    if (_uiSharedService.IconButtonCentered(FontAwesomeIcon.UserFriends, buttonHeight, square: true))
-                    {
-                        _socialSubSection = SocialSubSection.Syncshells;
-                        _socialSwitchAnimTargetT = 0f;
-                    }
-                }
-            }
-            else
-            {
-                if (_uiSharedService.IconButtonCentered(FontAwesomeIcon.UserFriends, buttonHeight, square: true))
-                {
-                    _socialSubSection = SocialSubSection.Syncshells;
-                    _socialSwitchAnimTargetT = 0f;
-                }
-                UiSharedService.AttachToolTip(syncshellLabel);
-            }
-        }
-        else
-        {
-            if (syncshellActive)
-            {
-                using (ImRaii.PushColor(ImGuiCol.Button, accent))
-                using (ImRaii.PushColor(ImGuiCol.ButtonHovered, accentHover))
-                using (ImRaii.PushColor(ImGuiCol.ButtonActive, accentActive))
-                {
-                    if (_uiSharedService.IconTextButton(FontAwesomeIcon.UserFriends, syncshellLabel, rightWidth))
-                    {
-                        _socialSubSection = SocialSubSection.Syncshells;
-                        _socialSwitchAnimTargetT = 0f;
-                    }
-                }
-            }
-            else
-            {
-                if (_uiSharedService.IconTextButton(FontAwesomeIcon.UserFriends, syncshellLabel, rightWidth))
-                {
-                    _socialSubSection = SocialSubSection.Syncshells;
-                    _socialSwitchAnimTargetT = 0f;
-                }
-                UiSharedService.AttachToolTip(syncshellLabel);
+                _socialSubSection = i == 0 ? SocialSubSection.IndividualPairs : SocialSubSection.Syncshells;
             }
         }
     }
-
-    // Note: ancienne méthode DrawToggleButton supprimée (plus utilisée)
 
     private void DrawAutoDetectSection()
     {

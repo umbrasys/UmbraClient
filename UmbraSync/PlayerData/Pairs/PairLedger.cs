@@ -188,6 +188,10 @@ public sealed class PairLedger : DisposableMediatorSubscriberBase
             if (pair.LastAppliedApproximateVRAMBytes >= 0 && pair.LastAppliedDataTris >= 0)
                 continue;
 
+            // Ne pas interrompre un téléchargement ou une application en cours
+            if (pair.IsApplyingOrDownloading)
+                continue;
+
             try
             {
                 pair.ApplyLastReceivedData(forced: true);

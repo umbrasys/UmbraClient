@@ -61,6 +61,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private bool _emoteColorPaletteOpen = false;
     private bool _hrpColorPaletteOpen = false;
     private string _lastTab = string.Empty;
+    private int _activeSettingsTab;
     private bool? _notesSuccessfullyApplied = null;
     private bool _overwriteExistingLabels = false;
     private bool _readClearCache = false;
@@ -1622,10 +1623,10 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
     private void DrawServerConfiguration()
     {
-        _lastTab = "Service Settings";
+        _lastTab = "Compte";
         if (ApiController.ServerAlive)
         {
-            _uiShared.BigText("Service Actions");
+            _uiShared.BigText("Compte");
             ImGuiHelpers.ScaledDummy(new Vector2(5, 5));
             if (ImGui.Button("Delete account"))
             {
@@ -1920,7 +1921,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 ImGui.EndTabItem();
             }
 
-            if (ImGui.BeginTabItem("Service Settings"))
+            if (ImGui.BeginTabItem("Compte"))
             {
                 var serverName = selectedServer.ServerName;
                 var serverUri = selectedServer.ServerUri;
@@ -1983,71 +1984,115 @@ public class SettingsUi : WindowMediatorSubscriberBase
             ImGui.TextUnformatted(")");
         }
         ImGui.Separator();
-        if (ImGui.BeginTabBar("mainTabBar"))
+        ImGuiHelpers.ScaledDummy(2f);
+
         {
             var accent = UiSharedService.AccentColor;
-            var accentColor = ImGui.ColorConvertFloat4ToU32(accent);
-            ImGui.PushStyleColor(ImGuiCol.TabActive, accentColor);
-            ImGui.PushStyleColor(ImGuiCol.TabHovered, accentColor);
+            var labels = new[] { "General", "Performance", "Storage", "Transfers", "AutoDetect", "Chat", "Pings", "Compte", "Advanced" };
+            var icons = new[] {
+                FontAwesomeIcon.Cog, FontAwesomeIcon.Running, FontAwesomeIcon.Database,
+                FontAwesomeIcon.Retweet, FontAwesomeIcon.BroadcastTower, FontAwesomeIcon.Comment,
+                FontAwesomeIcon.Bell, FontAwesomeIcon.UserCircle, FontAwesomeIcon.Wrench
+            };
+            const float btnH = 26f;
+            const float btnSpacing = 4f;
+            const float rounding = 4f;
+            const float iconTextGap = 5f;
 
-            if (ImGui.BeginTabItem("General"))
+            var dl = ImGui.GetWindowDrawList();
+            var availWidth = ImGui.GetContentRegionAvail().X;
+
+            var borderColor = new Vector4(0.29f, 0.21f, 0.41f, 0.7f);
+            var bgColor = new Vector4(0.11f, 0.11f, 0.11f, 0.9f);
+            var hoverBg = new Vector4(0.17f, 0.13f, 0.22f, 1f);
+
+            // Measure all buttons to determine how many rows we need
+            var btnWidths = new float[labels.Length];
+            for (int i = 0; i < labels.Length; i++)
             {
-                DrawGeneral();
-                ImGui.EndTabItem();
+                ImGui.PushFont(UiBuilder.IconFont);
+                var iconW = ImGui.CalcTextSize(icons[i].ToIconString()).X;
+                ImGui.PopFont();
+                btnWidths[i] = iconW + iconTextGap + ImGui.CalcTextSize(labels[i]).X + 16f;
             }
 
-            if (ImGui.BeginTabItem("Performance"))
+            // Layout buttons in rows that fit within available width
+            int idx = 0;
+            while (idx < labels.Length)
             {
-                DrawPerformance();
-                ImGui.EndTabItem();
+                // Determine how many buttons fit on this row
+                float rowWidth = 0f;
+                int rowStart = idx;
+                int rowCount = 0;
+                for (int i = idx; i < labels.Length; i++)
+                {
+                    float needed = btnWidths[i] + (rowCount > 0 ? btnSpacing : 0f);
+                    if (rowCount > 0 && rowWidth + needed > availWidth) break;
+                    rowWidth += needed;
+                    rowCount++;
+                }
+
+                // Expand buttons to fill the row
+                float extraPerBtn = (availWidth - rowWidth) / rowCount;
+
+                for (int i = rowStart; i < rowStart + rowCount; i++)
+                {
+                    if (i > rowStart) ImGui.SameLine(0, btnSpacing);
+                    float w = btnWidths[i] + extraPerBtn;
+
+                    var p = ImGui.GetCursorScreenPos();
+                    bool clicked = ImGui.InvisibleButton($"##settingsTab_{i}", new Vector2(w, btnH));
+                    bool hovered = ImGui.IsItemHovered();
+                    bool isActive = _activeSettingsTab == i;
+
+                    var bg = isActive ? accent : hovered ? hoverBg : bgColor;
+                    dl.AddRectFilled(p, p + new Vector2(w, btnH), ImGui.GetColorU32(bg), rounding);
+                    if (!isActive)
+                        dl.AddRect(p, p + new Vector2(w, btnH), ImGui.GetColorU32(borderColor with { W = hovered ? 0.9f : 0.5f }), rounding);
+
+                    ImGui.PushFont(UiBuilder.IconFont);
+                    var iconStr = icons[i].ToIconString();
+                    var iconSz = ImGui.CalcTextSize(iconStr);
+                    ImGui.PopFont();
+
+                    var labelSz = ImGui.CalcTextSize(labels[i]);
+                    var totalW = iconSz.X + iconTextGap + labelSz.X;
+                    var startX = p.X + (w - totalW) / 2f;
+
+                    var textColor = isActive ? new Vector4(1f, 1f, 1f, 1f) : hovered ? new Vector4(0.9f, 0.85f, 1f, 1f) : new Vector4(0.7f, 0.65f, 0.8f, 1f);
+                    var textColorU32 = ImGui.GetColorU32(textColor);
+
+                    ImGui.PushFont(UiBuilder.IconFont);
+                    dl.AddText(new Vector2(startX, p.Y + (btnH - iconSz.Y) / 2f), textColorU32, iconStr);
+                    ImGui.PopFont();
+
+                    dl.AddText(new Vector2(startX + iconSz.X + iconTextGap, p.Y + (btnH - labelSz.Y) / 2f), textColorU32, labels[i]);
+
+                    if (hovered) ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
+                    if (clicked) _activeSettingsTab = i;
+                }
+
+                idx = rowStart + rowCount;
             }
 
-            if (ImGui.BeginTabItem("Storage"))
-            {
-                DrawFileStorageSettings();
-                ImGui.EndTabItem();
-            }
+            ImGuiHelpers.ScaledDummy(2f);
 
-            if (ImGui.BeginTabItem("Transfers"))
+            switch (_activeSettingsTab)
             {
-                DrawCurrentTransfers();
-                ImGui.EndTabItem();
+                case 0: DrawGeneral(); break;
+                case 1: DrawPerformance(); break;
+                case 2: DrawFileStorageSettings(); break;
+                case 3: DrawCurrentTransfers(); break;
+                case 4: DrawAutoDetect(); break;
+                case 5: DrawChatConfig(); break;
+                case 6: DrawPingSettings(); break;
+                case 7:
+                    ImGui.BeginDisabled(_registrationInProgress);
+                    DrawServerConfiguration();
+                    ImGui.EndDisabled();
+                    break;
+                case 8: DrawAdvanced(); break;
             }
-
-            if (ImGui.BeginTabItem("AutoDetect"))
-            {
-                DrawAutoDetect();
-                ImGui.EndTabItem();
-            }
-
-            if (ImGui.BeginTabItem("Chat"))
-            {
-                DrawChatConfig();
-                ImGui.EndTabItem();
-            }
-
-            if (ImGui.BeginTabItem("Pings"))
-            {
-                DrawPingSettings();
-                ImGui.EndTabItem();
-            }
-
-            if (ImGui.BeginTabItem("Service Settings"))
-            {
-                ImGui.BeginDisabled(_registrationInProgress);
-                DrawServerConfiguration();
-                ImGui.EndTabItem();
-                ImGui.EndDisabled();
-            }
-
-            if (ImGui.BeginTabItem("Advanced"))
-            {
-                DrawAdvanced();
-                ImGui.EndTabItem();
-            }
-            ImGui.PopStyleColor(2);
-
-            ImGui.EndTabBar();
         }
     }
 
