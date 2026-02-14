@@ -52,6 +52,7 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
         {
             IsOpen = true;
         }
+        Mediator.Subscribe<OpenChangelogUiMessage>(this, (_) => IsOpen = true);
     }
 
     public override void OnClose()

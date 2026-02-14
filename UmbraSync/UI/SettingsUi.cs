@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Numerics;
+using System.Reflection;
 using System.Text.Json;
 using UmbraSync.API.Data;
 using UmbraSync.API.Data.Comparer;
@@ -83,11 +84,12 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private bool _settingsSidebarIndicatorInit;
     private Vector2 _settingsSidebarWindowPos;
 
-    private static readonly string[] SettingsLabels = ["General", "Performance", "Storage", "Transfers", "AutoDetect", "Chat", "Pings", "Compte", "Avancé"];
+    private static readonly string[] SettingsLabels = ["General", "Performance", "Storage", "Transfers", "AutoDetect", "Chat", "Pings", "Compte", "Avancé", "À propos"];
     private static readonly FontAwesomeIcon[] SettingsIcons = [
         FontAwesomeIcon.Cog, FontAwesomeIcon.Bolt, FontAwesomeIcon.Database,
         FontAwesomeIcon.Retweet, FontAwesomeIcon.BroadcastTower, FontAwesomeIcon.Comment,
-        FontAwesomeIcon.Bell, FontAwesomeIcon.UserCircle, FontAwesomeIcon.Wrench
+        FontAwesomeIcon.Bell, FontAwesomeIcon.UserCircle, FontAwesomeIcon.Wrench,
+        FontAwesomeIcon.InfoCircle
     ];
     private static readonly string[] SettingsDescriptionKeys = [
         "Settings.Section.General.Desc",
@@ -99,6 +101,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         "Settings.Section.Pings.Desc",
         "Settings.Section.Account.Desc",
         "Settings.Section.Advanced.Desc",
+        "Settings.Section.About.Desc",
     ];
 
     public SettingsUi(ILogger<SettingsUi> logger,
@@ -1990,22 +1993,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
     private void DrawSettingsContent()
     {
-        if (_apiController.ServerState is ServerState.Connected)
-        {
-            ImGui.TextUnformatted("Service " + _serverConfigurationManager.CurrentServer!.ServerName + ":");
-            ImGui.SameLine();
-            ImGui.TextColored(UiSharedService.AccentColor, "Available");
-            ImGui.SameLine();
-            ImGui.TextUnformatted("(");
-            ImGui.SameLine();
-            ImGui.TextColored(UiSharedService.AccentColor, _apiController.OnlineUsers.ToString(CultureInfo.InvariantCulture));
-            ImGui.SameLine();
-            ImGui.TextUnformatted("Users Online");
-            ImGui.SameLine();
-            ImGui.TextUnformatted(")");
-        }
-        ImGui.Separator();
-        ImGuiHelpers.ScaledDummy(2f);
 
         float sidebarWidth = SettingsSidebarWidth * ImGuiHelpers.GlobalScale;
 
@@ -2043,8 +2030,170 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 ImGui.EndDisabled();
                 break;
             case 8: DrawAdvanced(); break;
+            case 9: DrawAbout(); break;
         }
         ImGui.EndChild();
+    }
+
+    private void DrawAbout()
+    {
+        _lastTab = "About";
+
+        var availWidth = ImGui.GetContentRegionAvail().X;
+        var ver = Assembly.GetExecutingAssembly().GetName().Version!;
+        string versionStr = $"v{ver.Major}.{ver.Minor}.{ver.Build}.{ver.Revision}";
+
+        ImGuiHelpers.ScaledDummy(20f);
+
+        // Icon — moon, centered (native font size, no scaling to avoid pixelation)
+        string moonIcon = FontAwesomeIcon.Moon.ToIconString();
+        using (_uiShared.IconFont.Push())
+        {
+            var iconSz = ImGui.CalcTextSize(moonIcon);
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (availWidth - iconSz.X) / 2f);
+            using (ImRaii.PushColor(ImGuiCol.Text, UiSharedService.AccentColor))
+                ImGui.TextUnformatted(moonIcon);
+        }
+
+        ImGuiHelpers.ScaledDummy(8f);
+
+        // Title "UmbraSync"
+        using (_uiShared.UidFont.Push())
+        {
+            var titleSz = ImGui.CalcTextSize("UmbraSync");
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (availWidth - titleSz.X) / 2f);
+            using (ImRaii.PushColor(ImGuiCol.Text, UiSharedService.AccentColor))
+                ImGui.TextUnformatted("UmbraSync");
+        }
+
+        ImGuiHelpers.ScaledDummy(2f);
+
+        // Version + author
+        string versionLine = $"{versionStr}  ·  {Loc.Get("Settings.About.ByAuthor")}";
+        using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudGrey3))
+        {
+            var vSz = ImGui.CalcTextSize(versionLine);
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (availWidth - vSz.X) / 2f);
+            ImGui.TextUnformatted(versionLine);
+        }
+
+        ImGuiHelpers.ScaledDummy(4f);
+
+        // Tagline
+        string tagline = Loc.Get("Settings.About.Tagline");
+        using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudGrey3))
+        {
+            var tSz = ImGui.CalcTextSize(tagline);
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (availWidth - tSz.X) / 2f);
+            ImGui.TextUnformatted(tagline);
+        }
+
+        ImGuiHelpers.ScaledDummy(24f);
+
+        // Links section
+        string linksLabel = Loc.Get("Settings.About.Links");
+        using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudGrey3))
+        {
+            var lSz = ImGui.CalcTextSize(linksLabel);
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (availWidth - lSz.X) / 2f);
+            ImGui.TextUnformatted(linksLabel);
+        }
+
+        ImGuiHelpers.ScaledDummy(6f);
+
+        // Link buttons row (responsive)
+        float btnSpacing = 8f * ImGuiHelpers.GlobalScale;
+        float margin = 20f * ImGuiHelpers.GlobalScale;
+        float usableWidth = availWidth - margin * 2f;
+        float btnWidth = (usableWidth - btnSpacing * 2f) / 3f;
+
+        ImGui.SetCursorPosX(margin);
+        using (ImRaii.PushColor(ImGuiCol.Button, new Vector4(0x2A / 255f, 0x1F / 255f, 0x3D / 255f, 1f)))
+        using (ImRaii.PushColor(ImGuiCol.ButtonHovered, new Vector4(0x38 / 255f, 0x29 / 255f, 0x52 / 255f, 1f)))
+        using (ImRaii.PushColor(ImGuiCol.ButtonActive, new Vector4(0x4A / 255f, 0x36 / 255f, 0x68 / 255f, 1f)))
+        {
+            if (DrawAboutLinkButton(FontAwesomeIcon.Globe, "Discord", btnWidth))
+                Dalamud.Utility.Util.OpenLink("https://discord.gg/2zJB7DjAs9");
+            ImGui.SameLine(0, btnSpacing);
+            if (DrawAboutLinkButton(FontAwesomeIcon.Code, "GitHub", btnWidth))
+                Dalamud.Utility.Util.OpenLink("https://github.com/umbrasys/UmbraClient/");
+            ImGui.SameLine(0, btnSpacing);
+            if (DrawAboutLinkButton(FontAwesomeIcon.FileAlt, Loc.Get("Settings.About.Changelog"), btnWidth))
+                Mediator.Publish(new OpenChangelogUiMessage());
+        }
+
+        ImGuiHelpers.ScaledDummy(20f);
+
+        // Server status
+        if (_apiController.ServerState is ServerState.Connected)
+        {
+            string statusText = $"{Loc.Get("Settings.About.Service")} {_serverConfigurationManager.CurrentServer!.ServerName}:";
+            string availableText = Loc.Get("Settings.About.Available");
+            string usersText = _apiController.OnlineUsers.ToString(CultureInfo.InvariantCulture);
+            string onlineText = Loc.Get("Settings.About.UsersOnline");
+            string fullLine = $"{statusText} {availableText}  ( {usersText}  {onlineText} )";
+
+            var lineSz = ImGui.CalcTextSize(fullLine);
+            float lineStartX = (availWidth - lineSz.X) / 2f;
+            ImGui.SetCursorPosX(lineStartX);
+
+            using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudGrey3))
+                ImGui.TextUnformatted($"{statusText} ");
+            ImGui.SameLine(0, 0);
+            using (ImRaii.PushColor(ImGuiCol.Text, UiSharedService.AccentColor))
+                ImGui.TextUnformatted(availableText);
+            ImGui.SameLine();
+            using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudGrey3))
+                ImGui.TextUnformatted("(");
+            ImGui.SameLine();
+            using (ImRaii.PushColor(ImGuiCol.Text, UiSharedService.AccentColor))
+                ImGui.TextUnformatted(usersText);
+            ImGui.SameLine();
+            using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudGrey3))
+                ImGui.TextUnformatted($"{onlineText} )");
+        }
+        else
+        {
+            string offlineText = Loc.Get("Settings.About.ServerOffline");
+            var offSz = ImGui.CalcTextSize(offlineText);
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (availWidth - offSz.X) / 2f);
+            using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudGrey3))
+                ImGui.TextUnformatted(offlineText);
+        }
+
+        ImGuiHelpers.ScaledDummy(8f);
+
+        // Footer
+        string footer = Loc.Get("Settings.About.Footer");
+        using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudGrey3))
+        {
+            var fSz = ImGui.CalcTextSize(footer);
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (availWidth - fSz.X) / 2f);
+            ImGui.TextUnformatted(footer);
+        }
+    }
+
+    private static bool DrawAboutLinkButton(FontAwesomeIcon icon, string label, float width)
+    {
+        string iconStr = icon.ToIconString();
+        ImGui.PushFont(UiBuilder.IconFont);
+        var iconSz = ImGui.CalcTextSize(iconStr);
+        ImGui.PopFont();
+        var labelSz = ImGui.CalcTextSize(label);
+        float totalW = iconSz.X + 6f * ImGuiHelpers.GlobalScale + labelSz.X;
+        float btnH = 30f * ImGuiHelpers.GlobalScale;
+
+        var pos = ImGui.GetCursorScreenPos();
+        bool clicked = ImGui.Button($"##{label}Link", new Vector2(width, btnH));
+
+        var dl = ImGui.GetWindowDrawList();
+        float startX = pos.X + (width - totalW) / 2f;
+        float textY = pos.Y + (btnH - labelSz.Y) / 2f;
+
+        dl.AddText(UiBuilder.IconFont, ImGui.GetFontSize(), new Vector2(startX, pos.Y + (btnH - iconSz.Y) / 2f), ImGui.GetColorU32(new Vector4(1f, 1f, 1f, 1f)), iconStr);
+        dl.AddText(new Vector2(startX + iconSz.X + 6f * ImGuiHelpers.GlobalScale, textY), ImGui.GetColorU32(new Vector4(1f, 1f, 1f, 1f)), label);
+
+        return clicked;
     }
 
     private void DrawSectionHeader(int tabIndex)

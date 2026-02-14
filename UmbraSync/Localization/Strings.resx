@@ -3817,6 +3817,36 @@ Click to change.</value>
   <data name="Settings.Section.Advanced.Desc" xml:space="preserve">
     <value>Advanced options: Umbra API, event logging and system settings.</value>
   </data>
+  <data name="Settings.Section.About.Desc" xml:space="preserve">
+    <value>About UmbraSync, features and useful links.</value>
+  </data>
+  <data name="Settings.About.ByAuthor" xml:space="preserve">
+    <value>by Keda</value>
+  </data>
+  <data name="Settings.About.Tagline" xml:space="preserve">
+    <value>Mod synchronization plugin designed for RolePlay on FFXIV</value>
+  </data>
+  <data name="Settings.About.Links" xml:space="preserve">
+    <value>LINKS</value>
+  </data>
+  <data name="Settings.About.Footer" xml:space="preserve">
+    <value>Made with ♥ by roleplayers, for roleplayers.</value>
+  </data>
+  <data name="Settings.About.Changelog" xml:space="preserve">
+    <value>Release Notes</value>
+  </data>
+  <data name="Settings.About.Service" xml:space="preserve">
+    <value>Service</value>
+  </data>
+  <data name="Settings.About.Available" xml:space="preserve">
+    <value>Available</value>
+  </data>
+  <data name="Settings.About.UsersOnline" xml:space="preserve">
+    <value>Users Online</value>
+  </data>
+  <data name="Settings.About.ServerOffline" xml:space="preserve">
+    <value>Server not connected</value>
+  </data>
   <data name="Settings.Advanced.PluginCompatibility" xml:space="preserve">
     <value>Plugin Compatibility</value>
   </data>

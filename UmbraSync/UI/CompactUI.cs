@@ -10,7 +10,6 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using System.Numerics;
-using System.Reflection;
 using UmbraSync.API.Data.Extensions;
 using UmbraSync.API.Dto.User;
 using UmbraSync.Localization;
@@ -77,8 +76,8 @@ public class CompactUi : WindowMediatorSubscriberBase
     private const long SelfAnalysisSizeWarningThreshold = 300L * 1024 * 1024;
     private const long SelfAnalysisTriangleWarningThreshold = 150_000;
     private CompactUiSection _activeSection = CompactUiSection.Social;
-    private const float SidebarWidth = 42f;
-    private const float SidebarIconSize = 22f;
+    private const float SidebarWidth = 53f;
+    private const float SidebarIconSize = 25f;
     private const float ContentFontScale = UiSharedService.ContentFontScale;
     private static readonly Vector4 SidebarButtonColor = new(0f, 0f, 0f, 0f);
     private static readonly Vector4 SidebarButtonHoverColor = new(0x30 / 255f, 0x19 / 255f, 0x46 / 255f, 1f);
@@ -151,13 +150,10 @@ public class CompactUi : WindowMediatorSubscriberBase
         _pairGroupsUi = new(configService, tagHandler, apiController, _selectPairsForGroupUi, _uiSharedService);
 
 #if DEBUG
-        string dev = "Dev Build";
-        var ver = Assembly.GetExecutingAssembly().GetName().Version!;
-        WindowName = $"UmbraSync {dev} ({ver.Major}.{ver.Minor}.{ver.Build})###UmbraSyncMainUIDev";
+        WindowName = "UmbraSync###UmbraSyncMainUIDev";
         Toggle();
 #else
-        var ver = Assembly.GetExecutingAssembly().GetName().Version!;
-        WindowName = "UmbraSync " + ver.Major + "." + ver.Minor + "." + ver.Build + "###UmbracSyncMainUI";
+        WindowName = "UmbraSync###UmbracSyncMainUI";
 #endif
         Mediator.Subscribe<SwitchToMainUiMessage>(this, (_) => IsOpen = true);
         Mediator.Subscribe<SwitchToIntroUiMessage>(this, (_) => IsOpen = false);
@@ -240,9 +236,15 @@ public class CompactUi : WindowMediatorSubscriberBase
             ImGui.Separator();
         }
 
-        using (ImRaii.PushId("header")) DrawUIDHeader();
-        using (ImRaii.PushId("serverstatus")) DrawServerStatus();
-        DrawAccentSeparator();
+        if (_apiController.ServerState is not ServerState.Connected)
+        {
+            UiSharedService.ColorTextWrapped(GetServerError(), GetUidColor());
+            if (_apiController.ServerState is ServerState.NoSecretKey)
+            {
+                DrawAddCharacter();
+            }
+            DrawAccentSeparator();
+        }
 
         DrawMainContent();
 
@@ -927,7 +929,9 @@ public class CompactUi : WindowMediatorSubscriberBase
 
         ImGuiHelpers.ScaledDummy(6f);
         DrawConnectionIcon();
-        ImGuiHelpers.ScaledDummy(12f);
+        ImGuiHelpers.ScaledDummy(4f);
+        DrawSidebarUid();
+        ImGuiHelpers.ScaledDummy(8f);
         string notificationsTooltip = hasNotifications
             ? Loc.Get("CompactUi.Sidebar.Notifications")
             : Loc.Get("CompactUi.Sidebar.NotificationsEmpty");
@@ -991,10 +995,9 @@ public class CompactUi : WindowMediatorSubscriberBase
         var icon = isLinked ? FontAwesomeIcon.Link : FontAwesomeIcon.Unlink;
 
         using var id = ImRaii.PushId("connection-icon");
-        float regionWidth = ImGui.GetContentRegionAvail().X;
+        float childWidth = SidebarWidth * ImGuiHelpers.GlobalScale;
         float buttonWidth = SidebarIconSize * ImGuiHelpers.GlobalScale;
-        float offset = System.Math.Max(0f, (regionWidth - buttonWidth) / 2f);
-        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + offset);
+        ImGui.SetCursorPosX((childWidth - buttonWidth) / 2f);
 
         bool isTogglingDisabled = !hasServer || state is ServerState.Reconnecting or ServerState.Disconnecting;
 
@@ -1012,6 +1015,58 @@ public class CompactUi : WindowMediatorSubscriberBase
                 : string.Format(CultureInfo.CurrentCulture, Loc.Get("CompactUi.Connection.ConnectTooltip"), currentServer!.ServerName))
             : Loc.Get("CompactUi.Connection.NoServer");
         UiSharedService.AttachToolTip(tooltip);
+    }
+
+    private void DrawSidebarUid()
+    {
+        var uidText = GetUidText();
+        var uidColor = GetUidColor();
+        bool isConnected = _apiController.ServerState is ServerState.Connected;
+
+        float regionWidth = ImGui.GetContentRegionAvail().X;
+        float padding = 6f * ImGuiHelpers.GlobalScale;
+        float maxTextWidth = regionWidth - padding * 2f;
+
+        // Truncate text if needed
+        string displayText = uidText;
+        var textSize = ImGui.CalcTextSize(uidText);
+        if (textSize.X > maxTextWidth && uidText.Length > 3)
+        {
+            while (textSize.X > maxTextWidth && displayText.Length > 3)
+            {
+                displayText = displayText[..^4] + "...";
+                textSize = ImGui.CalcTextSize(displayText);
+            }
+        }
+
+        // Center text
+        float textX = ImGui.GetCursorPosX() + (regionWidth - textSize.X) / 2f;
+        ImGui.SetCursorPosX(textX);
+
+        if (isConnected)
+        {
+            // Clickable: invisible button over text area
+            var screenPos = ImGui.GetCursorScreenPos();
+            float btnHeight = textSize.Y;
+            ImGui.InvisibleButton("##sidebarUid", new Vector2(textSize.X, btnHeight));
+            bool hovered = ImGui.IsItemHovered();
+            bool clicked = ImGui.IsItemClicked();
+
+            // Draw text on top
+            var dl = ImGui.GetWindowDrawList();
+            dl.AddText(screenPos, ImGui.GetColorU32(uidColor), displayText);
+
+            if (hovered)
+                ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
+            if (clicked)
+                ImGui.SetClipboardText(_apiController.DisplayName);
+
+            UiSharedService.AttachToolTip(Loc.Get("CompactUi.Uid.CopyTooltip"));
+        }
+        else
+        {
+            ImGui.TextColored(uidColor, displayText);
+        }
     }
 
     private bool DrawSidebarSquareButton(FontAwesomeIcon icon, bool isActive, bool highlight, bool enabled, int badgeCount, Vector4? highlightColor, Vector4? iconColorOverride = null)
@@ -1050,8 +1105,8 @@ public class CompactUi : WindowMediatorSubscriberBase
         using (_uiSharedService.IconFont.Push())
         {
             var textPos = new Vector2(
-                start.X + (size - iconSize.X) / 2f,
-                start.Y + (size - iconSize.Y) / 2f);
+                MathF.Round(start.X + (size - iconSize.X) / 2f),
+                MathF.Round(start.Y + (size - iconSize.Y) / 2f));
             uint iconColor = !enabled
                 ? ImGui.GetColorU32(ImGuiCol.TextDisabled)
                 : ImGui.ColorConvertFloat4ToU32(new Vector4(0.85f, 0.85f, 0.9f, 1f));
