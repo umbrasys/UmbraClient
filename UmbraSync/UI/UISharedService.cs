@@ -84,6 +84,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     private bool _petNamesExists;
     private bool _brioExists;
     private bool _chatTwoExists;
+    public bool ChatTwoExists => _chatTwoExists;
 
     private int _serverSelectionIndex = -1;
 

@@ -117,15 +117,13 @@ public class ChatNameReplacementService : DisposableMediatorSubscriberBase
     private string? ResolveRpName(string senderName)
     {
         var localPlayerName = _dalamudUtil.GetPlayerName();
-        if (!string.IsNullOrEmpty(localPlayerName) && NameMatches(senderName, localPlayerName))
+        if (!string.IsNullOrEmpty(localPlayerName) && NameMatches(senderName, localPlayerName)
+            && _apiController.IsConnected && !string.IsNullOrEmpty(_apiController.UID))
         {
-            if (_apiController.IsConnected && !string.IsNullOrEmpty(_apiController.UID))
-            {
-                var profile = _umbraProfileManager.GetUmbraProfile(new UserData(_apiController.UID));
-                if (!string.IsNullOrEmpty(profile.RpFirstName) && !string.IsNullOrEmpty(profile.RpLastName)
-                    && IsRpFirstNameValid(localPlayerName, profile.RpFirstName))
-                    return BuildRpDisplayName(profile);
-            }
+            var profile = _umbraProfileManager.GetUmbraProfile(new UserData(_apiController.UID));
+            if (!string.IsNullOrEmpty(profile.RpFirstName) && !string.IsNullOrEmpty(profile.RpLastName)
+                && IsRpFirstNameValid(localPlayerName, profile.RpFirstName))
+                return BuildRpDisplayName(profile);
         }
 
         foreach (var pair in _pairManager.GetOnlineUserPairs())

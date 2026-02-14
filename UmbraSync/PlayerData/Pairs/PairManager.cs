@@ -660,12 +660,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
                     Logger.LogDebug("SetGroupPermissions: pair {uid} became fully paused in group {gid}, invalidating", p.UserData.UID, groupInfo.Group.GID);
                     Mediator.Publish(new PlayerVisibilityMessage(p.Ident, IsVisible: false, Invalidate: true));
                 }
-                else if (wasPaused && !nowPaused)
-                {
-                    CancelPendingOffline(p.UserData.UID);
-                    pairsToReapply.Add(p);
-                }
-                else if (!nowPaused && filterChanged)
+                else if ((wasPaused && !nowPaused) || (!nowPaused && filterChanged))
                 {
                     CancelPendingOffline(p.UserData.UID);
                     pairsToReapply.Add(p);
@@ -733,12 +728,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
                     Logger.LogDebug("SetGroupUserPermissions: pair {uid} became fully paused in group {gid}, invalidating", p.UserData.UID, groupInfo.Group.GID);
                     Mediator.Publish(new PlayerVisibilityMessage(p.Ident, IsVisible: false, Invalidate: true));
                 }
-                else if (wasPaused && !nowPaused)
-                {
-                    CancelPendingOffline(p.UserData.UID);
-                    pairsToReapply.Add(p);
-                }
-                else if (!nowPaused && filterChanged)
+                else if ((wasPaused && !nowPaused) || (!nowPaused && filterChanged))
                 {
                     CancelPendingOffline(p.UserData.UID);
                     pairsToReapply.Add(p);

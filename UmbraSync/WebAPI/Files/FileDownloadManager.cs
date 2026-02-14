@@ -346,7 +346,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             Logger.LogWarning(ex, "Direct CDN download failed for {hash}, will fallback", file.Hash);
-            if (File.Exists(lz4TmpPath)) try { File.Delete(lz4TmpPath); } catch { }
+            if (File.Exists(lz4TmpPath)) try { File.Delete(lz4TmpPath); } catch { /* best-effort cleanup */ }
             return false;
         }
     }
@@ -405,12 +405,12 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Decompression failed for {hash}", file.Hash);
-            if (File.Exists(cdnTmpPath)) try { File.Delete(cdnTmpPath); } catch { }
+            if (File.Exists(cdnTmpPath)) try { File.Delete(cdnTmpPath); } catch { /* best-effort cleanup */ }
             return false;
         }
         finally
         {
-            if (File.Exists(lz4TmpPath)) try { File.Delete(lz4TmpPath); } catch { }
+            if (File.Exists(lz4TmpPath)) try { File.Delete(lz4TmpPath); } catch { /* best-effort cleanup */ }
         }
     }
 
@@ -829,7 +829,9 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
                             using var innerFileStream = new LimitedStream(fileChunkStream, capturedLength);
                             using var decoder = LZ4Frame.Decode(innerFileStream);
                             long startPos = fileChunkStream.Position;
+#pragma warning disable S6966 // LZ4 decoder stream is synchronous, async would just wrap it
                             decoder.AsStream().CopyTo(tmpFileStream);
+#pragma warning restore S6966
                             long readBytes = fileChunkStream.Position - startPos;
 
                             if (readBytes != capturedLength)

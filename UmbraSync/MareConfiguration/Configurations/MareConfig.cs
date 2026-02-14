@@ -27,6 +27,14 @@ public class MareConfig : IMareConfiguration
     public DtrEntry.Colors BlockedNameColors { get; set; } = new(Foreground: 0x8AADC7, Glow: 0x000080u);
     public bool UseRpNamesOnNameplates { get; set; }
     public bool UseRpNamesInChat { get; set; }
+    public bool EmoteHighlightEnabled { get; set; } = true;
+    public ushort EmoteHighlightColorKey { get; set; } = 706;
+    public bool EmoteHighlightAsterisks { get; set; } = true;
+    public bool EmoteHighlightAngleBrackets { get; set; } = true;
+    public bool EmoteHighlightSquareBrackets { get; set; } = true;
+    public bool EmoteHighlightParenthesesGray { get; set; } = true;
+    public ushort EmoteHighlightParenthesesColorKey { get; set; } = 4;
+    public bool EmoteHighlightParenthesesItalic { get; set; } = true;
     public bool EnableRightClickMenus { get; set; } = true;
     public NotificationLocation ErrorNotification { get; set; } = NotificationLocation.Both;
     public string ExportFolder { get; set; } = string.Empty;

@@ -2282,11 +2282,50 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="Settings.DownloadQueue.MaxWhenEnabled" xml:space="preserve">
     <value>Nombre maximal de téléchargements de personnages autorisés simultanément lorsque la file est activée.</value>
   </data>
+  <data name="Settings.RpNamesHeader" xml:space="preserve">
+    <value>Noms RP</value>
+  </data>
   <data name="Settings.RpNamesOnNameplates" xml:space="preserve">
     <value>Afficher les noms RP sur les plaques de nom</value>
   </data>
   <data name="Settings.RpNamesInChat" xml:space="preserve">
     <value>Afficher les noms RP dans le chat</value>
+  </data>
+  <data name="Settings.EmoteHighlight.Header" xml:space="preserve">
+    <value>Coloration des emotes</value>
+  </data>
+  <data name="Settings.EmoteHighlight.Enable" xml:space="preserve">
+    <value>Colorer le texte d'emote dans le chat</value>
+  </data>
+  <data name="Settings.EmoteHighlight.Enable.Help" xml:space="preserve">
+    <value>Met en couleur le texte entre les délimiteurs *...*, &lt;...&gt; ou [...] dans la fenêtre de chat.</value>
+  </data>
+  <data name="Settings.EmoteHighlight.Asterisks" xml:space="preserve">
+    <value>Astérisques * ... *</value>
+  </data>
+  <data name="Settings.EmoteHighlight.AngleBrackets" xml:space="preserve">
+    <value>Chevrons &lt; ... &gt;</value>
+  </data>
+  <data name="Settings.EmoteHighlight.SquareBrackets" xml:space="preserve">
+    <value>Crochets [ ... ]</value>
+  </data>
+  <data name="Settings.EmoteHighlight.ColorKey" xml:space="preserve">
+    <value>Couleur de surbrillance</value>
+  </data>
+  <data name="Settings.EmoteHighlight.Parentheses" xml:space="preserve">
+    <value>Griser le texte HRP ( ... )</value>
+  </data>
+  <data name="Settings.EmoteHighlight.Parentheses.Help" xml:space="preserve">
+    <value>Atténue le texte entre parenthèses (...) pour les messages hors-RP.</value>
+  </data>
+  <data name="Settings.EmoteHighlight.Parentheses.Italic" xml:space="preserve">
+    <value>Afficher en italique</value>
+  </data>
+  <data name="Settings.EmoteHighlight.Parentheses.Italic.ChatTwoWarning" xml:space="preserve">
+    <value>L'italique n'est pas disponible lorsque ChatTwo est actif. ChatTwo affiche l'italique en gras.</value>
+  </data>
+  <data name="Settings.EmoteHighlight.HrpColorKey" xml:space="preserve">
+    <value>Couleur HRP</value>
   </data>
   <data name="Settings.Typing.BlockedNameColor" xml:space="preserve">
     <value>Couleur des noms bloqués</value>
@@ -3512,6 +3551,15 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   </data>
   <data name="Settings.Ping.Keybind" xml:space="preserve">
     <value>Touche de ping</value>
+  </data>
+  <data name="Settings.Ping.KeybindChange" xml:space="preserve">
+    <value>Changer</value>
+  </data>
+  <data name="Settings.Ping.KeybindCapture" xml:space="preserve">
+    <value>Appuyez sur une touche...</value>
+  </data>
+  <data name="Settings.Ping.KeybindCancel" xml:space="preserve">
+    <value>Annuler</value>
   </data>
   <data name="Settings.Ping.UiScale" xml:space="preserve">
     <value>Taille des marqueurs</value>
