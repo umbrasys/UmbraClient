@@ -3404,6 +3404,18 @@ Click to change.</value>
   <data name="Notification.System.ClientOutdated.Body" xml:space="preserve">
     <value>Your client ({0}) is outdated. Latest version: {1}. Please update Umbra.</value>
   </data>
+  <data name="Notification.Toast.ClientIncompatible.Title" xml:space="preserve">
+    <value>Client incompatible</value>
+  </data>
+  <data name="Notification.Toast.ClientIncompatible.Body" xml:space="preserve">
+    <value>Your client is outdated ({0}), current is: {1}. This client version is incompatible and will not be able to connect. Please update your Umbra client.</value>
+  </data>
+  <data name="Notification.Toast.ClientOutdated.Title" xml:space="preserve">
+    <value>Client outdated</value>
+  </data>
+  <data name="Notification.Toast.ClientOutdated.Body" xml:space="preserve">
+    <value>Your client is outdated ({0}), current is: {1}. Please keep your Umbra client up-to-date.</value>
+  </data>
   <data name="Notification.System.ServerError.Title" xml:space="preserve">
     <value>Server Error: {0}</value>
   </data>
@@ -3756,5 +3768,14 @@ Click to change.</value>
   </data>
   <data name="AutoDetectUi.Syncshell.Table.Description" xml:space="preserve">
     <value>Description</value>
+  </data>
+  <data name="Notification.NearbyDetection.Title" xml:space="preserve">
+    <value>Nearby Detection</value>
+  </data>
+  <data name="Notification.NearbyDetection.Enabled" xml:space="preserve">
+    <value>AutoDetect enabled: you are now visible.</value>
+  </data>
+  <data name="Notification.NearbyDetection.Disabled" xml:space="preserve">
+    <value>AutoDetect disabled: you are not visible.</value>
   </data>
 </root>

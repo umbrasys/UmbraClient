@@ -1725,7 +1725,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         else
         {
             ImGui.AlignTextToFramePadding();
-            ImGui.TextColored(UiSharedService.AccentColor, Loc.Get("CompactUi.ServerStatus.NotConnected"));
+            ImGui.TextColored(ImGuiColors.DalamudRed, Loc.Get("CompactUi.ServerStatus.NotConnected"));
         }
 
         if (printShard)
@@ -1900,7 +1900,7 @@ public class CompactUi : WindowMediatorSubscriberBase
             ServerState.Disconnected => ImGuiColors.DalamudYellow,
             ServerState.Disconnecting => ImGuiColors.DalamudYellow,
             ServerState.Unauthorized => UiSharedService.AccentColor,
-            ServerState.VersionMisMatch => UiSharedService.AccentColor,
+            ServerState.VersionMisMatch => ImGuiColors.DalamudRed,
             ServerState.Offline => UiSharedService.AccentColor,
             ServerState.RateLimited => ImGuiColors.DalamudYellow,
             ServerState.NoSecretKey => ImGuiColors.DalamudYellow,

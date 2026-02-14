@@ -272,7 +272,7 @@
     <value />
   </data>
   <data name="CompactUi.General.ConnectToServerNotice" xml:space="preserve">
-    <value />
+    <value>Connectez-vous au serveur pour accéder à cette section.</value>
   </data>
   <data name="CompactUi.IntroUi.Agreement.AccountRemoval" xml:space="preserve">
     <value>Les comptes inactifs pendant 90 jours seront supprimés pour des raisons de stockage et de confidentialité.</value>
@@ -573,13 +573,13 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value>Certaines entrées n'ont pas encore de taille calculée. Lancez l'analyse pour compléter les données.</value>
   </data>
   <data name="CompactUi.ServerErrors.AttemptingToConnect" xml:space="preserve">
-    <value />
+    <value>Tentative de connexion au serveur.</value>
   </data>
   <data name="CompactUi.ServerErrors.Disconnected" xml:space="preserve">
-    <value />
+    <value>Vous êtes actuellement déconnecté du serveur de synchronisation.</value>
   </data>
   <data name="CompactUi.ServerErrors.Disconnecting" xml:space="preserve">
-    <value />
+    <value>Déconnexion du serveur en cours</value>
   </data>
   <data name="CompactUi.ServerErrors.NoSecretKey" xml:space="preserve">
     <value />
@@ -597,10 +597,10 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value />
   </data>
   <data name="CompactUi.ServerErrors.VersionMismatch" xml:space="preserve">
-    <value />
+    <value>Votre plugin ou le serveur n'est pas à jour. Mettez à jour votre plugin maintenant. Si déjà mis à jour, contactez le développeur sur Discord.</value>
   </data>
   <data name="CompactUi.ServerStatus.NotConnected" xml:space="preserve">
-    <value />
+    <value>Non connecté à un serveur</value>
   </data>
   <data name="CompactUi.ServerStatus.ShardLabel" xml:space="preserve">
     <value />
@@ -894,13 +894,13 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value />
   </data>
   <data name="CompactUi.UidStatus.Connecting" xml:space="preserve">
-    <value />
+    <value>Connexion</value>
   </data>
   <data name="CompactUi.UidStatus.Disconnected" xml:space="preserve">
-    <value />
+    <value>Déconnecté</value>
   </data>
   <data name="CompactUi.UidStatus.Disconnecting" xml:space="preserve">
-    <value />
+    <value>Déconnexion</value>
   </data>
   <data name="CompactUi.UidStatus.MultiChara" xml:space="preserve">
     <value />
@@ -921,7 +921,7 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value />
   </data>
   <data name="CompactUi.UidStatus.VersionMismatch" xml:space="preserve">
-    <value />
+    <value>Incompatibilité de version</value>
   </data>
   <data name="CompactUi.UnsupportedVersion.Message" xml:space="preserve">
     <value>Votre installation d'UmbraSync n'est pas à jour, la version actuelle est {0}. Il est recommandé de maintenir UmbraSync à jour. Ouvrez /xlplugins et mettez à jour le plugin.</value>
@@ -3304,6 +3304,18 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="Notification.System.ClientOutdated.Body" xml:space="preserve">
     <value>Votre client ({0}) est obsolète. Dernière version : {1}. Veuillez mettre à jour Umbra.</value>
   </data>
+  <data name="Notification.Toast.ClientIncompatible.Title" xml:space="preserve">
+    <value>Client incompatible</value>
+  </data>
+  <data name="Notification.Toast.ClientIncompatible.Body" xml:space="preserve">
+    <value>Votre client est obsolète ({0}), la version actuelle est : {1}. Cette version du client est incompatible et ne pourra pas se connecter. Veuillez mettre à jour votre client Umbra.</value>
+  </data>
+  <data name="Notification.Toast.ClientOutdated.Title" xml:space="preserve">
+    <value>Client obsolète</value>
+  </data>
+  <data name="Notification.Toast.ClientOutdated.Body" xml:space="preserve">
+    <value>Votre client est obsolète ({0}), la version actuelle est : {1}. Veuillez garder votre client Umbra à jour.</value>
+  </data>
   <data name="Notification.System.ServerError.Title" xml:space="preserve">
     <value>Erreur serveur : {0}</value>
   </data>
@@ -3665,5 +3677,14 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   </data>
   <data name="AutoDetectUi.Syncshell.Table.Description" xml:space="preserve">
     <value>Description</value>
+  </data>
+  <data name="Notification.NearbyDetection.Title" xml:space="preserve">
+    <value>Détection de proximité</value>
+  </data>
+  <data name="Notification.NearbyDetection.Enabled" xml:space="preserve">
+    <value>Vous êtes maintenant visible.</value>
+  </data>
+  <data name="Notification.NearbyDetection.Disabled" xml:space="preserve">
+    <value>Vous n'êtes plus visible.</value>
   </data>
 </root>

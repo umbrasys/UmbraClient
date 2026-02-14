@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
 using System.Reflection;
 using UmbraSync.API.Data;
 using UmbraSync.API.Data.Extensions;
@@ -13,6 +14,7 @@ using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.Notification;
 using UmbraSync.Services.ServerConfiguration;
+using UmbraSync.Localization;
 using UmbraSync.WebAPI.SignalR.Utils;
 
 namespace UmbraSync.WebAPI.SignalR;
@@ -183,9 +185,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
 
                 await _mareHub.StartAsync(token).ConfigureAwait(false);
 
-                _connectionDto = await GetConnectionDto().ConfigureAwait(false);
-
-                ServerState = ServerState.Connected;
+                _connectionDto = await GetConnectionDtoInternal(publishConnected: false).ConfigureAwait(false);
 
                 var currentClientVer = Assembly.GetExecutingAssembly().GetName().Version!;
 
@@ -195,23 +195,30 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
                     {
                         var currentVer = $"{currentClientVer.Major}.{currentClientVer.Minor}.{currentClientVer.Build}";
                         var requiredVer = $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}";
-                        Mediator.Publish(new NotificationMessage("Client incompatible",
-                            $"Your client is outdated ({currentVer}), current is: {requiredVer}. " +
-                            $"This client version is incompatible and will not be able to connect. Please update your Umbra client.",
+                        Mediator.Publish(new DualNotificationMessage(Loc.Get("Notification.Toast.ClientIncompatible.Title"),
+                            string.Format(CultureInfo.CurrentCulture, Loc.Get("Notification.Toast.ClientIncompatible.Body"), currentVer, requiredVer),
                             NotificationType.Error));
                         _notificationTracker.Upsert(NotificationEntry.ClientIncompatible(currentVer, requiredVer));
+                    }
+                    else
+                    {
+                        Mediator.Publish(new DualNotificationMessage(Loc.Get("CompactUi.UidStatus.VersionMismatch"),
+                            Loc.Get("CompactUi.ServerErrors.VersionMismatch"),
+                            NotificationType.Error));
                     }
                     await StopConnection(ServerState.VersionMisMatch).ConfigureAwait(false);
                     return;
                 }
 
+                ServerState = ServerState.Connected;
+                Mediator.Publish(new ConnectedMessage(_connectionDto));
+
                 if (_connectionDto.CurrentClientVersion > currentClientVer)
                 {
                     var currentVer = $"{currentClientVer.Major}.{currentClientVer.Minor}.{currentClientVer.Build}";
                     var latestVer = $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}";
-                    Mediator.Publish(new NotificationMessage("Client outdated",
-                        $"Your client is outdated ({currentVer}), current is: {latestVer}. " +
-                        $"Please keep your Umbra client up-to-date.",
+                    Mediator.Publish(new DualNotificationMessage(Loc.Get("Notification.Toast.ClientOutdated.Title"),
+                        string.Format(CultureInfo.CurrentCulture, Loc.Get("Notification.Toast.ClientOutdated.Body"), currentVer, latestVer),
                         NotificationType.Warning, TimeSpan.FromSeconds(15)));
                     _notificationTracker.Upsert(NotificationEntry.ClientOutdated(currentVer, latestVer));
                 }
