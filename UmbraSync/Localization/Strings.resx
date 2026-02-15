@@ -3533,6 +3533,12 @@ Click to change.</value>
   <data name="EditProfile.SaveSuccessBody" xml:space="preserve">
     <value>Your profile has been successfully saved on the Umbra server.</value>
   </data>
+  <data name="EditProfile.UnsavedChanges" xml:space="preserve">
+    <value>Unsaved changes</value>
+  </data>
+  <data name="EditProfile.SaveConfirm" xml:space="preserve">
+    <value>Profile saved!</value>
+  </data>
   <data name="EditProfile.SaveErrorTitle" xml:space="preserve">
     <value>Save error</value>
   </data>
@@ -3830,7 +3836,7 @@ Click to change.</value>
     <value>LINKS</value>
   </data>
   <data name="Settings.About.Footer" xml:space="preserve">
-    <value>Made with ♥ by roleplayers, for roleplayers.</value>
+    <value>Made by roleplayers, for roleplayers.</value>
   </data>
   <data name="Settings.About.Changelog" xml:space="preserve">
     <value>Release Notes</value>

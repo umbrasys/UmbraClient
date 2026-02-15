@@ -2460,16 +2460,16 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value />
   </data>
   <data name="StandaloneProfile.Status.Offline" xml:space="preserve">
-    <value />
+    <value>Hors ligne</value>
   </data>
   <data name="StandaloneProfile.Status.Online" xml:space="preserve">
-    <value />
+    <value>En ligne</value>
   </data>
   <data name="StandaloneProfile.Status.Visible" xml:space="preserve">
-    <value />
+    <value>Visible</value>
   </data>
   <data name="StandaloneProfile.WindowTitle" xml:space="preserve">
-    <value />
+    <value>Profil de {0}</value>
   </data>
   <data name="SyncshellAdmin.AdminPanelTitle" xml:space="preserve">
     <value />
@@ -3433,6 +3433,12 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="EditProfile.SaveSuccessBody" xml:space="preserve">
     <value>Votre profil a été enregistré avec succès sur le serveur Umbra.</value>
   </data>
+  <data name="EditProfile.UnsavedChanges" xml:space="preserve">
+    <value>Modifications non sauvegardées</value>
+  </data>
+  <data name="EditProfile.SaveConfirm" xml:space="preserve">
+    <value>Profil sauvegardé !</value>
+  </data>
   <data name="EditProfile.SaveErrorTitle" xml:space="preserve">
     <value>Erreur de sauvegarde</value>
   </data>
@@ -3739,7 +3745,7 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value>LIENS</value>
   </data>
   <data name="Settings.About.Footer" xml:space="preserve">
-    <value>Fait avec ♥ par un rôliste, pour les rôlistes.</value>
+    <value>Fait par un rôliste, pour les rôlistes.</value>
   </data>
   <data name="Settings.About.Changelog" xml:space="preserve">
     <value>Notes de version</value>

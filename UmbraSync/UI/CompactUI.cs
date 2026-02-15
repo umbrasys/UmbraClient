@@ -1653,40 +1653,6 @@ public class CompactUi : WindowMediatorSubscriberBase
         ImGuiHelpers.ScaledDummy(2f);
     }
 
-    private void DrawServerStatus()
-    {
-        var userCount = _apiController.OnlineUsers.ToString(CultureInfo.InvariantCulture);
-        var userSize = ImGui.CalcTextSize(userCount);
-        var usersOnlineText = Loc.Get("CompactUi.ServerStatus.UsersOnline");
-        var textSize = ImGui.CalcTextSize(usersOnlineText);
-        string shardConnection = string.Equals(_apiController.ServerInfo.ShardName, "Main", StringComparison.OrdinalIgnoreCase) ? string.Empty : string.Format(CultureInfo.CurrentCulture, Loc.Get("CompactUi.ServerStatus.ShardLabel"), _apiController.ServerInfo.ShardName);
-        var shardTextSize = ImGui.CalcTextSize(shardConnection);
-        var printShard = !string.IsNullOrEmpty(_apiController.ServerInfo.ShardName) && shardConnection != string.Empty;
-
-        if (_apiController.ServerState is ServerState.Connected)
-        {
-            ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()) / 2 - (userSize.X + textSize.X) / 2 - ImGui.GetStyle().ItemSpacing.X / 2);
-            if (!printShard) ImGui.AlignTextToFramePadding();
-            ImGui.TextColored(UiSharedService.AccentColor, userCount);
-            ImGui.SameLine();
-            if (!printShard) ImGui.AlignTextToFramePadding();
-            ImGui.TextUnformatted(usersOnlineText);
-        }
-        else
-        {
-            ImGui.AlignTextToFramePadding();
-            ImGui.TextColored(ImGuiColors.DalamudRed, Loc.Get("CompactUi.ServerStatus.NotConnected"));
-        }
-
-        if (printShard)
-        {
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGui.GetStyle().ItemSpacing.Y);
-            ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()) / 2 - shardTextSize.X / 2);
-            ImGui.TextUnformatted(shardConnection);
-        }
-
-    }
-
     private void DrawTransfers()
     {
         var currentUploads = _fileTransferManager.CurrentUploads.ToList();
@@ -1731,82 +1697,6 @@ public class CompactUi : WindowMediatorSubscriberBase
             ImGui.TextUnformatted(downloadText);
         }
         ImGuiHelpers.ScaledDummy(2);
-    }
-
-    private void DrawUIDHeader()
-    {
-        var uidText = GetUidText();
-        Vector2 uidTextSize;
-
-        using (_uiSharedService.UidFont.Push())
-        {
-            uidTextSize = ImGui.CalcTextSize(uidText);
-        }
-
-        var originalPos = ImGui.GetCursorPos();
-        UiSharedService.SetFontScale(1.5f);
-        float spacingX = ImGui.GetStyle().ItemSpacing.X;
-        float contentMin = ImGui.GetWindowContentRegionMin().X;
-        float contentMax = ImGui.GetWindowContentRegionMax().X;
-        float availableWidth = contentMax - contentMin;
-        float center = contentMin + availableWidth / 2f;
-
-        bool isConnected = _apiController.ServerState is ServerState.Connected;
-        float buttonSize = 18f * ImGuiHelpers.GlobalScale;
-        float textPosY = originalPos.Y + MathF.Max(buttonSize, uidTextSize.Y) / 2f - uidTextSize.Y / 2f;
-        float textPosX = center - uidTextSize.X / 2f;
-
-        if (isConnected)
-        {
-            float buttonX = textPosX - spacingX - buttonSize;
-            float buttonVerticalOffset = 7f * ImGuiHelpers.GlobalScale;
-            float buttonY = textPosY + uidTextSize.Y - buttonSize + buttonVerticalOffset;
-            ImGui.SetCursorPos(new Vector2(buttonX, buttonY));
-            if (ImGui.Button("##copy", new Vector2(buttonSize, buttonSize)))
-            {
-                ImGui.SetClipboardText(_apiController.DisplayName);
-            }
-            var buttonMin = ImGui.GetItemRectMin();
-            var drawList = ImGui.GetWindowDrawList();
-            using (_uiSharedService.IconFont.Push())
-            {
-                string iconText = FontAwesomeIcon.Copy.ToIconString();
-                var baseSize = ImGui.CalcTextSize(iconText);
-                float maxDimension = MathF.Max(MathF.Max(baseSize.X, baseSize.Y), 1f);
-                float available = buttonSize - 4f;
-                float scale = MathF.Min(1f, available / maxDimension);
-                float iconWidth = baseSize.X * scale;
-                float iconHeight = baseSize.Y * scale;
-                var iconPos = new Vector2(
-                    buttonMin.X + (buttonSize - iconWidth) / 2f,
-                    buttonMin.Y + (buttonSize - iconHeight) / 2f);
-                var font = ImGui.GetFont();
-                float fontSize = ImGui.GetFontSize() * scale;
-                drawList.AddText(font, fontSize, iconPos, ImGui.GetColorU32(ImGuiCol.Text), iconText);
-            }
-            UiSharedService.AttachToolTip(Loc.Get("CompactUi.Uid.CopyTooltip"));
-            ImGui.SameLine(0f, spacingX);
-        }
-        else
-        {
-            ImGui.SetCursorPos(originalPos);
-        }
-
-        ImGui.SetCursorPos(new Vector2(textPosX, textPosY));
-
-        using (_uiSharedService.UidFont.Push())
-            ImGui.TextColored(GetUidColor(), uidText);
-
-        UiSharedService.SetFontScale(1f);
-
-        if (!isConnected)
-        {
-            UiSharedService.ColorTextWrapped(GetServerError(), GetUidColor());
-            if (_apiController.ServerState is ServerState.NoSecretKey)
-            {
-                DrawAddCharacter();
-            }
-        }
     }
 
     private List<Pair> GetFilteredUsers()

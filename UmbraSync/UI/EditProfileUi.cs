@@ -67,6 +67,22 @@ public class EditProfileUi : WindowMediatorSubscriberBase
     private string _vanityInput = string.Empty;
     private int _activeTab;
     private bool _moodleOperationInProgress;
+    private DateTime _saveConfirmTime = DateTime.MinValue;
+    private string _savedDescriptionText = string.Empty;
+    private string _savedRpDescriptionText = string.Empty;
+    private string _savedRpFirstNameText = string.Empty;
+    private string _savedRpLastNameText = string.Empty;
+    private string _savedRpTitleText = string.Empty;
+    private string _savedRpAgeText = string.Empty;
+    private string _savedRpRaceText = string.Empty;
+    private string _savedRpEthnicityText = string.Empty;
+    private string _savedRpHeightText = string.Empty;
+    private string _savedRpBuildText = string.Empty;
+    private string _savedRpResidenceText = string.Empty;
+    private string _savedRpOccupationText = string.Empty;
+    private string _savedRpAffiliationText = string.Empty;
+    private string _savedRpAlignmentText = string.Empty;
+    private string _savedRpAdditionalInfoText = string.Empty;
     private bool _addMoodlePopupOpen;
     private int _newMoodleIconId = 210456;
     private string _newMoodleTitle = "";
@@ -143,7 +159,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                 _hrpLoaded = false;
             }
         });
-        Mediator.Subscribe<MoodlesMessage>(this, (msg) => Task.Run(RefreshLocalMoodlesAsync));
+        Mediator.Subscribe<MoodlesMessage>(this, (msg) => _ = Task.Run(RefreshLocalMoodlesAsync));
     }
 
     private bool _moodlesFetching;
@@ -219,57 +235,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
         DrawProfileTabButtons(accent);
     }
 
-    public void DrawInline()
-    {
-        var accent = UiSharedService.AccentColor;
-        if (accent.W <= 0f) accent = ImGuiColors.ParsedPurple;
-
-        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Eye, Loc.Get("EditProfile.PreviewButton")))
-        {
-            var myUserData = new UserData(_apiController.UID, _apiController.DisplayName);
-            var pair = _pairManager.GetPairByUID(_apiController.UID) ?? _pairFactory.Create(myUserData);
-
-            var currentProfile = _rpConfigService.GetCurrentCharacterProfile();
-            var hrpImageBase64 = _profileImage.Length > 0 ? Convert.ToBase64String(_profileImage) : string.Empty;
-            var previewProfileData = new UmbraProfileData(
-                IsFlagged: false,
-                IsNSFW: _apiController.IsProfileNsfw,
-                Base64ProfilePicture: hrpImageBase64,
-                Description: _descriptionText,
-                Base64RpProfilePicture: currentProfile.RpProfilePictureBase64,
-                RpDescription: _rpDescriptionText,
-                IsRpNSFW: currentProfile.IsRpNsfw,
-                RpFirstName: _rpFirstNameText,
-                RpLastName: _rpLastNameText,
-                RpTitle: _rpTitleText,
-                RpAge: _rpAgeText,
-                RpRace: _rpRaceText,
-                RpEthnicity: _rpEthnicityText,
-                RpHeight: _rpHeightText,
-                RpBuild: _rpBuildText,
-                RpResidence: _rpResidenceText,
-                RpOccupation: _rpOccupationText,
-                RpAffiliation: _rpAffiliationText,
-                RpAlignment: _rpAlignmentText,
-                RpAdditionalInfo: _rpAdditionalInfoText
-            );
-
-            _umbraProfileManager.SetPreviewProfile(pair.UserData, pair.PlayerName, pair.WorldId, previewProfileData);
-            Mediator.Publish(new ProfileOpenStandaloneMessage(pair));
-        }
-        ImGui.SameLine();
-        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Tag, Loc.Get("EditProfile.SetCustomId.Button")))
-        {
-            _vanityInput = string.Empty;
-            _vanityModalOpen = true;
-            ImGui.OpenPopup(Loc.Get("EditProfile.SetCustomId.Title"));
-        }
-        UiSharedService.AttachToolTip(Loc.Get("EditProfile.SetCustomId.Tooltip"));
-
-        DrawVanityPopup();
-
-        DrawProfileTabButtons(accent);
-    }
+    public void DrawInline() => DrawInternal();
 
     private void DrawProfileTabButtons(Vector4 accent)
     {
@@ -341,12 +307,12 @@ public class EditProfileUi : WindowMediatorSubscriberBase
 
         if (umbraProfile.IsFlagged)
         {
-            _uiSharedService.BigText(isRp ? "Profil RP" : Loc.Get("EditProfile.CurrentProfile"));
+            _uiSharedService.BigText(isRp ? "Profil RP" : "Profil HRP");
             UiSharedService.ColorTextWrapped(umbraProfile.Description, UiSharedService.AccentColor);
             return;
         }
 
-        _uiSharedService.BigText(isRp ? "Profil RP" : Loc.Get("EditProfile.CurrentProfile"));
+        _uiSharedService.BigText(isRp ? "Profil RP" : "Profil HRP");
         ImGui.SameLine();
         DrawHeaderButtons(isRp, umbraProfile);
         ImGuiHelpers.ScaledDummy(new Vector2(0f, ImGui.GetStyle().ItemSpacing.Y / 2));
@@ -385,6 +351,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                 }
 
                 _rpLoaded = true;
+                SnapshotSavedState(true);
             }
         }
         else
@@ -408,6 +375,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                 }
 
                 _hrpLoaded = true;
+                SnapshotSavedState(false);
             }
         }
 
@@ -419,6 +387,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
         float spacing = 16f * ImGuiHelpers.GlobalScale;
 
         ImGui.BeginGroup();
+        var portraitRounding = 10f * ImGuiHelpers.GlobalScale;
         if (pfpTexture != null && pfpBytes.Length > 0)
         {
             float ratio = (float)pfpTexture.Width / pfpTexture.Height;
@@ -427,15 +396,25 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             else drawSize = new Vector2(imgSz * ratio, imgSz);
 
             var cursor = ImGui.GetCursorPos();
-            ImGui.SetCursorPos(cursor + new Vector2((imgSz - drawSize.X) / 2, (imgSz - drawSize.Y) / 2));
-            ImGui.Image(pfpTexture.Handle, drawSize);
+            var offsetX = (imgSz - drawSize.X) / 2f;
+            var offsetY = (imgSz - drawSize.Y) / 2f;
+            var screenPos = ImGui.GetCursorScreenPos();
+            var pMin = new Vector2(screenPos.X + offsetX, screenPos.Y + offsetY);
+            var pMax = new Vector2(pMin.X + drawSize.X, pMin.Y + drawSize.Y);
+
+            ImGui.GetWindowDrawList().AddImageRounded(pfpTexture.Handle, pMin, pMax,
+                Vector2.Zero, Vector2.One, ImGui.GetColorU32(new Vector4(1, 1, 1, 1)), portraitRounding);
+
             ImGui.SetCursorPos(cursor + new Vector2(0, imgSz + ImGui.GetStyle().ItemSpacing.Y));
         }
         else
         {
             var cursor = ImGui.GetCursorPos();
             var cursorScreen = ImGui.GetCursorScreenPos();
-            ImGui.GetWindowDrawList().AddRect(cursorScreen, cursorScreen + new Vector2(imgSz), ImGui.GetColorU32(ImGuiCol.Border));
+            ImGui.GetWindowDrawList().AddRectFilled(cursorScreen, cursorScreen + new Vector2(imgSz),
+                ImGui.GetColorU32(new Vector4(0.15f, 0.15f, 0.15f, 1f)), portraitRounding);
+            ImGui.GetWindowDrawList().AddRect(cursorScreen, cursorScreen + new Vector2(imgSz),
+                ImGui.GetColorU32(ImGuiCol.Border), portraitRounding);
             var iconSize = UiSharedService.GetIconSize(FontAwesomeIcon.Image);
             ImGui.SetCursorPos(cursor + new Vector2((imgSz - iconSize.X) / 2, (imgSz - iconSize.Y) / 2));
             _uiSharedService.IconText(FontAwesomeIcon.Image, ImGuiColors.DalamudGrey);
@@ -772,11 +751,9 @@ public class EditProfileUi : WindowMediatorSubscriberBase
 
             // Direct icon ID input
             ImGui.SetNextItemWidth(120 * ImGuiHelpers.GlobalScale);
-            if (ImGui.InputText("##iconIdDirect", ref _iconIdInput, 10, ImGuiInputTextFlags.CharsDecimal))
-            {
-                if (int.TryParse(_iconIdInput, out var parsed) && parsed > 0)
-                    _newMoodleIconId = parsed;
-            }
+            if (ImGui.InputText("##iconIdDirect", ref _iconIdInput, 10, ImGuiInputTextFlags.CharsDecimal)
+                && int.TryParse(_iconIdInput, out var parsed) && parsed > 0)
+                _newMoodleIconId = parsed;
             ImGui.SameLine();
             ImGui.TextColored(ImGuiColors.DalamudGrey, "ID direct");
 
@@ -1296,6 +1273,8 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                     }
                     Mediator.Publish(new ClearProfileDataMessage(new UserData(_apiController.UID), charName, worldId));
                     Mediator.Publish(new NotificationMessage(Loc.Get("EditProfile.SaveSuccessTitle"), Loc.Get("EditProfile.SaveSuccessBody"), NotificationType.Info));
+                    SnapshotSavedState(isRp);
+                    _saveConfirmTime = DateTime.UtcNow;
                 }
                 catch (Exception ex)
                 {
@@ -1304,6 +1283,65 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                     _notificationTracker.Upsert(NotificationEntry.ProfileSaveFailed());
                 }
             });
+        }
+
+        // Status message next to save button
+        ImGui.SameLine();
+        if ((DateTime.UtcNow - _saveConfirmTime).TotalSeconds < 4)
+        {
+            ImGui.TextColored(ImGuiColors.HealerGreen, Loc.Get("EditProfile.SaveConfirm"));
+        }
+        else if (HasUnsavedChanges(isRp))
+        {
+            ImGui.TextColored(new Vector4(0.85f, 0.75f, 0.20f, 1f), Loc.Get("EditProfile.UnsavedChanges"));
+        }
+    }
+
+    private void SnapshotSavedState(bool isRp)
+    {
+        if (isRp)
+        {
+            _savedRpFirstNameText = _rpFirstNameText;
+            _savedRpLastNameText = _rpLastNameText;
+            _savedRpTitleText = _rpTitleText;
+            _savedRpAgeText = _rpAgeText;
+            _savedRpRaceText = _rpRaceText;
+            _savedRpEthnicityText = _rpEthnicityText;
+            _savedRpHeightText = _rpHeightText;
+            _savedRpBuildText = _rpBuildText;
+            _savedRpResidenceText = _rpResidenceText;
+            _savedRpOccupationText = _rpOccupationText;
+            _savedRpAffiliationText = _rpAffiliationText;
+            _savedRpAlignmentText = _rpAlignmentText;
+            _savedRpAdditionalInfoText = _rpAdditionalInfoText;
+        }
+        else
+        {
+            _savedDescriptionText = _descriptionText;
+        }
+    }
+
+    private bool HasUnsavedChanges(bool isRp)
+    {
+        if (isRp)
+        {
+            return !string.Equals(_rpFirstNameText, _savedRpFirstNameText, StringComparison.Ordinal)
+                || !string.Equals(_rpLastNameText, _savedRpLastNameText, StringComparison.Ordinal)
+                || !string.Equals(_rpTitleText, _savedRpTitleText, StringComparison.Ordinal)
+                || !string.Equals(_rpAgeText, _savedRpAgeText, StringComparison.Ordinal)
+                || !string.Equals(_rpRaceText, _savedRpRaceText, StringComparison.Ordinal)
+                || !string.Equals(_rpEthnicityText, _savedRpEthnicityText, StringComparison.Ordinal)
+                || !string.Equals(_rpHeightText, _savedRpHeightText, StringComparison.Ordinal)
+                || !string.Equals(_rpBuildText, _savedRpBuildText, StringComparison.Ordinal)
+                || !string.Equals(_rpResidenceText, _savedRpResidenceText, StringComparison.Ordinal)
+                || !string.Equals(_rpOccupationText, _savedRpOccupationText, StringComparison.Ordinal)
+                || !string.Equals(_rpAffiliationText, _savedRpAffiliationText, StringComparison.Ordinal)
+                || !string.Equals(_rpAlignmentText, _savedRpAlignmentText, StringComparison.Ordinal)
+                || !string.Equals(_rpAdditionalInfoText, _savedRpAdditionalInfoText, StringComparison.Ordinal);
+        }
+        else
+        {
+            return !string.Equals(_descriptionText, _savedDescriptionText, StringComparison.Ordinal);
         }
     }
 

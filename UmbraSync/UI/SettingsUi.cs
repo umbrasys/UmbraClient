@@ -1670,7 +1670,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
         var selectedServer = _serverConfigurationManager.GetServerByIndex(idx);
 
-        {
             Vector4 accent = UiSharedService.AccentColor;
             if (accent.W <= 0f) accent = ImGuiColors.ParsedPurple;
 
@@ -2042,7 +2041,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
                     foreach (var (name, imported, reason) in _importResults)
                     {
                         var color = imported ? ImGuiColors.HealerGreen : ImGuiColors.DalamudYellow;
-                        var status = imported ? Loc.Get("Settings.Account.Keys.Import.Imported") : Loc.Get("Settings.Account.Keys.Import.Skipped");
                         ImGui.TextColored(color, imported ? "\uF00C" : "\uF00D");
                         ImGui.SameLine();
                         if (!string.IsNullOrEmpty(reason))
@@ -2105,7 +2103,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 }
 
             }
-        }
     }
 
     private string _uidToAddForIgnore = string.Empty;

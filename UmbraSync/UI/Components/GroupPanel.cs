@@ -952,7 +952,6 @@ internal sealed class GroupPanel
 
         if (groups.Count == 0) return;
 
-        var accent = UiSharedService.AccentColor;
         float availableWidth = ImGui.GetContentRegionAvail().X;
         float cardSpacing = 8f * ImGuiHelpers.GlobalScale;
         float minCardSize = 100f * ImGuiHelpers.GlobalScale;

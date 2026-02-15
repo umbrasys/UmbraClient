@@ -12,16 +12,6 @@ using UmbraSync.Services.Mediator;
 
 namespace UmbraSync.Services;
 
-/// <summary>
-/// Runs AFTER Chat Proximity to blend emote colors with distance fading.
-///
-/// Flow:
-/// 1. ChatEmoteHighlightService adds UIForegroundPayload(colorKey) around emotes
-/// 2. Chat Proximity adds color stack (0x13) for distance fading, preserving UIForeground as-is
-/// 3. This service REPLACES UIForegroundPayload(colorKey) with RawPayload UIForeground(0x48, blendedRGB)
-///
-/// If this service fails (sender not found, etc.), emotes keep their original color — no regression.
-/// </summary>
 public class ChatProximityBlendService : DisposableMediatorSubscriberBase
 {
     private readonly IChatGui _chatGui;
@@ -174,9 +164,6 @@ public class ChatProximityBlendService : DisposableMediatorSubscriberBase
         var farColor = GetChannelFarColor(type);
         var fadedColor = Vector4.Lerp(nearColor, farColor, ratio);
         var fadeFactor = Math.Max(Math.Max(fadedColor.X, Math.Max(fadedColor.Y, fadedColor.Z)), 0.01f);
-
-        // Replace UIForegroundPayload(colorKey) → color stack push (0x13, blendedRGB)
-        // Replace corresponding UIForegroundOff → color stack pop (restores CP's faded color)
         var newPayloads = new List<Payload>(message.Payloads.Count);
         var modified = false;
         var insideBlend = false;
@@ -188,7 +175,6 @@ public class ChatProximityBlendService : DisposableMediatorSubscriberBase
                 if (fgPayload.ColorKey != 0
                     && (fgPayload.ColorKey == emoteColorKey || fgPayload.ColorKey == hrpColorKey))
                 {
-                    // Replace emote UIForeground with color stack push (blended RGB)
                     var baseColor = ResolveColorKey(fgPayload.ColorKey);
                     var blended = new Vector4(
                         baseColor.X * fadeFactor,
@@ -201,7 +187,6 @@ public class ChatProximityBlendService : DisposableMediatorSubscriberBase
                 }
                 else if (fgPayload.ColorKey == 0 && insideBlend)
                 {
-                    // Replace UIForegroundOff with color stack pop
                     newPayloads.Add(ColorPopPayload);
                     insideBlend = false;
                     modified = true;
@@ -223,15 +208,12 @@ public class ChatProximityBlendService : DisposableMediatorSubscriberBase
 
     private static string ExtractPlayerName(SeString sender)
     {
-        // PlayerPayload contains the original game character name
-        // and survives ChatNameReplacementService's RP name replacement
+
         foreach (var payload in sender.Payloads)
         {
             if (payload is PlayerPayload playerPayload && !string.IsNullOrEmpty(playerPayload.PlayerName))
                 return playerPayload.PlayerName;
         }
-
-        // Fallback to first TextPayload
         foreach (var payload in sender.Payloads)
         {
             if (payload is TextPayload textPayload && !string.IsNullOrWhiteSpace(textPayload.Text))
@@ -301,11 +283,7 @@ public class ChatProximityBlendService : DisposableMediatorSubscriberBase
         }
         return new Vector4(1f, 0.65f, 0f, 1f);
     }
-
-    /// <summary>
-    /// Color stack push (type 0x13) with direct RGB — same format as GuiHookService.BuildColorStartPayload.
-    /// Nests inside Chat Proximity's own color stack: [CP push] ... [our push] emote [our pop] ... [CP pop]
-    /// </summary>
+    
     private static RawPayload MakeColorPushPayload(Vector4 color)
     {
         var r = byte.Max((byte)(color.X * 255), (byte)0x01);
@@ -313,14 +291,12 @@ public class ChatProximityBlendService : DisposableMediatorSubscriberBase
         var b = byte.Max((byte)(color.Z * 255), (byte)0x01);
         return new RawPayload(unchecked([0x02, 0x13, 0x05, 0xF6, r, g, b, 0x03]));
     }
-
-    /// <summary>
-    /// Color stack pop (type 0x13) — restores the previous color on the stack (CP's faded color).
-    /// </summary>
+    
     private static readonly RawPayload ColorPopPayload = new([0x02, 0x13, 0x02, 0xEC, 0x03]);
 
     #region Chat Proximity Config Model
 
+#pragma warning disable S3459, S1144 // Properties are set by Newtonsoft.Json deserialization
     private sealed class CpConfig
     {
         public Dictionary<string, CpChannelConfig>? ChatTypeConfigs { get; set; }
@@ -333,6 +309,7 @@ public class ChatProximityBlendService : DisposableMediatorSubscriberBase
         public Vector4 NearColor { get; set; }
         public Vector4 FarColor { get; set; }
     }
+#pragma warning restore S3459, S1144
 
     #endregion
 }
