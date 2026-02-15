@@ -174,11 +174,14 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
         {
             new(new Version(2, 2, 2, 0), "2.2.2.0", new List<ChangelogLine>
             {
+                new("Nouveauté : Intégration de Moodles dans les profils RP."),
+                new("Nouveauté : Prise en charge du plugin Chat Proximity pour adapter la colorisation des émotes dans le chat en fonction de la distance."),
                 new("Amélioration : Modification de divers aspect de l'interface."),
                 new("Amélioration : Ajout de catégorie et des informations Moodles dans le profil RP."),
                 new("Correctif : La notification de connexion n'apparait plus au démarrage."),
                 new("Correctif : Dans certains cas, la bulle d'écriture ne s'affichait plus."),
                 new("Correctif : Dans certains cas, le téléchargement de mod s'annulait."),
+                new("Correctif : La suppression d'un marqueur n'était pas effectif pour les autres personnes."),
                 new("Mise à jour SDK Dalamud."),
             }),
             new(new Version(2, 2, 1, 0), "2.2.1.0", new List<ChangelogLine>

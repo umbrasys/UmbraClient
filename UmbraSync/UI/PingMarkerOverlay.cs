@@ -446,6 +446,13 @@ public sealed class PingMarkerOverlay : WindowMediatorSubscriberBase
         if (closest == null) return false;
 
         _pingStateService.TryRemoveMarker(closest.Ping.Id);
+
+        if (!string.IsNullOrEmpty(closest.GroupGID))
+        {
+            var removeDto = new PingMarkerRemoveDto { PingId = closest.Ping.Id };
+            _ = _apiController.GroupRemovePing(new GroupDto(new GroupData(closest.GroupGID)), removeDto);
+        }
+
         _typedLogger.LogDebug("PingMarkerOverlay: removed own ping {id} by click", closest.Ping.Id);
         return true;
     }

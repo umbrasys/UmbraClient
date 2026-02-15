@@ -621,7 +621,7 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value>Hub de données de personnage</value>
   </data>
   <data name="CompactUi.Sidebar.EditProfile" xml:space="preserve">
-    <value>Modifier le profil</value>
+    <value>Mon Profil</value>
   </data>
   <data name="CompactUi.Sidebar.IndividualPairs" xml:space="preserve">
     <value>Paires individuelles</value>
@@ -891,7 +891,7 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value>effets visuels</value>
   </data>
   <data name="CompactUi.Uid.CopyTooltip" xml:space="preserve">
-    <value />
+    <value>Copier votre UID dans le presse-papiers</value>
   </data>
   <data name="CompactUi.UidStatus.Connecting" xml:space="preserve">
     <value>Connexion</value>
@@ -3730,10 +3730,10 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value>À propos d'UmbraSync, fonctionnalités et liens utiles.</value>
   </data>
   <data name="Settings.About.ByAuthor" xml:space="preserve">
-    <value>par Keda</value>
+    <value>Par Keda</value>
   </data>
   <data name="Settings.About.Tagline" xml:space="preserve">
-    <value>Plugin de synchronisation de mods orienté pour le RôlePlay sur FFXIV</value>
+    <value>Plugin de synchronisation de mods et états orienté pour le RôlePlay.</value>
   </data>
   <data name="Settings.About.Links" xml:space="preserve">
     <value>LIENS</value>
@@ -3766,6 +3766,204 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value>Plugins optionnels</value>
   </data>
   <data name="Settings.Plugins.Optional.Hint" xml:space="preserve">
-    <value>Ces plugins ne sont pas nécessaires au fonctionnement de base, mais sans eux vous pourriez ne pas voir les autres comme prévu.</value>
+    <value>Plugins optionnels pour améliorer l'expérience UmbraSync.</value>
+  </data>
+  <data name="Settings.Plugins.Mandatory.Hint" xml:space="preserve">
+    <value>Ces plugins sont nécessaires au bon fonctionnement d'UmbraSync.</value>
+  </data>
+  <data name="Settings.Plugins.Detected" xml:space="preserve">
+    <value>Plugins détectés</value>
+  </data>
+  <data name="Settings.Plugins.Detected.Hint" xml:space="preserve">
+    <value>Ces plugins peuvent influencer le fonctionnement d'UmbraSync lorsqu'ils sont détectés.</value>
+  </data>
+  <data name="Settings.Plugins.Chat2.Hint" xml:space="preserve">
+    <value>Support de la prise en charge de la bulle d'écriture&#x0A;Désactivation de l'affichage en italique HRP</value>
+  </data>
+  <data name="Settings.Plugins.ChatProximity.Hint" xml:space="preserve">
+    <value>Les couleurs d'emotes se fondent avec l'estompage de distance sur les canaux de proximité (Dire, Crier, Emotes)&#x0A;Nécessite l'activation de la colorisation des emotes</value>
+  </data>
+  <data name="Settings.Plugins.MissingMandatory" xml:space="preserve">
+    <value>Vous devez installer Penumbra et Glamourer et les maintenir à jour pour utiliser UmbraSync.</value>
+  </data>
+  <data name="Settings.Account.DeleteAccount" xml:space="preserve">
+    <value>Supprimer le compte</value>
+  </data>
+  <data name="Settings.Account.DeleteAccount.Confirm" xml:space="preserve">
+    <value>Supprimer votre compte ?</value>
+  </data>
+  <data name="Settings.Account.DeleteAccount.Help" xml:space="preserve">
+    <value>Supprime définitivement votre compte actuellement connecté.</value>
+  </data>
+  <data name="Settings.Account.DeleteAccount.Warning1" xml:space="preserve">
+    <value>Votre compte et tous les fichiers et données associés sur le service seront supprimés.</value>
+  </data>
+  <data name="Settings.Account.DeleteAccount.Warning2" xml:space="preserve">
+    <value>Votre UID sera retiré de toutes les listes d'appairage.</value>
+  </data>
+  <data name="Settings.Account.DeleteAccount.ConfirmQuestion" xml:space="preserve">
+    <value>Êtes-vous sûr de vouloir continuer ?</value>
+  </data>
+  <data name="Settings.Account.ServiceSettings" xml:space="preserve">
+    <value>Service et personnages</value>
+  </data>
+  <data name="Settings.Account.ReconnectWarning" xml:space="preserve">
+    <value>Vous devez vous reconnecter au service pour que les modifications soient appliquées.</value>
+  </data>
+  <data name="Settings.Account.Tab.Characters" xml:space="preserve">
+    <value>Assignation des personnages</value>
+  </data>
+  <data name="Settings.Account.Tab.SecretKeys" xml:space="preserve">
+    <value>Gestion des clés secrètes</value>
+  </data>
+  <data name="Settings.Account.Characters.Info" xml:space="preserve">
+    <value>Les personnages listés ici se connecteront avec la clé secrète spécifiée.</value>
+  </data>
+  <data name="Settings.Account.Characters.Current" xml:space="preserve">
+    <value>Personnage actuel</value>
+  </data>
+  <data name="Settings.Account.Characters.DeleteAssignment" xml:space="preserve">
+    <value>Supprimer l'assignation du personnage</value>
+  </data>
+  <data name="Settings.Account.Characters.AddCurrent" xml:space="preserve">
+    <value>Ajouter le personnage actuel</value>
+  </data>
+  <data name="Settings.Account.Characters.NeedKey" xml:space="preserve">
+    <value>Vous devez d'abord ajouter une clé secrète avant d'ajouter des personnages.</value>
+  </data>
+  <data name="Settings.Account.Keys.DisplayName" xml:space="preserve">
+    <value>Nom d'affichage de la clé</value>
+  </data>
+  <data name="Settings.Account.Keys.SecretKey" xml:space="preserve">
+    <value>Clé secrète</value>
+  </data>
+  <data name="Settings.Account.Keys.AssignCurrent" xml:space="preserve">
+    <value>Assigner le personnage actuel</value>
+  </data>
+  <data name="Settings.Account.Keys.UseKeyFor" xml:space="preserve">
+    <value>Utiliser cette clé secrète pour {0} @ {1}</value>
+  </data>
+  <data name="Settings.Account.Keys.Delete" xml:space="preserve">
+    <value>Supprimer la clé</value>
+  </data>
+  <data name="Settings.Account.Keys.DeleteHelp" xml:space="preserve">
+    <value>Maintenez CTRL pour supprimer cette clé secrète</value>
+  </data>
+  <data name="Settings.Account.Keys.InUseWarning" xml:space="preserve">
+    <value>Cette clé est actuellement assignée à un personnage et ne peut pas être modifiée ou supprimée.</value>
+  </data>
+  <data name="Settings.Account.Keys.AddNew" xml:space="preserve">
+    <value>Ajouter manuellement une clé secrète</value>
+  </data>
+  <data name="Settings.Account.Keys.NewKeyName" xml:space="preserve">
+    <value>Nouvelle clé secrète</value>
+  </data>
+  <data name="Settings.Account.Register" xml:space="preserve">
+    <value>Créer une nouvelle clé secrète</value>
+  </data>
+  <data name="Settings.Account.Register.Sending" xml:space="preserve">
+    <value>Envoi de la requête...</value>
+  </data>
+  <data name="Settings.Account.Register.Error" xml:space="preserve">
+    <value>Une erreur inconnue s'est produite. Veuillez réessayer plus tard.</value>
+  </data>
+  <data name="Settings.Account.Register.Success" xml:space="preserve">
+    <value>Nouveau compte enregistré.&#x0A;Veuillez conserver une copie de votre clé secrète en cas de réinitialisation de vos plugins, ou pour l'utiliser sur un autre PC.</value>
+  </data>
+  <data name="Settings.Account.Keys.ExportOne" xml:space="preserve">
+    <value>Exporter cette clé</value>
+  </data>
+  <data name="Settings.Account.Keys.ExportOne.Dialog" xml:space="preserve">
+    <value>Exporter la clé secrète</value>
+  </data>
+  <data name="Settings.Account.Keys.Export" xml:space="preserve">
+    <value>Exporter toutes les clés</value>
+  </data>
+  <data name="Settings.Account.Keys.Export.Dialog" xml:space="preserve">
+    <value>Exporter les clés secrètes</value>
+  </data>
+  <data name="Settings.Account.Keys.Import" xml:space="preserve">
+    <value>Importer des clés</value>
+  </data>
+  <data name="Settings.Account.Keys.Import.Dialog" xml:space="preserve">
+    <value>Importer des clés secrètes</value>
+  </data>
+  <data name="Settings.Account.Keys.Import.Result" xml:space="preserve">
+    <value>Résumé de l'importation</value>
+  </data>
+  <data name="Settings.Account.Keys.Import.Imported" xml:space="preserve">
+    <value>Importée</value>
+  </data>
+  <data name="Settings.Account.Keys.Import.Skipped" xml:space="preserve">
+    <value>Ignorée</value>
+  </data>
+  <data name="Settings.Account.Keys.Import.AlreadyExists" xml:space="preserve">
+    <value>Déjà existante</value>
+  </data>
+  <data name="Settings.Account.Keys.Import.EmptyKey" xml:space="preserve">
+    <value>Clé vide</value>
+  </data>
+  <data name="Settings.Account.Keys.Import.InvalidFile" xml:space="preserve">
+    <value>Le fichier n'a pas pu être lu ou n'est pas un fichier de clés valide.</value>
+  </data>
+  <data name="Settings.Advanced.UmbraApi" xml:space="preserve">
+    <value>Activer l'API Umbra Sync</value>
+  </data>
+  <data name="Settings.Advanced.UmbraApi.Help" xml:space="preserve">
+    <value>Active la gestion de l'API Umbra Sync. Cela inclut actuellement :&#x0A;&#x0A; - Support du chargement MCDF pour les autres plugins&#x0A; - Blocage des applications Moodles aux utilisateurs appairés&#x0A;&#x0A;Si un autre fournisseur d'API Umbra est chargé pendant que cette option est activée, le contrôle de l'API sera abandonné.</value>
+  </data>
+  <data name="Settings.Advanced.UmbraApi.Active" xml:space="preserve">
+    <value>API Umbra active !</value>
+  </data>
+  <data name="Settings.Advanced.UmbraApi.Disabled" xml:space="preserve">
+    <value>API Umbra inactive : option désactivée</value>
+  </data>
+  <data name="Settings.Advanced.UmbraApi.OtherProvider" xml:space="preserve">
+    <value>API Umbra inactive : un autre fournisseur d'API est chargé</value>
+  </data>
+  <data name="Settings.Advanced.UmbraApi.Unknown" xml:space="preserve">
+    <value>API Umbra inactive : raison inconnue</value>
+  </data>
+  <data name="Settings.Advanced.LogEvents" xml:space="preserve">
+    <value>Journaliser les données de l'Event Viewer</value>
+  </data>
+  <data name="Settings.Advanced.OpenEventViewer" xml:space="preserve">
+    <value>Ouvrir l'Event Viewer</value>
+  </data>
+  <data name="Settings.Advanced.HoldCombat" xml:space="preserve">
+    <value>Suspendre les applications en combat</value>
+  </data>
+  <data name="Settings.Advanced.SerialApply" xml:space="preserve">
+    <value>Applications séquentielles des joueurs</value>
+  </data>
+  <data name="Settings.Advanced.SerialApply.Help" xml:space="preserve">
+    <value>Expérimental — Peut réduire les problèmes dans les zones peuplées</value>
+  </data>
+  <data name="Settings.Advanced.Debug" xml:space="preserve">
+    <value>Débogage</value>
+  </data>
+  <data name="Settings.Advanced.Debug.CopyCharaData" xml:space="preserve">
+    <value>Copier les dernières données de personnage</value>
+  </data>
+  <data name="Settings.Advanced.Debug.CopyCharaData.Help" xml:space="preserve">
+    <value>Utilisez ceci pour signaler des mods rejetés par le serveur.</value>
+  </data>
+  <data name="Settings.Advanced.Debug.LogLevel" xml:space="preserve">
+    <value>Niveau de log</value>
+  </data>
+  <data name="Settings.Advanced.Debug.LogPerf" xml:space="preserve">
+    <value>Journaliser les compteurs de performance</value>
+  </data>
+  <data name="Settings.Advanced.Debug.LogPerf.Help" xml:space="preserve">
+    <value>Activer cette option peut avoir un léger impact sur les performances. Il n'est pas recommandé de la laisser activée longtemps.</value>
+  </data>
+  <data name="Settings.Advanced.Debug.PrintPerf" xml:space="preserve">
+    <value>Afficher les stats dans /xllog</value>
+  </data>
+  <data name="Settings.Advanced.Debug.PrintPerf60" xml:space="preserve">
+    <value>Afficher les stats (60s) dans /xllog</value>
+  </data>
+  <data name="Settings.Advanced.Debug.ActiveBlocks" xml:space="preserve">
+    <value>Blocages de personnages actifs</value>
   </data>
 </root>

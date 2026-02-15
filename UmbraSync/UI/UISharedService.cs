@@ -84,6 +84,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     private readonly IpcManager _ipcManager;
     private readonly IDalamudPluginInterface _pluginInterface;
     private readonly ITextureProvider _textureProvider;
+    public ITextureProvider TextureProvider => _textureProvider;
     private readonly Dictionary<string, object> _selectedComboItems = new(StringComparer.Ordinal);
     private readonly ServerConfigurationManager _serverConfigurationManager;
     private bool _cacheDirectoryHasOtherFilesThanCache;
@@ -111,6 +112,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     private bool _petNamesExists;
     private bool _brioExists;
     private bool _chatTwoExists;
+    private bool _chatProximityExists;
     public bool ChatTwoExists => _chatTwoExists;
 
     private int _serverSelectionIndex = -1;
@@ -144,6 +146,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             _moodlesExists = _ipcManager.Moodles.APIAvailable;
             _brioExists = _ipcManager.Brio.APIAvailable;
             _chatTwoExists = Services.PluginWatcherService.GetInitialPluginState(_pluginInterface, "ChatTwo")?.IsLoaded ?? false;
+            _chatProximityExists = Services.PluginWatcherService.GetInitialPluginState(_pluginInterface, "ChatProximity")?.IsLoaded ?? false;
         });
 
         UidFont = _pluginInterface.UiBuilder.FontAtlas.NewDelegateFontHandle(e =>
@@ -1151,27 +1154,86 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             DrawPluginEntry("Moodles", _moodlesExists, check, cross);
             DrawPluginEntry("Brio", _brioExists, check, cross);
             DrawPluginEntry("Chat2", _chatTwoExists, check, cross);
+            DrawPluginEntry("Chat Proximity", _chatProximityExists, check, cross);
         }
         else
         {
+            // Mandatory plugins — single line
             ImGui.TextUnformatted(Loc.Get("Settings.Plugins.Mandatory"));
-            DrawPluginEntry("Penumbra", _penumbraExists, check, cross);
-            DrawPluginEntry("Glamourer", _glamourerExists, check, cross);
+            ImGui.SameLine();
+            DrawHelpText(Loc.Get("Settings.Plugins.Mandatory.Hint"));
+            if (ImGui.BeginTable("##MandatoryPlugins", 2, ImGuiTableFlags.SizingFixedFit))
+            {
+                ImGui.TableSetupColumn("##col1", ImGuiTableColumnFlags.None, 130f * ImGuiHelpers.GlobalScale);
+                ImGui.TableSetupColumn("##col2", ImGuiTableColumnFlags.None);
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                DrawPluginEntry("Penumbra", _penumbraExists, check, cross);
+                ImGui.TableNextColumn();
+                DrawPluginEntry("Glamourer", _glamourerExists, check, cross);
+                ImGui.EndTable();
+            }
+
+            if (!_penumbraExists || !_glamourerExists)
+            {
+                ImGuiHelpers.ScaledDummy(2f);
+                ColorTextWrapped(Loc.Get("Settings.Plugins.MissingMandatory"), AccentColor);
+            }
 
             ImGuiHelpers.ScaledDummy(4f);
+
+            // Optional plugins — two per line
             ImGui.TextUnformatted(Loc.Get("Settings.Plugins.Optional"));
-            DrawPluginEntry("SimpleHeels", _heelsExists, check, cross);
-            DrawPluginEntry("Customize+", _customizePlusExists, check, cross);
-            DrawPluginEntry("Honorific", _honorificExists, check, cross);
-            DrawPluginEntry("PetNicknames", _petNamesExists, check, cross);
-            DrawPluginEntry("Moodles", _moodlesExists, check, cross);
-            DrawPluginEntry("Brio", _brioExists, check, cross);
-            DrawPluginEntry("Chat2", _chatTwoExists, check, cross);
+            ImGui.SameLine();
+            DrawHelpText(Loc.Get("Settings.Plugins.Optional.Hint"));
+
+            var optionalPlugins = new (string Name, bool Exists)[]
+            {
+                ("SimpleHeels", _heelsExists),
+                ("Customize+", _customizePlusExists),
+                ("Honorific", _honorificExists),
+                ("PetNicknames", _petNamesExists),
+                ("Moodles", _moodlesExists),
+                ("Brio", _brioExists),
+            };
+            if (ImGui.BeginTable("##OptionalPlugins", 2, ImGuiTableFlags.SizingFixedFit))
+            {
+                ImGui.TableSetupColumn("##col1", ImGuiTableColumnFlags.None, 130f * ImGuiHelpers.GlobalScale);
+                ImGui.TableSetupColumn("##col2", ImGuiTableColumnFlags.None);
+                for (int pi = 0; pi < optionalPlugins.Length; pi++)
+                {
+                    if (pi % 2 == 0) ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    DrawPluginEntry(optionalPlugins[pi].Name, optionalPlugins[pi].Exists, check, cross);
+                }
+                ImGui.EndTable();
+            }
+
+            ImGuiHelpers.ScaledDummy(4f);
+
+            // Detected plugins
+            ImGui.TextUnformatted(Loc.Get("Settings.Plugins.Detected"));
+            ImGui.SameLine();
+            DrawHelpText(Loc.Get("Settings.Plugins.Detected.Hint"));
+            if (ImGui.BeginTable("##DetectedPlugins", 2, ImGuiTableFlags.SizingFixedFit))
+            {
+                ImGui.TableSetupColumn("##col1", ImGuiTableColumnFlags.None, 130f * ImGuiHelpers.GlobalScale);
+                ImGui.TableSetupColumn("##col2", ImGuiTableColumnFlags.None);
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                DrawPluginEntry("Chat2", _chatTwoExists, check, cross);
+                ImGui.SameLine();
+                DrawHelpText(Loc.Get("Settings.Plugins.Chat2.Hint"));
+                ImGui.TableNextColumn();
+                DrawPluginEntry("Chat Proximity", _chatProximityExists, check, cross);
+                ImGui.SameLine();
+                DrawHelpText(Loc.Get("Settings.Plugins.ChatProximity.Hint"));
+                ImGui.EndTable();
+            }
         }
 
         if (!_penumbraExists || !_glamourerExists)
         {
-            ImGui.TextColored(UiSharedService.AccentColor, "You need to install both Penumbra and Glamourer and keep them up to date to use Umbra.");
             return false;
         }
 
