@@ -1,13 +1,15 @@
-﻿using Dalamud.Bindings.ImGui;
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
+using Dalamud.Interface.Textures;
 using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Interface.Utility;
-using Dalamud.Interface.Utility.Raii;
 using Microsoft.Extensions.Logging;
 using System.Numerics;
+using UmbraSync.Interop.Ipc;
 using UmbraSync.Localization;
 using UmbraSync.PlayerData.Pairs;
+using UmbraSync.Models;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.ServerConfiguration;
@@ -20,22 +22,29 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
     private readonly ServerConfigurationManager _serverManager;
     private readonly ApiController _apiController;
     private readonly UiSharedService _uiSharedService;
+    private readonly IpcManager _ipcManager;
+    private readonly DalamudUtilService _dalamudUtil;
     private byte[] _lastProfilePicture = [];
     private byte[] _lastRpProfilePicture = [];
     private IDalamudTextureWrap? _textureWrap;
     private IDalamudTextureWrap? _rpTextureWrap;
-    private bool _isRpTab = false;
+    private bool _isRpTab = true;
     private bool _windowSizeInitialized = false;
+    private string _localMoodlesJson = string.Empty;
+    private bool _moodlesFetching;
+    private DateTime _lastMoodlesFetch = DateTime.MinValue;
 
     public StandaloneProfileUi(ILogger<StandaloneProfileUi> logger, MareMediator mediator, UiSharedService uiBuilder,
         ServerConfigurationManager serverManager, UmbraProfileManager umbraProfileManager, ApiController apiController, Pair pair,
-        PerformanceCollectorService performanceCollector)
+        PerformanceCollectorService performanceCollector, IpcManager ipcManager, DalamudUtilService dalamudUtil)
         : base(logger, mediator, string.Format(System.Globalization.CultureInfo.CurrentCulture, Loc.Get("StandaloneProfile.WindowTitle"), pair.UserData.AliasOrUID) + "##UmbraSyncStandaloneProfileUI" + pair.UserData.AliasOrUID, performanceCollector)
     {
         _uiSharedService = uiBuilder;
         _serverManager = serverManager;
         _umbraProfileManager = umbraProfileManager;
         _apiController = apiController;
+        _ipcManager = ipcManager;
+        _dalamudUtil = dalamudUtil;
         Pair = pair;
         Flags = ImGuiWindowFlags.None;
 
@@ -45,7 +54,31 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
             MaximumSize = new(1200, 2000)
         };
 
+        bool isSelf = string.Equals(pair.UserData.UID, apiController.UID, StringComparison.Ordinal);
+        if (isSelf)
+        {
+            Mediator.Subscribe<MoodlesMessage>(this, (msg) => _ = Task.Run(RefreshLocalMoodlesAsync));
+        }
+
         IsOpen = true;
+    }
+
+    private async Task RefreshLocalMoodlesAsync()
+    {
+        if (_moodlesFetching) return;
+        _moodlesFetching = true;
+        try
+        {
+            if (!_ipcManager.Moodles.APIAvailable) return;
+            var ptr = await _dalamudUtil.GetPlayerPointerAsync().ConfigureAwait(false);
+            if (ptr == IntPtr.Zero) return;
+            _localMoodlesJson = await _ipcManager.Moodles.GetStatusAsync(ptr).ConfigureAwait(false) ?? string.Empty;
+            _lastMoodlesFetch = DateTime.UtcNow;
+        }
+        finally
+        {
+            _moodlesFetching = false;
+        }
     }
 
     public Pair Pair { get; init; }
@@ -60,30 +93,15 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
                 _windowSizeInitialized = true;
             }
 
-            var spacing = ImGui.GetStyle().ItemSpacing;
             var umbraProfile = _umbraProfileManager.GetUmbraProfile(Pair.UserData);
 
             var accent = UiSharedService.AccentColor;
             if (accent.W <= 0f) accent = ImGuiColors.ParsedPurple;
-            using (var topTabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, accent))
-            using (var topTabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, accent))
-            {
-                using var tabBar = ImRaii.TabBar("StandaloneProfileTabBarV2");
-                if (tabBar)
-                {
-                    using (var tabItem = ImRaii.TabItem("RP"))
-                    {
-                        if (tabItem) _isRpTab = true;
-                    }
-                    using (var tabItem = ImRaii.TabItem("HRP"))
-                    {
-                        if (tabItem) _isRpTab = false;
-                    }
-                }
-            }
 
-            var description = _isRpTab ? (umbraProfile.RpDescription ?? Loc.Get("UserProfile.NoRpDescription")) : umbraProfile.Description;
-            var isNsfw = _isRpTab ? umbraProfile.IsRpNSFW : umbraProfile.IsNSFW;
+            // RP / HRP toggle buttons
+            DrawTabButtons(accent);
+
+            // Load textures
             var pfpData = _isRpTab ? umbraProfile.RpImageData.Value : umbraProfile.ImageData.Value;
 
             if (_isRpTab)
@@ -107,12 +125,7 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
 
             var currentTexture = _isRpTab ? _rpTextureWrap : _textureWrap;
 
-            var drawList = ImGui.GetWindowDrawList();
-            var rectMin = drawList.GetClipRectMin();
-
-            using (_uiSharedService.UidFont.Push())
-                UiSharedService.ColorText(Pair.UserData.AliasOrUID + (_isRpTab ? " (RP)" : " (HRP)"), UiSharedService.AccentColor);
-
+            // Report button (not self)
             if (!string.Equals(Pair.UserData.UID, _apiController.UID, StringComparison.Ordinal))
             {
                 var reportButtonSize = _uiSharedService.GetIconTextButtonSize(FontAwesomeIcon.ExclamationTriangle, Loc.Get("StandaloneProfile.ReportButton"));
@@ -121,153 +134,517 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
                     Mediator.Publish(new OpenReportPopupMessage(Pair));
             }
 
-            ImGuiHelpers.ScaledDummy(new Vector2(spacing.Y, spacing.Y));
-            ImGui.Separator();
+            ImGuiHelpers.ScaledDummy(2f);
 
-            var availableWidth = ImGui.GetContentRegionAvail().X;
-            var imageSize = Math.Min(256f * ImGuiHelpers.GlobalScale, availableWidth * 0.4f);
-            var contentWidth = availableWidth - imageSize - spacing.X * 2;
-
-            var pos = ImGui.GetCursorPos();
-            ImGui.BeginGroup();
-            ImGuiHelpers.ScaledDummy(new Vector2(imageSize / ImGuiHelpers.GlobalScale, imageSize / ImGuiHelpers.GlobalScale + spacing.Y));
-            ImGui.EndGroup();
-            ImGui.SameLine();
-
-            if (isNsfw && !_isRpTab) // HRP NSFW check (legacy)
+            if (ImGui.BeginChild("ProfileScrollArea", ImGui.GetContentRegionAvail(), false))
             {
-                // existing logic for NSFW could go here, but let's keep it simple for now as requested
-            }
-
-            var descriptionChildHeight = Math.Max(imageSize, ImGui.GetContentRegionAvail().Y - spacing.Y * 2);
-            var childFrameWidth = contentWidth;
-
-            if (ImGui.BeginChild("ProfileContent", new Vector2(childFrameWidth, descriptionChildHeight), false))
-            {
-                using var _ = _uiSharedService.GameFont.Push();
                 if (_isRpTab)
-                {
-                    if (!string.IsNullOrEmpty(umbraProfile.RpFirstName))
-                    {
-                        UiSharedService.ColorText(Loc.Get("UserProfile.RpFirstName") + " : ", accent);
-                        ImGui.SameLine();
-                        ImGui.TextWrapped(umbraProfile.RpFirstName);
-                    }
-                    if (!string.IsNullOrEmpty(umbraProfile.RpLastName))
-                    {
-                        UiSharedService.ColorText(Loc.Get("UserProfile.RpLastName") + " : ", accent);
-                        ImGui.SameLine();
-                        ImGui.TextWrapped(umbraProfile.RpLastName);
-                    }
-                    if (!string.IsNullOrEmpty(umbraProfile.RpTitle))
-                    {
-                        UiSharedService.ColorText(Loc.Get("UserProfile.RpTitle") + " : ", accent);
-                        ImGui.SameLine();
-                        ImGui.TextWrapped(umbraProfile.RpTitle);
-                    }
-                    if (!string.IsNullOrEmpty(umbraProfile.RpAge))
-                    {
-                        UiSharedService.ColorText(Loc.Get("UserProfile.RpAge") + " : ", accent);
-                        ImGui.SameLine();
-                        ImGui.TextWrapped(umbraProfile.RpAge);
-                    }
-                    if (!string.IsNullOrEmpty(umbraProfile.RpHeight))
-                    {
-                        UiSharedService.ColorText(Loc.Get("UserProfile.RpHeight") + " : ", accent);
-                        ImGui.SameLine();
-                        ImGui.TextWrapped(umbraProfile.RpHeight);
-                    }
-                    if (!string.IsNullOrEmpty(umbraProfile.RpBuild))
-                    {
-                        UiSharedService.ColorText(Loc.Get("UserProfile.RpBuild") + " : ", accent);
-                        ImGui.SameLine();
-                        ImGui.TextWrapped(umbraProfile.RpBuild);
-                    }
-                    if (!string.IsNullOrEmpty(umbraProfile.RpOccupation))
-                    {
-                        UiSharedService.ColorText(Loc.Get("UserProfile.RpOccupation") + " : ", accent);
-                        ImGui.SameLine();
-                        ImGui.TextWrapped(umbraProfile.RpOccupation);
-                    }
-                    if (!string.IsNullOrEmpty(umbraProfile.RpAffiliation))
-                    {
-                        UiSharedService.ColorText(Loc.Get("UserProfile.RpAffiliation") + " : ", accent);
-                        ImGui.SameLine();
-                        ImGui.TextWrapped(umbraProfile.RpAffiliation);
-                    }
-                    if (!string.IsNullOrEmpty(umbraProfile.RpAlignment))
-                    {
-                        UiSharedService.ColorText(Loc.Get("UserProfile.RpAlignment") + " : ", accent);
-                        ImGui.SameLine();
-                        ImGui.TextWrapped(umbraProfile.RpAlignment);
-                    }
-
-                    if (!string.IsNullOrEmpty(description))
-                    {
-                        ImGui.Spacing();
-                        ImGui.Spacing();
-                        UiSharedService.ColorText(Loc.Get("UserProfile.RpDescription") + " :", accent);
-                        ImGui.TextWrapped(description);
-                    }
-
-                    if (!string.IsNullOrEmpty(umbraProfile.RpAdditionalInfo))
-                    {
-                        ImGui.Spacing();
-                        ImGui.Spacing();
-                        UiSharedService.ColorText(Loc.Get("UserProfile.RpAdditionalInfo") + " :", accent);
-                        ImGui.TextWrapped(umbraProfile.RpAdditionalInfo);
-                    }
-                }
+                    DrawRpProfile(umbraProfile, currentTexture, accent);
                 else
-                {
-                    ImGui.TextWrapped(description);
-                }
+                    DrawHrpProfile(umbraProfile, currentTexture, accent);
             }
             ImGui.EndChild();
-
-            if (currentTexture != null)
-            {
-                var padding = ImGui.GetStyle().WindowPadding.X;
-                bool tallerThanWide = currentTexture.Height >= currentTexture.Width;
-                var stretchFactor = tallerThanWide ? imageSize / currentTexture.Height : imageSize / currentTexture.Width;
-                var newWidth = currentTexture.Width * stretchFactor;
-                var newHeight = currentTexture.Height * stretchFactor;
-                var remainingWidth = (imageSize - newWidth) / 2f;
-                var remainingHeight = (imageSize - newHeight) / 2f;
-                drawList.AddImage(currentTexture.Handle, new Vector2(rectMin.X + padding + remainingWidth, rectMin.Y + spacing.Y + pos.Y + remainingHeight),
-                    new Vector2(rectMin.X + padding + remainingWidth + newWidth, rectMin.Y + spacing.Y + pos.Y + remainingHeight + newHeight));
-            }
-
-            bool isSelf = string.Equals(Pair.UserData.UID, _apiController.UID, StringComparison.Ordinal);
-            string status;
-            Vector4 statusColor;
-
-            if (isSelf)
-            {
-                status = _apiController.IsConnected ? Loc.Get("StandaloneProfile.Status.Online") : Loc.Get("StandaloneProfile.Status.Offline");
-                statusColor = _apiController.IsConnected ? ImGuiColors.HealerGreen : UiSharedService.AccentColor;
-            }
-            else
-            {
-                status = Pair.IsVisible ? Loc.Get("StandaloneProfile.Status.Visible") : (Pair.IsOnline ? Loc.Get("StandaloneProfile.Status.Online") : Loc.Get("StandaloneProfile.Status.Offline"));
-                statusColor = (Pair.IsVisible || Pair.IsOnline) ? ImGuiColors.HealerGreen : UiSharedService.AccentColor;
-            }
-
-            var statusTextPos = new Vector2(rectMin.X + ImGui.GetStyle().WindowPadding.X, rectMin.Y + spacing.Y + pos.Y + imageSize + spacing.Y);
-            drawList.AddText(statusTextPos, ImGui.GetColorU32(statusColor), status);
-
-            var note = _serverManager.GetNoteForUid(Pair.UserData.UID);
-            if (!string.IsNullOrEmpty(note))
-            {
-                var noteTextSize = ImGui.CalcTextSize(status);
-                var noteTextPos = new Vector2(rectMin.X + ImGui.GetStyle().WindowPadding.X, statusTextPos.Y + noteTextSize.Y + spacing.Y / 2);
-                drawList.AddText(noteTextPos, ImGui.GetColorU32(ImGuiColors.DalamudGrey), note);
-            }
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Error during draw standalone profile");
         }
+    }
+
+    private void DrawTabButtons(Vector4 accent)
+    {
+        var labels = new[] { "RP", "HRP" };
+        var icons = new[] { FontAwesomeIcon.Scroll, FontAwesomeIcon.User };
+        const float btnH = 32f;
+        const float btnSpacing = 8f;
+        const float rounding = 4f;
+        const float iconTextGap = 6f;
+
+        var dl = ImGui.GetWindowDrawList();
+        var availWidth = ImGui.GetContentRegionAvail().X;
+        var btnW = (availWidth - btnSpacing * (labels.Length - 1)) / labels.Length;
+
+        var borderColor = new Vector4(0.29f, 0.21f, 0.41f, 0.7f);
+        var bgColor = new Vector4(0.11f, 0.11f, 0.11f, 0.9f);
+        var hoverBg = new Vector4(0.17f, 0.13f, 0.22f, 1f);
+
+        for (int i = 0; i < labels.Length; i++)
+        {
+            if (i > 0) ImGui.SameLine(0, btnSpacing);
+
+            var p = ImGui.GetCursorScreenPos();
+            bool clicked = ImGui.InvisibleButton($"##profileTab_{i}", new Vector2(btnW, btnH));
+            bool hovered = ImGui.IsItemHovered();
+            bool isActive = _isRpTab ? i == 0 : i == 1;
+
+            var bg = isActive ? accent : hovered ? hoverBg : bgColor;
+            dl.AddRectFilled(p, p + new Vector2(btnW, btnH), ImGui.GetColorU32(bg), rounding);
+            if (!isActive)
+                dl.AddRect(p, p + new Vector2(btnW, btnH), ImGui.GetColorU32(borderColor with { W = hovered ? 0.9f : 0.5f }), rounding);
+
+            ImGui.PushFont(UiBuilder.IconFont);
+            var iconStr = icons[i].ToIconString();
+            var iconSz = ImGui.CalcTextSize(iconStr);
+            ImGui.PopFont();
+
+            var labelSz = ImGui.CalcTextSize(labels[i]);
+            var totalW = iconSz.X + iconTextGap + labelSz.X;
+            var startX = p.X + (btnW - totalW) / 2f;
+
+            var textColor = isActive ? new Vector4(1f, 1f, 1f, 1f) : hovered ? new Vector4(0.9f, 0.85f, 1f, 1f) : new Vector4(0.7f, 0.65f, 0.8f, 1f);
+            var textColorU32 = ImGui.GetColorU32(textColor);
+
+            ImGui.PushFont(UiBuilder.IconFont);
+            dl.AddText(new Vector2(startX, p.Y + (btnH - iconSz.Y) / 2f), textColorU32, iconStr);
+            ImGui.PopFont();
+
+            dl.AddText(new Vector2(startX + iconSz.X + iconTextGap, p.Y + (btnH - labelSz.Y) / 2f), textColorU32, labels[i]);
+
+            if (hovered) ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
+            if (clicked) _isRpTab = i == 0;
+        }
+
+        ImGuiHelpers.ScaledDummy(4f);
+    }
+
+    private void DrawRpProfile(UmbraProfileData profile, IDalamudTextureWrap? texture, Vector4 accent)
+    {
+        var cardSpacing = 8f * ImGuiHelpers.GlobalScale;
+
+        DrawHeroCard(profile, texture, accent);
+        ImGuiHelpers.ScaledDummy(cardSpacing / ImGuiHelpers.GlobalScale);
+
+        bool hasAge = !string.IsNullOrEmpty(profile.RpAge);
+        bool hasHeight = !string.IsNullOrEmpty(profile.RpHeight);
+        bool hasBuild = !string.IsNullOrEmpty(profile.RpBuild);
+        if (hasAge || hasHeight || hasBuild)
+        {
+            UiSharedService.DrawCard("rp-characteristics-card", () =>
+            {
+                DrawSectionTitle(string.Equals(Loc.Get("UserProfile.RpAge").Split(' ')[0], "Âge", StringComparison.Ordinal)
+                    ? "Caractéristiques"
+                    : "Characteristics");
+
+                var availW = ImGui.GetContentRegionAvail().X;
+                int fieldCount = (hasAge ? 1 : 0) + (hasHeight ? 1 : 0) + (hasBuild ? 1 : 0);
+                var colWidth = availW / Math.Max(fieldCount, 1);
+
+                bool first = true;
+                if (hasAge)
+                {
+                    DrawVerticalField(Loc.Get("UserProfile.RpAge"), profile.RpAge!, colWidth);
+                    first = false;
+                }
+                if (hasHeight)
+                {
+                    if (!first) ImGui.SameLine();
+                    DrawVerticalField(Loc.Get("UserProfile.RpHeight"), profile.RpHeight!, colWidth);
+                    first = false;
+                }
+                if (hasBuild)
+                {
+                    if (!first) ImGui.SameLine();
+                    DrawVerticalField(Loc.Get("UserProfile.RpBuild"), profile.RpBuild!, colWidth);
+                }
+            }, stretchWidth: true);
+            ImGuiHelpers.ScaledDummy(cardSpacing / ImGuiHelpers.GlobalScale);
+        }
+
+        bool hasResidence = !string.IsNullOrEmpty(profile.RpResidence);
+        bool hasOccupation = !string.IsNullOrEmpty(profile.RpOccupation);
+        bool hasAffiliation = !string.IsNullOrEmpty(profile.RpAffiliation);
+        bool hasAlignment = !string.IsNullOrEmpty(profile.RpAlignment);
+        if (hasResidence || hasOccupation || hasAffiliation || hasAlignment)
+        {
+            UiSharedService.DrawCard("rp-society-card", () =>
+            {
+                DrawSectionTitle("Société");
+
+                var availW = ImGui.GetContentRegionAvail().X;
+                var halfW = availW / 2f;
+                var col1X = ImGui.GetCursorPosX();
+                var col2X = col1X + halfW;
+
+                // Row 1
+                bool row1HasContent = hasResidence || hasOccupation;
+                if (row1HasContent)
+                {
+                    if (hasResidence)
+                        DrawVerticalField(Loc.Get("UserProfile.RpResidence"), profile.RpResidence!, halfW);
+                    if (hasOccupation)
+                    {
+                        if (hasResidence) { ImGui.SameLine(); ImGui.SetCursorPosX(col2X); }
+                        DrawVerticalField(Loc.Get("UserProfile.RpOccupation"), profile.RpOccupation!, halfW);
+                    }
+                }
+
+                // Row 2
+                bool row2HasContent = hasAffiliation || hasAlignment;
+                if (row2HasContent)
+                {
+                    if (row1HasContent) ImGuiHelpers.ScaledDummy(4f);
+
+                    if (hasAffiliation)
+                        DrawVerticalField(Loc.Get("UserProfile.RpAffiliation"), profile.RpAffiliation!, halfW);
+                    if (hasAlignment)
+                    {
+                        if (hasAffiliation) { ImGui.SameLine(); ImGui.SetCursorPosX(col2X); }
+                        DrawVerticalField(Loc.Get("UserProfile.RpAlignment"), profile.RpAlignment!, halfW);
+                    }
+                }
+            }, stretchWidth: true);
+            ImGuiHelpers.ScaledDummy(cardSpacing / ImGuiHelpers.GlobalScale);
+        }
+
+        var description = profile.RpDescription;
+        if (!string.IsNullOrEmpty(description))
+        {
+            UiSharedService.DrawCard("rp-description-card", () =>
+            {
+                var wrapWidth = ImGui.GetContentRegionAvail().X;
+                DrawSectionTitle(Loc.Get("UserProfile.RpDescription"));
+                using var _ = _uiSharedService.GameFont.Push();
+                ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + wrapWidth);
+                ImGui.TextUnformatted(description);
+                ImGui.PopTextWrapPos();
+            }, stretchWidth: true);
+            ImGuiHelpers.ScaledDummy(cardSpacing / ImGuiHelpers.GlobalScale);
+        }
+
+        if (!string.IsNullOrEmpty(profile.RpAdditionalInfo))
+        {
+            UiSharedService.DrawCard("rp-additional-card", () =>
+            {
+                var wrapWidth = ImGui.GetContentRegionAvail().X;
+                DrawSectionTitle(Loc.Get("UserProfile.RpAdditionalInfo"));
+                using var _ = _uiSharedService.GameFont.Push();
+                ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + wrapWidth);
+                ImGui.TextUnformatted(profile.RpAdditionalInfo);
+                ImGui.PopTextWrapPos();
+            }, stretchWidth: true);
+        }
+    }
+
+    private void DrawHeroCard(UmbraProfileData profile, IDalamudTextureWrap? texture, Vector4 accent)
+    {
+        // Captured inside card callback for moodle positioning after card
+        Vector2 nameLineScreen = Vector2.Zero;
+        float cardContentWidth = 0f;
+
+        UiSharedService.DrawCard("rp-hero-card", () =>
+        {
+            var portraitSize = 120f * ImGuiHelpers.GlobalScale;
+            var drawList = ImGui.GetWindowDrawList();
+            cardContentWidth = ImGui.GetContentRegionAvail().X;
+
+            // Portrait
+            var portraitStart = ImGui.GetCursorScreenPos();
+            if (texture != null)
+            {
+                bool tallerThanWide = texture.Height >= texture.Width;
+                var stretchFactor = tallerThanWide ? portraitSize / texture.Height : portraitSize / texture.Width;
+                var newWidth = texture.Width * stretchFactor;
+                var newHeight = texture.Height * stretchFactor;
+                var offsetX = (portraitSize - newWidth) / 2f;
+                var offsetY = (portraitSize - newHeight) / 2f;
+
+                var pMin = new Vector2(portraitStart.X + offsetX, portraitStart.Y + offsetY);
+                var pMax = new Vector2(pMin.X + newWidth, pMin.Y + newHeight);
+                var rounding = 10f * ImGuiHelpers.GlobalScale;
+
+                drawList.AddImageRounded(texture.Handle, pMin, pMax,
+                    Vector2.Zero, Vector2.One, ImGui.GetColorU32(new Vector4(1, 1, 1, 1)), rounding);
+            }
+            else
+            {
+                var rounding = 10f * ImGuiHelpers.GlobalScale;
+                drawList.AddRectFilled(portraitStart,
+                    new Vector2(portraitStart.X + portraitSize, portraitStart.Y + portraitSize),
+                    ImGui.GetColorU32(new Vector4(0.15f, 0.15f, 0.15f, 1f)), rounding);
+            }
+
+            // Reserve space for portrait
+            ImGui.Dummy(new Vector2(portraitSize, portraitSize));
+            ImGui.SameLine();
+
+            // Right side: name, title, race, status
+            ImGui.BeginGroup();
+
+            // Full name (violet)
+            var firstName = profile.RpFirstName ?? string.Empty;
+            var lastName = profile.RpLastName ?? string.Empty;
+            var fullName = $"{firstName} {lastName}".Trim();
+            if (string.IsNullOrEmpty(fullName))
+                fullName = Pair.UserData.AliasOrUID;
+
+            // Capture screen position of name line for moodles
+            nameLineScreen = ImGui.GetCursorScreenPos();
+
+            using (_uiSharedService.UidFont.Push())
+                UiSharedService.ColorText(fullName, accent);
+
+            // Title
+            if (!string.IsNullOrEmpty(profile.RpTitle))
+            {
+                using var _ = _uiSharedService.GameFont.Push();
+                UiSharedService.ColorText(profile.RpTitle, accent);
+            }
+
+            // Race · Ethnicity
+            var race = profile.RpRace ?? string.Empty;
+            var ethnicity = profile.RpEthnicity ?? string.Empty;
+            var raceEthnicity = !string.IsNullOrEmpty(race) && !string.IsNullOrEmpty(ethnicity)
+                ? $"{race} · {ethnicity}"
+                : !string.IsNullOrEmpty(race) ? race : ethnicity;
+            if (!string.IsNullOrEmpty(raceEthnicity))
+                ImGui.TextColored(ImGuiColors.DalamudGrey, raceEthnicity);
+
+            // Status
+            ImGuiHelpers.ScaledDummy(2f);
+            bool isSelf = string.Equals(Pair.UserData.UID, _apiController.UID, StringComparison.Ordinal);
+            string statusText;
+            Vector4 statusColor;
+            bool isOnline;
+
+            if (isSelf)
+            {
+                isOnline = _apiController.IsConnected;
+                statusText = isOnline ? Loc.Get("StandaloneProfile.Status.Online") : Loc.Get("StandaloneProfile.Status.Offline");
+                statusColor = isOnline ? ImGuiColors.HealerGreen : ImGuiColors.DalamudGrey;
+            }
+            else
+            {
+                isOnline = Pair.IsVisible || Pair.IsOnline;
+                statusText = Pair.IsVisible
+                    ? Loc.Get("StandaloneProfile.Status.Visible")
+                    : (Pair.IsOnline ? Loc.Get("StandaloneProfile.Status.Online") : Loc.Get("StandaloneProfile.Status.Offline"));
+                statusColor = isOnline ? ImGuiColors.HealerGreen : ImGuiColors.DalamudGrey;
+            }
+
+            // Status dot + text
+            var dotPos = ImGui.GetCursorScreenPos();
+            var dotRadius = 4f * ImGuiHelpers.GlobalScale;
+            var textHeight = ImGui.GetTextLineHeight();
+            drawList.AddCircleFilled(
+                new Vector2(dotPos.X + dotRadius, dotPos.Y + textHeight / 2f),
+                dotRadius,
+                ImGui.GetColorU32(statusColor));
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + dotRadius * 2f + 6f * ImGuiHelpers.GlobalScale);
+            ImGui.TextColored(statusColor, statusText);
+
+            // Note
+            var note = _serverManager.GetNoteForUid(Pair.UserData.UID);
+            if (!string.IsNullOrEmpty(note))
+                ImGui.TextColored(ImGuiColors.DalamudGrey, note);
+
+            ImGui.EndGroup();
+        }, stretchWidth: true);
+
+        // Draw moodles AFTER card (on top), right-aligned on same line as name
+        DrawMoodlesOnNameLine(nameLineScreen, cardContentWidth);
+    }
+
+    private void DrawMoodlesOnNameLine(Vector2 nameLineScreen, float cardContentWidth)
+    {
+        var moodlesJson = GetMoodlesJson();
+        if (string.IsNullOrEmpty(moodlesJson)) return;
+
+        var moodles = MoodleStatusInfo.ParseMoodles(moodlesJson);
+        if (moodles.Count == 0) return;
+
+        const float iconHeight = 40f;
+        var scaledHeight = iconHeight * ImGuiHelpers.GlobalScale;
+        var spacing = ImGui.GetStyle().ItemSpacing.X;
+        var textureProvider = _uiSharedService.TextureProvider;
+        var drawList = ImGui.GetWindowDrawList();
+
+        var items = new List<(MoodleStatusInfo moodle, ImTextureID handle, Vector2 size)>();
+        float totalWidth = 0f;
+        foreach (var moodle in moodles)
+        {
+            if (moodle.IconID <= 0) continue;
+            var wrap = textureProvider.GetFromGameIcon(new GameIconLookup((uint)moodle.IconID)).GetWrapOrEmpty();
+            if (wrap.Handle == IntPtr.Zero) continue;
+            var aspect = wrap.Height > 0 ? (float)wrap.Width / wrap.Height : 1f;
+            var displaySize = new Vector2(scaledHeight * aspect, scaledHeight);
+            items.Add((moodle, wrap.Handle, displaySize));
+            totalWidth += displaySize.X;
+        }
+        if (items.Count == 0) return;
+
+        totalWidth += (items.Count - 1) * spacing;
+
+        // Right-aligned, vertically centered on name line
+        var windowPos = ImGui.GetWindowPos();
+        var regionMax = ImGui.GetWindowContentRegionMax();
+        var scrollX = ImGui.GetScrollX();
+        var cardPad = ImGui.GetStyle().FramePadding.X + 4f * ImGuiHelpers.GlobalScale;
+        float rightEdge = windowPos.X + regionMax.X + scrollX - cardPad;
+        float curX = rightEdge - totalWidth;
+        float curY = nameLineScreen.Y;
+
+        for (int i = 0; i < items.Count; i++)
+        {
+            var (moodle, handle, size) = items[i];
+            var pMin = new Vector2(curX, curY);
+            var pMax = new Vector2(curX + size.X, curY + size.Y);
+
+            drawList.AddImage(handle, pMin, pMax);
+
+            if (ImGui.IsMouseHoveringRect(pMin, pMax))
+            {
+                ImGui.BeginTooltip();
+                ImGui.PushTextWrapPos(ImGui.GetFontSize() * 20f);
+                var title = moodle.CleanTitle;
+                if (!string.IsNullOrEmpty(title))
+                {
+                    var typeColor = moodle.Type switch
+                    {
+                        0 => new Vector4(0.4f, 0.9f, 0.4f, 1f),
+                        1 => new Vector4(0.9f, 0.4f, 0.4f, 1f),
+                        _ => new Vector4(0.5f, 0.6f, 1f, 1f),
+                    };
+                    ImGui.TextColored(typeColor, title);
+                }
+                var desc = moodle.CleanDescription;
+                if (!string.IsNullOrEmpty(desc))
+                    ImGui.TextUnformatted(desc);
+                ImGui.PopTextWrapPos();
+                ImGui.EndTooltip();
+            }
+
+            curX += size.X + spacing;
+        }
+    }
+
+    private void DrawHrpProfile(UmbraProfileData profile, IDalamudTextureWrap? texture, Vector4 accent)
+    {
+        UiSharedService.DrawCard("hrp-card", () =>
+        {
+            var portraitSize = 120f * ImGuiHelpers.GlobalScale;
+            var drawList = ImGui.GetWindowDrawList();
+            var wrapWidth = ImGui.GetContentRegionAvail().X;
+
+            // Portrait
+            var portraitStart = ImGui.GetCursorScreenPos();
+            if (texture != null)
+            {
+                bool tallerThanWide = texture.Height >= texture.Width;
+                var stretchFactor = tallerThanWide ? portraitSize / texture.Height : portraitSize / texture.Width;
+                var newWidth = texture.Width * stretchFactor;
+                var newHeight = texture.Height * stretchFactor;
+                var offsetX = (portraitSize - newWidth) / 2f;
+                var offsetY = (portraitSize - newHeight) / 2f;
+
+                var pMin = new Vector2(portraitStart.X + offsetX, portraitStart.Y + offsetY);
+                var pMax = new Vector2(pMin.X + newWidth, pMin.Y + newHeight);
+                var rounding = 10f * ImGuiHelpers.GlobalScale;
+
+                drawList.AddImageRounded(texture.Handle, pMin, pMax,
+                    Vector2.Zero, Vector2.One, ImGui.GetColorU32(new Vector4(1, 1, 1, 1)), rounding);
+            }
+            else
+            {
+                var rounding = 10f * ImGuiHelpers.GlobalScale;
+                drawList.AddRectFilled(portraitStart,
+                    new Vector2(portraitStart.X + portraitSize, portraitStart.Y + portraitSize),
+                    ImGui.GetColorU32(new Vector4(0.15f, 0.15f, 0.15f, 1f)), rounding);
+            }
+
+            ImGui.Dummy(new Vector2(portraitSize, portraitSize));
+            ImGui.SameLine();
+
+            // Right side: name, status, description
+            var rightWidth = wrapWidth - portraitSize - ImGui.GetStyle().ItemSpacing.X;
+
+            ImGui.BeginGroup();
+
+            using (_uiSharedService.UidFont.Push())
+                UiSharedService.ColorText(Pair.UserData.AliasOrUID, accent);
+
+            bool isSelf = string.Equals(Pair.UserData.UID, _apiController.UID, StringComparison.Ordinal);
+            string statusText;
+            Vector4 statusColor;
+
+            if (isSelf)
+            {
+                bool isOnline = _apiController.IsConnected;
+                statusText = isOnline ? Loc.Get("StandaloneProfile.Status.Online") : Loc.Get("StandaloneProfile.Status.Offline");
+                statusColor = isOnline ? ImGuiColors.HealerGreen : ImGuiColors.DalamudGrey;
+            }
+            else
+            {
+                bool isOnline = Pair.IsVisible || Pair.IsOnline;
+                statusText = Pair.IsVisible
+                    ? Loc.Get("StandaloneProfile.Status.Visible")
+                    : (Pair.IsOnline ? Loc.Get("StandaloneProfile.Status.Online") : Loc.Get("StandaloneProfile.Status.Offline"));
+                statusColor = isOnline ? ImGuiColors.HealerGreen : ImGuiColors.DalamudGrey;
+            }
+
+            ImGuiHelpers.ScaledDummy(2f);
+            var dotPos = ImGui.GetCursorScreenPos();
+            var dotRadius = 4f * ImGuiHelpers.GlobalScale;
+            var textHeight = ImGui.GetTextLineHeight();
+            drawList.AddCircleFilled(
+                new Vector2(dotPos.X + dotRadius, dotPos.Y + textHeight / 2f),
+                dotRadius,
+                ImGui.GetColorU32(statusColor));
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + dotRadius * 2f + 6f * ImGuiHelpers.GlobalScale);
+            ImGui.TextColored(statusColor, statusText);
+
+            var note = _serverManager.GetNoteForUid(Pair.UserData.UID);
+            if (!string.IsNullOrEmpty(note))
+                ImGui.TextColored(ImGuiColors.DalamudGrey, note);
+
+            // Description on the right
+            var description = profile.Description;
+            if (!string.IsNullOrEmpty(description))
+            {
+                ImGuiHelpers.ScaledDummy(2f);
+                using var _ = _uiSharedService.GameFont.Push();
+                ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + rightWidth);
+                ImGui.TextUnformatted(description);
+                ImGui.PopTextWrapPos();
+            }
+
+            ImGui.EndGroup();
+        }, stretchWidth: true);
+    }
+
+    private string? GetMoodlesJson()
+    {
+        bool isSelfProfile = string.Equals(Pair.UserData.UID, _apiController.UID, StringComparison.Ordinal);
+        if (isSelfProfile)
+        {
+            if (string.IsNullOrEmpty(_localMoodlesJson) && !_moodlesFetching
+                && (DateTime.UtcNow - _lastMoodlesFetch).TotalSeconds > 3)
+            {
+#pragma warning disable MA0134
+                Task.Run(RefreshLocalMoodlesAsync);
+#pragma warning restore MA0134
+            }
+            return _localMoodlesJson;
+        }
+        else
+        {
+            return Pair.LastReceivedCharacterData?.MoodlesData;
+        }
+    }
+
+    private static void DrawSectionTitle(string text)
+    {
+        UiSharedService.ColorText(text, UiSharedService.AccentColor);
+        ImGuiHelpers.ScaledDummy(2f);
+    }
+
+    private static void DrawVerticalField(string label, string value, float width)
+    {
+        ImGui.BeginGroup();
+        ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + width - 8f * ImGuiHelpers.GlobalScale);
+        ImGui.TextColored(ImGuiColors.DalamudGrey, label);
+        ImGui.TextUnformatted(value);
+        ImGui.PopTextWrapPos();
+        ImGui.EndGroup();
     }
 
     public override void OnClose()

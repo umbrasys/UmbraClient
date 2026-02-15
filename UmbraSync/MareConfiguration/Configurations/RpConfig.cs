@@ -17,8 +17,11 @@ public class CharacterRpProfile
     public string RpLastName { get; set; } = string.Empty;
     public string RpTitle { get; set; } = string.Empty;
     public string RpAge { get; set; } = string.Empty;
+    public string RpRace { get; set; } = string.Empty;
+    public string RpEthnicity { get; set; } = string.Empty;
     public string RpHeight { get; set; } = string.Empty;
     public string RpBuild { get; set; } = string.Empty;
+    public string RpResidence { get; set; } = string.Empty;
     public string RpOccupation { get; set; } = string.Empty;
     public string RpAffiliation { get; set; } = string.Empty;
     public string RpAlignment { get; set; } = string.Empty;

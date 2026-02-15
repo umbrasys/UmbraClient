@@ -111,6 +111,7 @@ public class Pair : DisposableMediatorSubscriberBase
     public IEnumerable<string> HoldApplicationReasons => Enumerable.Concat(HoldDownloadLocks.Keys, HoldApplicationLocks.Keys);
 
     public bool IsVisible => CachedPlayer?.IsVisible ?? false;
+    public bool IsApplyingOrDownloading => CachedPlayer?.IsApplyingOrDownloading ?? false;
     public uint WorldId => _worldId ?? 0;
 
     public CharacterData? LastReceivedCharacterData { get; set; }

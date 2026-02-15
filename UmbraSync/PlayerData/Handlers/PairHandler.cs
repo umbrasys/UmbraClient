@@ -73,6 +73,9 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase, IPairHandler
     public IReadOnlyList<string> LastBlockingConditions => _lastBlockingConditions;
     public string Ident => Pair.Ident;
     public bool Initialized => _charaHandler != null;
+    public bool IsApplyingOrDownloading =>
+        (_applicationTask != null && !_applicationTask.IsCompleted) ||
+        (_downloadTask != null && !_downloadTask.IsCompleted);
     public CharacterData? LastReceivedCharacterData => _cachedData;
 
     public PairHandler(ILogger<PairHandler> logger, Pair pair, PairAnalyzer pairAnalyzer,

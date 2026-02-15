@@ -13,6 +13,7 @@ public interface IPairHandlerAdapter : IDisposable
     DateTime? LastDataReceivedAt { get; }
     DateTime? LastApplyAttemptAt { get; }
     DateTime? LastSuccessfulApplyAt { get; }
+    bool IsApplyingOrDownloading { get; }
     void Initialize(string name);
     void ApplyCharacterData(Guid applicationBase, CharacterData characterData, bool forceApplyCustomization = false);
     void OnDataReceived();

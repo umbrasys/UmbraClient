@@ -952,7 +952,6 @@ internal sealed class GroupPanel
 
         if (groups.Count == 0) return;
 
-        var accent = UiSharedService.AccentColor;
         float availableWidth = ImGui.GetContentRegionAvail().X;
         float cardSpacing = 8f * ImGuiHelpers.GlobalScale;
         float minCardSize = 100f * ImGuiHelpers.GlobalScale;
@@ -1018,10 +1017,11 @@ internal sealed class GroupPanel
                 windowPos.X + startX + col * (cardSize + cardSpacing),
                 windowPos.Y + startY + row * (cardSize + cardSpacing) - scrollY);
             var cardMax = new Vector2(cardMin.X + cardSize, cardMin.Y + cardSize);
-            var bgColor = new Vector4(0.12f, 0.12f, 0.15f, 0.95f);
+            var bgColor = new Vector4(0x1C / 255f, 0x1C / 255f, 0x1C / 255f, 1f);
             var pausedColor = ImGuiColors.DalamudOrange;
-            var borderColor = isPaused ? pausedColor with { W = 0.8f } : accent with { W = 0.8f };
-            var nameColor = isPaused ? pausedColor : accent;
+            var cardBorderColor = new Vector4(0x4A / 255f, 0x36 / 255f, 0x68 / 255f, 0.70f);
+            var borderColor = isPaused ? pausedColor with { W = 0.8f } : cardBorderColor;
+            var nameColor = isPaused ? pausedColor : new Vector4(0x9B / 255f, 0x82 / 255f, 0xC0 / 255f, 1f);
 
             drawList.AddRectFilled(cardMin, cardMax, ImGui.ColorConvertFloat4ToU32(bgColor), rounding);
             drawList.AddRect(cardMin, cardMax, ImGui.ColorConvertFloat4ToU32(borderColor), rounding, ImDrawFlags.None, borderThickness);
@@ -1558,63 +1558,79 @@ internal sealed class GroupPanel
             }
             else
             {
-                // Banner
+                var windowDrawList = ImGui.GetWindowDrawList();
+                float cardRounding = 10f * ImGuiHelpers.GlobalScale;
+
                 if (_bannerTexture != null)
                 {
                     float availWidth = ImGui.GetContentRegionAvail().X;
                     float bannerHeight = availWidth * (260f / 840f);
-                    ImGui.Image(_bannerTexture.Handle, new Vector2(availWidth, bannerHeight));
-                    ImGuiHelpers.ScaledDummy(4f);
+                    var bannerMin = ImGui.GetCursorScreenPos();
+                    var bannerMax = new Vector2(bannerMin.X + availWidth, bannerMin.Y + bannerHeight);
+                    windowDrawList.AddImageRounded(
+                        _bannerTexture.Handle, bannerMin, bannerMax,
+                        Vector2.Zero, Vector2.One,
+                        ImGui.ColorConvertFloat4ToU32(Vector4.One), cardRounding);
+                    ImGui.Dummy(new Vector2(availWidth, bannerHeight));
+                    ImGuiHelpers.ScaledDummy(6f);
                 }
 
-                // Profile image + name
-                if (_profileTexture != null)
+                UiSharedService.DrawCard("syncshell-profile-hero", () =>
                 {
                     float imgSize = 80f * ImGuiHelpers.GlobalScale;
-                    ImGui.Image(_profileTexture.Handle, new Vector2(imgSize, imgSize));
-                    ImGui.SameLine();
+                    float imgRounding = 10f * ImGuiHelpers.GlobalScale;
+
+                    if (_profileTexture != null)
+                    {
+                        var imgMin = ImGui.GetCursorScreenPos();
+                        var imgMax = new Vector2(imgMin.X + imgSize, imgMin.Y + imgSize);
+                        var cardDrawList = ImGui.GetWindowDrawList();
+                        cardDrawList.AddImageRounded(
+                            _profileTexture.Handle, imgMin, imgMax,
+                            Vector2.Zero, Vector2.One,
+                            ImGui.ColorConvertFloat4ToU32(Vector4.One), imgRounding);
+                        ImGui.Dummy(new Vector2(imgSize, imgSize));
+                        ImGui.SameLine();
+                    }
+
                     ImGui.BeginGroup();
-                    ImGui.TextUnformatted(groupName);
+                    using (_uiShared.UidFont.Push())
+                    {
+                        UiSharedService.ColorText(groupName, UiSharedService.AccentColor);
+                    }
+
                     if (_currentProfile.IsNsfw)
                     {
                         ImGui.SameLine();
                         UiSharedService.ColorText("NSFW", ImGuiColors.DalamudRed);
+                    }
+
+                    if (_currentProfile.Tags is { Length: > 0 })
+                    {
+                        ImGuiHelpers.ScaledDummy(2f);
+                        foreach (var tag in _currentProfile.Tags)
+                        {
+                            UiSharedService.ColorText($"#{tag}", new Vector4(0.6f, 0.8f, 1f, 1f));
+                            ImGui.SameLine();
+                        }
+                        ImGui.NewLine();
                     }
                     ImGui.EndGroup();
-                }
-                else
-                {
-                    ImGui.TextUnformatted(groupName);
-                    if (_currentProfile.IsNsfw)
-                    {
-                        ImGui.SameLine();
-                        UiSharedService.ColorText("NSFW", ImGuiColors.DalamudRed);
-                    }
-                }
+                }, stretchWidth: true);
 
-                ImGuiHelpers.ScaledDummy(6f);
+                ImGuiHelpers.ScaledDummy(4f);
 
-                // Tags
-                if (_currentProfile.Tags is { Length: > 0 })
-                {
-                    foreach (var tag in _currentProfile.Tags)
-                    {
-                        using (ImRaii.PushColor(ImGuiCol.Text, new Vector4(0.6f, 0.8f, 1f, 1f)))
-                        {
-                            ImGui.TextUnformatted($"#{tag}");
-                        }
-                        ImGui.SameLine();
-                    }
-                    ImGui.NewLine();
-                    ImGuiHelpers.ScaledDummy(4f);
-                }
-
-                // Description
                 if (!string.IsNullOrEmpty(_currentProfile.Description))
                 {
-                    ImGui.Separator();
-                    ImGuiHelpers.ScaledDummy(4f);
-                    UiSharedService.TextWrapped(_currentProfile.Description);
+                    UiSharedService.DrawCard("syncshell-profile-desc", () =>
+                    {
+                        UiSharedService.ColorText(Loc.Get("SyncshellAdmin.Profile.Description"), UiSharedService.AccentColor);
+                        ImGuiHelpers.ScaledDummy(2f);
+                        float wrapWidth = ImGui.GetContentRegionAvail().X;
+                        ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + wrapWidth);
+                        ImGui.TextUnformatted(_currentProfile.Description);
+                        ImGui.PopTextWrapPos();
+                    }, stretchWidth: true);
                 }
             }
         }
