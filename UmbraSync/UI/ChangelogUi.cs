@@ -177,6 +177,7 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
                 new("Nouveauté : Intégration de Moodles dans les profils RP."),
                 new("Nouveauté : Prise en charge du plugin Chat Proximity pour adapter la colorisation des émotes dans le chat en fonction de la distance."),
                 new("Amélioration : Modification de divers aspect de l'interface."),
+                new("Amélioration : La taille max des images pour les profils passent à 5Mo."),
                 new("Amélioration : Ajout de catégorie et des informations Moodles dans le profil RP."),
                 new("Correctif : La notification de connexion n'apparait plus au démarrage."),
                 new("Correctif : Dans certains cas, la bulle d'écriture ne s'affichait plus."),

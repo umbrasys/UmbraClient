@@ -3682,7 +3682,16 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value>Annuler</value>
   </data>
   <data name="SyncshellAdmin.Profile.Saved" xml:space="preserve">
-    <value>Profil enregistré.</value>
+    <value>Enregistré</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.UnsavedChanges" xml:space="preserve">
+    <value>Modifications non enregistrées</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.Preview" xml:space="preserve">
+    <value>Aperçu</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.PreviewTitle" xml:space="preserve">
+    <value>Aperçu — {0}</value>
   </data>
   <data name="SyncshellAdmin.Profile.SaveFailed" xml:space="preserve">
     <value>Échec de l'enregistrement du profil.</value>

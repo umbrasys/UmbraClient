@@ -290,6 +290,10 @@ public class CompactUi : WindowMediatorSubscriberBase
             var animIcon = animsDisabled ? FontAwesomeIcon.WindowClose : FontAwesomeIcon.Running;
             var vfxIcon = vfxDisabled ? FontAwesomeIcon.TimesCircle : FontAwesomeIcon.Sun;
 
+            var extraPadding = new Vector2(6f, 4f) * ImGuiHelpers.GlobalScale;
+            var originalPadding = ImGui.GetStyle().FramePadding;
+            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, originalPadding + extraPadding);
+
             float spacing = ImGui.GetStyle().ItemSpacing.X;
             float audioWidth = _uiSharedService.GetIconTextButtonSize(soundIcon, soundLabel);
             float animWidth = _uiSharedService.GetIconTextButtonSize(animIcon, animLabel);
@@ -328,6 +332,8 @@ public class CompactUi : WindowMediatorSubscriberBase
                     Mediator.Publish(new ApplyDefaultsToAllSyncsMessage(vfxSubject, state));
                 },
                 () => DisableStateTooltip(vfxSubject, _configService.Current.DefaultDisableVfx), spacing);
+
+            ImGui.PopStyleVar();
 
             if (showNearby && pendingInvites > 0)
             {
@@ -1024,37 +1030,35 @@ public class CompactUi : WindowMediatorSubscriberBase
         bool isConnected = _apiController.ServerState is ServerState.Connected;
 
         float regionWidth = ImGui.GetContentRegionAvail().X;
-        float padding = 6f * ImGuiHelpers.GlobalScale;
+        float padding = 4f * ImGuiHelpers.GlobalScale;
         float maxTextWidth = regionWidth - padding * 2f;
 
-        // Truncate text if needed
-        string displayText = uidText;
         var textSize = ImGui.CalcTextSize(uidText);
-        if (textSize.X > maxTextWidth && uidText.Length > 3)
+        float fontScale = 1f;
+        if (textSize.X > maxTextWidth && maxTextWidth > 0)
         {
-            while (textSize.X > maxTextWidth && displayText.Length > 3)
-            {
-                displayText = displayText[..^4] + "...";
-                textSize = ImGui.CalcTextSize(displayText);
-            }
+            fontScale = maxTextWidth / textSize.X;
+            fontScale = MathF.Max(fontScale, 0.55f); // minimum readability
         }
 
-        // Center text
+        using var scalePush = UiSharedService.PushFontScale(fontScale);
+        textSize = ImGui.CalcTextSize(uidText);
+        
         float textX = ImGui.GetCursorPosX() + (regionWidth - textSize.X) / 2f;
         ImGui.SetCursorPosX(textX);
 
         if (isConnected)
         {
-            // Clickable: invisible button over text area
             var screenPos = ImGui.GetCursorScreenPos();
             float btnHeight = textSize.Y;
             ImGui.InvisibleButton("##sidebarUid", new Vector2(textSize.X, btnHeight));
             bool hovered = ImGui.IsItemHovered();
             bool clicked = ImGui.IsItemClicked();
 
-            // Draw text on top
+            var font = ImGui.GetFont();
+            float fontSize = ImGui.GetFontSize();
             var dl = ImGui.GetWindowDrawList();
-            dl.AddText(screenPos, ImGui.GetColorU32(uidColor), displayText);
+            dl.AddText(font, fontSize, screenPos, ImGui.GetColorU32(uidColor), uidText);
 
             if (hovered)
                 ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
@@ -1065,7 +1069,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         }
         else
         {
-            ImGui.TextColored(uidColor, displayText);
+            ImGui.TextColored(uidColor, uidText);
         }
     }
 

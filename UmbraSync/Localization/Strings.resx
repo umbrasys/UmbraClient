@@ -3773,7 +3773,16 @@ Click to change.</value>
     <value>Cancel</value>
   </data>
   <data name="SyncshellAdmin.Profile.Saved" xml:space="preserve">
-    <value>Profile saved.</value>
+    <value>Saved</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.UnsavedChanges" xml:space="preserve">
+    <value>Unsaved changes</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.Preview" xml:space="preserve">
+    <value>Preview</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.PreviewTitle" xml:space="preserve">
+    <value>Preview — {0}</value>
   </data>
   <data name="SyncshellAdmin.Profile.SaveFailed" xml:space="preserve">
     <value>Failed to save profile.</value>

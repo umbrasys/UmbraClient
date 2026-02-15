@@ -88,6 +88,14 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
     private IDalamudTextureWrap? _profileTexture;
     private IDalamudTextureWrap? _bannerTexture;
     private string? _profileMessage;
+    private bool _showProfilePreview;
+    private DateTime _profileSaveConfirmTime = DateTime.MinValue;
+    private string _savedProfileDescription = string.Empty;
+    private List<string> _savedProfileTags = [];
+    private bool _savedProfileNsfw;
+    private bool _savedProfileDisabled;
+    private byte[] _savedProfileImageBytes = [];
+    private byte[] _savedBannerImageBytes = [];
 
     public SyncshellAdminUI(ILogger<SyncshellAdminUI> logger, MareMediator mediator, ApiController apiController,
         UiSharedService uiSharedService, PairManager pairManager, SyncshellDiscoveryService syncshellDiscoveryService,
@@ -588,6 +596,8 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
             }
             profileTab.Dispose();
 
+            DrawProfilePreview();
+
             if (_isOwner)
             {
                 var ownerTab = ImRaii.TabItem(Loc.Get("SyncshellAdmin.Tab.Owner"));
@@ -894,7 +904,16 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
         ImGui.TextUnformatted(Loc.Get("SyncshellAdmin.Profile.ProfileImage"));
         if (_profileTexture != null && _profileImageBytes.Length > 0)
         {
-            ImGui.Image(_profileTexture.Handle, new Vector2(128, 128));
+            float imgSize = 128f;
+            float imgRounding = 10f * ImGuiHelpers.GlobalScale;
+            var drawList = ImGui.GetWindowDrawList();
+            var imgMin = ImGui.GetCursorScreenPos();
+            var imgMax = new Vector2(imgMin.X + imgSize, imgMin.Y + imgSize);
+            drawList.AddImageRounded(
+                _profileTexture.Handle, imgMin, imgMax,
+                Vector2.Zero, Vector2.One,
+                ImGui.ColorConvertFloat4ToU32(Vector4.One), imgRounding);
+            ImGui.Dummy(new Vector2(imgSize, imgSize));
         }
         else
         {
@@ -939,7 +958,17 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
         ImGui.TextUnformatted(Loc.Get("SyncshellAdmin.Profile.BannerImage"));
         if (_bannerTexture != null && _bannerImageBytes.Length > 0)
         {
-            ImGui.Image(_bannerTexture.Handle, new Vector2(420, 130));
+            float availWidth = ImGui.GetContentRegionAvail().X;
+            float bannerHeight = availWidth * (260f / 840f);
+            float bannerRounding = 10f * ImGuiHelpers.GlobalScale;
+            var bannerDrawList = ImGui.GetWindowDrawList();
+            var bannerMin = ImGui.GetCursorScreenPos();
+            var bannerMax = new Vector2(bannerMin.X + availWidth, bannerMin.Y + bannerHeight);
+            bannerDrawList.AddImageRounded(
+                _bannerTexture.Handle, bannerMin, bannerMax,
+                Vector2.Zero, Vector2.One,
+                ImGui.ColorConvertFloat4ToU32(Vector4.One), bannerRounding);
+            ImGui.Dummy(new Vector2(availWidth, bannerHeight));
         }
         else
         {
@@ -1020,7 +1049,6 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
 
         ImGuiHelpers.ScaledDummy(6);
 
-        // Save / Cancel
         using (ImRaii.Disabled(_profileSaving))
         {
             if (_uiSharedService.IconTextButton(FontAwesomeIcon.Save, Loc.Get("SyncshellAdmin.Profile.Save")))
@@ -1029,10 +1057,25 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
             }
         }
         ImGui.SameLine();
+        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Eye, Loc.Get("SyncshellAdmin.Profile.Preview")))
+        {
+            _showProfilePreview = true;
+        }
+        ImGui.SameLine();
         if (ImGui.Button(Loc.Get("SyncshellAdmin.Profile.Cancel")))
         {
             _profileLoaded = false;
             _profileMessage = null;
+        }
+
+        ImGui.SameLine();
+        if ((DateTime.UtcNow - _profileSaveConfirmTime).TotalSeconds < 4)
+        {
+            ImGui.TextColored(ImGuiColors.HealerGreen, Loc.Get("SyncshellAdmin.Profile.Saved"));
+        }
+        else if (HasProfileUnsavedChanges())
+        {
+            ImGui.TextColored(new Vector4(0.85f, 0.75f, 0.20f, 1f), Loc.Get("SyncshellAdmin.Profile.UnsavedChanges"));
         }
     }
 
@@ -1073,6 +1116,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                 _profileManager.SetGroupProfile(GroupFullInfo.GID, profile);
             }
             _profileLoaded = true;
+            SnapshotProfileState();
         }
         catch (Exception ex)
         {
@@ -1103,7 +1147,9 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
 
             await _apiController.GroupSetProfile(dto).ConfigureAwait(false);
             _profileManager.SetGroupProfile(GroupFullInfo.GID, dto);
-            _profileMessage = Loc.Get("SyncshellAdmin.Profile.Saved");
+            _profileMessage = null;
+            SnapshotProfileState();
+            _profileSaveConfirmTime = DateTime.UtcNow;
         }
         catch (Exception ex)
         {
@@ -1534,6 +1580,120 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
         if (!string.Equals(msg.Gid, GroupFullInfo.GID, StringComparison.OrdinalIgnoreCase)) return;
         ApplyAutoDetectState(msg.Visible, msg.PasswordTemporarilyDisabled, true);
         _autoDetectMessage = null;
+    }
+
+    private void SnapshotProfileState()
+    {
+        _savedProfileDescription = _profileDescription;
+        _savedProfileTags = [.. _profileTags];
+        _savedProfileNsfw = _profileNsfw;
+        _savedProfileDisabled = _profileDisabled;
+        _savedProfileImageBytes = _profileImageBytes;
+        _savedBannerImageBytes = _bannerImageBytes;
+    }
+
+    private bool HasProfileUnsavedChanges()
+    {
+        if (!string.Equals(_profileDescription, _savedProfileDescription, StringComparison.Ordinal))
+            return true;
+        if (_profileNsfw != _savedProfileNsfw || _profileDisabled != _savedProfileDisabled)
+            return true;
+        if (!_profileImageBytes.SequenceEqual(_savedProfileImageBytes))
+            return true;
+        if (!_bannerImageBytes.SequenceEqual(_savedBannerImageBytes))
+            return true;
+        if (_profileTags.Count != _savedProfileTags.Count)
+            return true;
+        for (int i = 0; i < _profileTags.Count; i++)
+        {
+            if (!string.Equals(_profileTags[i], _savedProfileTags[i], StringComparison.Ordinal))
+                return true;
+        }
+        return false;
+    }
+
+    private void DrawProfilePreview()
+    {
+        if (!_showProfilePreview) return;
+
+        ImGui.SetNextWindowSize(new Vector2(420, 500) * ImGuiHelpers.GlobalScale, ImGuiCond.FirstUseEver);
+        if (ImGui.Begin(string.Format(CultureInfo.CurrentCulture, Loc.Get("SyncshellAdmin.Profile.PreviewTitle"), GroupFullInfo.GroupAliasOrGID), ref _showProfilePreview))
+        {
+            float availWidth = ImGui.GetContentRegionAvail().X;
+
+            if (_bannerTexture != null && _bannerImageBytes.Length > 0)
+            {
+                float bannerHeight = availWidth * (260f / 840f);
+                float bannerRounding = 10f * ImGuiHelpers.GlobalScale;
+                var bannerDrawList = ImGui.GetWindowDrawList();
+                var bannerMin = ImGui.GetCursorScreenPos();
+                var bannerMax = new Vector2(bannerMin.X + availWidth, bannerMin.Y + bannerHeight);
+                bannerDrawList.AddImageRounded(
+                    _bannerTexture.Handle, bannerMin, bannerMax,
+                    Vector2.Zero, Vector2.One,
+                    ImGui.ColorConvertFloat4ToU32(Vector4.One), bannerRounding);
+                ImGui.Dummy(new Vector2(availWidth, bannerHeight));
+                ImGuiHelpers.ScaledDummy(6);
+            }
+
+            UiSharedService.DrawCard("preview-hero", () =>
+            {
+                float imgSize = 80f * ImGuiHelpers.GlobalScale;
+                float imgRounding = 10f * ImGuiHelpers.GlobalScale;
+
+                if (_profileTexture != null && _profileImageBytes.Length > 0)
+                {
+                    var cardDrawList = ImGui.GetWindowDrawList();
+                    var imgMin = ImGui.GetCursorScreenPos();
+                    var imgMax = new Vector2(imgMin.X + imgSize, imgMin.Y + imgSize);
+                    cardDrawList.AddImageRounded(
+                        _profileTexture.Handle, imgMin, imgMax,
+                        Vector2.Zero, Vector2.One,
+                        ImGui.ColorConvertFloat4ToU32(Vector4.One), imgRounding);
+                    ImGui.Dummy(new Vector2(imgSize, imgSize));
+                    ImGui.SameLine();
+                }
+
+                ImGui.BeginGroup();
+                using (_uiSharedService.UidFont.Push())
+                {
+                    UiSharedService.ColorText(GroupFullInfo.GroupAliasOrGID, UiSharedService.AccentColor);
+                }
+                if (_profileNsfw)
+                {
+                    ImGui.SameLine();
+                    ImGui.TextColored(new Vector4(0.9f, 0.3f, 0.3f, 1f), "NSFW");
+                }
+                if (_profileTags.Count > 0)
+                {
+                    foreach (var tag in _profileTags)
+                    {
+                        ImGui.SameLine();
+                        ImGui.TextColored(ImGuiColors.DalamudGrey, tag);
+                    }
+                }
+                ImGui.EndGroup();
+            }, stretchWidth: true);
+
+            ImGuiHelpers.ScaledDummy(4);
+
+            if (!string.IsNullOrWhiteSpace(_profileDescription))
+            {
+                UiSharedService.DrawCard("preview-desc", () =>
+                {
+                    UiSharedService.ColorText(Loc.Get("SyncshellAdmin.Profile.Description"), UiSharedService.AccentColor);
+                    ImGuiHelpers.ScaledDummy(2);
+                    float wrapWidth = ImGui.GetContentRegionAvail().X;
+                    ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + wrapWidth);
+                    using (_uiSharedService.GameFont.Push())
+                    {
+                        ImGui.TextUnformatted(_profileDescription);
+                    }
+                    ImGui.PopTextWrapPos();
+                }, stretchWidth: true);
+            }
+        }
+        ImGui.End();
     }
 
     public override void OnClose()
