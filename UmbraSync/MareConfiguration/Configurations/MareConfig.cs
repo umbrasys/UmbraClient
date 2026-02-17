@@ -27,6 +27,7 @@ public class MareConfig : IMareConfiguration
     public DtrEntry.Colors BlockedNameColors { get; set; } = new(Foreground: 0x8AADC7, Glow: 0x000080u);
     public bool UseRpNamesOnNameplates { get; set; }
     public bool UseRpNamesInChat { get; set; }
+    public bool UseRpNameColors { get; set; } = true;
     public bool EmoteHighlightEnabled { get; set; } = true;
     public ushort EmoteHighlightColorKey { get; set; } = 706;
     public bool EmoteHighlightAsterisks { get; set; } = true;

@@ -20,6 +20,7 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
 {
     private readonly UmbraProfileManager _umbraProfileManager;
     private readonly ServerConfigurationManager _serverManager;
+    private readonly MareConfigService _configService;
     private readonly UiSharedService _uiSharedService;
     private Vector2 _lastMainPos = Vector2.Zero;
     private Vector2 _lastMainSize = Vector2.Zero;
@@ -37,6 +38,7 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
     {
         _uiSharedService = uiSharedService;
         _serverManager = serverManager;
+        _configService = mareConfigService;
         _umbraProfileManager = umbraProfileManager;
         Flags = ImGuiWindowFlags.NoDecoration;
 
@@ -138,8 +140,9 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
             var rectMin = drawList.GetClipRectMin();
             var rectMax = drawList.GetClipRectMax();
 
+            var nameColor = _isRpTab && _configService.Current.UseRpNameColors && !string.IsNullOrEmpty(umbraProfile.RpNameColor) ? UiSharedService.HexToVector4(umbraProfile.RpNameColor) : UiSharedService.AccentColor;
             using (_uiSharedService.UidFont.Push())
-                UiSharedService.ColorText(_pair.UserData.AliasOrUID + (_isRpTab ? " (RP)" : " (HRP)"), UiSharedService.AccentColor);
+                UiSharedService.ColorText(_pair.UserData.AliasOrUID + (_isRpTab ? " (RP)" : " (HRP)"), nameColor);
 
             ImGuiHelpers.ScaledDummy(spacing.Y, spacing.Y);
             var textPos = ImGui.GetCursorPosY();

@@ -318,6 +318,34 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         TextWrapped(text, wrapPos);
     }
 
+    public static Vector4 HexToVector4(string hex)
+    {
+        if (string.IsNullOrEmpty(hex)) return AccentColor;
+        var span = hex.AsSpan();
+        if (span.Length > 0 && span[0] == '#') span = span[1..];
+        if (span.Length != 6 || !uint.TryParse(span, System.Globalization.NumberStyles.HexNumber, null, out var rgb))
+            return AccentColor;
+        return new Vector4(((rgb >> 16) & 0xFF) / 255f, ((rgb >> 8) & 0xFF) / 255f, (rgb & 0xFF) / 255f, 1f);
+    }
+
+    public static string Vector4ToHex(Vector4 color)
+    {
+        var r = (byte)Math.Clamp(color.X * 255f, 0, 255);
+        var g = (byte)Math.Clamp(color.Y * 255f, 0, 255);
+        var b = (byte)Math.Clamp(color.Z * 255f, 0, 255);
+        return $"#{r:X2}{g:X2}{b:X2}";
+    }
+
+    public static uint HexToUint(string hex)
+    {
+        if (string.IsNullOrEmpty(hex)) return 0;
+        var span = hex.AsSpan();
+        if (span.Length > 0 && span[0] == '#') span = span[1..];
+        if (span.Length != 6 || !uint.TryParse(span, System.Globalization.NumberStyles.HexNumber, null, out var rgb))
+            return 0;
+        return rgb;
+    }
+
     public static bool CtrlPressed() => (GetKeyState(0xA2) & 0x8000) != 0 || (GetKeyState(0xA3) & 0x8000) != 0;
 
     public static IDisposable PushFontScale(float scale)

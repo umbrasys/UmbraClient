@@ -5,7 +5,7 @@ public record UmbraProfileData(bool IsFlagged, bool IsNSFW, string Base64Profile
     string? RpFirstName = null, string? RpLastName = null, string? RpTitle = null, string? RpAge = null,
     string? RpRace = null, string? RpEthnicity = null,
     string? RpHeight = null, string? RpBuild = null, string? RpResidence = null, string? RpOccupation = null, string? RpAffiliation = null,
-    string? RpAlignment = null, string? RpAdditionalInfo = null)
+    string? RpAlignment = null, string? RpAdditionalInfo = null, string? RpNameColor = null)
 {
     public Lazy<byte[]> ImageData { get; } = new Lazy<byte[]>(() => string.IsNullOrEmpty(Base64ProfilePicture) ? Array.Empty<byte>() : Convert.FromBase64String(Base64ProfilePicture));
     public Lazy<byte[]> RpImageData { get; } = new Lazy<byte[]>(() => string.IsNullOrEmpty(Base64RpProfilePicture) ? Array.Empty<byte>() : Convert.FromBase64String(Base64RpProfilePicture));

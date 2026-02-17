@@ -5,6 +5,7 @@ using UmbraSync.Interop.Ipc;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services.AutoDetect;
 using UmbraSync.Services.Mediator;
+using UmbraSync.MareConfiguration;
 using UmbraSync.Services.Notification;
 using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.UI;
@@ -24,7 +25,8 @@ public class UiFactory(
     NotificationTracker notificationTracker,
     DalamudUtilService dalamudUtilService,
     FileDialogManager fileDialogManager,
-    IpcManager ipcManager)
+    IpcManager ipcManager,
+    MareConfigService mareConfigService)
 {
     public SyncshellAdminUI CreateSyncshellAdminUi(GroupFullInfoDto dto)
     {
@@ -36,7 +38,7 @@ public class UiFactory(
     public StandaloneProfileUi CreateStandaloneProfileUi(Pair pair)
     {
         return new StandaloneProfileUi(loggerFactory.CreateLogger<StandaloneProfileUi>(), mareMediator,
-            uiSharedService, serverConfigManager, umbraProfileManager, apiController, pair, performanceCollectorService,
+            uiSharedService, serverConfigManager, mareConfigService, umbraProfileManager, apiController, pair, performanceCollectorService,
             ipcManager, dalamudUtilService);
     }
 
