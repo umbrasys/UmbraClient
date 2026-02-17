@@ -13,6 +13,7 @@ using UmbraSync.Models;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.ServerConfiguration;
+using UmbraSync.UI.Components;
 
 namespace UmbraSync.UI;
 
@@ -304,9 +305,7 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
                 var wrapWidth = ImGui.GetContentRegionAvail().X;
                 DrawSectionTitle(Loc.Get("UserProfile.RpDescription"));
                 using var _ = _uiSharedService.GameFont.Push();
-                ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + wrapWidth);
-                ImGui.TextUnformatted(description);
-                ImGui.PopTextWrapPos();
+                BbCodeRenderer.Render(description, wrapWidth);
             }, stretchWidth: true);
             ImGuiHelpers.ScaledDummy(cardSpacing / ImGuiHelpers.GlobalScale);
         }
@@ -318,9 +317,7 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
                 var wrapWidth = ImGui.GetContentRegionAvail().X;
                 DrawSectionTitle(Loc.Get("UserProfile.RpAdditionalInfo"));
                 using var _ = _uiSharedService.GameFont.Push();
-                ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + wrapWidth);
-                ImGui.TextUnformatted(profile.RpAdditionalInfo);
-                ImGui.PopTextWrapPos();
+                BbCodeRenderer.Render(profile.RpAdditionalInfo, wrapWidth);
             }, stretchWidth: true);
         }
     }

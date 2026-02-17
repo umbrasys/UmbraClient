@@ -12,6 +12,7 @@ using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.ServerConfiguration;
+using UmbraSync.UI.Components;
 
 namespace UmbraSync.UI;
 
@@ -231,14 +232,17 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
                 }
             }
 
-            var textSize = ImGui.CalcTextSize(descText, hideTextAfterDoubleHash: false, 256f * ImGuiHelpers.GlobalScale);
+            var cleanDesc = BbCodeRenderer.StripTags(descText);
+            var textSize = ImGui.CalcTextSize(cleanDesc, hideTextAfterDoubleHash: false, 256f * ImGuiHelpers.GlobalScale);
             bool trimmed = textSize.Y > remaining;
             while (textSize.Y > remaining && descText.Contains(' '))
             {
                 descText = descText[..descText.LastIndexOf(' ')].TrimEnd();
-                textSize = ImGui.CalcTextSize(descText + $"...{Environment.NewLine}{Loc.Get("PopoutProfile.ReadMoreHint")}", hideTextAfterDoubleHash: false, 256f * ImGuiHelpers.GlobalScale);
+                cleanDesc = BbCodeRenderer.StripTags(descText);
+                textSize = ImGui.CalcTextSize(cleanDesc + $"...{Environment.NewLine}{Loc.Get("PopoutProfile.ReadMoreHint")}", hideTextAfterDoubleHash: false, 256f * ImGuiHelpers.GlobalScale);
             }
-            UiSharedService.TextWrapped(trimmed ? descText + $"...{Environment.NewLine}{Loc.Get("PopoutProfile.ReadMoreHint")}" : descText);
+            var wrapWidth = 256f * ImGuiHelpers.GlobalScale;
+            BbCodeRenderer.Render(trimmed ? descText + $"...{Environment.NewLine}{Loc.Get("PopoutProfile.ReadMoreHint")}" : descText, wrapWidth);
 
             _uiSharedService.GameFont.Pop();
 
