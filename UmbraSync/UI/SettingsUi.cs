@@ -587,6 +587,13 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 {
                     using (ImRaii.PushIndent())
                     {
+                        var doubleParentheses = _configService.Current.EmoteHighlightDoubleParentheses;
+                        if (ImGui.Checkbox(Loc.Get("Settings.EmoteHighlight.DoubleParentheses"), ref doubleParentheses))
+                        {
+                            _configService.Current.EmoteHighlightDoubleParentheses = doubleParentheses;
+                            _configService.Save();
+                        }
+
                         var chatTwoActive = _uiShared.ChatTwoExists;
                         using (ImRaii.Disabled(chatTwoActive))
                         {

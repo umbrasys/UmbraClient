@@ -1,5 +1,7 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Dalamud.Plugin;
+using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Text.Json;
 using UmbraSync.API.Data;
 using UmbraSync.API.Dto.Group;
@@ -26,10 +28,18 @@ public class UmbraProfileManager : MediatorSubscriberBase
     private readonly UmbraProfileData _defaultProfileData = new(IsFlagged: false, IsNSFW: false, string.Empty, _noDescription);
     private readonly UmbraProfileData _loadingProfileData = new(IsFlagged: false, IsNSFW: false, string.Empty, "Loading Data from server...");
     private readonly UmbraProfileData _nsfwProfileData = new(IsFlagged: false, IsNSFW: false, string.Empty, _nsfw);
+    private readonly string _configDir;
+    private readonly ConcurrentDictionary<string, ((UserData User, string? CharName, uint? WorldId) Key, UmbraProfileData Profile)> _persistedProfiles = new(StringComparer.Ordinal);
+    private string? _cacheUid;
+    private bool _cacheDirty;
+    private Timer? _saveTimer;
+
+    public string? CurrentUid => _apiController.IsConnected ? _apiController.UID : null;
 
     public UmbraProfileManager(ILogger<UmbraProfileManager> logger, MareConfigService mareConfigService,
         RpConfigService rpConfigService, MareMediator mediator, ApiController apiController,
-        PairManager pairManager, DalamudUtilService dalamudUtil, ServerConfigurationManager serverConfigurationManager) : base(logger, mediator)
+        PairManager pairManager, DalamudUtilService dalamudUtil, ServerConfigurationManager serverConfigurationManager,
+        IDalamudPluginInterface pluginInterface) : base(logger, mediator)
     {
         _mareConfigService = mareConfigService;
         _rpConfigService = rpConfigService;
@@ -37,6 +47,7 @@ public class UmbraProfileManager : MediatorSubscriberBase
         _pairManager = pairManager;
         _dalamudUtil = dalamudUtil;
         _serverConfigurationManager = serverConfigurationManager;
+        _configDir = pluginInterface.ConfigDirectory.FullName;
 
         Mediator.Subscribe<ClearProfileDataMessage>(this, (msg) =>
         {
@@ -55,8 +66,11 @@ public class UmbraProfileManager : MediatorSubscriberBase
         });
         Mediator.Subscribe<DisconnectedMessage>(this, (_) =>
         {
+            SaveProfileCacheNow();
             _umbraProfiles.Clear();
             _groupProfiles.Clear();
+            _persistedProfiles.Clear();
+            _cacheUid = null;
         });
         Mediator.Subscribe<GroupProfileUpdatedMessage>(this, (msg) =>
         {
@@ -153,6 +167,9 @@ public class UmbraProfileManager : MediatorSubscriberBase
             if (profile.WorldId is > 0)
                 _serverConfigurationManager.SetWorldIdForUid(data.UID, profile.WorldId.Value);
 
+            if (!string.IsNullOrEmpty(profile.CharacterName) && profile.WorldId is > 0)
+                _serverConfigurationManager.AddEncounteredAlt(data.UID, profile.CharacterName, profile.WorldId.Value);
+
             List<RpCustomField>? customFields = null;
             if (!string.IsNullOrEmpty(profile.RpCustomFields))
             {
@@ -215,6 +232,10 @@ public class UmbraProfileManager : MediatorSubscriberBase
                 _umbraProfiles[key] = profileData;
             }
 
+            // Persist to disk cache (not for self)
+            if (!isSelf)
+                UpdatePersistedProfile(data, charName, worldId, profileData);
+
             Mediator.Publish(new NameplateRedrawMessage());
         }
         catch (Exception ex)
@@ -223,6 +244,104 @@ public class UmbraProfileManager : MediatorSubscriberBase
             _umbraProfiles[key] = _defaultProfileData;
         }
     }
+
+    public List<(string CharName, uint WorldId)> GetEncounteredAlts(string uid)
+    {
+        var alts = _serverConfigurationManager.GetEncounteredAlts(uid);
+        return alts.Select(key =>
+        {
+            var sep = key.LastIndexOf('@');
+            if (sep < 0) return (key, (uint)0);
+            return (key[..sep], uint.Parse(key[(sep + 1)..], CultureInfo.InvariantCulture));
+        }).Where(a => a.Item2 > 0).ToList();
+    }
+
+    public IReadOnlyCollection<((UserData User, string? CharName, uint? WorldId) Key, UmbraProfileData Profile)> GetCachedProfiles()
+    {
+        EnsureCacheLoaded();
+        return _persistedProfiles.Values.ToList().AsReadOnly();
+    }
+
+    #region Persistent Profile Cache
+
+    private void EnsureCacheLoaded()
+    {
+        if (!_apiController.IsConnected) return;
+        var uid = _apiController.UID;
+        if (string.Equals(_cacheUid, uid, StringComparison.Ordinal)) return;
+
+        // Save previous UID's cache if any
+        if (_cacheUid != null) SaveProfileCacheNow();
+
+        _persistedProfiles.Clear();
+        _cacheUid = uid;
+        LoadProfileCache();
+    }
+
+    private string GetCacheFilePath(string uid) =>
+        Path.Combine(_configDir, $"profile_cache_{uid}.json");
+
+    private void UpdatePersistedProfile(UserData data, string? charName, uint? worldId, UmbraProfileData profile)
+    {
+        EnsureCacheLoaded();
+        var cacheKey = $"{data.UID}_{charName}_{worldId}";
+        _persistedProfiles[cacheKey] = ((data, charName, worldId), profile);
+        _cacheDirty = true;
+        ScheduleCacheSave();
+    }
+
+    private void ScheduleCacheSave()
+    {
+        _saveTimer?.Dispose();
+        _saveTimer = new Timer(_ => SaveProfileCacheNow(), null, 3000, Timeout.Infinite);
+    }
+
+    private void SaveProfileCacheNow()
+    {
+        if (!_cacheDirty || _cacheUid == null) return;
+        try
+        {
+            var entries = _persistedProfiles.Values.Select(v =>
+                ProfileCacheEntry.FromProfile(v.Key.User, v.Key.CharName, v.Key.WorldId, v.Profile)).ToList();
+            var json = JsonSerializer.Serialize(entries, new JsonSerializerOptions { WriteIndented = false });
+            File.WriteAllText(GetCacheFilePath(_cacheUid), json);
+            _cacheDirty = false;
+            Logger.LogDebug("Saved {count} profiles to cache for UID {uid}", entries.Count, _cacheUid);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to save profile cache");
+        }
+    }
+
+    private void LoadProfileCache()
+    {
+        if (_cacheUid == null) return;
+        var path = GetCacheFilePath(_cacheUid);
+        try
+        {
+            if (!File.Exists(path)) return;
+            var json = File.ReadAllText(path);
+            var entries = JsonSerializer.Deserialize<List<ProfileCacheEntry>>(json);
+            if (entries == null) return;
+
+            foreach (var entry in entries)
+            {
+                var user = new UserData(entry.UID, entry.Alias);
+                var profile = entry.ToProfileData();
+                var cacheKey = $"{entry.UID}_{entry.CharName}_{entry.WorldId}";
+                _persistedProfiles[cacheKey] = ((user, entry.CharName, entry.WorldId), profile);
+            }
+
+            Logger.LogInformation("Loaded {count} profiles from cache for UID {uid}", entries.Count, _cacheUid);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to load profile cache from {path}", path);
+        }
+    }
+
+    #endregion
 
     private static bool CustomFieldsEqual(List<RpCustomField> a, List<RpCustomField> b)
     {

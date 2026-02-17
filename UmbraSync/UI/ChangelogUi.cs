@@ -174,10 +174,14 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
         {
             new(new Version(2, 3, 0, 0), "2.3.0.0", new List<ChangelogLine>
             {
-                new("Nouveauté : Support du format BBCode dans les informations du Profil RP."),
                 new("Nouveauté : Support du plugin A Quest Reborn pour la synchronisation des quêtes personnalisées."),
                 new("Nouveauté : Possibilité de partager un fichier de housing avec meubles custom."),
                 new("Nouveauté : Possibilité d'ajouter des éléments de profil custom."),
+                new("Nouveauté : Refonte du hub de donnée avec création de liste de profil RP en cache."),
+            }),
+            new(new Version(2, 2, 2, 1), "2.2.2.1", new List<ChangelogLine>
+            {
+                new("Nouveauté : Support du format BBCode dans les informations du Profil RP."),
                 new("Correctif : Dans certains cas, la bulle d'écriture ne s'affichait plus."),
                 new("Correctif : Meilleure gestion du timeout / perte de connexion lors d'un téléchargement de mod."),
             }),

@@ -33,6 +33,7 @@ public class MareConfig : IMareConfiguration
     public bool EmoteHighlightAsterisks { get; set; } = true;
     public bool EmoteHighlightAngleBrackets { get; set; } = true;
     public bool EmoteHighlightSquareBrackets { get; set; } = true;
+    public bool EmoteHighlightDoubleParentheses { get; set; } = true;
     public bool EmoteHighlightParenthesesGray { get; set; } = true;
     public ushort EmoteHighlightParenthesesColorKey { get; set; } = 4;
     public bool EmoteHighlightParenthesesItalic { get; set; } = true;

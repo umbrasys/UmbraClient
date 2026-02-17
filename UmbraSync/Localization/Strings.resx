@@ -2418,6 +2418,9 @@ Click to change.</value>
   <data name="Settings.EmoteHighlight.SquareBrackets" xml:space="preserve">
     <value>Square brackets [...]</value>
   </data>
+  <data name="Settings.EmoteHighlight.DoubleParentheses" xml:space="preserve">
+    <value>Double parentheses (( ... ))</value>
+  </data>
   <data name="Settings.EmoteHighlight.ColorKey" xml:space="preserve">
     <value>Highlight color</value>
   </data>
@@ -4251,5 +4254,32 @@ The server is ready, awaiting integration with A Quest Reborn.</value>
   </data>
   <data name="QuestSync.NoActiveSession" xml:space="preserve">
     <value>No active session.</value>
+  </data>
+  <data name="CharaDataHub.Tab.Profiles" xml:space="preserve">
+    <value>Profiles</value>
+  </data>
+  <data name="AltSwitcher.Label" xml:space="preserve">
+    <value>Characters</value>
+  </data>
+  <data name="AltSwitcher.CurrentChar" xml:space="preserve">
+    <value>Current character</value>
+  </data>
+  <data name="Settings.ProfileBrowser.Title" xml:space="preserve">
+    <value>Profile Browser</value>
+  </data>
+  <data name="Settings.ProfileBrowser.OpenButton" xml:space="preserve">
+    <value>Browse Cached Profiles</value>
+  </data>
+  <data name="Settings.ProfileBrowser.SearchHint" xml:space="preserve">
+    <value>Search by name, UID, or alias...</value>
+  </data>
+  <data name="Settings.ProfileBrowser.NoResults" xml:space="preserve">
+    <value>No profiles found</value>
+  </data>
+  <data name="Settings.ProfileBrowser.OpenProfile" xml:space="preserve">
+    <value>Open Profile</value>
+  </data>
+  <data name="Settings.ProfileBrowser.CachedProfiles" xml:space="preserve">
+    <value>{0} cached profiles</value>
   </data>
 </root>

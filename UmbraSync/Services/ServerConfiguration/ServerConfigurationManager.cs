@@ -392,6 +392,29 @@ public class ServerConfigurationManager
         _notesConfig.Save();
     }
 
+    internal void AddEncounteredAlt(string uid, string charName, uint worldId)
+    {
+        if (string.IsNullOrEmpty(uid) || string.IsNullOrEmpty(charName) || worldId == 0) return;
+
+        var storage = CurrentNotesStorage();
+        if (!storage.UidEncounteredAlts.TryGetValue(uid, out var alts))
+        {
+            alts = new HashSet<string>(StringComparer.Ordinal);
+            storage.UidEncounteredAlts[uid] = alts;
+        }
+
+        var key = $"{charName}@{worldId}";
+        if (alts.Add(key))
+            _notesConfig.Save();
+    }
+
+    internal HashSet<string> GetEncounteredAlts(string uid)
+    {
+        if (string.IsNullOrEmpty(uid)) return [];
+        var storage = CurrentNotesStorage();
+        return storage.UidEncounteredAlts.TryGetValue(uid, out var alts) ? alts : [];
+    }
+
     internal void SetWorldIdForUid(string uid, uint worldId)
     {
         if (string.IsNullOrEmpty(uid)) return;
