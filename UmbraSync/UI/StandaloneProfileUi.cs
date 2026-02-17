@@ -300,6 +300,29 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
             ImGuiHelpers.ScaledDummy(cardSpacing / ImGuiHelpers.GlobalScale);
         }
 
+        if (profile.RpCustomFields is { Count: > 0 })
+        {
+            UiSharedService.DrawCard("rp-custom-fields-card", () =>
+            {
+                DrawSectionTitle(Loc.Get("UserProfile.RpCustomFields"));
+                var availW = ImGui.GetContentRegionAvail().X;
+                var halfW = availW / 2f;
+                var col1X = ImGui.GetCursorPosX();
+                var col2X = col1X + halfW;
+                var sorted = profile.RpCustomFields.OrderBy(f => f.Order).ToList();
+                for (int i = 0; i < sorted.Count; i++)
+                {
+                    var field = sorted[i];
+                    if (string.IsNullOrEmpty(field.Name) && string.IsNullOrEmpty(field.Value)) continue;
+                    bool isEven = (i % 2 == 0);
+                    if (isEven && i > 0) ImGuiHelpers.ScaledDummy(4f);
+                    if (!isEven) { ImGui.SameLine(); ImGui.SetCursorPosX(col2X); }
+                    DrawVerticalField(field.Name, field.Value, halfW);
+                }
+            }, stretchWidth: true);
+            ImGuiHelpers.ScaledDummy(cardSpacing / ImGuiHelpers.GlobalScale);
+        }
+
         var description = profile.RpDescription;
         if (!string.IsNullOrEmpty(description))
         {
@@ -443,10 +466,10 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
         }, stretchWidth: true);
 
         // Draw moodles AFTER card (on top), right-aligned on same line as name
-        DrawMoodlesOnNameLine(nameLineScreen, cardContentWidth);
+        DrawMoodlesOnNameLine(nameLineScreen);
     }
 
-    private void DrawMoodlesOnNameLine(Vector2 nameLineScreen, float cardContentWidth)
+    private void DrawMoodlesOnNameLine(Vector2 nameLineScreen)
     {
         var moodlesJson = GetMoodlesJson();
         if (string.IsNullOrEmpty(moodlesJson)) return;

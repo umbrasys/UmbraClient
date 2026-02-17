@@ -5,6 +5,7 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Microsoft.Extensions.Logging;
 using System.Numerics;
+using System.Text;
 using UmbraSync.API.Data.Extensions;
 using UmbraSync.Localization;
 using UmbraSync.MareConfiguration;
@@ -205,33 +206,42 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
 
             if (_isRpTab)
             {
-                var rpInfo = string.Empty;
+                var sb = new StringBuilder();
                 if (!string.IsNullOrEmpty(umbraProfile.RpFirstName) || !string.IsNullOrEmpty(umbraProfile.RpLastName))
-                    rpInfo += $"{umbraProfile.RpFirstName} {umbraProfile.RpLastName}\n";
+                    sb.Append(umbraProfile.RpFirstName).Append(' ').Append(umbraProfile.RpLastName).Append('\n');
                 if (!string.IsNullOrEmpty(umbraProfile.RpTitle))
-                    rpInfo += $"{Loc.Get("UserProfile.RpTitle")} : {umbraProfile.RpTitle}\n";
+                    sb.Append(Loc.Get("UserProfile.RpTitle")).Append(" : ").Append(umbraProfile.RpTitle).Append('\n');
                 if (!string.IsNullOrEmpty(umbraProfile.RpAge))
-                    rpInfo += $"{Loc.Get("UserProfile.RpAge")} : {umbraProfile.RpAge}\n";
+                    sb.Append(Loc.Get("UserProfile.RpAge")).Append(" : ").Append(umbraProfile.RpAge).Append('\n');
                 if (!string.IsNullOrEmpty(umbraProfile.RpRace))
-                    rpInfo += $"{Loc.Get("UserProfile.RpRace")} : {umbraProfile.RpRace}\n";
+                    sb.Append(Loc.Get("UserProfile.RpRace")).Append(" : ").Append(umbraProfile.RpRace).Append('\n');
                 if (!string.IsNullOrEmpty(umbraProfile.RpEthnicity))
-                    rpInfo += $"{Loc.Get("UserProfile.RpEthnicity")} : {umbraProfile.RpEthnicity}\n";
+                    sb.Append(Loc.Get("UserProfile.RpEthnicity")).Append(" : ").Append(umbraProfile.RpEthnicity).Append('\n');
                 if (!string.IsNullOrEmpty(umbraProfile.RpHeight))
-                    rpInfo += $"{Loc.Get("UserProfile.RpHeight")} : {umbraProfile.RpHeight}\n";
+                    sb.Append(Loc.Get("UserProfile.RpHeight")).Append(" : ").Append(umbraProfile.RpHeight).Append('\n');
                 if (!string.IsNullOrEmpty(umbraProfile.RpBuild))
-                    rpInfo += $"{Loc.Get("UserProfile.RpBuild")} : {umbraProfile.RpBuild}\n";
+                    sb.Append(Loc.Get("UserProfile.RpBuild")).Append(" : ").Append(umbraProfile.RpBuild).Append('\n');
                 if (!string.IsNullOrEmpty(umbraProfile.RpResidence))
-                    rpInfo += $"{Loc.Get("UserProfile.RpResidence")} : {umbraProfile.RpResidence}\n";
+                    sb.Append(Loc.Get("UserProfile.RpResidence")).Append(" : ").Append(umbraProfile.RpResidence).Append('\n');
                 if (!string.IsNullOrEmpty(umbraProfile.RpOccupation))
-                    rpInfo += $"{Loc.Get("UserProfile.RpOccupation")} : {umbraProfile.RpOccupation}\n";
+                    sb.Append(Loc.Get("UserProfile.RpOccupation")).Append(" : ").Append(umbraProfile.RpOccupation).Append('\n');
                 if (!string.IsNullOrEmpty(umbraProfile.RpAffiliation))
-                    rpInfo += $"{Loc.Get("UserProfile.RpAffiliation")} : {umbraProfile.RpAffiliation}\n";
+                    sb.Append(Loc.Get("UserProfile.RpAffiliation")).Append(" : ").Append(umbraProfile.RpAffiliation).Append('\n');
                 if (!string.IsNullOrEmpty(umbraProfile.RpAlignment))
-                    rpInfo += $"{Loc.Get("UserProfile.RpAlignment")} : {umbraProfile.RpAlignment}\n";
+                    sb.Append(Loc.Get("UserProfile.RpAlignment")).Append(" : ").Append(umbraProfile.RpAlignment).Append('\n');
 
-                if (!string.IsNullOrEmpty(rpInfo))
+                if (umbraProfile.RpCustomFields is { Count: > 0 })
                 {
-                    descText = rpInfo + "----------\n" + descText;
+                    foreach (var field in umbraProfile.RpCustomFields.OrderBy(f => f.Order))
+                    {
+                        if (!string.IsNullOrEmpty(field.Name) || !string.IsNullOrEmpty(field.Value))
+                            sb.Append(field.Name).Append(" : ").Append(field.Value).Append('\n');
+                    }
+                }
+
+                if (sb.Length > 0)
+                {
+                    descText = sb.Append("----------\n").Append(descText).ToString();
                 }
             }
 

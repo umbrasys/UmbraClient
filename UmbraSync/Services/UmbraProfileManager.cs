@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
+using System.Text.Json;
 using UmbraSync.API.Data;
 using UmbraSync.API.Dto.Group;
 using UmbraSync.MareConfiguration;
@@ -152,6 +153,13 @@ public class UmbraProfileManager : MediatorSubscriberBase
             if (profile.WorldId is > 0)
                 _serverConfigurationManager.SetWorldIdForUid(data.UID, profile.WorldId.Value);
 
+            List<RpCustomField>? customFields = null;
+            if (!string.IsNullOrEmpty(profile.RpCustomFields))
+            {
+                try { customFields = JsonSerializer.Deserialize<List<RpCustomField>>(profile.RpCustomFields); }
+                catch (JsonException ex) { Logger.LogWarning(ex, "Failed to deserialize RpCustomFields for {uid}", data.UID); }
+            }
+
             UmbraProfileData profileData = new(profile.Disabled, profile.IsNSFW ?? false,
                 string.IsNullOrEmpty(profile.ProfilePictureBase64) ? string.Empty : profile.ProfilePictureBase64,
                 string.IsNullOrEmpty(profile.Description) ? _noDescription : profile.Description,
@@ -159,7 +167,8 @@ public class UmbraProfileManager : MediatorSubscriberBase
                 profile.RpFirstName, profile.RpLastName, profile.RpTitle, profile.RpAge,
                 profile.RpRace, profile.RpEthnicity,
                 profile.RpHeight, profile.RpBuild, profile.RpResidence, profile.RpOccupation, profile.RpAffiliation,
-                profile.RpAlignment, profile.RpAdditionalInfo, profile.RpNameColor);
+                profile.RpAlignment, profile.RpAdditionalInfo, profile.RpNameColor,
+                customFields);
 
             if (_apiController.IsConnected && string.Equals(_apiController.UID, data.UID, StringComparison.Ordinal) && charName != null && worldId != null)
             {
@@ -182,6 +191,8 @@ public class UmbraProfileManager : MediatorSubscriberBase
                 if (localRpProfile.IsRpNsfw != profileData.IsRpNSFW) { localRpProfile.IsRpNsfw = profileData.IsRpNSFW; changed = true; }
                 if (!string.Equals(localRpProfile.RpProfilePictureBase64, profileData.Base64RpProfilePicture, StringComparison.Ordinal)) { localRpProfile.RpProfilePictureBase64 = profileData.Base64RpProfilePicture ?? string.Empty; changed = true; }
                 if (!string.Equals(localRpProfile.RpNameColor, profileData.RpNameColor, StringComparison.Ordinal)) { localRpProfile.RpNameColor = profileData.RpNameColor ?? string.Empty; changed = true; }
+                var serverCustomFields = profileData.RpCustomFields ?? new List<RpCustomField>();
+                if (!CustomFieldsEqual(localRpProfile.RpCustomFields, serverCustomFields)) { localRpProfile.RpCustomFields = serverCustomFields; changed = true; }
 
                 if (changed)
                 {
@@ -211,5 +222,18 @@ public class UmbraProfileManager : MediatorSubscriberBase
             Logger.LogWarning(ex, "Failed to get Profile from service for user {user}", data);
             _umbraProfiles[key] = _defaultProfileData;
         }
+    }
+
+    private static bool CustomFieldsEqual(List<RpCustomField> a, List<RpCustomField> b)
+    {
+        if (a.Count != b.Count) return false;
+        for (int i = 0; i < a.Count; i++)
+        {
+            if (!string.Equals(a[i].Name, b[i].Name, StringComparison.Ordinal) ||
+                !string.Equals(a[i].Value, b[i].Value, StringComparison.Ordinal) ||
+                a[i].Order != b[i].Order)
+                return false;
+        }
+        return true;
     }
 }

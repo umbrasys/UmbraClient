@@ -2,10 +2,12 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.ImGuiFileDialog;
+using Dalamud.Interface.Internal;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Microsoft.Extensions.Logging;
 using System.Globalization;
+using System.Numerics;
 using UmbraSync.API.Dto.CharaData;
 using UmbraSync.Localization;
 using UmbraSync.MareConfiguration;
@@ -13,6 +15,7 @@ using UmbraSync.MareConfiguration.Models;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
 using UmbraSync.Services.CharaData.Models;
+using UmbraSync.Services.Housing;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.ServerConfiguration;
 
@@ -31,6 +34,8 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
     private readonly ServerConfigurationManager _serverConfigurationManager;
     private readonly UiSharedService _uiSharedService;
     private readonly McdfShareManager _mcdfShareManager;
+    private readonly HousingShareManager? _housingShareManager_housing;
+    private readonly HousingFurnitureScanner? _housingScanner;
     private CancellationTokenSource? _closalCts = new();
     private bool _disableUI = false;
     private CancellationTokenSource? _disposalCts = new();
@@ -83,6 +88,7 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
     private string? _openComboHybridId = null;
     private (string Id, string? Alias, string AliasOrId, string? Note)[]? _openComboHybridEntries = null;
     private bool _comboHybridUsedLastFrame = false;
+    private int _hubActiveTab;
     private bool _mcdfShareInitialized;
     private string _mcdfShareDescription = string.Empty;
     private readonly List<string> _mcdfShareAllowedIndividuals = new();
@@ -97,7 +103,8 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
                          CharaDataManager charaDataManager, CharaDataNearbyManager charaDataNearbyManager, CharaDataConfigService configService,
                          UiSharedService uiSharedService, ServerConfigurationManager serverConfigurationManager,
                          DalamudUtilService dalamudUtilService, FileDialogManager fileDialogManager, PairManager pairManager,
-                         CharaDataGposeTogetherManager charaDataGposeTogetherManager, McdfShareManager mcdfShareManager)
+                         CharaDataGposeTogetherManager charaDataGposeTogetherManager, McdfShareManager mcdfShareManager,
+                         HousingShareManager housingShareManager, HousingFurnitureScanner housingScanner)
         : base(logger, mediator, $"{Loc.Get("CharaDataHub.WindowTitle")}###UmbraCharaDataUI", performanceCollectorService)
     {
         SetWindowSizeConstraints();
@@ -112,6 +119,8 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
         _pairManager = pairManager;
         _charaDataGposeTogetherManager = charaDataGposeTogetherManager;
         _mcdfShareManager = mcdfShareManager;
+        _housingShareManager_housing = housingShareManager;
+        _housingScanner = housingScanner;
         Mediator.Subscribe<GposeStartMessage>(this, (_) => IsOpen |= _configService.Current.OpenMareHubOnGposeStart);
         Mediator.Subscribe<OpenCharaDataHubWithFilterMessage>(this, (msg) =>
         {
@@ -241,156 +250,151 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
             }
         });
 
-        bool smallUi = false;
+        _isHandlingSelf = _charaDataManager.HandledCharaData.Any(c => c.Value.IsSelf);
+        if (_isHandlingSelf) _openMcdOnlineOnNextRun = false;
+
+        if (_openDataApplicationShared) _hubActiveTab = 1;
+        if (_openMcdOnlineOnNextRun) { _hubActiveTab = 2; _openMcdOnlineOnNextRun = false; }
+
         var accent = UiSharedService.AccentColor;
         if (accent.W <= 0f) accent = ImGuiColors.ParsedPurple;
-        using (var topTabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, accent))
-        using (var topTabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, accent))
+
+        var labels = new[]
         {
-            using var tabs = ImRaii.TabBar("TabsTopLevel");
+            Loc.Get("CharaDataHub.Tab.GposeTogether"),
+            Loc.Get("CharaDataHub.Tab.Application"),
+            Loc.Get("CharaDataHub.Tab.DataCreation"),
+            "Quest Sync",
+            Loc.Get("CharaDataHub.Tab.HousingShare"),
+            Loc.Get("CharaDataHub.Tab.Settings") is { Length: > 0 } s ? s : "Settings",
+        };
+        var icons = new[]
+        {
+            FontAwesomeIcon.Camera,
+            FontAwesomeIcon.FileImport,
+            FontAwesomeIcon.PaintBrush,
+            FontAwesomeIcon.Scroll,
+            FontAwesomeIcon.Home,
+            FontAwesomeIcon.Cog,
+        };
 
-            _isHandlingSelf = _charaDataManager.HandledCharaData.Any(c => c.Value.IsSelf);
-            if (_isHandlingSelf) _openMcdOnlineOnNextRun = false;
+        const float btnH = 32f;
+        const float btnSpacing = 6f;
+        const float rounding = 4f;
+        const float iconTextGap = 6f;
+        const float btnPadX = 14f;
 
-            using (var gposeTogetherTabItem = ImRaii.TabItem(Loc.Get("CharaDataHub.Tab.GposeTogether")))
-            {
-                if (gposeTogetherTabItem)
-                {
-                    smallUi = true;
+        var dl = ImGui.GetWindowDrawList();
+        var availWidth = ImGui.GetContentRegionAvail().X;
 
-                    DrawGposeTogether();
-                }
-            }
+        // Measure natural widths (icon + gap + text + padding)
+        var iconStrings = new string[labels.Length];
+        var iconSizes = new System.Numerics.Vector2[labels.Length];
+        var labelSizes = new System.Numerics.Vector2[labels.Length];
+        var naturalWidths = new float[labels.Length];
+        float totalNatural = btnSpacing * (labels.Length - 1);
 
-            using (var applicationTabItem = ImRaii.TabItem(Loc.Get("CharaDataHub.Tab.Application"), _openDataApplicationShared ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None))
-            {
-                if (applicationTabItem)
-                {
-                    smallUi = true;
-                    using (var appTabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, accent))
-                    using (var appTabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, accent))
-                    {
-                        using var appTabs = ImRaii.TabBar("TabsApplicationLevel");
-
-                        using (ImRaii.Disabled(!_uiSharedService.IsInGpose))
-                        {
-                            using (var gposeTabItem = ImRaii.TabItem(Loc.Get("CharaDataHub.Tab.GposeActors")))
-                            {
-                                if (gposeTabItem)
-                                {
-                                    using var id = ImRaii.PushId("gposeControls");
-                                    DrawGposeControls();
-                                }
-                            }
-                        }
-                        if (!_uiSharedService.IsInGpose)
-                            UiSharedService.AttachToolTip(Loc.Get("CharaDataHub.GposeOnlyTooltip"));
-
-                        using (var nearbyPosesTabItem = ImRaii.TabItem(Loc.Get("CharaDataHub.Tab.PosesNearby")))
-                        {
-                            if (nearbyPosesTabItem)
-                            {
-                                using var id = ImRaii.PushId("nearbyPoseControls");
-                                _charaDataNearbyManager.ComputeNearbyData = true;
-
-                                DrawNearbyPoses();
-                            }
-                            else
-                            {
-                                _charaDataNearbyManager.ComputeNearbyData = false;
-                            }
-                        }
-
-                        using (var gposeTabItem = ImRaii.TabItem(Loc.Get("CharaDataHub.Tab.ApplyData"), _openDataApplicationShared ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None))
-                        {
-                            if (gposeTabItem)
-                            {
-                                smallUi |= true;
-                                using var id = ImRaii.PushId("applyData");
-                                DrawDataApplication();
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    _charaDataNearbyManager.ComputeNearbyData = false;
-                }
-            }
-
-            using (ImRaii.Disabled(_isHandlingSelf))
-            {
-                ImGuiTabItemFlags flagsTopLevel = ImGuiTabItemFlags.None;
-                if (_openMcdOnlineOnNextRun)
-                {
-                    flagsTopLevel = ImGuiTabItemFlags.SetSelected;
-                    _openMcdOnlineOnNextRun = false;
-                }
-
-                using (var creationTabItem = ImRaii.TabItem(Loc.Get("CharaDataHub.Tab.DataCreation"), flagsTopLevel))
-                {
-                    if (creationTabItem)
-                    {
-                        using (var creationTabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, accent))
-                        using (var creationTabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, accent))
-                        {
-                            using var creationTabs = ImRaii.TabBar("TabsCreationLevel");
-
-                            ImGuiTabItemFlags flags = ImGuiTabItemFlags.None;
-                            if (_openMcdOnlineOnNextRun)
-                            {
-                                flags = ImGuiTabItemFlags.SetSelected;
-                                _openMcdOnlineOnNextRun = false;
-                            }
-                            using (var mcdOnlineTabItem = ImRaii.TabItem(Loc.Get("CharaDataHub.Tab.OnlineData"), flags))
-                            {
-                                if (mcdOnlineTabItem)
-                                {
-                                    using var id = ImRaii.PushId("mcdOnline");
-                                    DrawMcdOnline();
-                                }
-                            }
-
-                            using (var mcdfTabItem = ImRaii.TabItem(Loc.Get("CharaDataHub.Tab.McdfExport")))
-                            {
-                                if (mcdfTabItem)
-                                {
-                                    using var id = ImRaii.PushId("mcdfExport");
-                                    DrawMcdfExport();
-                                }
-                            }
-
-                            using (var mcdfShareTabItem = ImRaii.TabItem(Loc.Get("CharaDataHub.Tab.McdfShare")))
-                            {
-                                if (mcdfShareTabItem)
-                                {
-                                    using var id = ImRaii.PushId("mcdfShare");
-                                    DrawMcdfShare();
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            var settingsTabLabel = Loc.Get("CharaDataHub.Tab.Settings");
-            if (string.IsNullOrWhiteSpace(settingsTabLabel))
-            {
-                settingsTabLabel = "Settings";
-            }
-
-            using (var settingsTabItem = ImRaii.TabItem(settingsTabLabel))
-            {
-                if (settingsTabItem)
-                {
-                    using var id = ImRaii.PushId("settings");
-                    DrawSettings();
-                }
-            }
+        for (int i = 0; i < labels.Length; i++)
+        {
+            ImGui.PushFont(UiBuilder.IconFont);
+            iconStrings[i] = icons[i].ToIconString();
+            iconSizes[i] = ImGui.CalcTextSize(iconStrings[i]);
+            ImGui.PopFont();
+            labelSizes[i] = ImGui.CalcTextSize(labels[i]);
+            naturalWidths[i] = iconSizes[i].X + iconTextGap + labelSizes[i].X + btnPadX;
+            totalNatural += naturalWidths[i];
         }
 
-        if (_isHandlingSelf)
+        // Determine display mode: icon+text if fits, icon-only otherwise
+        bool iconOnly = totalNatural > availWidth;
+
+        var borderColor = new System.Numerics.Vector4(0.29f, 0.21f, 0.41f, 0.7f);
+        var bgColor = new System.Numerics.Vector4(0.11f, 0.11f, 0.11f, 0.9f);
+        var hoverBg = new System.Numerics.Vector4(0.17f, 0.13f, 0.22f, 1f);
+
+        for (int i = 0; i < labels.Length; i++)
         {
-            UiSharedService.AttachToolTip(Loc.Get("CharaDataHub.CreationDisabledTooltip"));
+            if (i > 0) ImGui.SameLine(0, btnSpacing);
+
+            float btnW = iconOnly ? (availWidth - btnSpacing * (labels.Length - 1)) / labels.Length : naturalWidths[i];
+            bool isDisabled = (i == 2 && _isHandlingSelf);
+
+            var p = ImGui.GetCursorScreenPos();
+            using (ImRaii.Disabled(isDisabled))
+                ImGui.InvisibleButton($"##hubTab_{i}", new System.Numerics.Vector2(btnW, btnH));
+            bool hovered = ImGui.IsItemHovered();
+            bool clicked = ImGui.IsItemClicked();
+            bool isActive = _hubActiveTab == i;
+
+            var bg = isActive ? accent : hovered ? hoverBg : bgColor;
+            dl.AddRectFilled(p, p + new System.Numerics.Vector2(btnW, btnH), ImGui.GetColorU32(bg), rounding);
+            if (!isActive)
+                dl.AddRect(p, p + new System.Numerics.Vector2(btnW, btnH), ImGui.GetColorU32(borderColor with { W = hovered ? 0.9f : 0.5f }), rounding);
+
+            var textColor = isActive ? new System.Numerics.Vector4(1f, 1f, 1f, 1f)
+                : hovered ? new System.Numerics.Vector4(0.9f, 0.85f, 1f, 1f)
+                : new System.Numerics.Vector4(0.7f, 0.65f, 0.8f, 1f);
+            var textColorU32 = ImGui.GetColorU32(textColor);
+
+            if (iconOnly)
+            {
+                // Icon centered
+                var ix = p.X + (btnW - iconSizes[i].X) / 2f;
+                ImGui.PushFont(UiBuilder.IconFont);
+                dl.AddText(new System.Numerics.Vector2(ix, p.Y + (btnH - iconSizes[i].Y) / 2f), textColorU32, iconStrings[i]);
+                ImGui.PopFont();
+
+                if (hovered) UiSharedService.AttachToolTip(labels[i]);
+            }
+            else
+            {
+                // Icon + text centered
+                var contentW = iconSizes[i].X + iconTextGap + labelSizes[i].X;
+                var startX = p.X + (btnW - contentW) / 2f;
+
+                ImGui.PushFont(UiBuilder.IconFont);
+                dl.AddText(new System.Numerics.Vector2(startX, p.Y + (btnH - iconSizes[i].Y) / 2f), textColorU32, iconStrings[i]);
+                ImGui.PopFont();
+
+                dl.AddText(new System.Numerics.Vector2(startX + iconSizes[i].X + iconTextGap, p.Y + (btnH - labelSizes[i].Y) / 2f), textColorU32, labels[i]);
+            }
+
+            if (hovered) ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
+            if (clicked && !isDisabled) _hubActiveTab = i;
+
+            if (isDisabled)
+                UiSharedService.AttachToolTip(Loc.Get("CharaDataHub.CreationDisabledTooltip"));
+        }
+
+        ImGuiHelpers.ScaledDummy(4f);
+
+        bool smallUi = false;
+        switch (_hubActiveTab)
+        {
+            case 0:
+                smallUi = true;
+                DrawGposeTogether();
+                break;
+            case 1:
+                smallUi = true;
+                DrawDataApplicationTab(accent);
+                break;
+            case 2:
+                DrawDataCreationTab(accent);
+                break;
+            case 3:
+                smallUi = true;
+                DrawQuestSync();
+                break;
+            case 4:
+                smallUi = true;
+                using (var id = ImRaii.PushId("housingShare"))
+                    DrawHousingShare();
+                break;
+            case 5:
+                using (var id = ImRaii.PushId("settings"))
+                    DrawSettings();
+                break;
         }
 
         SetWindowSizeConstraints(smallUi);
@@ -1617,6 +1621,100 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
             _configService.Save();
         }
         _uiSharedService.DrawHelpText("Use this if the Load or Save MCDF file dialog does not open");
+    }
+
+    private void DrawDataApplicationTab(System.Numerics.Vector4 accent)
+    {
+        using (var appTabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, accent))
+        using (var appTabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, accent))
+        {
+            using var appTabs = ImRaii.TabBar("TabsApplicationLevel");
+
+            using (ImRaii.Disabled(!_uiSharedService.IsInGpose))
+            {
+                using (var gposeTabItem = ImRaii.TabItem(Loc.Get("CharaDataHub.Tab.GposeActors")))
+                {
+                    if (gposeTabItem)
+                    {
+                        using var id = ImRaii.PushId("gposeControls");
+                        DrawGposeControls();
+                    }
+                }
+            }
+            if (!_uiSharedService.IsInGpose)
+                UiSharedService.AttachToolTip(Loc.Get("CharaDataHub.GposeOnlyTooltip"));
+
+            using (var nearbyPosesTabItem = ImRaii.TabItem(Loc.Get("CharaDataHub.Tab.PosesNearby")))
+            {
+                if (nearbyPosesTabItem)
+                {
+                    using var id = ImRaii.PushId("nearbyPoseControls");
+                    _charaDataNearbyManager.ComputeNearbyData = true;
+                    DrawNearbyPoses();
+                }
+                else
+                {
+                    _charaDataNearbyManager.ComputeNearbyData = false;
+                }
+            }
+
+            using (var applyDataTabItem = ImRaii.TabItem(Loc.Get("CharaDataHub.Tab.ApplyData"), _openDataApplicationShared ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None))
+            {
+                if (applyDataTabItem)
+                {
+                    using var id = ImRaii.PushId("applyData");
+                    DrawDataApplication();
+                }
+            }
+        }
+
+        if (_hubActiveTab != 1)
+            _charaDataNearbyManager.ComputeNearbyData = false;
+    }
+
+    private void DrawDataCreationTab(System.Numerics.Vector4 accent)
+    {
+        using (ImRaii.Disabled(_isHandlingSelf))
+        {
+            using (var creationTabHoverColor = ImRaii.PushColor(ImGuiCol.TabHovered, accent))
+            using (var creationTabActiveColor = ImRaii.PushColor(ImGuiCol.TabActive, accent))
+            {
+                using var creationTabs = ImRaii.TabBar("TabsCreationLevel");
+
+                ImGuiTabItemFlags flags = ImGuiTabItemFlags.None;
+                if (_openMcdOnlineOnNextRun)
+                {
+                    flags = ImGuiTabItemFlags.SetSelected;
+                    _openMcdOnlineOnNextRun = false;
+                }
+                using (var mcdOnlineTabItem = ImRaii.TabItem(Loc.Get("CharaDataHub.Tab.OnlineData"), flags))
+                {
+                    if (mcdOnlineTabItem)
+                    {
+                        using var id = ImRaii.PushId("mcdOnline");
+                        DrawMcdOnline();
+                    }
+                }
+
+                using (var mcdfTabItem = ImRaii.TabItem(Loc.Get("CharaDataHub.Tab.McdfExport")))
+                {
+                    if (mcdfTabItem)
+                    {
+                        using var id = ImRaii.PushId("mcdfExport");
+                        DrawMcdfExport();
+                    }
+                }
+
+                using (var mcdfShareTabItem = ImRaii.TabItem(Loc.Get("CharaDataHub.Tab.McdfShare")))
+                {
+                    if (mcdfShareTabItem)
+                    {
+                        using var id = ImRaii.PushId("mcdfShare");
+                        DrawMcdfShare();
+                    }
+                }
+            }
+        }
     }
 
     private void DrawHelpFoldout(string text)

@@ -69,7 +69,6 @@ public class EditProfileUi : WindowMediatorSubscriberBase
     private bool _moodleOperationInProgress;
     private DateTime _saveConfirmTime = DateTime.MinValue;
     private string _savedDescriptionText = string.Empty;
-    private string _savedRpDescriptionText = string.Empty;
     private string _savedRpFirstNameText = string.Empty;
     private string _savedRpLastNameText = string.Empty;
     private string _savedRpTitleText = string.Empty;
@@ -206,7 +205,8 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                 RpAffiliation: _rpAffiliationText,
                 RpAlignment: _rpAlignmentText,
                 RpAdditionalInfo: _rpAdditionalInfoText,
-                RpNameColor: UiSharedService.Vector4ToHex(new Vector4(_rpNameColorVec, 1f))
+                RpNameColor: UiSharedService.Vector4ToHex(new Vector4(_rpNameColorVec, 1f)),
+                RpCustomFields: currentProfile.RpCustomFields.Count > 0 ? currentProfile.RpCustomFields : null
             );
 
             _umbraProfileManager.SetPreviewProfile(pair.UserData, pair.PlayerName, pair.WorldId, previewProfileData);
@@ -469,7 +469,8 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                                 RpAffiliation = rpProfile.RpAffiliation,
                                 RpAlignment = rpProfile.RpAlignment,
                                 RpAdditionalInfo = rpProfile.RpAdditionalInfo,
-                                RpNameColor = rpProfile.RpNameColor
+                                RpNameColor = rpProfile.RpNameColor,
+                                RpCustomFields = rpProfile.RpCustomFields.Count > 0 ? System.Text.Json.JsonSerializer.Serialize(rpProfile.RpCustomFields) : null
                             }).ConfigureAwait(false);
                         }
                         else
@@ -492,7 +493,8 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                                 RpAffiliation = curProfile.RpAffiliation,
                                 RpAlignment = curProfile.RpAlignment,
                                 RpAdditionalInfo = curProfile.RpAdditionalInfo,
-                                RpNameColor = curProfile.RpNameColor
+                                RpNameColor = curProfile.RpNameColor,
+                                RpCustomFields = curProfile.RpCustomFields
                             }).ConfigureAwait(false);
                         }
                         Mediator.Publish(new ClearProfileDataMessage(new UserData(_apiController.UID), charName, worldId));
@@ -553,8 +555,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             ImGui.SameLine();
             ImGui.SetNextItemWidth(24f * ImGuiHelpers.GlobalScale);
             if (ImGui.ColorEdit3("##rpNameColor", ref _rpNameColorVec, ImGuiColorEditFlags.NoInputs | ImGuiColorEditFlags.NoLabel))
-            {
-            }
+            { /* value read from ref */ }
             UiSharedService.AttachToolTip(Loc.Get("EditProfile.NameColor.Tooltip"));
 
             DrawFieldPair(Loc.Get("UserProfile.RpTitle"), ref _rpTitleText, 100, Loc.Get("UserProfile.RpAge"), ref _rpAgeText, 50);
@@ -601,6 +602,12 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             ImGui.Separator();
             ImGuiHelpers.ScaledDummy(new Vector2(0f, 4f));
 
+            DrawCustomFieldsSection(w);
+
+            ImGuiHelpers.ScaledDummy(new Vector2(0f, 4f));
+            ImGui.Separator();
+            ImGuiHelpers.ScaledDummy(new Vector2(0f, 4f));
+
             ImGui.TextColored(ImGuiColors.DalamudGrey, "Traits du personnage");
             ImGui.SameLine();
             if (_moodleOperationInProgress)
@@ -635,6 +642,124 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             }
         }
 
+    }
+
+    private void DrawCustomFieldsSection(float availableWidth)
+    {
+        var currentProfile = _rpConfigService.GetCurrentCharacterProfile();
+        var customFields = currentProfile.RpCustomFields;
+
+        ImGui.TextColored(ImGuiColors.DalamudGrey, Loc.Get("UserProfile.RpCustomFields"));
+        ImGui.SameLine();
+
+        if (customFields.Count < 10)
+        {
+            ImGui.PushStyleColor(ImGuiCol.Button, Vector4.Zero);
+            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UiSharedService.ThemeButtonHovered);
+            ImGui.PushStyleColor(ImGuiCol.ButtonActive, UiSharedService.ThemeButtonActive);
+            if (_uiSharedService.IconButton(FontAwesomeIcon.Plus))
+            {
+                customFields.Add(new RpCustomField
+                {
+                    Name = string.Empty,
+                    Value = string.Empty,
+                    Order = customFields.Count
+                });
+            }
+            UiSharedService.AttachToolTip(Loc.Get("UserProfile.RpCustomFieldAdd"));
+            ImGui.PopStyleColor(3);
+        }
+
+        int? removeIndex = null;
+        int? moveUpIndex = null;
+        int? moveDownIndex = null;
+
+        for (int i = 0; i < customFields.Count; i++)
+        {
+            var field = customFields[i];
+            ImGui.PushID($"custom_field_{i}");
+
+            var labelWidth = 120f * ImGuiHelpers.GlobalScale;
+            var buttonAreaWidth = 70f * ImGuiHelpers.GlobalScale;
+            var valueWidth = availableWidth - labelWidth - buttonAreaWidth - ImGui.GetStyle().ItemSpacing.X * 3;
+
+            using (_uiSharedService.GameFont.Push())
+            {
+                ImGui.SetNextItemWidth(labelWidth);
+                var name = field.Name;
+                if (ImGui.InputTextWithHint("##name", Loc.Get("UserProfile.RpCustomFieldName"), ref name, 30))
+                {
+                    field.Name = name;
+                }
+            }
+            ImGui.SameLine();
+            using (_uiSharedService.GameFont.Push())
+            {
+                ImGui.SetNextItemWidth(valueWidth);
+                var value = field.Value;
+                if (ImGui.InputTextWithHint("##value", Loc.Get("UserProfile.RpCustomFieldValue"), ref value, 200))
+                {
+                    field.Value = value;
+                }
+            }
+            ImGui.SameLine();
+
+            ImGui.PushStyleColor(ImGuiCol.Button, Vector4.Zero);
+            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UiSharedService.ThemeButtonHovered);
+            ImGui.PushStyleColor(ImGuiCol.ButtonActive, UiSharedService.ThemeButtonActive);
+
+            ImGui.PushID("up");
+            if (i > 0 && _uiSharedService.IconButton(FontAwesomeIcon.ArrowUp))
+                moveUpIndex = i;
+            else if (i == 0)
+            {
+                ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.3f);
+                _uiSharedService.IconButton(FontAwesomeIcon.ArrowUp);
+                ImGui.PopStyleVar();
+            }
+            ImGui.PopID();
+            ImGui.SameLine();
+
+            ImGui.PushID("down");
+            if (i < customFields.Count - 1 && _uiSharedService.IconButton(FontAwesomeIcon.ArrowDown))
+                moveDownIndex = i;
+            else if (i == customFields.Count - 1)
+            {
+                ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.3f);
+                _uiSharedService.IconButton(FontAwesomeIcon.ArrowDown);
+                ImGui.PopStyleVar();
+            }
+            ImGui.PopID();
+            ImGui.SameLine();
+
+            ImGui.PushID("del");
+            ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudRed);
+            if (_uiSharedService.IconButton(FontAwesomeIcon.Trash))
+                removeIndex = i;
+            ImGui.PopStyleColor();
+            ImGui.PopID();
+
+            ImGui.PopStyleColor(3);
+            ImGui.PopID();
+        }
+
+        if (moveUpIndex.HasValue)
+        {
+            var idx = moveUpIndex.Value;
+            (customFields[idx], customFields[idx - 1]) = (customFields[idx - 1], customFields[idx]);
+            for (int i = 0; i < customFields.Count; i++) customFields[i].Order = i;
+        }
+        if (moveDownIndex.HasValue)
+        {
+            var idx = moveDownIndex.Value;
+            (customFields[idx], customFields[idx + 1]) = (customFields[idx + 1], customFields[idx]);
+            for (int i = 0; i < customFields.Count; i++) customFields[i].Order = i;
+        }
+        if (removeIndex.HasValue)
+        {
+            customFields.RemoveAt(removeIndex.Value);
+            for (int i = 0; i < customFields.Count; i++) customFields[i].Order = i;
+        }
     }
 
     private void DrawEditableMoodles()
@@ -1095,8 +1220,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
         if (ImGui.BeginPopup("bbcode_color_picker"))
         {
             if (ImGui.ColorPicker3("##bbcodeColorPicker", ref _bbcodeColorVec, ImGuiColorEditFlags.PickerHueWheel | ImGuiColorEditFlags.NoSidePreview))
-            {
-            }
+            { /* value read from ref */ }
             if (ImGui.Button("Insérer##bbcodeColorInsert"))
             {
                 var hex = UiSharedService.Vector4ToHex(new Vector4(_bbcodeColorVec, 1f));
@@ -1196,6 +1320,9 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             ImGui.SetNextItemWidth(400 * ImGuiHelpers.GlobalScale);
             ImGui.InputTextWithHint("##customId", Loc.Get("EditProfile.SetCustomId.Placeholder"), ref _vanityInput, 64);
 
+            ImGuiHelpers.ScaledDummy(new Vector2(0f, 5f));
+            UiSharedService.ColorTextWrapped(Loc.Get("EditProfile.SetCustomId.ReconnectWarning"), ImGuiColors.DalamudYellow);
+
             ImGuiHelpers.ScaledDummy(new Vector2(0f, ImGui.GetStyle().ItemSpacing.Y));
             if (ImGui.Button(Loc.Get("EditProfile.SetCustomId.Confirm")))
             {
@@ -1248,7 +1375,8 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                         RpAffiliation = curProfile.RpAffiliation,
                         RpAlignment = curProfile.RpAlignment,
                         RpAdditionalInfo = curProfile.RpAdditionalInfo,
-                        RpNameColor = curProfile.RpNameColor
+                        RpNameColor = curProfile.RpNameColor,
+                        RpCustomFields = curProfile.RpCustomFields
                     }).ConfigureAwait(false);
                     Mediator.Publish(new ClearProfileDataMessage(new UserData(_apiController.UID), charName, worldId));
                 });
@@ -1285,7 +1413,8 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                         RpAffiliation = curProfile.RpAffiliation,
                         RpAlignment = curProfile.RpAlignment,
                         RpAdditionalInfo = curProfile.RpAdditionalInfo,
-                        RpNameColor = curProfile.RpNameColor
+                        RpNameColor = curProfile.RpNameColor,
+                        RpCustomFields = curProfile.RpCustomFields
                     }).ConfigureAwait(false);
                     Mediator.Publish(new ClearProfileDataMessage(new UserData(_apiController.UID), charName, worldId));
                 });
@@ -1358,7 +1487,8 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                             RpAffiliation = localRpProfile.RpAffiliation,
                             RpAlignment = localRpProfile.RpAlignment,
                             RpAdditionalInfo = localRpProfile.RpAdditionalInfo,
-                            RpNameColor = localRpProfile.RpNameColor
+                            RpNameColor = localRpProfile.RpNameColor,
+                            RpCustomFields = localRpProfile.RpCustomFields.Count > 0 ? System.Text.Json.JsonSerializer.Serialize(localRpProfile.RpCustomFields) : null
                         }).ConfigureAwait(false);
                     }
                     else
@@ -1384,7 +1514,8 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                             RpAffiliation = localRpProfile.RpAffiliation,
                             RpAlignment = localRpProfile.RpAlignment,
                             RpAdditionalInfo = localRpProfile.RpAdditionalInfo,
-                            RpNameColor = localRpProfile.RpNameColor
+                            RpNameColor = localRpProfile.RpNameColor,
+                            RpCustomFields = localRpProfile.RpCustomFields.Count > 0 ? System.Text.Json.JsonSerializer.Serialize(localRpProfile.RpCustomFields) : null
                         }).ConfigureAwait(false);
                     }
                     Mediator.Publish(new ClearProfileDataMessage(new UserData(_apiController.UID), charName, worldId));

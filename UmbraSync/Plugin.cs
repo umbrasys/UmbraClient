@@ -16,6 +16,7 @@ using UmbraSync.PlayerData.Pairs;
 using UmbraSync.PlayerData.Services;
 using UmbraSync.Services;
 using UmbraSync.Services.Events;
+using UmbraSync.Services.Housing;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.Notification;
 using UmbraSync.Services.ServerConfiguration;
@@ -163,6 +164,9 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton<PenumbraPrecacheService>();
             collection.AddSingleton<SlotService>();
             collection.AddSingleton<HousingMonitorService>();
+            collection.AddSingleton<HousingFurnitureScanner>();
+            collection.AddSingleton<HousingShareManager>();
+            collection.AddSingleton<HousingFurnitureSyncService>();
 
             collection.AddSingleton((s) => new RpConfigService(pluginInterface.ConfigDirectory.FullName, s.GetRequiredService<DalamudUtilService>()));
             collection.AddSingleton((s) => new MareConfigService(pluginInterface.ConfigDirectory.FullName));
@@ -257,6 +261,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddHostedService(p => p.GetRequiredService<UmbraSync.Services.AutoDetect.AutoDetectSuppressionService>());
             collection.AddHostedService(p => p.GetRequiredService<PenumbraPrecacheService>());
             collection.AddHostedService(p => p.GetRequiredService<HousingMonitorService>());
+            collection.AddHostedService(p => p.GetRequiredService<HousingFurnitureSyncService>());
         })
         .Build();
 
