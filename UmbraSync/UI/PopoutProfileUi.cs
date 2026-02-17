@@ -184,6 +184,17 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
             }
 
             ImGui.Separator();
+
+            if (_isRpTab)
+            {
+                var moodlesJson = _pair.LastReceivedCharacterData?.MoodlesData;
+                if (!string.IsNullOrEmpty(moodlesJson))
+                {
+                    _uiSharedService.DrawMoodlesAtAGlance(moodlesJson, 36f);
+                    ImGui.Spacing();
+                }
+            }
+
             _uiSharedService.GameFont.Push();
             var remaining = ImGui.GetWindowContentRegionMax().Y - ImGui.GetCursorPosY();
             var descText = _isRpTab ? (umbraProfile.RpDescription ?? Loc.Get("UserProfile.NoRpDescription")) : umbraProfile.Description;
@@ -197,10 +208,16 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
                     rpInfo += $"{Loc.Get("UserProfile.RpTitle")} : {umbraProfile.RpTitle}\n";
                 if (!string.IsNullOrEmpty(umbraProfile.RpAge))
                     rpInfo += $"{Loc.Get("UserProfile.RpAge")} : {umbraProfile.RpAge}\n";
+                if (!string.IsNullOrEmpty(umbraProfile.RpRace))
+                    rpInfo += $"{Loc.Get("UserProfile.RpRace")} : {umbraProfile.RpRace}\n";
+                if (!string.IsNullOrEmpty(umbraProfile.RpEthnicity))
+                    rpInfo += $"{Loc.Get("UserProfile.RpEthnicity")} : {umbraProfile.RpEthnicity}\n";
                 if (!string.IsNullOrEmpty(umbraProfile.RpHeight))
                     rpInfo += $"{Loc.Get("UserProfile.RpHeight")} : {umbraProfile.RpHeight}\n";
                 if (!string.IsNullOrEmpty(umbraProfile.RpBuild))
                     rpInfo += $"{Loc.Get("UserProfile.RpBuild")} : {umbraProfile.RpBuild}\n";
+                if (!string.IsNullOrEmpty(umbraProfile.RpResidence))
+                    rpInfo += $"{Loc.Get("UserProfile.RpResidence")} : {umbraProfile.RpResidence}\n";
                 if (!string.IsNullOrEmpty(umbraProfile.RpOccupation))
                     rpInfo += $"{Loc.Get("UserProfile.RpOccupation")} : {umbraProfile.RpOccupation}\n";
                 if (!string.IsNullOrEmpty(umbraProfile.RpAffiliation))

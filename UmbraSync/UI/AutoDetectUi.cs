@@ -38,6 +38,7 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
     private readonly HashSet<string> _syncshellJoinInFlight = new(StringComparer.OrdinalIgnoreCase);
     private string? _syncshellLastError;
     private bool _showNsfwSyncshells;
+    private int _activeTab;
 
     public AutoDetectUi(ILogger<AutoDetectUi> logger, MareMediator mediator,
         MareConfigService configService, DalamudUtilService dalamudUtilService,
@@ -81,35 +82,77 @@ public class AutoDetectUi : WindowMediatorSubscriberBase
         Vector4 accent = UiSharedService.AccentColor;
         if (accent.W <= 0f) accent = ImGuiColors.ParsedPurple;
 
-        using var tabs = ImRaii.TabBar("AutoDetectTabs");
-        if (!tabs.Success) return;
-
-        var accentColor = ImGui.ColorConvertFloat4ToU32(accent);
-        ImGui.PushStyleColor(ImGuiCol.TabActive, accentColor);
-        ImGui.PushStyleColor(ImGuiCol.TabHovered, accentColor);
-
         var incomingCount = incomingInvites.Count;
-        var inviteTabLabel = string.Format(CultureInfo.CurrentCulture, Loc.Get("AutoDetectUi.Tab.Invitations"), incomingCount);
-        if (ImGui.BeginTabItem(inviteTabLabel))
-        {
-            DrawInvitationsTab(incomingInvites, outgoingInvites);
-            ImGui.EndTabItem();
-        }
-
-        if (ImGui.BeginTabItem(Loc.Get("AutoDetectUi.Tab.Nearby")))
-        {
-            DrawNearbyTab();
-            ImGui.EndTabItem();
-        }
+        var inviteLabel = string.Format(CultureInfo.CurrentCulture, Loc.Get("AutoDetectUi.Tab.Invitations"), incomingCount);
+        var nearbyLabel = Loc.Get("AutoDetectUi.Tab.Nearby");
         var syncCount = _syncshellEntries.Count > 0 ? _syncshellEntries.Count : _syncshellDiscoveryService.Entries.Count;
-        var syncTabLabel = string.Create(CultureInfo.CurrentCulture, $"{Loc.Get("AutoDetectUi.Tab.SyncFinder")} ({syncCount})");
-        if (ImGui.BeginTabItem(syncTabLabel))
+        var syncLabel = string.Create(CultureInfo.CurrentCulture, $"{Loc.Get("AutoDetectUi.Tab.SyncFinder")} ({syncCount})");
+
+        var labels = new[] { inviteLabel, nearbyLabel, syncLabel };
+        var icons = new[] { FontAwesomeIcon.Envelope, FontAwesomeIcon.MapMarkerAlt, FontAwesomeIcon.Search };
+        const float btnH = 32f;
+        const float btnSpacing = 8f;
+        const float rounding = 4f;
+        const float iconTextGap = 6f;
+
+        var dl = ImGui.GetWindowDrawList();
+        var availWidth = ImGui.GetContentRegionAvail().X;
+        var btnW = (availWidth - btnSpacing * (labels.Length - 1)) / labels.Length;
+
+        var borderColor = new Vector4(0.29f, 0.21f, 0.41f, 0.7f);
+        var bgColor = new Vector4(0.11f, 0.11f, 0.11f, 0.9f);
+        var hoverBg = new Vector4(0.17f, 0.13f, 0.22f, 1f);
+
+        for (int i = 0; i < labels.Length; i++)
         {
-            DrawSyncshellTab();
-            ImGui.EndTabItem();
+            if (i > 0) ImGui.SameLine(0, btnSpacing);
+
+            var p = ImGui.GetCursorScreenPos();
+            bool clicked = ImGui.InvisibleButton($"##adTab_{i}", new Vector2(btnW, btnH));
+            bool hovered = ImGui.IsItemHovered();
+            bool isActive = _activeTab == i;
+
+            var bg = isActive ? accent : hovered ? hoverBg : bgColor;
+            dl.AddRectFilled(p, p + new Vector2(btnW, btnH), ImGui.GetColorU32(bg), rounding);
+            if (!isActive)
+                dl.AddRect(p, p + new Vector2(btnW, btnH), ImGui.GetColorU32(borderColor with { W = hovered ? 0.9f : 0.5f }), rounding);
+
+            ImGui.PushFont(UiBuilder.IconFont);
+            var iconStr = icons[i].ToIconString();
+            var iconSz = ImGui.CalcTextSize(iconStr);
+            ImGui.PopFont();
+
+            var labelSz = ImGui.CalcTextSize(labels[i]);
+            var totalW = iconSz.X + iconTextGap + labelSz.X;
+            var startX = p.X + (btnW - totalW) / 2f;
+
+            var textColor = isActive ? new Vector4(1f, 1f, 1f, 1f) : hovered ? new Vector4(0.9f, 0.85f, 1f, 1f) : new Vector4(0.7f, 0.65f, 0.8f, 1f);
+            var textColorU32 = ImGui.GetColorU32(textColor);
+
+            ImGui.PushFont(UiBuilder.IconFont);
+            dl.AddText(new Vector2(startX, p.Y + (btnH - iconSz.Y) / 2f), textColorU32, iconStr);
+            ImGui.PopFont();
+
+            dl.AddText(new Vector2(startX + iconSz.X + iconTextGap, p.Y + (btnH - labelSz.Y) / 2f), textColorU32, labels[i]);
+
+            if (hovered) ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
+            if (clicked) _activeTab = i;
         }
 
-        ImGui.PopStyleColor(2);
+        ImGuiHelpers.ScaledDummy(4f);
+
+        switch (_activeTab)
+        {
+            case 0:
+                DrawInvitationsTab(incomingInvites, outgoingInvites);
+                break;
+            case 1:
+                DrawNearbyTab();
+                break;
+            case 2:
+                DrawSyncshellTab();
+                break;
+        }
     }
 
     public void DrawInline()

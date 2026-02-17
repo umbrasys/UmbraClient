@@ -147,7 +147,6 @@ public class UmbraProfileManager : MediatorSubscriberBase
                 profile.RpFirstName ?? "(null)", profile.RpLastName ?? "(null)",
                 string.IsNullOrEmpty(profile.RpDescription) ? "(empty)" : "(set)");
 
-            // Stocker le charName/worldId retourné par le serveur pour les requêtes futures (résolution offline)
             if (!string.IsNullOrEmpty(profile.CharacterName))
                 _serverConfigurationManager.SetNameForUid(data.UID, profile.CharacterName);
             if (profile.WorldId is > 0)
@@ -158,7 +157,8 @@ public class UmbraProfileManager : MediatorSubscriberBase
                 string.IsNullOrEmpty(profile.Description) ? _noDescription : profile.Description,
                 profile.RpProfilePictureBase64, profile.RpDescription, profile.IsRpNSFW ?? false,
                 profile.RpFirstName, profile.RpLastName, profile.RpTitle, profile.RpAge,
-                profile.RpHeight, profile.RpBuild, profile.RpOccupation, profile.RpAffiliation,
+                profile.RpRace, profile.RpEthnicity,
+                profile.RpHeight, profile.RpBuild, profile.RpResidence, profile.RpOccupation, profile.RpAffiliation,
                 profile.RpAlignment, profile.RpAdditionalInfo);
 
             if (_apiController.IsConnected && string.Equals(_apiController.UID, data.UID, StringComparison.Ordinal) && charName != null && worldId != null)
@@ -170,8 +170,11 @@ public class UmbraProfileManager : MediatorSubscriberBase
                 if (!string.Equals(localRpProfile.RpTitle, profileData.RpTitle, StringComparison.Ordinal)) { localRpProfile.RpTitle = profileData.RpTitle ?? string.Empty; changed = true; }
                 if (!string.Equals(localRpProfile.RpDescription, profileData.RpDescription, StringComparison.Ordinal)) { localRpProfile.RpDescription = profileData.RpDescription ?? string.Empty; changed = true; }
                 if (!string.Equals(localRpProfile.RpAge, profileData.RpAge, StringComparison.Ordinal)) { localRpProfile.RpAge = profileData.RpAge ?? string.Empty; changed = true; }
+                if (!string.Equals(localRpProfile.RpRace, profileData.RpRace, StringComparison.Ordinal)) { localRpProfile.RpRace = profileData.RpRace ?? string.Empty; changed = true; }
+                if (!string.Equals(localRpProfile.RpEthnicity, profileData.RpEthnicity, StringComparison.Ordinal)) { localRpProfile.RpEthnicity = profileData.RpEthnicity ?? string.Empty; changed = true; }
                 if (!string.Equals(localRpProfile.RpHeight, profileData.RpHeight, StringComparison.Ordinal)) { localRpProfile.RpHeight = profileData.RpHeight ?? string.Empty; changed = true; }
                 if (!string.Equals(localRpProfile.RpBuild, profileData.RpBuild, StringComparison.Ordinal)) { localRpProfile.RpBuild = profileData.RpBuild ?? string.Empty; changed = true; }
+                if (!string.Equals(localRpProfile.RpResidence, profileData.RpResidence, StringComparison.Ordinal)) { localRpProfile.RpResidence = profileData.RpResidence ?? string.Empty; changed = true; }
                 if (!string.Equals(localRpProfile.RpOccupation, profileData.RpOccupation, StringComparison.Ordinal)) { localRpProfile.RpOccupation = profileData.RpOccupation ?? string.Empty; changed = true; }
                 if (!string.Equals(localRpProfile.RpAffiliation, profileData.RpAffiliation, StringComparison.Ordinal)) { localRpProfile.RpAffiliation = profileData.RpAffiliation ?? string.Empty; changed = true; }
                 if (!string.Equals(localRpProfile.RpAlignment, profileData.RpAlignment, StringComparison.Ordinal)) { localRpProfile.RpAlignment = profileData.RpAlignment ?? string.Empty; changed = true; }
