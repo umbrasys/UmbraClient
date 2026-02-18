@@ -1640,22 +1640,13 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
     {
         var cachedProfiles = _umbraProfileManager.GetCachedProfiles();
 
-        // Header: count + search bar
-        ImGui.TextColored(ImGuiColors.DalamudGrey,
-            string.Format(CultureInfo.InvariantCulture, Loc.Get("Settings.ProfileBrowser.CachedProfiles"), cachedProfiles.Count));
-        ImGuiHelpers.ScaledDummy(2f);
-
-        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
-        ImGui.InputTextWithHint("##profileBrowserSearch", Loc.Get("Settings.ProfileBrowser.SearchHint"), ref _profileBrowserSearch, 100);
-
-        ImGuiHelpers.ScaledDummy(4f);
-
-        // Filter (exclude own profile)
         var currentUid = _umbraProfileManager.CurrentUid;
         var searchLower = _profileBrowserSearch.ToLowerInvariant();
         var filtered = cachedProfiles.Where(p =>
         {
             if (currentUid != null && string.Equals(p.Key.User.UID, currentUid, StringComparison.Ordinal))
+                return false;
+            if (string.IsNullOrWhiteSpace(p.Profile.RpFirstName) && string.IsNullOrWhiteSpace(p.Profile.RpLastName))
                 return false;
             if (string.IsNullOrEmpty(searchLower)) return true;
             var uid = p.Key.User.AliasOrUID.ToLowerInvariant();
@@ -1666,6 +1657,23 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
             return uid.Contains(searchLower) || charName.Contains(searchLower) ||
                    rpFirst.Contains(searchLower) || rpLast.Contains(searchLower) || note.Contains(searchLower);
         }).ToList();
+
+        ImGui.TextColored(ImGuiColors.DalamudGrey,
+            string.Format(CultureInfo.InvariantCulture, Loc.Get("Settings.ProfileBrowser.CachedProfiles"), filtered.Count));
+        ImGui.SameLine(ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize(Loc.Get("Settings.ProfileBrowser.ClearCache")).X - ImGui.GetFrameHeight() - ImGui.GetStyle().ItemSpacing.X);
+        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Trash, Loc.Get("Settings.ProfileBrowser.ClearCache")))
+        {
+            _umbraProfileManager.ClearPersistedProfileCache();
+            foreach (var tex in _profileBrowserTextures.Values)
+                tex.Texture?.Dispose();
+            _profileBrowserTextures.Clear();
+        }
+        ImGuiHelpers.ScaledDummy(2f);
+
+        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+        ImGui.InputTextWithHint("##profileBrowserSearch", Loc.Get("Settings.ProfileBrowser.SearchHint"), ref _profileBrowserSearch, 100);
+
+        ImGuiHelpers.ScaledDummy(4f);
 
         if (filtered.Count == 0)
         {

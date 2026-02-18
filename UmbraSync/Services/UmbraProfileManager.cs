@@ -79,6 +79,7 @@ public class UmbraProfileManager : MediatorSubscriberBase
                 _groupProfiles[msg.Profile.Group.GID] = msg.Profile;
             }
         });
+        Mediator.Subscribe<ConnectedMessage>(this, (msg) => _ = EnsureOwnProfileSyncedAsync());
     }
 
     public GroupProfileDto? GetGroupProfile(string gid)
@@ -113,7 +114,7 @@ public class UmbraProfileManager : MediatorSubscriberBase
         {
             // C'est nous-même : utiliser nos propres données
             charName = _dalamudUtil.GetPlayerName();
-            worldId = _dalamudUtil.GetWorldId();
+            worldId = _dalamudUtil.GetHomeWorldId();
         }
         else
         {
@@ -128,7 +129,7 @@ public class UmbraProfileManager : MediatorSubscriberBase
     public UmbraProfileData GetUmbraProfile(UserData data, string? charName, uint? worldId)
     {
         if (worldId == 0) worldId = null;
-        var key = (data, charName, worldId);
+        var key = NormalizeKey(data, charName, worldId);
         if (!_umbraProfiles.TryGetValue(key, out var profile))
         {
             _ = Task.Run(() => GetUmbraProfileFromService(data, charName, worldId));
@@ -140,14 +141,14 @@ public class UmbraProfileManager : MediatorSubscriberBase
 
     public void SetPreviewProfile(UserData data, string? charName, uint? worldId, UmbraProfileData profileData)
     {
-        var key = (data, charName, worldId);
+        var key = NormalizeKey(data, charName, worldId);
         _umbraProfiles[key] = profileData;
     }
 
     public async Task GetUmbraProfileFromService(UserData data, string? charName = null, uint? worldId = null)
     {
         if (worldId == 0) worldId = null;
-        var key = (data, charName, worldId);
+        var key = NormalizeKey(data, charName, worldId);
         try
         {
             _umbraProfiles[key] = _loadingProfileData;
@@ -168,7 +169,20 @@ public class UmbraProfileManager : MediatorSubscriberBase
                 _serverConfigurationManager.SetWorldIdForUid(data.UID, profile.WorldId.Value);
 
             if (!string.IsNullOrEmpty(profile.CharacterName) && profile.WorldId is > 0)
+            {
                 _serverConfigurationManager.AddEncounteredAlt(data.UID, profile.CharacterName, profile.WorldId.Value);
+
+                // Clean up stale local entry if server returned different data than what we requested
+                if (charName != null && worldId is > 0
+                    && (!string.Equals(profile.CharacterName, charName, StringComparison.Ordinal) || profile.WorldId.Value != worldId.Value))
+                {
+                    Logger.LogInformation("Server corrected alt for {uid}: requested {reqChar}@{reqWorld}, got {srvChar}@{srvWorld}",
+                        data.UID, charName, worldId, profile.CharacterName, profile.WorldId.Value);
+                    _serverConfigurationManager.RemoveEncounteredAlt(data.UID, charName, worldId.Value);
+                    RemovePersistedProfile(data, charName, worldId);
+                    _umbraProfiles.TryRemove(NormalizeKey(data, charName, worldId), out _);
+                }
+            }
 
             List<RpCustomField>? customFields = null;
             if (!string.IsNullOrEmpty(profile.RpCustomFields))
@@ -262,6 +276,59 @@ public class UmbraProfileManager : MediatorSubscriberBase
         return _persistedProfiles.Values.ToList().AsReadOnly();
     }
 
+    public void ClearPersistedProfileCache()
+    {
+        _persistedProfiles.Clear();
+        _umbraProfiles.Clear();
+        _cacheDirty = true;
+        SaveProfileCacheNow();
+        Logger.LogInformation("Profile cache cleared by user");
+    }
+    
+    private async Task EnsureOwnProfileSyncedAsync()
+    {
+        try
+        {
+            if (!_apiController.IsConnected || string.IsNullOrEmpty(_apiController.UID))
+                return;
+
+            // Attendre que le joueur soit complètement chargé (max ~10s)
+            string charName = "--";
+            uint worldId = 0;
+            for (int i = 0; i < 20 && (string.Equals(charName, "--", StringComparison.Ordinal) || string.IsNullOrEmpty(charName) || worldId == 0); i++)
+            {
+                await Task.Delay(500).ConfigureAwait(false);
+                if (!_apiController.IsConnected) return;
+                charName = await _dalamudUtil.GetPlayerNameAsync().ConfigureAwait(false);
+                worldId = await _dalamudUtil.GetHomeWorldIdAsync().ConfigureAwait(false);
+            }
+
+            if (string.IsNullOrEmpty(charName) || string.Equals(charName, "--", StringComparison.Ordinal) || worldId == 0)
+            {
+                Logger.LogWarning("EnsureOwnProfileSynced: Player data unavailable after retries (name={name}, worldId={worldId})", charName, worldId);
+                return;
+            }
+
+            var localProfile = _rpConfigService.GetCharacterProfile(charName, worldId);
+            bool isEmpty = string.IsNullOrEmpty(localProfile.RpFirstName)
+                        && string.IsNullOrEmpty(localProfile.RpLastName)
+                        && string.IsNullOrEmpty(localProfile.RpDescription);
+
+            if (!isEmpty)
+            {
+                Logger.LogDebug("EnsureOwnProfileSynced: Local profile already exists for {name}@{worldId}", charName, worldId);
+                return;
+            }
+
+            Logger.LogInformation("EnsureOwnProfileSynced: No local profile for {name}@{worldId}, fetching from server", charName, worldId);
+            await GetUmbraProfileFromService(new UserData(_apiController.UID), charName, worldId).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "EnsureOwnProfileSynced failed");
+        }
+    }
+
     #region Persistent Profile Cache
 
     private void EnsureCacheLoaded()
@@ -281,11 +348,34 @@ public class UmbraProfileManager : MediatorSubscriberBase
     private string GetCacheFilePath(string uid) =>
         Path.Combine(_configDir, $"profile_cache_{uid}.json");
 
+    private void RemovePersistedProfile(UserData data, string? charName, uint? worldId)
+    {
+        EnsureCacheLoaded();
+        var cacheKey = $"{data.UID}_{charName}_{worldId}";
+        if (_persistedProfiles.TryRemove(cacheKey, out _))
+        {
+            _cacheDirty = true;
+            ScheduleCacheSave();
+        }
+    }
+
     private void UpdatePersistedProfile(UserData data, string? charName, uint? worldId, UmbraProfileData profile)
     {
         EnsureCacheLoaded();
         var cacheKey = $"{data.UID}_{charName}_{worldId}";
         _persistedProfiles[cacheKey] = ((data, charName, worldId), profile);
+
+        foreach (var key in _persistedProfiles.Keys.ToList())
+        {
+            if (string.Equals(key, cacheKey, StringComparison.Ordinal)) continue;
+            if (!_persistedProfiles.TryGetValue(key, out var existing)) continue;
+            if (string.Equals(existing.Key.User.UID, data.UID, StringComparison.Ordinal)
+                && string.Equals(existing.Key.CharName, charName, StringComparison.Ordinal))
+            {
+                _persistedProfiles.TryRemove(key, out _);
+            }
+        }
+
         _cacheDirty = true;
         ScheduleCacheSave();
     }
@@ -342,6 +432,9 @@ public class UmbraProfileManager : MediatorSubscriberBase
     }
 
     #endregion
+    
+    private static (UserData User, string? CharName, uint? WorldId) NormalizeKey(UserData data, string? charName, uint? worldId)
+        => (new UserData(data.UID), charName, worldId);
 
     private static bool CustomFieldsEqual(List<RpCustomField> a, List<RpCustomField> b)
     {

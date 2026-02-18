@@ -68,6 +68,9 @@ public class EditProfileUi : WindowMediatorSubscriberBase
     private string _vanityInput = string.Empty;
     private int _activeTab;
     private bool _moodleOperationInProgress;
+    private bool _moodleRestoreAttempted;
+    private int _moodleRestoreRetries;
+    private DateTime _lastMoodleRestoreAttempt = DateTime.MinValue;
     private DateTime _saveConfirmTime = DateTime.MinValue;
     private string _savedDescriptionText = string.Empty;
     private string _savedRpFirstNameText = string.Empty;
@@ -137,6 +140,9 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             _hrpLoaded = false;
             _localMoodlesJson = string.Empty;
             _lastMoodlesFetch = DateTime.MinValue;
+            _moodleRestoreAttempted = false;
+            _moodleRestoreRetries = 0;
+            _lastMoodleRestoreAttempt = DateTime.MinValue;
         });
         Mediator.Subscribe<ClearProfileDataMessage>(this, (msg) =>
         {
@@ -167,11 +173,67 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             if (ptr == IntPtr.Zero) return;
             _localMoodlesJson = await _ipcManager.Moodles.GetStatusAsync(ptr).ConfigureAwait(false) ?? string.Empty;
             _lastMoodlesFetch = DateTime.UtcNow;
+
+            var moodles = MoodleStatusInfo.ParseMoodles(_localMoodlesJson);
+            if (moodles.Count > 0)
+            {
+                SaveMoodlesBackup(_localMoodlesJson);
+                _moodleRestoreAttempted = true;
+            }
+            else if (!_moodleRestoreAttempted
+                     && (DateTime.UtcNow - _lastMoodleRestoreAttempt).TotalSeconds > 15)
+            {
+                var profile = _rpConfigService.GetCurrentCharacterProfile();
+                if (!string.IsNullOrEmpty(profile.MoodlesBackupJson))
+                {
+                    var backupMoodles = MoodleStatusInfo.ParseMoodles(profile.MoodlesBackupJson);
+                    if (backupMoodles.Count > 0)
+                    {
+                        _moodleRestoreRetries++;
+                        _lastMoodleRestoreAttempt = DateTime.UtcNow;
+                        _logger.LogInformation("Restoring {count} moodles from local backup (attempt {attempt}/5)",
+                            backupMoodles.Count, _moodleRestoreRetries);
+                        await _ipcManager.Moodles.SetStatusAsync(ptr, profile.MoodlesBackupJson).ConfigureAwait(false);
+                        _localMoodlesJson = await _ipcManager.Moodles.GetStatusAsync(ptr).ConfigureAwait(false) ?? string.Empty;
+
+                        var restoredMoodles = MoodleStatusInfo.ParseMoodles(_localMoodlesJson);
+                        if (restoredMoodles.Count > 0)
+                        {
+                            _logger.LogInformation("Successfully restored {count} moodles from backup", restoredMoodles.Count);
+                            _moodleRestoreAttempted = true;
+                        }
+                        else if (_moodleRestoreRetries >= 5)
+                        {
+                            _logger.LogWarning("Failed to restore moodles after {retries} attempts, giving up", _moodleRestoreRetries);
+                            _moodleRestoreAttempted = true;
+                        }
+                    }
+                    else
+                    {
+                        _moodleRestoreAttempted = true;
+                    }
+                }
+                else
+                {
+                    _moodleRestoreAttempted = true;
+                }
+            }
         }
         finally
         {
             _moodlesFetching = false;
         }
+    }
+
+    private void SaveMoodlesBackup(string moodlesJson)
+    {
+        var moodles = MoodleStatusInfo.ParseMoodles(moodlesJson);
+        if (moodles.Count == 0) return;
+
+        var profile = _rpConfigService.GetCurrentCharacterProfile();
+        profile.MoodlesBackupJson = moodlesJson;
+        profile.MoodlesBackupTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        _rpConfigService.Save();
     }
 
     protected override void DrawInternal()
@@ -438,7 +500,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                 if (!success) return;
                 var rpProfile = isRp ? _rpConfigService.GetCurrentCharacterProfile() : null;
                 var charName = _dalamudUtil.GetPlayerName();
-                var worldId = _dalamudUtil.GetWorldId();
+                var worldId = _dalamudUtil.GetHomeWorldId();
                 _ = Task.Run(async () =>
                 {
                     try
@@ -603,6 +665,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
 
             ImGui.TextColored(ImGuiColors.DalamudGrey, "Traits du personnage");
             ImGui.SameLine();
+            bool addMoodleClicked = false;
             if (_moodleOperationInProgress)
             {
                 ImGui.TextColored(ImGuiColors.DalamudYellow, "(...)");
@@ -612,19 +675,60 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                 ImGui.PushStyleColor(ImGuiCol.Button, Vector4.Zero);
                 ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UiSharedService.ThemeButtonHovered);
                 ImGui.PushStyleColor(ImGuiCol.ButtonActive, UiSharedService.ThemeButtonActive);
-                if (_uiSharedService.IconButton(FontAwesomeIcon.Plus))
-                {
-                    _newMoodleIconId = 210456;
-                    _iconIdInput = "210456";
-                    _newMoodleTitle = "";
-                    _newMoodleDescription = "";
-                    _newMoodleType = 0;
-                    _iconSelectorOpen = false;
-                    _addMoodlePopupOpen = true;
-                    ImGui.OpenPopup("##AddMoodlePopup");
-                }
+                ImGui.PushID("addMoodleBtn");
+                addMoodleClicked = _uiSharedService.IconButton(FontAwesomeIcon.Plus);
+                ImGui.PopID();
                 UiSharedService.AttachToolTip("Ajouter un trait");
+
+                var backupProfile = _rpConfigService.GetCurrentCharacterProfile();
+                if (MoodleStatusInfo.ParseMoodles(_localMoodlesJson).Count == 0
+                    && !string.IsNullOrEmpty(backupProfile.MoodlesBackupJson)
+                    && MoodleStatusInfo.ParseMoodles(backupProfile.MoodlesBackupJson).Count > 0)
+                {
+                    ImGui.SameLine();
+                    ImGui.PushID("restoreMoodleBtn");
+                    if (_uiSharedService.IconButton(FontAwesomeIcon.Undo))
+                    {
+                        _ = Task.Run(async () =>
+                        {
+                            if (_moodleOperationInProgress) return;
+                            _moodleOperationInProgress = true;
+                            try
+                            {
+                                var ptr = await _dalamudUtil.GetPlayerPointerAsync().ConfigureAwait(false);
+                                if (ptr == IntPtr.Zero) return;
+                                var bp = _rpConfigService.GetCurrentCharacterProfile();
+                                _logger.LogInformation("Manual restore of moodles from local backup");
+                                await _ipcManager.Moodles.SetStatusAsync(ptr, bp.MoodlesBackupJson).ConfigureAwait(false);
+                                _localMoodlesJson = await _ipcManager.Moodles.GetStatusAsync(ptr).ConfigureAwait(false) ?? string.Empty;
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning(ex, "Failed to restore moodles from backup");
+                            }
+                            finally
+                            {
+                                _moodleOperationInProgress = false;
+                            }
+                        });
+                    }
+                    ImGui.PopID();
+                    UiSharedService.AttachToolTip("Restaurer les traits depuis le backup local");
+                }
+
                 ImGui.PopStyleColor(3);
+            }
+
+            if (addMoodleClicked)
+            {
+                _newMoodleIconId = 210456;
+                _iconIdInput = "210456";
+                _newMoodleTitle = "";
+                _newMoodleDescription = "";
+                _newMoodleType = 0;
+                _iconSelectorOpen = false;
+                _addMoodlePopupOpen = true;
+                ImGui.OpenPopup("##AddMoodlePopup");
             }
 
             DrawAddMoodlePopup();
@@ -1128,6 +1232,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             var newJson = MoodleStatusInfo.RemoveMoodleAtIndex(freshJson, index);
             await _ipcManager.Moodles.SetStatusAsync(ptr, newJson).ConfigureAwait(false);
             _localMoodlesJson = await _ipcManager.Moodles.GetStatusAsync(ptr).ConfigureAwait(false) ?? string.Empty;
+            SaveMoodlesBackup(_localMoodlesJson);
         }
         catch (Exception ex)
         {
@@ -1153,6 +1258,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             var newJson = MoodleStatusInfo.AddMoodle(freshJson, moodle);
             await _ipcManager.Moodles.SetStatusAsync(ptr, newJson).ConfigureAwait(false);
             _localMoodlesJson = await _ipcManager.Moodles.GetStatusAsync(ptr).ConfigureAwait(false) ?? string.Empty;
+            SaveMoodlesBackup(_localMoodlesJson);
         }
         catch (Exception ex)
         {
@@ -1357,7 +1463,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             if (ImGui.Checkbox(Loc.Get("UserProfile.RpNsfw"), ref isRpNsfw))
             {
                 var charName = _dalamudUtil.GetPlayerName();
-                var worldId = _dalamudUtil.GetWorldId();
+                var worldId = _dalamudUtil.GetHomeWorldId();
                 _ = Task.Run(async () =>
                 {
                     var curProfile = await _apiController.UserGetProfile(new UserDto(new UserData(_apiController.UID, _apiController.DisplayName))).ConfigureAwait(false);
@@ -1397,7 +1503,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             if (ImGui.Checkbox(Loc.Get("EditProfile.ProfileIsNsfw"), ref isNsfw))
             {
                 var charName = _dalamudUtil.GetPlayerName();
-                var worldId = _dalamudUtil.GetWorldId();
+                var worldId = _dalamudUtil.GetHomeWorldId();
                 _ = Task.Run(async () =>
                 {
                     var curProfile = await _apiController.UserGetProfile(new UserDto(new UserData(_apiController.UID, _apiController.DisplayName))).ConfigureAwait(false);
@@ -1465,10 +1571,11 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                     .Select(f => new RpCustomField { Name = f.Name, Value = f.Value, Order = f.Order })
                     .ToList();
                 _rpConfigService.Save();
+                SaveMoodlesBackup(_localMoodlesJson);
             }
 
             var charName = _dalamudUtil.GetPlayerName();
-            var worldId = _dalamudUtil.GetWorldId();
+            var worldId = _dalamudUtil.GetHomeWorldId();
             var localRpProfile = _rpConfigService.GetCurrentCharacterProfile();
             var customFieldsJsonSnapshot = System.Text.Json.JsonSerializer.Serialize(_rpCustomFields);
 

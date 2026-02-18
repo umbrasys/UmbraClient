@@ -539,6 +539,8 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
         var pendingFallbackHashes = new ConcurrentDictionary<string, byte>(StringComparer.OrdinalIgnoreCase);
         var decompressionTasks = new ConcurrentBag<Task>();
 
+        try
+        {
         // Circuit breaker: skip direct downloads if too many consecutive failures
         if (_disableDirectDownloads && directDownloads.Count > 0)
         {
@@ -630,7 +632,7 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
                                 _deduplicator.Complete(file.Hash, success);
                             }
                             return Task.CompletedTask;
-                        }, token);
+                        }, CancellationToken.None);
                     }
                     else
                     {
@@ -957,6 +959,17 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
         }
 
         ClearDownload();
+        }
+        finally
+        {
+
+            await WaitForAllTasksAsync(decompressionTasks).ConfigureAwait(false);
+
+            foreach (var hash in pendingFallbackHashes.Keys)
+            {
+                _deduplicator.Complete(hash, false);
+            }
+        }
     }
 
     private async Task<List<DownloadFileDto>> FilesGetSizes(List<string> hashes, CancellationToken ct)
