@@ -51,7 +51,7 @@ public sealed partial class CharaDataHubUi
         ImGuiHelpers.ScaledDummy(5);
 
         var currentLocation = _dalamudUtilService.GetMapDataAsync().GetAwaiter().GetResult();
-        bool isInHousing = currentLocation.HouseId != 0;
+        bool isInHousing = currentLocation.HouseId != 0 && _dalamudUtilService.IsInHousingMode;
 
         if (!isInHousing)
         {

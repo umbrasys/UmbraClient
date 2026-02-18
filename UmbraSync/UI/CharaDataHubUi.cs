@@ -948,25 +948,33 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
         }
     }
 
+    private void DrawMcdf()
+    {
+        DrawMcdfExport();
+        ImGui.Separator();
+        ImGuiHelpers.ScaledDummy(4f);
+        DrawMcdfShare();
+    }
+
     private void DrawMcdfExport()
     {
-        _uiSharedService.BigText("MCDF File Export");
+        _uiSharedService.BigText("Export de fichier MCDF");
 
-        DrawHelpFoldout("This feature allows you to pack your character into a MCDF file and manually send it to other people. MCDF files be imported during GPose. " +
-            "Be aware that the possibility exists that people write unofficial custom exporters to extract the containing data.");
+        DrawHelpFoldout("Cette fonctionnalité vous permet de compresser votre personnage dans un fichier MCDF et de l'envoyer manuellement à d'autres personnes. Les fichiers MCDF peuvent être importés pendant le GPose. " +
+            "Sachez qu'il est possible que des personnes créent des exporteurs non officiels pour extraire les données contenues.");
 
         ImGuiHelpers.ScaledDummy(5);
 
         ImGui.Checkbox("##readExport", ref _readExport);
         ImGui.SameLine();
-        UiSharedService.TextWrapped("I understand that by exporting my character data into a file and sending it to other people I am giving away my current character appearance irrevocably. People I am sharing my data with have the ability to share it with other people without limitations.");
+        UiSharedService.TextWrapped("Je comprends qu'en exportant les données de mon personnage dans un fichier et en les envoyant à d'autres personnes, je cède irrévocablement l'apparence actuelle de mon personnage. Les personnes avec qui je partage mes données ont la possibilité de les partager avec d'autres sans aucune limitation.");
 
         if (_readExport)
         {
             ImGui.Indent();
 
-            ImGui.InputTextWithHint("Export Descriptor", "This description will be shown on loading the data", ref _exportDescription, 255);
-            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Save, "Export Character as MCDF"))
+            ImGui.InputTextWithHint("Description de l'export", "Cette description sera affichée lors du chargement des données", ref _exportDescription, 255);
+            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Save, "Exporter le personnage en MCDF"))
             {
                 string defaultFileName = string.IsNullOrEmpty(_exportDescription)
                     ? "export.mcdf"
@@ -1606,7 +1614,7 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
         _uiSharedService.DrawHelpText("This will automatically download Online Character Data data (Your Own and Shared with You) once a connection is established to the server.");
 
         bool showHelpTexts = _configService.Current.ShowHelpTexts;
-        if (ImGui.Checkbox("Show \"What is this? (Explanation / Help)\" foldouts", ref showHelpTexts))
+        if (ImGui.Checkbox("Afficher les volets \"Qu'est-ce que c'est ? (Explication / Aide)\"", ref showHelpTexts))
         {
             _configService.Current.ShowHelpTexts = showHelpTexts;
             _configService.Save();
@@ -1844,15 +1852,13 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
         var subLabels = new[]
         {
             Loc.Get("CharaDataHub.Tab.OnlineData"),
-            Loc.Get("CharaDataHub.Tab.McdfExport"),
-            Loc.Get("CharaDataHub.Tab.McdfShare"),
+            Loc.Get("CharaDataHub.Tab.Mcdf"),
             Loc.Get("CharaDataHub.Tab.HousingShare"),
         };
         var subIcons = new[]
         {
             FontAwesomeIcon.Globe,
             FontAwesomeIcon.FileExport,
-            FontAwesomeIcon.ShareAlt,
             FontAwesomeIcon.Home,
         };
 
@@ -1869,14 +1875,10 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
                         DrawMcdOnline();
                     break;
                 case 1:
-                    using (var id = ImRaii.PushId("mcdfExport"))
-                        DrawMcdfExport();
+                    using (var id = ImRaii.PushId("mcdf"))
+                        DrawMcdf();
                     break;
                 case 2:
-                    using (var id = ImRaii.PushId("mcdfShare"))
-                        DrawMcdfShare();
-                    break;
-                case 3:
                     using (var id = ImRaii.PushId("housingShare"))
                         DrawHousingShare();
                     break;
@@ -1967,7 +1969,7 @@ public sealed partial class CharaDataHubUi : WindowMediatorSubscriberBase
         if (_configService.Current.ShowHelpTexts)
         {
             ImGuiHelpers.ScaledDummy(5);
-            UiSharedService.DrawTree("What is this? (Explanation / Help)", () =>
+            UiSharedService.DrawTree("Qu'est-ce que c'est ? (Explication / Aide)", () =>
             {
                 UiSharedService.TextWrapped(text);
             });

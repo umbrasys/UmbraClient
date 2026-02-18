@@ -55,6 +55,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
     private string _rpAffiliationText = string.Empty;
     private string _rpAlignmentText = string.Empty;
     private string _rpAdditionalInfoText = string.Empty;
+    private List<RpCustomField> _rpCustomFields = new();
     private IDalamudTextureWrap? _pfpTextureWrap;
     private IDalamudTextureWrap? _rpPfpTextureWrap;
     private byte[] _profileImage = [];
@@ -84,6 +85,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
     private string _savedRpAdditionalInfoText = string.Empty;
     private Vector3 _rpNameColorVec;
     private string _savedRpNameColorHex = string.Empty;
+    private string _savedRpCustomFieldsJson = string.Empty;
     private Vector3 _bbcodeColorVec = new(1f, 0.6f, 0.2f);
     private Vector3 _moodleColorVec = new(1f, 0.6f, 0.2f);
     private bool _addMoodlePopupOpen;
@@ -206,7 +208,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                 RpAlignment: _rpAlignmentText,
                 RpAdditionalInfo: _rpAdditionalInfoText,
                 RpNameColor: UiSharedService.Vector4ToHex(new Vector4(_rpNameColorVec, 1f)),
-                RpCustomFields: currentProfile.RpCustomFields.Count > 0 ? currentProfile.RpCustomFields : null
+                RpCustomFields: _rpCustomFields.Count > 0 ? _rpCustomFields : null
             );
 
             _umbraProfileManager.SetPreviewProfile(pair.UserData, pair.PlayerName, pair.WorldId, previewProfileData);
@@ -326,6 +328,11 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                 _rpAffiliationText = umbraProfile.RpAffiliation ?? string.Empty;
                 _rpAlignmentText = umbraProfile.RpAlignment ?? string.Empty;
                 _rpAdditionalInfoText = umbraProfile.RpAdditionalInfo ?? string.Empty;
+
+                var configProfile = _rpConfigService.GetCurrentCharacterProfile();
+                _rpCustomFields = configProfile.RpCustomFields
+                    .Select(f => new RpCustomField { Name = f.Name, Value = f.Value, Order = f.Order })
+                    .ToList();
 
                 var nameColorHex = umbraProfile.RpNameColor ?? string.Empty;
                 if (!string.IsNullOrEmpty(nameColorHex))
@@ -588,20 +595,6 @@ public class EditProfileUi : WindowMediatorSubscriberBase
 
             ImGuiHelpers.ScaledDummy(new Vector2(0f, 4f));
 
-            using (_uiSharedService.GameFont.Push())
-            {
-                ImGui.TextColored(ImGuiColors.DalamudGrey, Loc.Get("UserProfile.RpAdditionalInfo"));
-                ImGui.SameLine();
-                DrawBbCodeToolbar(ref _rpAdditionalInfoText);
-
-                ImGui.InputTextMultiline("##additional_info", ref _rpAdditionalInfoText, 3000,
-                    new Vector2(w, 150 * ImGuiHelpers.GlobalScale));
-            }
-
-            ImGuiHelpers.ScaledDummy(new Vector2(0f, 4f));
-            ImGui.Separator();
-            ImGuiHelpers.ScaledDummy(new Vector2(0f, 4f));
-
             DrawCustomFieldsSection(w);
 
             ImGuiHelpers.ScaledDummy(new Vector2(0f, 4f));
@@ -640,14 +633,28 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             {
                 DrawEditableMoodles();
             }
+
+            ImGuiHelpers.ScaledDummy(new Vector2(0f, 4f));
+            ImGui.Separator();
+            ImGuiHelpers.ScaledDummy(new Vector2(0f, 4f));
+
+            using (_uiSharedService.GameFont.Push())
+            {
+                ImGui.TextColored(ImGuiColors.DalamudGrey, Loc.Get("UserProfile.RpAdditionalInfo"));
+                ImGui.SameLine();
+                DrawBbCodeToolbar(ref _rpAdditionalInfoText);
+                ImGui.TextColored(ImGuiColors.DalamudGrey3, Loc.Get("UserProfile.RpAdditionalInfoWrapHint"));
+
+                ImGui.InputTextMultiline("##additional_info", ref _rpAdditionalInfoText, 3000,
+                    new Vector2(w, 150 * ImGuiHelpers.GlobalScale));
+            }
         }
 
     }
 
     private void DrawCustomFieldsSection(float availableWidth)
     {
-        var currentProfile = _rpConfigService.GetCurrentCharacterProfile();
-        var customFields = currentProfile.RpCustomFields;
+        var customFields = _rpCustomFields;
 
         ImGui.TextColored(ImGuiColors.DalamudGrey, Loc.Get("UserProfile.RpCustomFields"));
         ImGui.SameLine();
@@ -680,7 +687,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             ImGui.PushID($"custom_field_{i}");
 
             var labelWidth = 120f * ImGuiHelpers.GlobalScale;
-            var buttonAreaWidth = 70f * ImGuiHelpers.GlobalScale;
+            var buttonAreaWidth = 90f * ImGuiHelpers.GlobalScale;
             var valueWidth = availableWidth - labelWidth - buttonAreaWidth - ImGui.GetStyle().ItemSpacing.X * 3;
 
             using (_uiSharedService.GameFont.Push())
@@ -1297,9 +1304,11 @@ public class EditProfileUi : WindowMediatorSubscriberBase
 
     private void BbCodeIconButton(FontAwesomeIcon icon, string openTag, string closeTag, string tooltip, ref string text)
     {
-        using var font = _uiSharedService.IconFont.Push();
-        if (ImGui.Button(icon.ToIconString() + $"##bb_{openTag}"))
-            text += openTag + closeTag;
+        using (_uiSharedService.IconFont.Push())
+        {
+            if (ImGui.Button(icon.ToIconString() + $"##bb_{openTag}"))
+                text += openTag + closeTag;
+        }
         if (ImGui.IsItemHovered()) ImGui.SetTooltip(tooltip);
     }
 
@@ -1452,12 +1461,16 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                 profile.RpAlignment = _rpAlignmentText;
                 profile.RpAdditionalInfo = _rpAdditionalInfoText;
                 profile.RpNameColor = UiSharedService.Vector4ToHex(new Vector4(_rpNameColorVec, 1f));
+                profile.RpCustomFields = _rpCustomFields
+                    .Select(f => new RpCustomField { Name = f.Name, Value = f.Value, Order = f.Order })
+                    .ToList();
                 _rpConfigService.Save();
             }
 
             var charName = _dalamudUtil.GetPlayerName();
             var worldId = _dalamudUtil.GetWorldId();
             var localRpProfile = _rpConfigService.GetCurrentCharacterProfile();
+            var customFieldsJsonSnapshot = System.Text.Json.JsonSerializer.Serialize(_rpCustomFields);
 
             _ = Task.Run(async () =>
             {
@@ -1488,7 +1501,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                             RpAlignment = localRpProfile.RpAlignment,
                             RpAdditionalInfo = localRpProfile.RpAdditionalInfo,
                             RpNameColor = localRpProfile.RpNameColor,
-                            RpCustomFields = localRpProfile.RpCustomFields.Count > 0 ? System.Text.Json.JsonSerializer.Serialize(localRpProfile.RpCustomFields) : null
+                            RpCustomFields = customFieldsJsonSnapshot
                         }).ConfigureAwait(false);
                     }
                     else
@@ -1515,12 +1528,12 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                             RpAlignment = localRpProfile.RpAlignment,
                             RpAdditionalInfo = localRpProfile.RpAdditionalInfo,
                             RpNameColor = localRpProfile.RpNameColor,
-                            RpCustomFields = localRpProfile.RpCustomFields.Count > 0 ? System.Text.Json.JsonSerializer.Serialize(localRpProfile.RpCustomFields) : null
+                            RpCustomFields = customFieldsJsonSnapshot
                         }).ConfigureAwait(false);
                     }
                     Mediator.Publish(new ClearProfileDataMessage(new UserData(_apiController.UID), charName, worldId));
                     Mediator.Publish(new NotificationMessage(Loc.Get("EditProfile.SaveSuccessTitle"), Loc.Get("EditProfile.SaveSuccessBody"), NotificationType.Info));
-                    SnapshotSavedState(isRp);
+                    SnapshotSavedState(isRp, customFieldsJsonSnapshot);
                     _saveConfirmTime = DateTime.UtcNow;
                 }
                 catch (Exception ex)
@@ -1544,7 +1557,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
         }
     }
 
-    private void SnapshotSavedState(bool isRp)
+    private void SnapshotSavedState(bool isRp, string? customFieldsJson = null)
     {
         if (isRp)
         {
@@ -1562,6 +1575,14 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             _savedRpAlignmentText = _rpAlignmentText;
             _savedRpAdditionalInfoText = _rpAdditionalInfoText;
             _savedRpNameColorHex = UiSharedService.Vector4ToHex(new Vector4(_rpNameColorVec, 1f));
+            if (customFieldsJson != null)
+            {
+                _savedRpCustomFieldsJson = customFieldsJson;
+            }
+            else
+            {
+                _savedRpCustomFieldsJson = System.Text.Json.JsonSerializer.Serialize(_rpCustomFields);
+            }
         }
         else
         {
@@ -1586,7 +1607,10 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                 || !string.Equals(_rpAffiliationText, _savedRpAffiliationText, StringComparison.Ordinal)
                 || !string.Equals(_rpAlignmentText, _savedRpAlignmentText, StringComparison.Ordinal)
                 || !string.Equals(_rpAdditionalInfoText, _savedRpAdditionalInfoText, StringComparison.Ordinal)
-                || !string.Equals(UiSharedService.Vector4ToHex(new Vector4(_rpNameColorVec, 1f)), _savedRpNameColorHex, StringComparison.Ordinal);
+                || !string.Equals(UiSharedService.Vector4ToHex(new Vector4(_rpNameColorVec, 1f)), _savedRpNameColorHex, StringComparison.Ordinal)
+                || !string.Equals(
+                    System.Text.Json.JsonSerializer.Serialize(_rpCustomFields),
+                    _savedRpCustomFieldsJson, StringComparison.Ordinal);
         }
         else
         {

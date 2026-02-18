@@ -3231,6 +3231,9 @@ Click to change.</value>
   <data name="CharaDataHub.Tab.GposeTogether" xml:space="preserve">
     <value>GPose Together</value>
   </data>
+  <data name="CharaDataHub.Tab.Mcdf" xml:space="preserve">
+    <value>MCDF</value>
+  </data>
   <data name="CharaDataHub.Tab.McdfExport" xml:space="preserve">
     <value>MCDF Export</value>
   </data>
@@ -3518,11 +3521,14 @@ Click to change.</value>
   <data name="UserProfile.RpAdditionalInfo" xml:space="preserve">
     <value>Additional Information</value>
   </data>
+  <data name="UserProfile.RpAdditionalInfoWrapHint" xml:space="preserve">
+    <value>Auto-wrapping is not supported by Dalamud. Use Enter for line breaks.</value>
+  </data>
   <data name="UserProfile.RpCustomFields" xml:space="preserve">
-    <value>Custom Fields</value>
+    <value>Other Details</value>
   </data>
   <data name="UserProfile.RpCustomFieldAdd" xml:space="preserve">
-    <value>Add a custom field</value>
+    <value>Add a detail</value>
   </data>
   <data name="UserProfile.RpCustomFieldName" xml:space="preserve">
     <value>Label</value>
@@ -4109,7 +4115,7 @@ Click to change.</value>
     <value>Housing Furniture Mod Sync</value>
   </data>
   <data name="HousingShare.NotInHousing" xml:space="preserve">
-    <value>You are not currently in a housing area.</value>
+    <value>You are not currently in a housing you own. Please enter Housing mode.</value>
   </data>
   <data name="HousingShare.InOwnHouse" xml:space="preserve">
     <value>You are in your house. You can scan and publish your furniture mods.</value>

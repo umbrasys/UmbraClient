@@ -3131,6 +3131,9 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="CharaDataHub.Tab.GposeTogether" xml:space="preserve">
     <value>GPose Together</value>
   </data>
+  <data name="CharaDataHub.Tab.Mcdf" xml:space="preserve">
+    <value>MCDF</value>
+  </data>
   <data name="CharaDataHub.Tab.McdfExport" xml:space="preserve">
     <value>Export MCDF</value>
   </data>
@@ -3418,11 +3421,14 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="UserProfile.RpAdditionalInfo" xml:space="preserve">
     <value>Informations supplémentaires</value>
   </data>
+  <data name="UserProfile.RpAdditionalInfoWrapHint" xml:space="preserve">
+    <value>Le retour à la ligne automatique n'est pas supporté par Dalamud. Utilisez Entrée pour les sauts de ligne.</value>
+  </data>
   <data name="UserProfile.RpCustomFields" xml:space="preserve">
-    <value>Champs personnalisés</value>
+    <value>Autres détails</value>
   </data>
   <data name="UserProfile.RpCustomFieldAdd" xml:space="preserve">
-    <value>Ajouter un champ personnalisé</value>
+    <value>Ajouter un détail</value>
   </data>
   <data name="UserProfile.RpCustomFieldName" xml:space="preserve">
     <value>Libellé</value>
@@ -4018,7 +4024,7 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value>Synchronisation des mods de meubles</value>
   </data>
   <data name="HousingShare.NotInHousing" xml:space="preserve">
-    <value>Vous n'êtes pas actuellement dans un quartier résidentiel.</value>
+    <value>Vous n'êtes actuellement pas dans un housing qui vous appartient. Merci d'entrer en mode Housing.</value>
   </data>
   <data name="HousingShare.InOwnHouse" xml:space="preserve">
     <value>Vous êtes dans votre maison. Vous pouvez scanner et publier vos mods de meubles.</value>
