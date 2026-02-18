@@ -48,6 +48,16 @@ public sealed record NotificationEntry(NotificationCategory Category, string Id,
         return new(NotificationCategory.McdfShare, shareId.ToString("D", CultureInfo.InvariantCulture), title, targetSummary, DateTime.UtcNow);
     }
 
+    public static NotificationEntry McdfShareReceived(Guid shareId, string? description, string ownerAliasOrUid)
+    {
+        string safeDescription = string.IsNullOrEmpty(description)
+            ? shareId.ToString("D", CultureInfo.InvariantCulture)
+            : description;
+        string title = string.Format(CultureInfo.CurrentCulture, Loc.Get("Notification.McdfShare.Received.Title"), safeDescription);
+        string body = string.Format(CultureInfo.CurrentCulture, Loc.Get("Notification.McdfShare.Received.Body"), ownerAliasOrUid);
+        return new(NotificationCategory.McdfShare, $"received-{shareId:D}", title, body, DateTime.UtcNow);
+    }
+
     // Performance Category
     public static NotificationEntry PlayerAutoBlockedTriangles(string uid, string aliasOrUid, long triUsage, long threshold)
         => new(NotificationCategory.Performance, $"autoblock-tri-{uid}",

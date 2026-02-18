@@ -743,6 +743,12 @@ public sealed class CacheMonitor : DisposableMediatorSubscriberBase
                                 .AsParallel()
                                 .Where(f =>
                                 {
+                                    // Skip temporary files that are being written
+                                    if (f.EndsWith(".cdntmp", StringComparison.OrdinalIgnoreCase) ||
+                                        f.EndsWith(".tmp", StringComparison.OrdinalIgnoreCase) ||
+                                        f.EndsWith(".blk", StringComparison.OrdinalIgnoreCase))
+                                        return false;
+
                                     var val = f.Split('\\')[^1];
                                     return val.Length == 40 || (val.Split('.').FirstOrDefault()?.Length ?? 0) == 40;
                                 });

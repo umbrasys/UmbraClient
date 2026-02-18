@@ -22,6 +22,8 @@ using UmbraSync.MareConfiguration.Models;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
+using UmbraSync.Models;
+using UmbraSync.Localization;
 using UmbraSync.Services.ServerConfiguration;
 
 namespace UmbraSync.UI;
@@ -37,9 +39,34 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
     public const float ContentFontScale = 0.92f;
 
-    public static Vector4 AccentColor { get; set; } = ImGuiColors.DalamudViolet;
-    public static Vector4 AccentHoverColor { get; set; } = new Vector4(0x3A / 255f, 0x15 / 255f, 0x50 / 255f, 1f);
+    public static Vector4 AccentColor { get; set; } = new Vector4(0x96 / 255f, 0x45 / 255f, 0xE6 / 255f, 1f);
+    public static Vector4 AccentHoverColor { get; set; } = new Vector4(0x38 / 255f, 0x29 / 255f, 0x52 / 255f, 1f);
     public static Vector4 AccentActiveColor { get; set; } = AccentHoverColor;
+
+    // --- Thème UmbraSync "Royal Smoke" — #6A0DAD accent, #1C1C1C fond, chrome désaturé ---
+    public static readonly Vector4 ThemeWindowBg      = new(0.11f, 0.11f, 0.11f, 1f);
+    public static readonly Vector4 ThemeChildBg        = new(0f, 0f, 0f, 0f);
+    public static readonly Vector4 ThemeBorder         = new(0x38 / 255f, 0x29 / 255f, 0x52 / 255f, 1f);
+    public static readonly Vector4 ThemeTitleBar       = new(0x2A / 255f, 0x1F / 255f, 0x3D / 255f, 1f);
+    public static readonly Vector4 ThemeSeparator      = new(0x38 / 255f, 0x29 / 255f, 0x52 / 255f, 0.60f);
+    public static readonly Vector4 ThemeFrameBg        = new(0.16f, 0.15f, 0.18f, 1f);
+    public static readonly Vector4 ThemeFrameBgHovered = new(0x38 / 255f, 0x29 / 255f, 0x52 / 255f, 0.7f);
+    public static readonly Vector4 ThemeFrameBgActive  = new(0x4A / 255f, 0x36 / 255f, 0x68 / 255f, 1f);
+    public static readonly Vector4 ThemeButtonBg       = new(0x2A / 255f, 0x1F / 255f, 0x3D / 255f, 1f);
+    public static readonly Vector4 ThemeButtonHovered   = new(0x38 / 255f, 0x29 / 255f, 0x52 / 255f, 1f);
+    public static readonly Vector4 ThemeButtonActive    = new(0x4A / 255f, 0x36 / 255f, 0x68 / 255f, 1f);
+    public static readonly Vector4 ThemeHeaderBg       = new(0x1C / 255f, 0x1C / 255f, 0x1C / 255f, 1f);
+    public static readonly Vector4 ThemeHeaderHovered   = new(0x38 / 255f, 0x29 / 255f, 0x52 / 255f, 0.7f);
+    public static readonly Vector4 ThemeHeaderActive    = new(0x4A / 255f, 0x36 / 255f, 0x68 / 255f, 1f);
+    public static readonly Vector4 ThemeScrollbarBg    = new(0.08f, 0.08f, 0.08f, 0.50f);
+    public static readonly Vector4 ThemeScrollbarGrab  = new(0x38 / 255f, 0x29 / 255f, 0x52 / 255f, 1f);
+    public static readonly Vector4 ThemeScrollbarHover = new(0x4A / 255f, 0x36 / 255f, 0x68 / 255f, 1f);
+    public static readonly Vector4 ThemeScrollbarActive = new(0x5E / 255f, 0x45 / 255f, 0x80 / 255f, 1f);
+    public static readonly Vector4 ThemeTabNormal      = new(0x1C / 255f, 0x1C / 255f, 0x1C / 255f, 0.90f);
+    public static readonly Vector4 ThemeTabHovered     = new(0x38 / 255f, 0x29 / 255f, 0x52 / 255f, 1f);
+    public static readonly Vector4 ThemeTabActive      = new(0x4A / 255f, 0x36 / 255f, 0x68 / 255f, 1f);
+    public const int ThemeColorCount = 23;
+    public const int ThemeStyleVarCount = 2;
 
     public readonly FileDialogManager FileDialogManager;
 
@@ -57,6 +84,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     private readonly IpcManager _ipcManager;
     private readonly IDalamudPluginInterface _pluginInterface;
     private readonly ITextureProvider _textureProvider;
+    public ITextureProvider TextureProvider => _textureProvider;
     private readonly Dictionary<string, object> _selectedComboItems = new(StringComparer.Ordinal);
     private readonly ServerConfigurationManager _serverConfigurationManager;
     private bool _cacheDirectoryHasOtherFilesThanCache;
@@ -84,6 +112,8 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     private bool _petNamesExists;
     private bool _brioExists;
     private bool _chatTwoExists;
+    private bool _chatProximityExists;
+    public bool ChatTwoExists => _chatTwoExists;
 
     private int _serverSelectionIndex = -1;
 
@@ -116,6 +146,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             _moodlesExists = _ipcManager.Moodles.APIAvailable;
             _brioExists = _ipcManager.Brio.APIAvailable;
             _chatTwoExists = Services.PluginWatcherService.GetInitialPluginState(_pluginInterface, "ChatTwo")?.IsLoaded ?? false;
+            _chatProximityExists = Services.PluginWatcherService.GetInitialPluginState(_pluginInterface, "ChatProximity")?.IsLoaded ?? false;
         });
 
         UidFont = _pluginInterface.UiBuilder.FontAtlas.NewDelegateFontHandle(e =>
@@ -176,6 +207,70 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         }
     }
 
+    public void DrawMoodlesAtAGlance(string? moodlesJson, float iconHeight = 24f)
+    {
+        var moodles = MoodleStatusInfo.ParseMoodles(moodlesJson);
+        if (moodles.Count == 0) return;
+
+        var availableWidth = ImGui.GetContentRegionAvail().X;
+        var spacing = ImGui.GetStyle().ItemSpacing.X;
+        var scaledHeight = iconHeight * ImGuiHelpers.GlobalScale;
+
+        // Pre-load wraps and calculate display sizes respecting aspect ratio
+        var items = new List<(MoodleStatusInfo moodle, ImTextureID handle, Vector2 size)>();
+        float totalWidth = 0f;
+        foreach (var moodle in moodles)
+        {
+            if (moodle.IconID <= 0) continue;
+            var wrap = _textureProvider.GetFromGameIcon(new Dalamud.Interface.Textures.GameIconLookup((uint)moodle.IconID)).GetWrapOrEmpty();
+            if (wrap.Handle == IntPtr.Zero) continue;
+            var aspect = wrap.Height > 0 ? (float)wrap.Width / wrap.Height : 1f;
+            var displaySize = new Vector2(scaledHeight * aspect, scaledHeight);
+            items.Add((moodle, wrap.Handle, displaySize));
+            totalWidth += displaySize.X;
+        }
+        if (items.Count == 0) return;
+
+        totalWidth += (items.Count - 1) * spacing;
+        var baseX = ImGui.GetCursorPosX();
+        var startX = baseX + (availableWidth - totalWidth) / 2f;
+        if (startX < baseX) startX = baseX;
+
+        ImGui.SetCursorPosX(startX);
+
+        for (int i = 0; i < items.Count; i++)
+        {
+            var (moodle, handle, size) = items[i];
+
+            if (i > 0)
+                ImGui.SameLine();
+
+            ImGui.Image(handle, size);
+
+            if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+            {
+                ImGui.BeginTooltip();
+                ImGui.PushTextWrapPos(ImGui.GetFontSize() * 20f);
+                var title = moodle.CleanTitle;
+                if (!string.IsNullOrEmpty(title))
+                {
+                    var typeColor = moodle.Type switch
+                    {
+                        0 => new Vector4(0.4f, 0.9f, 0.4f, 1f),
+                        1 => new Vector4(0.9f, 0.4f, 0.4f, 1f),
+                        _ => new Vector4(0.5f, 0.6f, 1f, 1f),
+                    };
+                    ImGui.TextColored(typeColor, title);
+                }
+                var desc = moodle.CleanDescription;
+                if (!string.IsNullOrEmpty(desc))
+                    ImGui.TextUnformatted(desc);
+                ImGui.PopTextWrapPos();
+                ImGui.EndTooltip();
+            }
+        }
+    }
+
     public static string ByteToString(long bytes, bool addSuffix = true)
     {
         _ = addSuffix;
@@ -221,6 +316,34 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     {
         using var raiicolor = ImRaii.PushColor(ImGuiCol.Text, color);
         TextWrapped(text, wrapPos);
+    }
+
+    public static Vector4 HexToVector4(string hex)
+    {
+        if (string.IsNullOrEmpty(hex)) return AccentColor;
+        var span = hex.AsSpan();
+        if (span.Length > 0 && span[0] == '#') span = span[1..];
+        if (span.Length != 6 || !uint.TryParse(span, System.Globalization.NumberStyles.HexNumber, null, out var rgb))
+            return AccentColor;
+        return new Vector4(((rgb >> 16) & 0xFF) / 255f, ((rgb >> 8) & 0xFF) / 255f, (rgb & 0xFF) / 255f, 1f);
+    }
+
+    public static string Vector4ToHex(Vector4 color)
+    {
+        var r = (byte)Math.Clamp(color.X * 255f, 0, 255);
+        var g = (byte)Math.Clamp(color.Y * 255f, 0, 255);
+        var b = (byte)Math.Clamp(color.Z * 255f, 0, 255);
+        return $"#{r:X2}{g:X2}{b:X2}";
+    }
+
+    public static uint HexToUint(string hex)
+    {
+        if (string.IsNullOrEmpty(hex)) return 0;
+        var span = hex.AsSpan();
+        if (span.Length > 0 && span[0] == '#') span = span[1..];
+        if (span.Length != 6 || !uint.TryParse(span, System.Globalization.NumberStyles.HexNumber, null, out var rgb))
+            return 0;
+        return rgb;
     }
 
     public static bool CtrlPressed() => (GetKeyState(0xA2) & 0x8000) != 0 || (GetKeyState(0xA3) & 0x8000) != 0;
@@ -287,8 +410,8 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         var pad = padding ?? new Vector2(
             padBase.X + 4f * ImGuiHelpers.GlobalScale,
             padBase.Y + 3f * ImGuiHelpers.GlobalScale);
-        var cardBg = background ?? new Vector4(0.08f, 0.08f, 0.10f, 0.94f);
-        var cardBorder = border ?? new Vector4(0f, 0f, 0f, 0.85f);
+        var cardBg = background ?? new Vector4(0x1C / 255f, 0x1C / 255f, 0x1C / 255f, 1f);
+        var cardBorder = border ?? new Vector4(0x4A / 255f, 0x36 / 255f, 0x68 / 255f, 0.70f);
         float cardRounding = rounding ?? Math.Max(style.FrameRounding, 8f * ImGuiHelpers.GlobalScale);
         float borderThickness = Math.Max(1f, Math.Max(style.FrameBorderSize, 1f) * ImGuiHelpers.GlobalScale);
         float borderInset = borderThickness;
@@ -811,7 +934,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     {
         ColorTextWrapped("Note: The storage folder should be somewhere close to root (i.e. C:\\UmbraStorage) in a new empty folder. DO NOT point this to your game folder. DO NOT point this to your Penumbra folder.", ImGuiColors.DalamudYellow);
         var cacheDirectory = _configService.Current.CacheFolder;
-        ImGui.SetNextItemWidth(400 * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(MathF.Min(400 * ImGuiHelpers.GlobalScale, ImGui.GetContentRegionAvail().X - 200 * ImGuiHelpers.GlobalScale));
         ImGui.InputText("Storage Folder##cache", ref cacheDirectory, 255, ImGuiInputTextFlags.ReadOnly);
 
         ImGui.SameLine();
@@ -888,7 +1011,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         }
 
         float maxCacheSize = (float)_configService.Current.MaxLocalCacheInGiB;
-        ImGui.SetNextItemWidth(400 * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(MathF.Min(400 * ImGuiHelpers.GlobalScale, ImGui.GetContentRegionAvail().X - 200 * ImGuiHelpers.GlobalScale));
         if (ImGui.SliderFloat("Maximum Storage Size", ref maxCacheSize, 1f, 200f, "%.2f GiB"))
         {
             _configService.Current.MaxLocalCacheInGiB = maxCacheSize;
@@ -1041,104 +1164,115 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         if (intro)
         {
             SetFontScale(0.8f);
-            BigText("Mandatory Plugins");
+            BigText(Loc.Get("Settings.Plugins.Mandatory"));
             SetFontScale(1.0f);
-        }
-        else
-        {
-            ImGui.TextUnformatted("Mandatory Plugins:");
-            ImGui.SameLine();
-        }
 
-        ImGui.TextUnformatted("Penumbra");
-        ImGui.SameLine();
-        IconText(_penumbraExists ? check : cross, GetBoolColor(_penumbraExists));
-        ImGui.SameLine();
-        AttachToolTip($"Penumbra is " + (_penumbraExists ? "available and up to date." : "unavailable or not up to date."));
+            DrawPluginEntry("Penumbra", _penumbraExists, check, cross);
+            DrawPluginEntry("Glamourer", _glamourerExists, check, cross);
 
-        ImGui.TextUnformatted("Glamourer");
-        ImGui.SameLine();
-        IconText(_glamourerExists ? check : cross, GetBoolColor(_glamourerExists));
-        AttachToolTip($"Glamourer is " + (_glamourerExists ? "available and up to date." : "unavailable or not up to date."));
-
-        if (intro)
-        {
             SetFontScale(0.8f);
-            BigText("Optional Addons");
+            BigText(Loc.Get("Settings.Plugins.Optional"));
             SetFontScale(1.0f);
-            UiSharedService.TextWrapped("These addons are not required for basic operation, but without them you may not see others as intended.");
+            UiSharedService.TextWrapped(Loc.Get("Settings.Plugins.Optional.Hint"));
+
+            DrawPluginEntry("SimpleHeels", _heelsExists, check, cross);
+            DrawPluginEntry("Customize+", _customizePlusExists, check, cross);
+            DrawPluginEntry("Honorific", _honorificExists, check, cross);
+            DrawPluginEntry("PetNicknames", _petNamesExists, check, cross);
+            DrawPluginEntry("Moodles", _moodlesExists, check, cross);
+            DrawPluginEntry("Brio", _brioExists, check, cross);
+            DrawPluginEntry("Chat2", _chatTwoExists, check, cross);
+            DrawPluginEntry("Chat Proximity", _chatProximityExists, check, cross);
         }
         else
         {
-            ImGui.TextUnformatted("Optional Addons:");
+            // Mandatory plugins — single line
+            ImGui.TextUnformatted(Loc.Get("Settings.Plugins.Mandatory"));
             ImGui.SameLine();
+            DrawHelpText(Loc.Get("Settings.Plugins.Mandatory.Hint"));
+            if (ImGui.BeginTable("##MandatoryPlugins", 2, ImGuiTableFlags.SizingFixedFit))
+            {
+                ImGui.TableSetupColumn("##col1", ImGuiTableColumnFlags.None, 130f * ImGuiHelpers.GlobalScale);
+                ImGui.TableSetupColumn("##col2", ImGuiTableColumnFlags.None);
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                DrawPluginEntry("Penumbra", _penumbraExists, check, cross);
+                ImGui.TableNextColumn();
+                DrawPluginEntry("Glamourer", _glamourerExists, check, cross);
+                ImGui.EndTable();
+            }
+
+            if (!_penumbraExists || !_glamourerExists)
+            {
+                ImGuiHelpers.ScaledDummy(2f);
+                ColorTextWrapped(Loc.Get("Settings.Plugins.MissingMandatory"), AccentColor);
+            }
+
+            ImGuiHelpers.ScaledDummy(4f);
+
+            // Optional plugins — two per line
+            ImGui.TextUnformatted(Loc.Get("Settings.Plugins.Optional"));
+            ImGui.SameLine();
+            DrawHelpText(Loc.Get("Settings.Plugins.Optional.Hint"));
+
+            var optionalPlugins = new (string Name, bool Exists)[]
+            {
+                ("SimpleHeels", _heelsExists),
+                ("Customize+", _customizePlusExists),
+                ("Honorific", _honorificExists),
+                ("PetNicknames", _petNamesExists),
+                ("Moodles", _moodlesExists),
+                ("Brio", _brioExists),
+            };
+            if (ImGui.BeginTable("##OptionalPlugins", 2, ImGuiTableFlags.SizingFixedFit))
+            {
+                ImGui.TableSetupColumn("##col1", ImGuiTableColumnFlags.None, 130f * ImGuiHelpers.GlobalScale);
+                ImGui.TableSetupColumn("##col2", ImGuiTableColumnFlags.None);
+                for (int pi = 0; pi < optionalPlugins.Length; pi++)
+                {
+                    if (pi % 2 == 0) ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    DrawPluginEntry(optionalPlugins[pi].Name, optionalPlugins[pi].Exists, check, cross);
+                }
+                ImGui.EndTable();
+            }
+
+            ImGuiHelpers.ScaledDummy(4f);
+
+            // Detected plugins
+            ImGui.TextUnformatted(Loc.Get("Settings.Plugins.Detected"));
+            ImGui.SameLine();
+            DrawHelpText(Loc.Get("Settings.Plugins.Detected.Hint"));
+            if (ImGui.BeginTable("##DetectedPlugins", 2, ImGuiTableFlags.SizingFixedFit))
+            {
+                ImGui.TableSetupColumn("##col1", ImGuiTableColumnFlags.None, 130f * ImGuiHelpers.GlobalScale);
+                ImGui.TableSetupColumn("##col2", ImGuiTableColumnFlags.None);
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                DrawPluginEntry("Chat2", _chatTwoExists, check, cross);
+                ImGui.SameLine();
+                DrawHelpText(Loc.Get("Settings.Plugins.Chat2.Hint"));
+                ImGui.TableNextColumn();
+                DrawPluginEntry("Chat Proximity", _chatProximityExists, check, cross);
+                ImGui.SameLine();
+                DrawHelpText(Loc.Get("Settings.Plugins.ChatProximity.Hint"));
+                ImGui.EndTable();
+            }
         }
-
-        var alignPos = ImGui.GetCursorPosX();
-
-        ImGui.TextUnformatted("SimpleHeels");
-        ImGui.SameLine();
-        IconText(_heelsExists ? check : cross, GetBoolColor(_heelsExists));
-        ImGui.SameLine();
-        AttachToolTip($"SimpleHeels is " + (_heelsExists ? "available and up to date." : "unavailable or not up to date."));
-        ImGui.Spacing();
-
-        ImGui.SameLine();
-        ImGui.TextUnformatted("Customize+");
-        ImGui.SameLine();
-        IconText(_customizePlusExists ? check : cross, GetBoolColor(_customizePlusExists));
-        ImGui.SameLine();
-        AttachToolTip($"Customize+ is " + (_customizePlusExists ? "available and up to date." : "unavailable or not up to date."));
-        ImGui.Spacing();
-
-        ImGui.SameLine();
-        ImGui.TextUnformatted("Honorific");
-        ImGui.SameLine();
-        IconText(_honorificExists ? check : cross, GetBoolColor(_honorificExists));
-        ImGui.SameLine();
-        AttachToolTip($"Honorific is " + (_honorificExists ? "available and up to date." : "unavailable or not up to date."));
-        ImGui.Spacing();
-
-        ImGui.SameLine();
-        ImGui.TextUnformatted("PetNicknames");
-        ImGui.SameLine();
-        IconText(_petNamesExists ? check : cross, GetBoolColor(_petNamesExists));
-        ImGui.SameLine();
-        AttachToolTip($"PetNicknames is " + (_petNamesExists ? "available and up to date." : "unavailable or not up to date."));
-        ImGui.Spacing();
-
-
-        ImGui.SetCursorPosX(alignPos);
-        ImGui.TextUnformatted("Moodles");
-        ImGui.SameLine();
-        IconText(_moodlesExists ? check : cross, GetBoolColor(_moodlesExists));
-        ImGui.SameLine();
-        AttachToolTip($"Moodles is " + (_moodlesExists ? "available and up to date." : "unavailable or not up to date."));
-        ImGui.Spacing();
-
-        ImGui.SameLine();
-        ImGui.TextUnformatted("Brio");
-        ImGui.SameLine();
-        IconText(_brioExists ? check : cross, GetBoolColor(_brioExists));
-        ImGui.SameLine();
-        AttachToolTip($"Brio is " + (_brioExists ? "available and up to date." : "unavailable or not up to date."));
-        ImGui.Spacing();
-
-        ImGui.SameLine();
-        ImGui.TextUnformatted("Chat2");
-        ImGui.SameLine();
-        IconText(_chatTwoExists ? check : cross, GetBoolColor(_chatTwoExists));
-        ImGui.SameLine();
-        AttachToolTip($"Chat2 est " + (_chatTwoExists ? "disponible et à jour." : "indisponible ou pas à jour."));
-        ImGui.Spacing();
 
         if (!_penumbraExists || !_glamourerExists)
         {
-            ImGui.TextColored(UiSharedService.AccentColor, "You need to install both Penumbra and Glamourer and keep them up to date to use Umbra.");
             return false;
         }
 
         return true;
+    }
+
+    private void DrawPluginEntry(string name, bool exists, FontAwesomeIcon check, FontAwesomeIcon cross)
+    {
+        ImGui.TextUnformatted(name);
+        ImGui.SameLine();
+        IconText(exists ? check : cross, GetBoolColor(exists));
     }
 
     public int DrawServiceSelection(bool selectOnChange = false, bool intro = false)
@@ -1158,7 +1292,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             if (string.Equals(_serverConfigurationManager.CurrentServer?.ServerName, comboEntries[i], StringComparison.OrdinalIgnoreCase))
                 comboEntries[i] += " [Current]";
         }
-        ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(MathF.Min(250 * ImGuiHelpers.GlobalScale, ImGui.GetContentRegionAvail().X - 200 * ImGuiHelpers.GlobalScale));
         if (ImGui.BeginCombo("Select Service", comboEntries[_serverSelectionIndex]))
         {
             for (int i = 0; i < comboEntries.Length; i++)
@@ -1196,9 +1330,9 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
         if (ImGui.TreeNode("Add Custom Service"))
         {
-            ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
+            ImGui.SetNextItemWidth(MathF.Min(250 * ImGuiHelpers.GlobalScale, ImGui.GetContentRegionAvail().X - 200 * ImGuiHelpers.GlobalScale));
             ImGui.InputText("Custom Service URI", ref _customServerUri, 255);
-            ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
+            ImGui.SetNextItemWidth(MathF.Min(250 * ImGuiHelpers.GlobalScale, ImGui.GetContentRegionAvail().X - 200 * ImGuiHelpers.GlobalScale));
             ImGui.InputText("Custom Service Name", ref _customServerName, 255);
             if (IconTextButton(FontAwesomeIcon.Plus, "Add Custom Service")
                 && !string.IsNullOrEmpty(_customServerUri)

@@ -10,7 +10,6 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using System.Numerics;
-using System.Reflection;
 using UmbraSync.API.Data.Extensions;
 using UmbraSync.API.Dto.User;
 using UmbraSync.Localization;
@@ -38,7 +37,7 @@ public class CompactUi : WindowMediatorSubscriberBase
     public float WindowContentWidth { get; private set; }
     private readonly ApiController _apiController;
     private readonly MareConfigService _configService;
-    private readonly ConcurrentDictionary<GameObjectHandler, Dictionary<string, FileDownloadStatus>> _currentDownloads = new();
+    private readonly ConcurrentDictionary<GameObjectHandler, ConcurrentDictionary<string, FileDownloadStatus>> _currentDownloads = new();
     private readonly FileUploadManager _fileTransferManager;
     private readonly GroupPanel _groupPanel;
     private readonly PairGroupsUi _pairGroupsUi;
@@ -77,12 +76,12 @@ public class CompactUi : WindowMediatorSubscriberBase
     private const long SelfAnalysisSizeWarningThreshold = 300L * 1024 * 1024;
     private const long SelfAnalysisTriangleWarningThreshold = 150_000;
     private CompactUiSection _activeSection = CompactUiSection.Social;
-    private const float SidebarWidth = 42f;
-    private const float SidebarIconSize = 22f;
+    private const float SidebarWidth = 53f;
+    private const float SidebarIconSize = 25f;
     private const float ContentFontScale = UiSharedService.ContentFontScale;
-    private static readonly Vector4 SidebarButtonColor = new(0.08f, 0.08f, 0.10f, 0.92f);
-    private static readonly Vector4 SidebarButtonHoverColor = new(0.12f, 0.12f, 0.16f, 0.95f);
-    private static readonly Vector4 SidebarButtonActiveColor = new(0.16f, 0.16f, 0.22f, 0.95f);
+    private static readonly Vector4 SidebarButtonColor = new(0f, 0f, 0f, 0f);
+    private static readonly Vector4 SidebarButtonHoverColor = new(0x30 / 255f, 0x19 / 255f, 0x46 / 255f, 1f);
+    private static readonly Vector4 SidebarButtonActiveColor = new(0x50 / 255f, 0x17 / 255f, 0x83 / 255f, 1f);
     private static readonly Vector4 MutedCardBackground = new(0.10f, 0.10f, 0.13f, 0.78f);
     private static readonly Vector4 MutedCardBorder = new(0.55f, 0.55f, 0.62f, 0.82f);
     private const float SidebarIndicatorAnimSpeed = 18f;
@@ -91,9 +90,6 @@ public class CompactUi : WindowMediatorSubscriberBase
     private Vector2 _sidebarIndicatorSize;
     private bool _sidebarIndicatorInitialized;
     private Vector2 _sidebarWindowPos;
-    private float _socialSwitchAnimT = 1f;
-    private float _socialSwitchAnimTargetT = 1f;
-    private readonly float _socialSwitchAnimSpeed = 8f; // Vitesse d’animation (unités de t par seconde). 8 → transition ~125ms–200ms selon framerate
 
     private enum CompactUiSection
     {
@@ -114,7 +110,7 @@ public class CompactUi : WindowMediatorSubscriberBase
 
     private readonly Dictionary<string, DrawUserPair> _drawUserPairCache = new(StringComparer.Ordinal);
 
-    public CompactUi(ILogger<CompactUi> logger, UiSharedService uiShared, MareConfigService configService, ApiController apiController, PairManager pairManager, ChatService chatService,
+    public CompactUi(ILogger<CompactUi> logger, UiSharedService uiShared, MareConfigService configService, ApiController apiController, PairManager pairManager,
         ServerConfigurationManager serverManager, MareMediator mediator, FileUploadManager fileTransferManager, UidDisplayHandler uidDisplayHandler, CharaDataManager charaDataManager,
         NearbyPendingService nearbyPendingService,
         AutoDetectRequestService autoDetectRequestService,
@@ -125,7 +121,8 @@ public class CompactUi : WindowMediatorSubscriberBase
         AutoDetectUi autoDetectUi,
         DataAnalysisUi dataAnalysisUi,
         CharaDataHubUi charaDataHubUi,
-        NotificationTracker notificationTracker)
+        NotificationTracker notificationTracker,
+        UmbraProfileManager umbraProfileManager)
         : base(logger, mediator, "###UmbraSyncMainUI", performanceCollectorService)
     {
         _uiSharedService = uiShared;
@@ -147,19 +144,16 @@ public class CompactUi : WindowMediatorSubscriberBase
         _notificationTracker = notificationTracker;
         var tagHandler = new TagHandler(_serverManager);
 
-        _groupPanel = new(this, uiShared, _pairManager, chatService, uidDisplayHandler, _serverManager, _charaDataManager, _autoDetectRequestService);
+        _groupPanel = new(this, uiShared, _pairManager, uidDisplayHandler, _serverManager, _charaDataManager, _autoDetectRequestService, _configService, umbraProfileManager);
         _selectGroupForPairUi = new(tagHandler, uidDisplayHandler, _uiSharedService);
         _selectPairsForGroupUi = new(tagHandler, uidDisplayHandler);
         _pairGroupsUi = new(configService, tagHandler, apiController, _selectPairsForGroupUi, _uiSharedService);
 
 #if DEBUG
-        string dev = "Dev Build";
-        var ver = Assembly.GetExecutingAssembly().GetName().Version!;
-        WindowName = $"UmbraSync {dev} ({ver.Major}.{ver.Minor}.{ver.Build})###UmbraSyncMainUIDev";
+        WindowName = "UmbraSync###UmbraSyncMainUIDev";
         Toggle();
 #else
-        var ver = Assembly.GetExecutingAssembly().GetName().Version!;
-        WindowName = "UmbraSync " + ver.Major + "." + ver.Minor + "." + ver.Build + "###UmbracSyncMainUI";
+        WindowName = "UmbraSync###UmbracSyncMainUI";
 #endif
         Mediator.Subscribe<SwitchToMainUiMessage>(this, (_) => IsOpen = true);
         Mediator.Subscribe<SwitchToIntroUiMessage>(this, (_) => IsOpen = false);
@@ -198,18 +192,20 @@ public class CompactUi : WindowMediatorSubscriberBase
         };
     }
 
+    public override void PreDraw()
+    {
+        base.PreDraw();
+        ImGui.PushStyleColor(ImGuiCol.Border, UiSharedService.ThemeTitleBar);
+    }
+
+    public override void PostDraw()
+    {
+        ImGui.PopStyleColor(1);
+        base.PostDraw();
+    }
+
     protected override void DrawInternal()
     {
-        UiSharedService.AccentColor = new Vector4(0x8D / 255f, 0x37 / 255f, 0xC0 / 255f, 1f);
-        UiSharedService.AccentHoverColor = new Vector4(0x3A / 255f, 0x15 / 255f, 0x50 / 255f, 1f);
-        UiSharedService.AccentActiveColor = UiSharedService.AccentHoverColor;
-        var accent = UiSharedService.AccentColor;
-        using var titleBg = ImRaii.PushColor(ImGuiCol.TitleBg, accent);
-        using var titleBgActive = ImRaii.PushColor(ImGuiCol.TitleBgActive, accent);
-        using var titleBgCollapsed = ImRaii.PushColor(ImGuiCol.TitleBgCollapsed, accent);
-        using var buttonHover = ImRaii.PushColor(ImGuiCol.ButtonHovered, UiSharedService.AccentHoverColor);
-        using var buttonActive = ImRaii.PushColor(ImGuiCol.ButtonActive, UiSharedService.AccentActiveColor);
-        ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGui.GetStyle().WindowPadding.Y - 1f * ImGuiHelpers.GlobalScale + ImGui.GetStyle().ItemSpacing.Y);
         var sidebarWidth = ImGuiHelpers.ScaledVector2(SidebarWidth, 0).X;
 
         using var fontScale = UiSharedService.PushFontScale(ContentFontScale);
@@ -240,16 +236,14 @@ public class CompactUi : WindowMediatorSubscriberBase
             ImGui.Separator();
         }
 
-        using (ImRaii.PushId("header")) DrawUIDHeader();
-        using (ImRaii.PushId("serverstatus")) DrawServerStatus();
+        if (_apiController.ServerState is not ServerState.Connected)
         {
-            var hSepColor = UiSharedService.AccentColor with { W = 0.6f };
-            var hSepDrawList = ImGui.GetWindowDrawList();
-            var hSepCursor = ImGui.GetCursorScreenPos();
-            var hSepStart = new Vector2(hSepCursor.X, hSepCursor.Y);
-            var hSepEnd = new Vector2(hSepCursor.X + WindowContentWidth, hSepCursor.Y);
-            hSepDrawList.AddLine(hSepStart, hSepEnd, ImGui.GetColorU32(hSepColor), 1f * ImGuiHelpers.GlobalScale);
-            ImGuiHelpers.ScaledDummy(2f);
+            UiSharedService.ColorTextWrapped(GetServerError(), GetUidColor());
+            if (_apiController.ServerState is ServerState.NoSecretKey)
+            {
+                DrawAddCharacter();
+            }
+            DrawAccentSeparator();
         }
 
         DrawMainContent();
@@ -296,6 +290,10 @@ public class CompactUi : WindowMediatorSubscriberBase
             var animIcon = animsDisabled ? FontAwesomeIcon.WindowClose : FontAwesomeIcon.Running;
             var vfxIcon = vfxDisabled ? FontAwesomeIcon.TimesCircle : FontAwesomeIcon.Sun;
 
+            var extraPadding = new Vector2(6f, 4f) * ImGuiHelpers.GlobalScale;
+            var originalPadding = ImGui.GetStyle().FramePadding;
+            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, originalPadding + extraPadding);
+
             float spacing = ImGui.GetStyle().ItemSpacing.X;
             float audioWidth = _uiSharedService.GetIconTextButtonSize(soundIcon, soundLabel);
             float animWidth = _uiSharedService.GetIconTextButtonSize(animIcon, animLabel);
@@ -334,6 +332,8 @@ public class CompactUi : WindowMediatorSubscriberBase
                     Mediator.Publish(new ApplyDefaultsToAllSyncsMessage(vfxSubject, state));
                 },
                 () => DisableStateTooltip(vfxSubject, _configService.Current.DefaultDisableVfx), spacing);
+
+            ImGui.PopStyleVar();
 
             if (showNearby && pendingInvites > 0)
             {
@@ -935,7 +935,9 @@ public class CompactUi : WindowMediatorSubscriberBase
 
         ImGuiHelpers.ScaledDummy(6f);
         DrawConnectionIcon();
-        ImGuiHelpers.ScaledDummy(12f);
+        ImGuiHelpers.ScaledDummy(4f);
+        DrawSidebarUid();
+        ImGuiHelpers.ScaledDummy(8f);
         string notificationsTooltip = hasNotifications
             ? Loc.Get("CompactUi.Sidebar.Notifications")
             : Loc.Get("CompactUi.Sidebar.NotificationsEmpty");
@@ -957,10 +959,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         ImGuiHelpers.ScaledDummy(12f);
         DrawSidebarButton(FontAwesomeIcon.UserCircle, Loc.Get("CompactUi.Sidebar.EditProfile"), CompactUiSection.EditProfile, isConnected);
         ImGuiHelpers.ScaledDummy(3f);
-        DrawSidebarButton(FontAwesomeIcon.Cog, Loc.Get("CompactUi.Sidebar.Settings"), CompactUiSection.Settings, true, _settingsUi.IsOpen, 0, () =>
-        {
-            Mediator.Publish(new UiToggleMessage(typeof(SettingsUi)));
-        });
+        DrawSidebarButton(FontAwesomeIcon.Cog, Loc.Get("CompactUi.Sidebar.Settings"), CompactUiSection.Settings);
 
         drawList.ChannelsSetCurrent(0);
         DrawSidebarIndicator(drawList);
@@ -1002,10 +1001,9 @@ public class CompactUi : WindowMediatorSubscriberBase
         var icon = isLinked ? FontAwesomeIcon.Link : FontAwesomeIcon.Unlink;
 
         using var id = ImRaii.PushId("connection-icon");
-        float regionWidth = ImGui.GetContentRegionAvail().X;
+        float childWidth = SidebarWidth * ImGuiHelpers.GlobalScale;
         float buttonWidth = SidebarIconSize * ImGuiHelpers.GlobalScale;
-        float offset = System.Math.Max(0f, (regionWidth - buttonWidth) / 2f);
-        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + offset);
+        ImGui.SetCursorPosX((childWidth - buttonWidth) / 2f);
 
         bool isTogglingDisabled = !hasServer || state is ServerState.Reconnecting or ServerState.Disconnecting;
 
@@ -1023,6 +1021,56 @@ public class CompactUi : WindowMediatorSubscriberBase
                 : string.Format(CultureInfo.CurrentCulture, Loc.Get("CompactUi.Connection.ConnectTooltip"), currentServer!.ServerName))
             : Loc.Get("CompactUi.Connection.NoServer");
         UiSharedService.AttachToolTip(tooltip);
+    }
+
+    private void DrawSidebarUid()
+    {
+        var uidText = GetUidText();
+        var uidColor = GetUidColor();
+        bool isConnected = _apiController.ServerState is ServerState.Connected;
+
+        float regionWidth = ImGui.GetContentRegionAvail().X;
+        float padding = 4f * ImGuiHelpers.GlobalScale;
+        float maxTextWidth = regionWidth - padding * 2f;
+
+        var textSize = ImGui.CalcTextSize(uidText);
+        float fontScale = 1f;
+        if (textSize.X > maxTextWidth && maxTextWidth > 0)
+        {
+            fontScale = maxTextWidth / textSize.X;
+            fontScale = MathF.Max(fontScale, 0.55f); // minimum readability
+        }
+
+        using var scalePush = UiSharedService.PushFontScale(fontScale);
+        textSize = ImGui.CalcTextSize(uidText);
+        
+        float textX = ImGui.GetCursorPosX() + (regionWidth - textSize.X) / 2f;
+        ImGui.SetCursorPosX(textX);
+
+        if (isConnected)
+        {
+            var screenPos = ImGui.GetCursorScreenPos();
+            float btnHeight = textSize.Y;
+            ImGui.InvisibleButton("##sidebarUid", new Vector2(textSize.X, btnHeight));
+            bool hovered = ImGui.IsItemHovered();
+            bool clicked = ImGui.IsItemClicked();
+
+            var font = ImGui.GetFont();
+            float fontSize = ImGui.GetFontSize();
+            var dl = ImGui.GetWindowDrawList();
+            dl.AddText(font, fontSize, screenPos, ImGui.GetColorU32(uidColor), uidText);
+
+            if (hovered)
+                ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
+            if (clicked)
+                ImGui.SetClipboardText(_apiController.DisplayName);
+
+            UiSharedService.AttachToolTip(Loc.Get("CompactUi.Uid.CopyTooltip"));
+        }
+        else
+        {
+            ImGui.TextColored(uidColor, uidText);
+        }
     }
 
     private bool DrawSidebarSquareButton(FontAwesomeIcon icon, bool isActive, bool highlight, bool enabled, int badgeCount, Vector4? highlightColor, Vector4? iconColorOverride = null)
@@ -1061,8 +1109,8 @@ public class CompactUi : WindowMediatorSubscriberBase
         using (_uiSharedService.IconFont.Push())
         {
             var textPos = new Vector2(
-                start.X + (size - iconSize.X) / 2f,
-                start.Y + (size - iconSize.Y) / 2f);
+                MathF.Round(start.X + (size - iconSize.X) / 2f),
+                MathF.Round(start.Y + (size - iconSize.Y) / 2f));
             uint iconColor = !enabled
                 ? ImGui.GetColorU32(ImGuiCol.TextDisabled)
                 : ImGui.ColorConvertFloat4ToU32(new Vector4(0.85f, 0.85f, 0.9f, 1f));
@@ -1199,6 +1247,10 @@ public class CompactUi : WindowMediatorSubscriberBase
                 if (_charaDataHubUi.IsOpen) _charaDataHubUi.IsOpen = false;
                 _charaDataHubUi.DrawInline();
                 break;
+            case CompactUiSection.Settings:
+                if (_settingsUi.IsOpen) _settingsUi.IsOpen = false;
+                _settingsUi.DrawInline();
+                break;
         }
 
         DrawNewUserNoteModal();
@@ -1238,7 +1290,9 @@ public class CompactUi : WindowMediatorSubscriberBase
     private void DrawSocialSection()
     {
         DrawDefaultSyncSettings();
+        ImGuiHelpers.ScaledDummy(2f);
         DrawSocialSwitchButtons();
+        ImGuiHelpers.ScaledDummy(2f);
         using var socialBody = ImRaii.Child(
             "social-body",
             new Vector2(0, 0),
@@ -1258,173 +1312,66 @@ public class CompactUi : WindowMediatorSubscriberBase
     {
         var individualLabel = Loc.Get("CompactUi.Sidebar.IndividualPairs");
         var syncshellLabel = Loc.Get("CompactUi.Sidebar.Syncshells");
-        float spacing = ImGui.GetStyle().ItemSpacing.X;
-        var regionMin = ImGui.GetWindowContentRegionMin();
-        var regionMax = ImGui.GetWindowContentRegionMax();
-        float available = Math.Max(0f, regionMax.X - regionMin.X);
-        float rightPad = MathF.Ceiling(ImGuiHelpers.GlobalScale);
-        available = MathF.Max(0f, available - rightPad);
-        var style = ImGui.GetStyle();
-        const float padYMultiplier = 2.4f;
-        const float fontScaleMul = 1.3f;
+        var icons = new[] { FontAwesomeIcon.User, FontAwesomeIcon.UserFriends };
+        var labels = new[] { individualLabel, syncshellLabel };
 
-        using var padPush = ImRaii.PushStyle(ImGuiStyleVar.FramePadding,
-            new Vector2(style.FramePadding.X, style.FramePadding.Y * padYMultiplier));
-        using var biggerFont = UiSharedService.PushFontScale(ContentFontScale * fontScaleMul);
+        const float btnH = 32f;
+        const float btnSpacing = 8f;
+        const float rounding = 4f;
+        const float iconTextGap = 6f;
 
-        float buttonHeight = ImGui.GetFrameHeight();
-        float inactiveSize = (float)Math.Floor(buttonHeight);
-        float maxActiveWidth = (float)Math.Floor(available - spacing - inactiveSize);
-        if (maxActiveWidth < inactiveSize) // garde-fou si espace trop réduit
-        {
-            maxActiveWidth = (float)Math.Floor((available - spacing) * 0.65f);
-            inactiveSize = (float)Math.Max(10f, Math.Floor((available - spacing) - maxActiveWidth));
-        }
-
-        bool individualActive = _socialSubSection == SocialSubSection.IndividualPairs;
-        bool syncshellActive = _socialSubSection == SocialSubSection.Syncshells;
-        _socialSwitchAnimTargetT = individualActive ? 1f : 0f;
-        var dt = ImGui.GetIO().DeltaTime;
-        if (dt > 0)
-        {
-            var step = _socialSwitchAnimSpeed * dt;
-            if (_socialSwitchAnimT < _socialSwitchAnimTargetT)
-                _socialSwitchAnimT = MathF.Min(_socialSwitchAnimT + step, _socialSwitchAnimTargetT);
-            else if (_socialSwitchAnimT > _socialSwitchAnimTargetT)
-                _socialSwitchAnimT = MathF.Max(_socialSwitchAnimT - step, _socialSwitchAnimTargetT);
-        }
-        float EaseInOut(float x)
-        {
-            x = Math.Clamp(x, 0f, 1f);
-            return x * x * (3f - 2f * x); // SmoothStep
-        }
-        var t = EaseInOut(_socialSwitchAnimT);
-        float leftWidth = MathF.Floor(inactiveSize + (maxActiveWidth - inactiveSize) * t);
-        float rightWidth = MathF.Floor(maxActiveWidth + (inactiveSize - maxActiveWidth) * t);
-        float epsilon = MathF.Max(0.5f, buttonHeight * 0.02f);
-        bool leftSquare = leftWidth <= inactiveSize + epsilon;
-        bool rightSquare = rightWidth <= inactiveSize + epsilon;
-        if (leftSquare)
-        {
-            leftWidth = inactiveSize;
-            rightWidth = MathF.Max(inactiveSize, MathF.Floor(available - spacing - leftWidth));
-        }
-        else if (rightSquare)
-        {
-            rightWidth = inactiveSize;
-            leftWidth = MathF.Max(inactiveSize, MathF.Floor(available - spacing - rightWidth));
-        }
+        var dl = ImGui.GetWindowDrawList();
+        var availWidth = ImGui.GetContentRegionAvail().X;
+        var btnW = (availWidth - btnSpacing * (labels.Length - 1)) / labels.Length;
 
         var accent = UiSharedService.AccentColor;
-        var accentHover = UiSharedService.AccentHoverColor;
-        var accentActive = UiSharedService.AccentActiveColor;
-        if (leftSquare)
-        {
-            if (individualActive)
-            {
-                using (ImRaii.PushColor(ImGuiCol.Button, accent))
-                using (ImRaii.PushColor(ImGuiCol.ButtonHovered, accentHover))
-                using (ImRaii.PushColor(ImGuiCol.ButtonActive, accentActive))
-                {
-                    if (_uiSharedService.IconButtonCentered(FontAwesomeIcon.User, buttonHeight, square: true))
-                    {
-                        _socialSubSection = SocialSubSection.IndividualPairs;
-                        _socialSwitchAnimTargetT = 1f;
-                    }
-                }
-            }
-            else
-            {
-                if (_uiSharedService.IconButtonCentered(FontAwesomeIcon.User, buttonHeight, square: true))
-                {
-                    _socialSubSection = SocialSubSection.IndividualPairs;
-                    _socialSwitchAnimTargetT = 1f;
-                }
-                UiSharedService.AttachToolTip(individualLabel);
-            }
-        }
-        else
-        {
-            if (individualActive)
-            {
-                using (ImRaii.PushColor(ImGuiCol.Button, accent))
-                using (ImRaii.PushColor(ImGuiCol.ButtonHovered, accentHover))
-                using (ImRaii.PushColor(ImGuiCol.ButtonActive, accentActive))
-                {
-                    if (_uiSharedService.IconTextButton(FontAwesomeIcon.User, individualLabel, leftWidth))
-                    {
-                        _socialSubSection = SocialSubSection.IndividualPairs;
-                        _socialSwitchAnimTargetT = 1f;
-                    }
-                }
-            }
-            else
-            {
-                if (_uiSharedService.IconTextButton(FontAwesomeIcon.User, individualLabel, leftWidth))
-                {
-                    _socialSubSection = SocialSubSection.IndividualPairs;
-                    _socialSwitchAnimTargetT = 1f;
-                }
-                UiSharedService.AttachToolTip(individualLabel);
-            }
-        }
+        var borderColor = new Vector4(0.29f, 0.21f, 0.41f, 0.7f);
+        var bgColor = new Vector4(0.11f, 0.11f, 0.11f, 0.9f);
+        var hoverBg = new Vector4(0.17f, 0.13f, 0.22f, 1f);
 
-        ImGui.SameLine();
+        for (int i = 0; i < labels.Length; i++)
+        {
+            if (i > 0) ImGui.SameLine(0, btnSpacing);
 
-        // Rendu du bouton de droite (Syncshell)
-        if (rightSquare)
-        {
-            if (syncshellActive)
+            var p = ImGui.GetCursorScreenPos();
+            bool clicked = ImGui.InvisibleButton($"##socialTab_{i}", new Vector2(btnW, btnH));
+            bool hovered = ImGui.IsItemHovered();
+            bool isActive = (i == 0 && _socialSubSection == SocialSubSection.IndividualPairs)
+                         || (i == 1 && _socialSubSection == SocialSubSection.Syncshells);
+
+            var bg = isActive ? accent : hovered ? hoverBg : bgColor;
+            dl.AddRectFilled(p, p + new Vector2(btnW, btnH), ImGui.GetColorU32(bg), rounding);
+            if (!isActive)
+                dl.AddRect(p, p + new Vector2(btnW, btnH), ImGui.GetColorU32(borderColor with { W = hovered ? 0.9f : 0.5f }), rounding);
+
+            // Measure icon
+            ImGui.PushFont(UiBuilder.IconFont);
+            var iconStr = icons[i].ToIconString();
+            var iconSz = ImGui.CalcTextSize(iconStr);
+            ImGui.PopFont();
+
+            var labelSz = ImGui.CalcTextSize(labels[i]);
+            var totalW = iconSz.X + iconTextGap + labelSz.X;
+            var startX = p.X + (btnW - totalW) / 2f;
+
+            var textColor = isActive ? new Vector4(1f, 1f, 1f, 1f) : hovered ? new Vector4(0.9f, 0.85f, 1f, 1f) : new Vector4(0.7f, 0.65f, 0.8f, 1f);
+            var textColorU32 = ImGui.GetColorU32(textColor);
+
+            // Draw icon
+            ImGui.PushFont(UiBuilder.IconFont);
+            dl.AddText(new Vector2(startX, p.Y + (btnH - iconSz.Y) / 2f), textColorU32, iconStr);
+            ImGui.PopFont();
+
+            // Draw label
+            dl.AddText(new Vector2(startX + iconSz.X + iconTextGap, p.Y + (btnH - labelSz.Y) / 2f), textColorU32, labels[i]);
+
+            if (hovered) ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
+            if (clicked)
             {
-                using (ImRaii.PushColor(ImGuiCol.Button, accent))
-                using (ImRaii.PushColor(ImGuiCol.ButtonHovered, accentHover))
-                using (ImRaii.PushColor(ImGuiCol.ButtonActive, accentActive))
-                {
-                    if (_uiSharedService.IconButtonCentered(FontAwesomeIcon.UserFriends, buttonHeight, square: true))
-                    {
-                        _socialSubSection = SocialSubSection.Syncshells;
-                        _socialSwitchAnimTargetT = 0f;
-                    }
-                }
-            }
-            else
-            {
-                if (_uiSharedService.IconButtonCentered(FontAwesomeIcon.UserFriends, buttonHeight, square: true))
-                {
-                    _socialSubSection = SocialSubSection.Syncshells;
-                    _socialSwitchAnimTargetT = 0f;
-                }
-                UiSharedService.AttachToolTip(syncshellLabel);
-            }
-        }
-        else
-        {
-            if (syncshellActive)
-            {
-                using (ImRaii.PushColor(ImGuiCol.Button, accent))
-                using (ImRaii.PushColor(ImGuiCol.ButtonHovered, accentHover))
-                using (ImRaii.PushColor(ImGuiCol.ButtonActive, accentActive))
-                {
-                    if (_uiSharedService.IconTextButton(FontAwesomeIcon.UserFriends, syncshellLabel, rightWidth))
-                    {
-                        _socialSubSection = SocialSubSection.Syncshells;
-                        _socialSwitchAnimTargetT = 0f;
-                    }
-                }
-            }
-            else
-            {
-                if (_uiSharedService.IconTextButton(FontAwesomeIcon.UserFriends, syncshellLabel, rightWidth))
-                {
-                    _socialSubSection = SocialSubSection.Syncshells;
-                    _socialSwitchAnimTargetT = 0f;
-                }
-                UiSharedService.AttachToolTip(syncshellLabel);
+                _socialSubSection = i == 0 ? SocialSubSection.IndividualPairs : SocialSubSection.Syncshells;
             }
         }
     }
-
-    // Note: ancienne méthode DrawToggleButton supprimée (plus utilisée)
 
     private void DrawAutoDetectSection()
     {
@@ -1699,38 +1646,15 @@ public class CompactUi : WindowMediatorSubscriberBase
         }
     }
 
-    private void DrawServerStatus()
+    private void DrawAccentSeparator()
     {
-        var userCount = _apiController.OnlineUsers.ToString(CultureInfo.InvariantCulture);
-        var userSize = ImGui.CalcTextSize(userCount);
-        var usersOnlineText = Loc.Get("CompactUi.ServerStatus.UsersOnline");
-        var textSize = ImGui.CalcTextSize(usersOnlineText);
-        string shardConnection = string.Equals(_apiController.ServerInfo.ShardName, "Main", StringComparison.OrdinalIgnoreCase) ? string.Empty : string.Format(CultureInfo.CurrentCulture, Loc.Get("CompactUi.ServerStatus.ShardLabel"), _apiController.ServerInfo.ShardName);
-        var shardTextSize = ImGui.CalcTextSize(shardConnection);
-        var printShard = !string.IsNullOrEmpty(_apiController.ServerInfo.ShardName) && shardConnection != string.Empty;
-
-        if (_apiController.ServerState is ServerState.Connected)
-        {
-            ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()) / 2 - (userSize.X + textSize.X) / 2 - ImGui.GetStyle().ItemSpacing.X / 2);
-            if (!printShard) ImGui.AlignTextToFramePadding();
-            ImGui.TextColored(UiSharedService.AccentColor, userCount);
-            ImGui.SameLine();
-            if (!printShard) ImGui.AlignTextToFramePadding();
-            ImGui.TextUnformatted(usersOnlineText);
-        }
-        else
-        {
-            ImGui.AlignTextToFramePadding();
-            ImGui.TextColored(UiSharedService.AccentColor, Loc.Get("CompactUi.ServerStatus.NotConnected"));
-        }
-
-        if (printShard)
-        {
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGui.GetStyle().ItemSpacing.Y);
-            ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()) / 2 - shardTextSize.X / 2);
-            ImGui.TextUnformatted(shardConnection);
-        }
-
+        var hSepColor = UiSharedService.AccentColor with { W = 0.6f };
+        var hSepDrawList = ImGui.GetWindowDrawList();
+        var hSepCursor = ImGui.GetCursorScreenPos();
+        var hSepStart = new Vector2(hSepCursor.X, hSepCursor.Y);
+        var hSepEnd = new Vector2(hSepCursor.X + WindowContentWidth, hSepCursor.Y);
+        hSepDrawList.AddLine(hSepStart, hSepEnd, ImGui.GetColorU32(hSepColor), 1f * ImGuiHelpers.GlobalScale);
+        ImGuiHelpers.ScaledDummy(2f);
     }
 
     private void DrawTransfers()
@@ -1779,82 +1703,6 @@ public class CompactUi : WindowMediatorSubscriberBase
         ImGuiHelpers.ScaledDummy(2);
     }
 
-    private void DrawUIDHeader()
-    {
-        var uidText = GetUidText();
-        Vector2 uidTextSize;
-
-        using (_uiSharedService.UidFont.Push())
-        {
-            uidTextSize = ImGui.CalcTextSize(uidText);
-        }
-
-        var originalPos = ImGui.GetCursorPos();
-        UiSharedService.SetFontScale(1.5f);
-        float spacingX = ImGui.GetStyle().ItemSpacing.X;
-        float contentMin = ImGui.GetWindowContentRegionMin().X;
-        float contentMax = ImGui.GetWindowContentRegionMax().X;
-        float availableWidth = contentMax - contentMin;
-        float center = contentMin + availableWidth / 2f;
-
-        bool isConnected = _apiController.ServerState is ServerState.Connected;
-        float buttonSize = 18f * ImGuiHelpers.GlobalScale;
-        float textPosY = originalPos.Y + MathF.Max(buttonSize, uidTextSize.Y) / 2f - uidTextSize.Y / 2f;
-        float textPosX = center - uidTextSize.X / 2f;
-
-        if (isConnected)
-        {
-            float buttonX = textPosX - spacingX - buttonSize;
-            float buttonVerticalOffset = 7f * ImGuiHelpers.GlobalScale;
-            float buttonY = textPosY + uidTextSize.Y - buttonSize + buttonVerticalOffset;
-            ImGui.SetCursorPos(new Vector2(buttonX, buttonY));
-            if (ImGui.Button("##copy", new Vector2(buttonSize, buttonSize)))
-            {
-                ImGui.SetClipboardText(_apiController.DisplayName);
-            }
-            var buttonMin = ImGui.GetItemRectMin();
-            var drawList = ImGui.GetWindowDrawList();
-            using (_uiSharedService.IconFont.Push())
-            {
-                string iconText = FontAwesomeIcon.Copy.ToIconString();
-                var baseSize = ImGui.CalcTextSize(iconText);
-                float maxDimension = MathF.Max(MathF.Max(baseSize.X, baseSize.Y), 1f);
-                float available = buttonSize - 4f;
-                float scale = MathF.Min(1f, available / maxDimension);
-                float iconWidth = baseSize.X * scale;
-                float iconHeight = baseSize.Y * scale;
-                var iconPos = new Vector2(
-                    buttonMin.X + (buttonSize - iconWidth) / 2f,
-                    buttonMin.Y + (buttonSize - iconHeight) / 2f);
-                var font = ImGui.GetFont();
-                float fontSize = ImGui.GetFontSize() * scale;
-                drawList.AddText(font, fontSize, iconPos, ImGui.GetColorU32(ImGuiCol.Text), iconText);
-            }
-            UiSharedService.AttachToolTip(Loc.Get("CompactUi.Uid.CopyTooltip"));
-            ImGui.SameLine(0f, spacingX);
-        }
-        else
-        {
-            ImGui.SetCursorPos(originalPos);
-        }
-
-        ImGui.SetCursorPos(new Vector2(textPosX, textPosY));
-
-        using (_uiSharedService.UidFont.Push())
-            ImGui.TextColored(GetUidColor(), uidText);
-
-        UiSharedService.SetFontScale(1f);
-
-        if (!isConnected)
-        {
-            UiSharedService.ColorTextWrapped(GetServerError(), GetUidColor());
-            if (_apiController.ServerState is ServerState.NoSecretKey)
-            {
-                DrawAddCharacter();
-            }
-        }
-    }
-
     private List<Pair> GetFilteredUsers()
     {
         return _pairManager.DirectPairs.Where(p =>
@@ -1896,7 +1744,7 @@ public class CompactUi : WindowMediatorSubscriberBase
             ServerState.Disconnected => ImGuiColors.DalamudYellow,
             ServerState.Disconnecting => ImGuiColors.DalamudYellow,
             ServerState.Unauthorized => UiSharedService.AccentColor,
-            ServerState.VersionMisMatch => UiSharedService.AccentColor,
+            ServerState.VersionMisMatch => ImGuiColors.DalamudRed,
             ServerState.Offline => UiSharedService.AccentColor,
             ServerState.RateLimited => ImGuiColors.DalamudYellow,
             ServerState.NoSecretKey => ImGuiColors.DalamudYellow,

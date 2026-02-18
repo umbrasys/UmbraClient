@@ -52,6 +52,7 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
         {
             IsOpen = true;
         }
+        Mediator.Subscribe<OpenChangelogUiMessage>(this, (_) => IsOpen = true);
     }
 
     public override void OnClose()
@@ -171,181 +172,46 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
     {
         return new List<ChangelogEntry>
         {
-            new(new Version(2, 1, 2, 0), "2.1.2.0", new List<ChangelogLine>
+            new(new Version(2, 2, 2, 1), "2.2.2.1", new List<ChangelogLine>
             {
-                new("Correction d'un problème de chargement utilisateur"),
-                new("Correction de l'affichage de la bulle d'écriture et de sa distance de visibilité"),
-                new("Correction de la zone de notification inférieur-droit qui pouvait bloquer l'interaction de la zone"),
-                new("Mise à jour API Penumbra"),
-
+                new("Nouveauté : Support du format BBCode dans les informations du Profil RP."),
+                new("Correctif : Dans certains cas, la bulle d'écriture ne s'affichait plus."),
+                new("Correctif : Meilleure gestion du timeout / perte de connexion lors d'un téléchargement de mod."),
             }),
-
-            new(new Version(2, 1, 1, 0), "2.1.1.0", new List<ChangelogLine>
+            new(new Version(2, 2, 2, 0), "2.2.2.0", new List<ChangelogLine>
             {
-                new("Nouveau système de cache pour les données de personnages"),
-                new("Cache métrique pour éviter des recalculs inutiles lors de la synchronisation"),
-                new("Limite de traitement simultané des paires augmentée de 16 à 50"),
-                new("Correction d'un problème de pause user"),
-                new("Radius de detection SlotSync réduit à 20m maximum"),
-
+                new("Nouveauté : Intégration de Moodles dans les profils RP."),
+                new("Nouveauté : Prise en charge du plugin Chat Proximity pour adapter la colorisation des émotes dans le chat en fonction de la distance."),
+                new("Amélioration : Modification de divers aspect de l'interface."),
+                new("Amélioration : La taille max des images pour les profils passent à 5Mo."),
+                new("Amélioration : Ajout de catégorie et des informations Moodles dans le profil RP."),
+                new("Correctif : La notification de connexion n'apparait plus au démarrage."),
+                new("Correctif : Dans certains cas, la bulle d'écriture ne s'affichait plus."),
+                new("Correctif : Dans certains cas, le téléchargement de mod s'annulait."),
+                new("Correctif : La suppression d'un marqueur n'était pas effectif pour les autres personnes."),
+                new("Mise à jour SDK Dalamud."),
             }),
-            new(new Version(2, 1, 0, 0), "2.1.0.0", new List<ChangelogLine>
+            new(new Version(2, 2, 1, 0), "2.2.1.0", new List<ChangelogLine>
             {
-                new("Nouvelle fonctionnalité : Ajout du support complet des profils RP (Roleplay) avec gestion d'images et descriptions séparées par personnage."),
-                new("Nouvelle fonctionnalité : gestion des SyncShells et Slots pour une synchronisation avancée."),
-                new("Nouvelle fonctionnalité : Ajout de notifications interactives pour les invitations de pair avec options de configuration."),
-                new("Réécriture complète de l'intégration Penumbra avec architecture modulaire pour une meilleure stabilité."),
-                new("Traitement parallèle des pairs avec limitation configurable et amélioration des performances."),
-                new("Migration vers MessagePack v2.5.187 suite à un problème de vulnérabilité."),
-                new("Nombreuses améliorations de stabilité, modernisation du code et optimisations."),
-
+                new("Nouvelle fonctionnalité : Possibilité de personnaliser l'identité de son personnage via le profil RP."),
+                new("Nouvelle fonctionnalité : Possibilité de colorer les émotes dans le chat ( Entre <>, * et [] )."),
+                new("Nouvelle fonctionnalité : Les messages HRP entre parenthèse sont affiché grisée et en italique."),
+                new("Amélioration : Ajout d'un délais de 2 secondes avant de passer en mode ping."),
+                new("Correctif : Dans certains cas, le profil RôlePlay ne s'affichait pas."),
+                new("Correctif : Dans certains cas, le téléchargement de mod pouvait se bloquer."),
+                new("Correctif : La pause pouvait provoquer une erreur arrêtant la synchronisation de la cible."),
+                new("Optimisation diverses du code."),
             }),
-            new(new Version(2, 0, 3, 5), "2.0.3.5", new List<ChangelogLine>
+            new(new Version(2, 2, 0, 0), "2.2.0.0", new List<ChangelogLine>
             {
-                new("Correction du crash lors de rassemblements importants (50+ personnes) et amélioration de la stabilité de la synchronisation."),
-                new("Amélioration de la file de téléchargement : toujours active par défaut, limite augmentée à 50 téléchargements simultanés."),
-
+                new("Restructuration interface et architecture des Syncshell"),
+                new("Implémentation système de ping"),
+                new("Divers correctifs"),
+                new("Plus d'informations sur le Discord"),
             }),
-            new(new Version(2, 0, 3, 4), "2.0.3.4", new List<ChangelogLine>
+            new(new Version(2, 1, 3, 1), "2.1.3.1", new List<ChangelogLine>
             {
-                new("Optimisation de la gestion des mods Penumbra pour éviter les redraw inutiles."),
-            }),
-            new(new Version(2, 0, 3, 3), "2.0.3.3", new List<ChangelogLine>
-            {
-                new("Mise à jour de l'IPC Moodle."),
-                new("Désactivation des bulles d'écriture quand l'on entre en gpose."),
-            }),
-            new(new Version(2, 0, 3, 2), "2.0.3.2", new List<ChangelogLine>
-            {
-                new("Mise à jour pour le support V3 de Brio."),
-                new("Mise à jour des IPC Glamourer & Penumbra."),
-                new("Correction d'une 'access violation' lors de la déconnexion provoquant un crash du joueur et de tout les paires autour."),
-                new("Divers changements et ajustement de l'interface graphique."),
-            }),
-            new(new Version(2, 0, 3, 1), "2.0.3.1", new List<ChangelogLine>
-            {
-                new("Correction de la synchronisation de l'état de pause entre les paires individuelles et les Syncshells."),
-                new("Correction de la ré-application des mods lors de la reconnexion au serveur ou de la sortie de pause."),
-                new("Correction d'un problème où un utilisateur pouvait apparaître hors ligne après avoir été sorti de pause."),
-                new("Correction du classement des utilisateurs dans la liste 'visible' des Syncshells après une sortie de pause."),
-                new("Application d'une distance de 20 mètres maximum autour du personnage pour l'affichage de la bulle d'écriture."),
-            }),
-            new(new Version(2, 0, 3, 0), "2.0.3.0", new List<ChangelogLine>
-            {
-                new("Passage au .NET SDK 10.0.101."),
-                new("Mise à jour vers Dalamud.NET.Sdk 14.0.1."),
-                new("Compatible avec la version 7.4 de FFXIV."),  
-                new("Adaptations internes pour les changements de structure de l'API Dalamud."),   
-                new("Correction de l'affichage de la bulle en fonction du canal utilisé."),  
-                new("Correction d'un problème en mettant un utilisateur en pause pouvant mettre en pause temporairement d'autres utilisateurs."),
-                new("Correction d'un problème pouvant provoquer des erreurs de doublon de collection temporaire Penumbra empêchant l'utilisateur d'être vue avec ses mods.")               
-            }),
-            new(new Version(2, 0, 2, 0), "2.0.2.0", new List<ChangelogLine>
-            {
-                new("Pré-Cache : Permet d'envoyer tout vos mods sur le serveur UmbraSync pour faciliter les téléchargements / changements."),
-                new("Correction du problème de freeze quand l'on redimensionne trop vite la fenêtre UmbraSync"),
-                new("Correction de l'affichage pré-maturé des états Glamourer empêchant Glamourer de fonctionner correctement."),
-                new("Correction de l'affichage des animations/compagnons/montures moddé avec un squelette spécifique."),
-                
-            }),
-            new(new Version(2, 0, 1, 0), "2.0.1.0", new List<ChangelogLine>
-            {
-                new("Réécriture de l'AutoDetect pour de meilleurs performances"),
-                new("Possibilité de définir un ID personnalisé dans votre profil"),
-                new("Définir la limite des membres de la syncshell"),
-                
-            }),
-            new(new Version(2, 0, 0, 2), "2.0.0.2", new List<ChangelogLine>
-            {
-                new("Mise à niveau de Dalamud."),
-                new("Mise à niveau API Penumbra & Glamourer"),
-                new("Correction traduction dans l'introduction."),
-            }),
-            new(new Version(2, 0, 0, 1), "2.0.0.1", new List<ChangelogLine>
-            {
-                new("Rétablissement de la visibilité de la bulle d'écriture sous certaines conditions."),
-            }),
-            new(new Version(2, 0, 0, 0), "2.0.0.0", new List<ChangelogLine>
-            {
-                new("Nouvelle interface graphique, plus moderne et plus lisible."),
-                new("Partage MCDF : Il vous est désormais possible de partager le MCDF de votre personnage avec d'autres utilisateurs. (Hub de données... > Data Hub > MCDF Share)"),
-                new("Il vous est maintenant possible de rendre publique votre Syncshell depuis l'interface administrateur de celle-ci."),
-                new("Optimisation du téléchargement et de la compression des données téléchargée."),
-                new ("Continuité de la traduction en français"),
-                new("Compatibilité de la bulle d'écriture avec le plugin ChatTwo"),
-                new("D'autres ajustement visuel, modérnisation du code source"),
-            }),
-            
-            new(new Version(0, 1, 9, 6), "0.1.9.6", new List<ChangelogLine>
-            {
-                new("Possibilité de désactiver l'alerte self-analysis (Settings => Performance)."),
-            }),
-            new(new Version(0, 1, 9, 5), "0.1.9.5", new List<ChangelogLine>
-            {
-                new(Loc.Get("ChangelogUi.0_1_9_5.Line1")),
-                new(Loc.Get("ChangelogUi.0_1_9_5.Line2")),
-                new(Loc.Get("ChangelogUi.0_1_9_5.Line3")),
-                new(Loc.Get("ChangelogUi.0_1_9_5.Line4")),
-                new(Loc.Get("ChangelogUi.0_1_9_5.Line5")),
-            }),
-            new(new Version(0, 1, 9, 4), "0.1.9.4", new List<ChangelogLine>
-            {
-                new(Loc.Get("ChangelogUi.0_1_9_4.Line1")),
-                new(Loc.Get("ChangelogUi.0_1_9_4.Line2")),
-                new(Loc.Get("ChangelogUi.0_1_9_4.Line3")),
-                new(Loc.Get("ChangelogUi.0_1_9_4.Line4")),
-                new(Loc.Get("ChangelogUi.0_1_9_4.Line5")),
-                new(Loc.Get("ChangelogUi.0_1_9_4.Line6")),
-                new(Loc.Get("ChangelogUi.0_1_9_4.Line7")),
-            }),
-            new(new Version(0, 1, 9, 3), "0.1.9.3", new List<ChangelogLine>
-            {
-                new(Loc.Get("ChangelogUi.0_1_9_3.Line1")),
-            }),
-            new(new Version(0, 1, 9, 2), "0.1.9.2", new List<ChangelogLine>
-            {
-                new(Loc.Get("ChangelogUi.0_1_9_2.Line1")),
-            }),
-            new(new Version(0, 1, 9, 1), "0.1.9.1", new List<ChangelogLine>
-            {
-                new(Loc.Get("ChangelogUi.0_1_9_1.Line1")),
-                new(Loc.Get("ChangelogUi.0_1_9_1.Line2")),
-
-            }),
-            new(new Version(0, 1, 9, 0), "0.1.9.0", new List<ChangelogLine>
-            {
-                new(Loc.Get("ChangelogUi.0_1_9_0.Line1")),
-                new(Loc.Get("ChangelogUi.0_1_9_0.Line2")),
-                new(Loc.Get("ChangelogUi.0_1_9_0.Line3")),
-                new(Loc.Get("ChangelogUi.0_1_9_0.Line4")),
-                new(Loc.Get("ChangelogUi.0_1_9_0.Line5")),
-                new(Loc.Get("ChangelogUi.0_1_9_0.Line6")),
-            }),
-            new(new Version(0, 1, 8, 2), "0.1.8.2", new List<ChangelogLine>
-            {
-                new(Loc.Get("ChangelogUi.0_1_8_2.Line1")),
-                new(Loc.Get("ChangelogUi.0_1_8_2.Line2")),
-                new(Loc.Get("ChangelogUi.0_1_8_2.Line3")),
-                new(Loc.Get("ChangelogUi.0_1_8_2.Line4")),
-                new(Loc.Get("ChangelogUi.0_1_8_2.Line5")),
-                new(Loc.Get("ChangelogUi.0_1_8_2.Line6")),
-                new(Loc.Get("ChangelogUi.0_1_8_2.Line7")),
-            }),
-            new(new Version(0, 1, 8, 1), "0.1.8.1", new List<ChangelogLine>
-            {
-                new(Loc.Get("ChangelogUi.0_1_8_1.Line1")),
-                new(Loc.Get("ChangelogUi.0_1_8_1.Line2")),
-                new(Loc.Get("ChangelogUi.0_1_8_1.Line3")),
-                new(Loc.Get("ChangelogUi.0_1_8_1.Line4")),
-            }),
-            new(new Version(0, 1, 8, 0), "0.1.8.0", new List<ChangelogLine>
-            {
-                new(Loc.Get("ChangelogUi.0_1_8_0.Line1")),
-                new(Loc.Get("ChangelogUi.0_1_8_0.Line2"), 1, ImGuiColors.DalamudGrey),
-                new(Loc.Get("ChangelogUi.0_1_8_0.Line3"), 1, ImGuiColors.DalamudGrey),
-                new(Loc.Get("ChangelogUi.0_1_8_0.Line4")),
-                new(Loc.Get("ChangelogUi.0_1_8_0.Line5")),
-                new(Loc.Get("ChangelogUi.0_1_8_0.Line6")),
+                new("Résolution d'un problème critique pouvant faire un téléchargement en boucle"),
             }),
         };
     }

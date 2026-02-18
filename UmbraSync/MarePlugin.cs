@@ -153,6 +153,9 @@ public class MarePlugin : MediatorSubscriberBase, IHostedService
             _runtimeServiceScope.ServiceProvider.GetRequiredService<NotificationService>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<SyncDefaultsService>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<ChatService>();
+            _runtimeServiceScope.ServiceProvider.GetRequiredService<ChatNameReplacementService>();
+            _runtimeServiceScope.ServiceProvider.GetRequiredService<ChatEmoteHighlightService>();
+            _runtimeServiceScope.ServiceProvider.GetRequiredService<ChatProximityBlendService>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<ChatTypingDetectionService>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<GuiHookService>();
             var characterAnalyzer = _runtimeServiceScope.ServiceProvider.GetRequiredService<CharacterAnalyzer>();

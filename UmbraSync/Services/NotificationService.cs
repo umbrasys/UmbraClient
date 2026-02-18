@@ -1,4 +1,5 @@
 ﻿using Dalamud.Game.Text.SeStringHandling;
+using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -20,13 +21,15 @@ public class NotificationService : DisposableMediatorSubscriberBase, IHostedServ
     private readonly MareConfigService _configurationService;
     private readonly Services.Notification.NotificationTracker _notificationTracker;
     private readonly PlayerData.Pairs.PairManager _pairManager;
+    private readonly IDalamudPluginInterface _pluginInterface;
 
     public NotificationService(ILogger<NotificationService> logger, MareMediator mediator,
         DalamudUtilService dalamudUtilService,
         INotificationManager notificationManager,
         IChatGui chatGui, MareConfigService configurationService,
         Services.Notification.NotificationTracker notificationTracker,
-        PlayerData.Pairs.PairManager pairManager) : base(logger, mediator)
+        PlayerData.Pairs.PairManager pairManager,
+        IDalamudPluginInterface pluginInterface) : base(logger, mediator)
     {
         _dalamudUtilService = dalamudUtilService;
         _notificationManager = notificationManager;
@@ -34,6 +37,7 @@ public class NotificationService : DisposableMediatorSubscriberBase, IHostedServ
         _configurationService = configurationService;
         _notificationTracker = notificationTracker;
         _pairManager = pairManager;
+        _pluginInterface = pluginInterface;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
@@ -57,7 +61,12 @@ public class NotificationService : DisposableMediatorSubscriberBase, IHostedServ
 
     private void PrintInfoChat(string? message)
     {
-        SeStringBuilder se = new SeStringBuilder().AddText("[UmbraSync] Info: ").AddItalics(message ?? string.Empty);
+        var se = new SeStringBuilder().AddText("[UmbraSync] Info: ");
+        var chatTwoActive = PluginWatcherService.GetInitialPluginState(_pluginInterface, "ChatTwo")?.IsLoaded == true;
+        if (chatTwoActive)
+            se.AddText(message ?? string.Empty);
+        else
+            se.AddItalics(message ?? string.Empty);
         _chatGui.Print(se.BuiltString);
     }
 
@@ -127,20 +136,32 @@ public class NotificationService : DisposableMediatorSubscriberBase, IHostedServ
     {
         try
         {
-            if (msg.Visible) return; // only handle transition to not visible
-
             var gid = msg.Gid;
             // Try to resolve alias from PairManager snapshot; fallback to gid
             var alias = _pairManager.Groups.Values.FirstOrDefault(g => string.Equals(g.GID, gid, StringComparison.OrdinalIgnoreCase))?.GroupAliasOrGID ?? gid;
 
-            var title = $"Syncshell non publique: {alias}";
-            var message = "La Syncshell n'est plus visible via AutoDetect.";
+            string title;
+            string message;
+            Services.Notification.NotificationEntry entry;
+
+            if (msg.Visible)
+            {
+                title = $"Syncshell publique: {alias}";
+                message = "La Syncshell est de nouveau visible via AutoDetect.";
+                entry = Services.Notification.NotificationEntry.SyncshellPublic(gid, alias);
+            }
+            else
+            {
+                title = $"Syncshell non publique: {alias}";
+                message = "La Syncshell n'est plus visible via AutoDetect.";
+                entry = Services.Notification.NotificationEntry.SyncshellNotPublic(gid, alias);
+            }
 
             // Show toast + chat
             ShowDualNotification(new DualNotificationMessage(title, message, NotificationType.Info, TimeSpan.FromSeconds(4)));
 
             // Persist into notification center
-            _notificationTracker.Upsert(Services.Notification.NotificationEntry.SyncshellNotPublic(gid, alias));
+            _notificationTracker.Upsert(entry);
         }
         catch
         {

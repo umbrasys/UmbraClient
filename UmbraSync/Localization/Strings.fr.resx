@@ -58,7 +58,7 @@
   </resheader>
   <!-- Infobulles des permissions (manquantes auparavant) -->
   <data name="GroupPair.Permissions.Header" xml:space="preserve">
-    <value>Restrictions par paire</value>
+    <value>Synchronisation désactivée</value>
   </data>
   <data name="GroupPair.Permissions.SoundDisabled" xml:space="preserve">
     <value>{0} a désactivé les sons pour cette paire.</value>
@@ -71,6 +71,19 @@
   </data>
   <data name="GroupPair.Permissions.StatusLine" xml:space="preserve">
     <value>Vous : {0} • Lui/Elle : {1}</value>
+  </data>
+
+  <data name="GroupPair.Permissions.SyncshellOnly" xml:space="preserve">
+    <value>Synchronisé via Syncshell uniquement</value>
+  </data>
+  <data name="GroupPair.Permissions.SoundLabel" xml:space="preserve">
+    <value>Synchro son désactivée</value>
+  </data>
+  <data name="GroupPair.Permissions.AnimLabel" xml:space="preserve">
+    <value>Synchro animations désactivée</value>
+  </data>
+  <data name="GroupPair.Permissions.VfxLabel" xml:space="preserve">
+    <value>Synchro VFX désactivée</value>
   </data>
 
   <!-- Restrictions au niveau de la Syncshell -->
@@ -259,7 +272,7 @@
     <value />
   </data>
   <data name="CompactUi.General.ConnectToServerNotice" xml:space="preserve">
-    <value />
+    <value>Connectez-vous au serveur pour accéder à cette section.</value>
   </data>
   <data name="CompactUi.IntroUi.Agreement.AccountRemoval" xml:space="preserve">
     <value>Les comptes inactifs pendant 90 jours seront supprimés pour des raisons de stockage et de confidentialité.</value>
@@ -560,13 +573,13 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value>Certaines entrées n'ont pas encore de taille calculée. Lancez l'analyse pour compléter les données.</value>
   </data>
   <data name="CompactUi.ServerErrors.AttemptingToConnect" xml:space="preserve">
-    <value />
+    <value>Tentative de connexion au serveur.</value>
   </data>
   <data name="CompactUi.ServerErrors.Disconnected" xml:space="preserve">
-    <value />
+    <value>Vous êtes actuellement déconnecté du serveur de synchronisation.</value>
   </data>
   <data name="CompactUi.ServerErrors.Disconnecting" xml:space="preserve">
-    <value />
+    <value>Déconnexion du serveur en cours</value>
   </data>
   <data name="CompactUi.ServerErrors.NoSecretKey" xml:space="preserve">
     <value />
@@ -584,10 +597,10 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value />
   </data>
   <data name="CompactUi.ServerErrors.VersionMismatch" xml:space="preserve">
-    <value />
+    <value>Votre plugin ou le serveur n'est pas à jour. Mettez à jour votre plugin maintenant. Si déjà mis à jour, contactez le développeur sur Discord.</value>
   </data>
   <data name="CompactUi.ServerStatus.NotConnected" xml:space="preserve">
-    <value />
+    <value>Non connecté à un serveur</value>
   </data>
   <data name="CompactUi.ServerStatus.ShardLabel" xml:space="preserve">
     <value />
@@ -608,7 +621,7 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value>Hub de données de personnage</value>
   </data>
   <data name="CompactUi.Sidebar.EditProfile" xml:space="preserve">
-    <value>Modifier le profil</value>
+    <value>Mon Profil</value>
   </data>
   <data name="CompactUi.Sidebar.IndividualPairs" xml:space="preserve">
     <value>Paires individuelles</value>
@@ -700,6 +713,18 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="DrawUserPair.Menu.PairGroupsTooltip" xml:space="preserve">
     <value>Choisir les groupes pour {0}</value>
   </data>
+  <data name="PairGroups.Tag.Online" xml:space="preserve">
+    <value>En ligne</value>
+  </data>
+  <data name="PairGroups.Tag.Offline" xml:space="preserve">
+    <value>Hors ligne</value>
+  </data>
+  <data name="PairGroups.FolderName" xml:space="preserve">
+    <value>{0} ({1}/{2}/{3} Paires)</value>
+  </data>
+  <data name="PairGroups.FolderNameNoTotal" xml:space="preserve">
+    <value>{0} ({1} Paires)</value>
+  </data>
   <data name="DrawUserPair.Menu.EnableSounds" xml:space="preserve">
     <value>Activer la synchro son</value>
   </data>
@@ -781,6 +806,12 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="Syncshell.Create.Tooltip" xml:space="preserve">
     <value>Créer une Syncshell</value>
   </data>
+  <data name="Syncshell.Tooltip.CreateAllowed" xml:space="preserve">
+    <value>Créer une Syncshell</value>
+  </data>
+  <data name="Syncshell.Tooltip.JoinAllowed" xml:space="preserve">
+    <value>Rejoindre une Syncshell</value>
+  </data>
   <data name="Syncshell.Create.Result.Name" xml:space="preserve">
     <value>Nom de la Syncshell : {0}</value>
   </data>
@@ -860,16 +891,16 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value>effets visuels</value>
   </data>
   <data name="CompactUi.Uid.CopyTooltip" xml:space="preserve">
-    <value />
+    <value>Copier votre UID dans le presse-papiers</value>
   </data>
   <data name="CompactUi.UidStatus.Connecting" xml:space="preserve">
-    <value />
+    <value>Connexion</value>
   </data>
   <data name="CompactUi.UidStatus.Disconnected" xml:space="preserve">
-    <value />
+    <value>Déconnecté</value>
   </data>
   <data name="CompactUi.UidStatus.Disconnecting" xml:space="preserve">
-    <value />
+    <value>Déconnexion</value>
   </data>
   <data name="CompactUi.UidStatus.MultiChara" xml:space="preserve">
     <value />
@@ -890,7 +921,7 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value />
   </data>
   <data name="CompactUi.UidStatus.VersionMismatch" xml:space="preserve">
-    <value />
+    <value>Incompatibilité de version</value>
   </data>
   <data name="CompactUi.UnsupportedVersion.Message" xml:space="preserve">
     <value>Votre installation d'UmbraSync n'est pas à jour, la version actuelle est {0}. Il est recommandé de maintenir UmbraSync à jour. Ouvrez /xlplugins et mettez à jour le plugin.</value>
@@ -2251,6 +2282,57 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="Settings.DownloadQueue.MaxWhenEnabled" xml:space="preserve">
     <value>Nombre maximal de téléchargements de personnages autorisés simultanément lorsque la file est activée.</value>
   </data>
+  <data name="Settings.RpNamesHeader" xml:space="preserve">
+    <value>Noms RP</value>
+  </data>
+  <data name="Settings.RpNamesOnNameplates" xml:space="preserve">
+    <value>Afficher les noms RP sur les plaques de nom</value>
+  </data>
+  <data name="Settings.RpNamesInChat" xml:space="preserve">
+    <value>Afficher les noms RP dans le chat</value>
+  </data>
+  <data name="Settings.RpNameColors" xml:space="preserve">
+    <value>Afficher les couleurs des noms RP</value>
+  </data>
+  <data name="Settings.RpNameColors.Help" xml:space="preserve">
+    <value>Lorsque activé, les couleurs de noms RP choisies par les utilisateurs seront affichées sur les fiches et dans le chat.</value>
+  </data>
+  <data name="Settings.EmoteHighlight.Header" xml:space="preserve">
+    <value>Coloration des emotes</value>
+  </data>
+  <data name="Settings.EmoteHighlight.Enable" xml:space="preserve">
+    <value>Colorer le texte d'emote dans le chat</value>
+  </data>
+  <data name="Settings.EmoteHighlight.Enable.Help" xml:space="preserve">
+    <value>Met en couleur le texte entre les délimiteurs *...*, &lt;...&gt; ou [...] dans la fenêtre de chat.</value>
+  </data>
+  <data name="Settings.EmoteHighlight.Asterisks" xml:space="preserve">
+    <value>Astérisques * ... *</value>
+  </data>
+  <data name="Settings.EmoteHighlight.AngleBrackets" xml:space="preserve">
+    <value>Chevrons &lt; ... &gt;</value>
+  </data>
+  <data name="Settings.EmoteHighlight.SquareBrackets" xml:space="preserve">
+    <value>Crochets [ ... ]</value>
+  </data>
+  <data name="Settings.EmoteHighlight.ColorKey" xml:space="preserve">
+    <value>Couleur de surbrillance</value>
+  </data>
+  <data name="Settings.EmoteHighlight.Parentheses" xml:space="preserve">
+    <value>Griser le texte HRP ( ... )</value>
+  </data>
+  <data name="Settings.EmoteHighlight.Parentheses.Help" xml:space="preserve">
+    <value>Atténue le texte entre parenthèses (...) pour les messages hors-RP.</value>
+  </data>
+  <data name="Settings.EmoteHighlight.Parentheses.Italic" xml:space="preserve">
+    <value>Afficher en italique</value>
+  </data>
+  <data name="Settings.EmoteHighlight.Parentheses.Italic.ChatTwoWarning" xml:space="preserve">
+    <value>L'italique n'est pas disponible lorsque ChatTwo est actif. ChatTwo affiche l'italique en gras.</value>
+  </data>
+  <data name="Settings.EmoteHighlight.HrpColorKey" xml:space="preserve">
+    <value>Couleur HRP</value>
+  </data>
   <data name="Settings.Typing.BlockedNameColor" xml:space="preserve">
     <value>Couleur des noms bloqués</value>
   </data>
@@ -2384,16 +2466,16 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value />
   </data>
   <data name="StandaloneProfile.Status.Offline" xml:space="preserve">
-    <value />
+    <value>Hors ligne</value>
   </data>
   <data name="StandaloneProfile.Status.Online" xml:space="preserve">
-    <value />
+    <value>En ligne</value>
   </data>
   <data name="StandaloneProfile.Status.Visible" xml:space="preserve">
-    <value />
+    <value>Visible</value>
   </data>
   <data name="StandaloneProfile.WindowTitle" xml:space="preserve">
-    <value />
+    <value>Profil de {0}</value>
   </data>
   <data name="SyncshellAdmin.AdminPanelTitle" xml:space="preserve">
     <value />
@@ -2422,11 +2504,26 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="SyncshellAdmin.AutoDetect.PasswordDisabled" xml:space="preserve">
     <value>Le mot de passe est temporairement désactivé tant que la visibilité AutoDetect est active.</value>
   </data>
+  <data name="SyncshellAdmin.AutoDetect.Fulltime" xml:space="preserve">
+    <value>Permanent</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.FulltimeHelp" xml:space="preserve">
+    <value>La Syncshell reste visible en permanence jusqu'à désactivation manuelle.</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.Duration" xml:space="preserve">
+    <value>Ponctuel (durée)</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.DurationModeHelp" xml:space="preserve">
+    <value>La Syncshell est visible pendant un nombre d'heures défini, puis se désactive automatiquement.</value>
+  </data>
   <data name="SyncshellAdmin.AutoDetect.Recurring" xml:space="preserve">
-    <value>Affichage récurrent</value>
+    <value>Planning récurrent</value>
   </data>
   <data name="SyncshellAdmin.AutoDetect.RecurringHelp" xml:space="preserve">
-    <value>Si activé, choisissez des jours et une plage horaire. Sinon, seule la durée est appliquée.</value>
+    <value>La Syncshell est visible les jours choisis dans une plage horaire, répétée chaque semaine.</value>
+  </data>
+  <data name="SyncshellAdmin.AutoDetect.Status.Fulltime" xml:space="preserve">
+    <value>Visibilité permanente (toujours active).</value>
   </data>
   <data name="SyncshellAdmin.AutoDetect.Refresh" xml:space="preserve">
     <value>Recharger l'état</value>
@@ -2765,16 +2862,16 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
     <value />
   </data>
   <data name="UidDisplay.EditPlaceholder" xml:space="preserve">
-    <value />
+    <value>Surnom/Notes</value>
   </data>
   <data name="UidDisplay.EditTooltip" xml:space="preserve">
-    <value />
+    <value>Appuyez sur ENTRÉE pour enregistrer&#x0A;Clic droit pour annuler</value>
   </data>
   <data name="UidDisplay.Tooltip.LastSeenPrefix" xml:space="preserve">
     <value>Vu sous : {0}</value>
   </data>
   <data name="UidDisplay.Tooltip.Main" xml:space="preserve">
-    <value />
+    <value>Clic gauche pour alterner entre l'UID et le surnom&#x0A;Clic droit pour changer le surnom de {0}&#x0A;Clic molette pour ouvrir le profil dans une fenêtre séparée</value>
   </data>
   <data name="TypingOverlay.WindowTitle" xml:space="preserve">
     <value />
@@ -3064,11 +3161,17 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="GroupPair.Online" xml:space="preserve">
     <value>En ligne : {0}</value>
   </data>
+  <data name="GroupPair.OnlineSyncshellOnly" xml:space="preserve">
+    <value>Connecté via la Syncshell uniquement</value>
+  </data>
   <data name="GroupPair.Paused" xml:space="preserve">
     <value>Sync en pause pour {0}</value>
   </data>
   <data name="GroupPair.IndividuallyPaired" xml:space="preserve">
     <value>Paire individuelle avec {0}</value>
+  </data>
+  <data name="GroupPair.IndividuallyPaired.Short" xml:space="preserve">
+    <value>Paire individuelle</value>
   </data>
   <data name="GroupPair.Owner" xml:space="preserve">
     <value>Propriétaire</value>
@@ -3111,6 +3214,18 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   </data>
   <data name="Notification.McdfShare.Created.ToastBody" xml:space="preserve">
     <value>"{0}" envoyé ({1})</value>
+  </data>
+  <data name="Notification.McdfShare.Received.Title" xml:space="preserve">
+    <value>Partage MCDF reçu : {0}</value>
+  </data>
+  <data name="Notification.McdfShare.Received.Body" xml:space="preserve">
+    <value>De : {0}</value>
+  </data>
+  <data name="Notification.McdfShare.Received.ToastTitle" xml:space="preserve">
+    <value>Nouveau partage MCDF</value>
+  </data>
+  <data name="Notification.McdfShare.Received.ToastBody" xml:space="preserve">
+    <value>"{0}" reçu de {1}</value>
   </data>
   <!-- Notifications d'état de Syncshell (public / non public) -->
   <data name="Notification.Syncshell.Public.Title" xml:space="preserve">
@@ -3195,6 +3310,18 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="Notification.System.ClientOutdated.Body" xml:space="preserve">
     <value>Votre client ({0}) est obsolète. Dernière version : {1}. Veuillez mettre à jour Umbra.</value>
   </data>
+  <data name="Notification.Toast.ClientIncompatible.Title" xml:space="preserve">
+    <value>Client incompatible</value>
+  </data>
+  <data name="Notification.Toast.ClientIncompatible.Body" xml:space="preserve">
+    <value>Votre client est obsolète ({0}), la version actuelle est : {1}. Cette version du client est incompatible et ne pourra pas se connecter. Veuillez mettre à jour votre client Umbra.</value>
+  </data>
+  <data name="Notification.Toast.ClientOutdated.Title" xml:space="preserve">
+    <value>Client obsolète</value>
+  </data>
+  <data name="Notification.Toast.ClientOutdated.Body" xml:space="preserve">
+    <value>Votre client est obsolète ({0}), la version actuelle est : {1}. Veuillez garder votre client Umbra à jour.</value>
+  </data>
   <data name="Notification.System.ServerError.Title" xml:space="preserve">
     <value>Erreur serveur : {0}</value>
   </data>
@@ -3258,11 +3385,20 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="UserProfile.RpAge" xml:space="preserve">
     <value>Âge</value>
   </data>
+  <data name="UserProfile.RpRace" xml:space="preserve">
+    <value>Race</value>
+  </data>
+  <data name="UserProfile.RpEthnicity" xml:space="preserve">
+    <value>Ethnie</value>
+  </data>
   <data name="UserProfile.RpHeight" xml:space="preserve">
     <value>Taille</value>
   </data>
   <data name="UserProfile.RpBuild" xml:space="preserve">
     <value>Corpulence</value>
+  </data>
+  <data name="UserProfile.RpResidence" xml:space="preserve">
+    <value>Lieu de vie</value>
   </data>
   <data name="UserProfile.RpOccupation" xml:space="preserve">
     <value>Occupation</value>
@@ -3294,6 +3430,12 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="EditProfile.SaveButton" xml:space="preserve">
     <value>Sauvegarder le profil</value>
   </data>
+  <data name="EditProfile.NameColor" xml:space="preserve">
+    <value>Couleur du nom</value>
+  </data>
+  <data name="EditProfile.NameColor.Tooltip" xml:space="preserve">
+    <value>Choisissez une couleur pour votre nom RP. Cette couleur sera visible sur votre fiche et dans le chat.</value>
+  </data>
   <data name="EditProfile.SelectImageButton" xml:space="preserve">
     <value>Sélectionner une image</value>
   </data>
@@ -3303,10 +3445,552 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="EditProfile.SaveSuccessBody" xml:space="preserve">
     <value>Votre profil a été enregistré avec succès sur le serveur Umbra.</value>
   </data>
+  <data name="EditProfile.UnsavedChanges" xml:space="preserve">
+    <value>Modifications non sauvegardées</value>
+  </data>
+  <data name="EditProfile.SaveConfirm" xml:space="preserve">
+    <value>Profil sauvegardé !</value>
+  </data>
   <data name="EditProfile.SaveErrorTitle" xml:space="preserve">
     <value>Erreur de sauvegarde</value>
   </data>
   <data name="EditProfile.SaveErrorBody" xml:space="preserve">
     <value>Une erreur est survenue lors de l'enregistrement de votre profil sur le serveur.</value>
+  </data>
+  <data name="EditProfile.ImageSizeError" xml:space="preserve">
+    <value>Le fichier image est trop volumineux. Taille maximale : 5 Mo.</value>
+  </data>
+  <data name="EditProfile.RpFirstNameMismatch" xml:space="preserve">
+    <value>Le prénom RP doit contenir le prénom de votre personnage ({0}).</value>
+  </data>
+
+  <!-- Cartes Syncshell -->
+  <data name="Syncshell.Cards.OnlineMembers" xml:space="preserve">
+    <value>{0} en ligne / {1} membres</value>
+  </data>
+  <data name="Syncshell.Cards.Paused" xml:space="preserve">
+    <value>En pause</value>
+  </data>
+  <data name="Syncshell.Cards.ShowMembers" xml:space="preserve">
+    <value>Afficher la liste des membres</value>
+  </data>
+  <data name="Syncshell.Cards.ShowProfile" xml:space="preserve">
+    <value>Afficher le profil du syncshell</value>
+  </data>
+  <data name="Syncshell.Cards.OpenAdmin" xml:space="preserve">
+    <value>Ouvrir le panneau d'administration</value>
+  </data>
+  <data name="Syncshell.Cards.PauseTooltip" xml:space="preserve">
+    <value>{0} le pairing avec tous les utilisateurs de cette Syncshell</value>
+  </data>
+  <data name="Syncshell.Cards.Resume" xml:space="preserve">
+    <value>Reprendre</value>
+  </data>
+  <data name="Syncshell.Cards.Pause" xml:space="preserve">
+    <value>Mettre en pause</value>
+  </data>
+  <data name="Syncshell.Cards.VfxEnabled" xml:space="preserve">
+    <value>Sync VFX activée - Cliquez pour désactiver</value>
+  </data>
+  <data name="Syncshell.Cards.VfxDisabled" xml:space="preserve">
+    <value>Sync VFX désactivée - Cliquez pour activer</value>
+  </data>
+  <data name="Syncshell.Cards.SoundEnabled" xml:space="preserve">
+    <value>Sync son activée - Cliquez pour désactiver</value>
+  </data>
+  <data name="Syncshell.Cards.SoundDisabled" xml:space="preserve">
+    <value>Sync son désactivée - Cliquez pour activer</value>
+  </data>
+  <data name="Syncshell.Cards.AnimEnabled" xml:space="preserve">
+    <value>Sync animations activée - Cliquez pour désactiver</value>
+  </data>
+  <data name="Syncshell.Cards.AnimDisabled" xml:space="preserve">
+    <value>Sync animations désactivée - Cliquez pour activer</value>
+  </data>
+  <data name="Syncshell.Cards.Notification.Title" xml:space="preserve">
+    <value>Syncshell : {0}</value>
+  </data>
+  <data name="Syncshell.Cards.Notification.VfxEnabled" xml:space="preserve">
+    <value>Sync VFX activée pour {0} membre(s).</value>
+  </data>
+  <data name="Syncshell.Cards.Notification.VfxDisabled" xml:space="preserve">
+    <value>Sync VFX désactivée pour {0} membre(s).</value>
+  </data>
+  <data name="Syncshell.Cards.Notification.SoundEnabled" xml:space="preserve">
+    <value>Sync son activée pour {0} membre(s).</value>
+  </data>
+  <data name="Syncshell.Cards.Notification.SoundDisabled" xml:space="preserve">
+    <value>Sync son désactivée pour {0} membre(s).</value>
+  </data>
+  <data name="Syncshell.Cards.Notification.AnimEnabled" xml:space="preserve">
+    <value>Sync animations activée pour {0} membre(s).</value>
+  </data>
+  <data name="Syncshell.Cards.Notification.AnimDisabled" xml:space="preserve">
+    <value>Sync animations désactivée pour {0} membre(s).</value>
+  </data>
+  <data name="Syncshell.Members.WindowTitle" xml:space="preserve">
+    <value>Membres - {0}</value>
+  </data>
+  <data name="Syncshell.Members.OnlineTotal" xml:space="preserve">
+    <value>En ligne : {0} / Total : {1}</value>
+  </data>
+  <data name="Syncshell.Members.VisibleSection" xml:space="preserve">
+    <value>Visibles ({0})</value>
+  </data>
+  <data name="Syncshell.Members.OnlineSection" xml:space="preserve">
+    <value>En ligne ({0})</value>
+  </data>
+  <data name="Syncshell.Members.OfflineSection" xml:space="preserve">
+    <value>Hors ligne ({0})</value>
+  </data>
+  <data name="Syncshell.Join.ModalTitle" xml:space="preserve">
+    <value>Rejoindre une Syncshell</value>
+  </data>
+  <data name="Syncshell.Join.Warning" xml:space="preserve">
+    <value>Avant de rejoindre une Syncshell, sachez que vous serez automatiquement appairé avec tous les membres de la Syncshell.</value>
+  </data>
+  <data name="Syncshell.Join.PasswordPlaceholder" xml:space="preserve">
+    <value>Mot de passe</value>
+  </data>
+  <data name="Syncshell.Members.Leave" xml:space="preserve">
+    <value>Quitter</value>
+  </data>
+  <data name="Syncshell.Members.LeaveConfirm" xml:space="preserve">
+    <value>Êtes-vous sûr de vouloir quitter la Syncshell « {0} » ?</value>
+  </data>
+  <data name="Syncshell.Members.LeaveOwnerWarning" xml:space="preserve">
+    <value>ATTENTION : Vous êtes le propriétaire de cette Syncshell. La quitter transférera la propriété à un membre aléatoire. Cette action est irréversible.</value>
+  </data>
+  <data name="Syncshell.Members.LeaveConfirmButton" xml:space="preserve">
+    <value>Confirmer</value>
+  </data>
+  <data name="Syncshell.Members.LeaveCancelButton" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  <data name="Syncshell.Button.Create" xml:space="preserve">
+    <value>Créer</value>
+  </data>
+  <data name="Syncshell.Button.Join" xml:space="preserve">
+    <value>Rejoindre</value>
+  </data>
+  <data name="Syncshell.Join.GidPlaceholder" xml:space="preserve">
+    <value>ID ou alias de la Syncshell</value>
+  </data>
+  <data name="Syncshell.Filter.Placeholder" xml:space="preserve">
+    <value>Filtrer les syncshells par membre...</value>
+  </data>
+  <data name="Syncshell.Members.Filter.Placeholder" xml:space="preserve">
+    <value>Rechercher un membre...</value>
+  </data>
+  <data name="Settings.Ping.Header" xml:space="preserve">
+    <value>Marqueurs Ping</value>
+  </data>
+  <data name="Settings.Ping.Enabled" xml:space="preserve">
+    <value>Activer les marqueurs ping</value>
+  </data>
+  <data name="Settings.Ping.EnabledHelp" xml:space="preserve">
+    <value>Active l'affichage et le placement des marqueurs ping. Quand désactivé, vous ne verrez ni ne placerez de marqueurs.</value>
+  </data>
+  <data name="Settings.Ping.Keybind" xml:space="preserve">
+    <value>Touche de ping</value>
+  </data>
+  <data name="Settings.Ping.KeybindChange" xml:space="preserve">
+    <value>Changer</value>
+  </data>
+  <data name="Settings.Ping.KeybindCapture" xml:space="preserve">
+    <value>Appuyez sur une touche...</value>
+  </data>
+  <data name="Settings.Ping.KeybindCancel" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  <data name="Settings.Ping.UiScale" xml:space="preserve">
+    <value>Taille des marqueurs</value>
+  </data>
+  <data name="Settings.Ping.Opacity" xml:space="preserve">
+    <value>Opacité des marqueurs</value>
+  </data>
+  <data name="Settings.Ping.ShowAuthorName" xml:space="preserve">
+    <value>Afficher le nom de l'auteur</value>
+  </data>
+  <data name="Settings.Ping.ShowInParty" xml:space="preserve">
+    <value>Afficher les marqueurs de groupe</value>
+  </data>
+  <data name="Settings.Ping.ShowInPartyHelp" xml:space="preserve">
+    <value>Affiche les marqueurs placés par le chef de groupe/alliance.</value>
+  </data>
+  <data name="Settings.Ping.ShowInSyncshell" xml:space="preserve">
+    <value>Afficher les marqueurs de syncshell</value>
+  </data>
+  <data name="Settings.Ping.ShowInSyncshellHelp" xml:space="preserve">
+    <value>Affiche les marqueurs placés par les membres de la syncshell ayant la permission de ping.</value>
+  </data>
+  <data name="SyncshellAdmin.Users.GrantPing" xml:space="preserve">
+    <value>Accorder la permission de ping</value>
+  </data>
+  <data name="SyncshellAdmin.Users.RevokePing" xml:space="preserve">
+    <value>Retirer la permission de ping</value>
+  </data>
+  <data name="SyncshellAdmin.Tab.Profile" xml:space="preserve">
+    <value>Profil</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.Intro" xml:space="preserve">
+    <value>Configurez le profil public de ce syncshell.</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.Loading" xml:space="preserve">
+    <value>Chargement du profil...</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.NoProfile" xml:space="preserve">
+    <value>Aucun profil disponible pour ce syncshell.</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.ProfileImage" xml:space="preserve">
+    <value>Photo de profil (512x512)</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.NoImage" xml:space="preserve">
+    <value>Aucune image</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.UploadImage" xml:space="preserve">
+    <value>Téléverser...</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.ClearImage" xml:space="preserve">
+    <value>Supprimer</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.BannerImage" xml:space="preserve">
+    <value>Bannière (840x260)</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.NoBanner" xml:space="preserve">
+    <value>Aucune bannière</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.UploadBanner" xml:space="preserve">
+    <value>Téléverser une bannière...</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.ClearBanner" xml:space="preserve">
+    <value>Supprimer</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.Tags" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.AddTag" xml:space="preserve">
+    <value>Ajouter</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.NSFW" xml:space="preserve">
+    <value>Contenu NSFW</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.NSFWHelp" xml:space="preserve">
+    <value>Masquer par défaut dans la découverte (opt-in)</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.Disabled" xml:space="preserve">
+    <value>Profil désactivé</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.DisabledHelp" xml:space="preserve">
+    <value>Masquer complètement de la découverte</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.Save" xml:space="preserve">
+    <value>Enregistrer le profil</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.Cancel" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.Saved" xml:space="preserve">
+    <value>Enregistré</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.UnsavedChanges" xml:space="preserve">
+    <value>Modifications non enregistrées</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.Preview" xml:space="preserve">
+    <value>Aperçu</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.PreviewTitle" xml:space="preserve">
+    <value>Aperçu — {0}</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.SaveFailed" xml:space="preserve">
+    <value>Échec de l'enregistrement du profil.</value>
+  </data>
+  <data name="SyncshellAdmin.Profile.ImageTooLarge" xml:space="preserve">
+    <value>Image trop lourde (max 2 Mo).</value>
+  </data>
+  <data name="AutoDetectUi.ShowNSFW" xml:space="preserve">
+    <value>Afficher les syncshells NSFW</value>
+  </data>
+  <data name="AutoDetectUi.Syncshell.Table.Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Notification.NearbyDetection.Title" xml:space="preserve">
+    <value>Détection de proximité</value>
+  </data>
+  <data name="Notification.NearbyDetection.Enabled" xml:space="preserve">
+    <value>Vous êtes maintenant visible.</value>
+  </data>
+  <data name="Notification.NearbyDetection.Disabled" xml:space="preserve">
+    <value>Vous n'êtes plus visible.</value>
+  </data>
+  <data name="Settings.Section.General.Desc" xml:space="preserve">
+    <value>Personnalisez l'interface, les notes, les notifications et les préférences d'affichage.</value>
+  </data>
+  <data name="Settings.Section.Performance.Desc" xml:space="preserve">
+    <value>Configurez les seuils de performance, les blocages automatiques et les listes blanches/noires.</value>
+  </data>
+  <data name="Settings.Section.Storage.Desc" xml:space="preserve">
+    <value>Gérez le stockage des fichiers et contrôlez le cache local.</value>
+  </data>
+  <data name="Settings.Section.Transfers.Desc" xml:space="preserve">
+    <value>Configurez les téléchargements, les limites de vitesse et le traitement parallèle des paires.</value>
+  </data>
+  <data name="Settings.Section.AutoDetect.Desc" xml:space="preserve">
+    <value>Paramétrez la détection automatique des joueurs à proximité et la découverte de syncshells.</value>
+  </data>
+  <data name="Settings.Section.Chat.Desc" xml:space="preserve">
+    <value>Configurez les noms RP, les indicateurs de saisie et les intégrations chat.</value>
+  </data>
+  <data name="Settings.Section.Pings.Desc" xml:space="preserve">
+    <value>Configurez le système de marqueurs pour pointer des positions dans le monde.</value>
+  </data>
+  <data name="Settings.Section.Account.Desc" xml:space="preserve">
+    <value>Gérez votre compte, vos clés secrètes et les assignations de personnages.</value>
+  </data>
+  <data name="Settings.Section.Advanced.Desc" xml:space="preserve">
+    <value>Options avancées : API Umbra, journalisation des événements et paramètres système.</value>
+  </data>
+  <data name="Settings.Section.About.Desc" xml:space="preserve">
+    <value>À propos d'UmbraSync, fonctionnalités et liens utiles.</value>
+  </data>
+  <data name="Settings.About.ByAuthor" xml:space="preserve">
+    <value>Par Keda</value>
+  </data>
+  <data name="Settings.About.Tagline" xml:space="preserve">
+    <value>Plugin de synchronisation de mods et états orienté pour le RôlePlay.</value>
+  </data>
+  <data name="Settings.About.Links" xml:space="preserve">
+    <value>LIENS</value>
+  </data>
+  <data name="Settings.About.Footer" xml:space="preserve">
+    <value>Fait par un rôliste, pour les rôlistes.</value>
+  </data>
+  <data name="Settings.About.Changelog" xml:space="preserve">
+    <value>Notes de version</value>
+  </data>
+  <data name="Settings.About.Service" xml:space="preserve">
+    <value>Service</value>
+  </data>
+  <data name="Settings.About.Available" xml:space="preserve">
+    <value>Disponible</value>
+  </data>
+  <data name="Settings.About.UsersOnline" xml:space="preserve">
+    <value>Utilisateurs en ligne</value>
+  </data>
+  <data name="Settings.About.ServerOffline" xml:space="preserve">
+    <value>Serveur non connecté</value>
+  </data>
+  <data name="Settings.Advanced.PluginCompatibility" xml:space="preserve">
+    <value>Compatibilité plugins</value>
+  </data>
+  <data name="Settings.Plugins.Mandatory" xml:space="preserve">
+    <value>Plugins obligatoires</value>
+  </data>
+  <data name="Settings.Plugins.Optional" xml:space="preserve">
+    <value>Plugins optionnels</value>
+  </data>
+  <data name="Settings.Plugins.Optional.Hint" xml:space="preserve">
+    <value>Plugins optionnels pour améliorer l'expérience UmbraSync.</value>
+  </data>
+  <data name="Settings.Plugins.Mandatory.Hint" xml:space="preserve">
+    <value>Ces plugins sont nécessaires au bon fonctionnement d'UmbraSync.</value>
+  </data>
+  <data name="Settings.Plugins.Detected" xml:space="preserve">
+    <value>Plugins détectés</value>
+  </data>
+  <data name="Settings.Plugins.Detected.Hint" xml:space="preserve">
+    <value>Ces plugins peuvent influencer le fonctionnement d'UmbraSync lorsqu'ils sont détectés.</value>
+  </data>
+  <data name="Settings.Plugins.Chat2.Hint" xml:space="preserve">
+    <value>Support de la prise en charge de la bulle d'écriture&#x0A;Désactivation de l'affichage en italique HRP</value>
+  </data>
+  <data name="Settings.Plugins.ChatProximity.Hint" xml:space="preserve">
+    <value>Les couleurs d'emotes se fondent avec l'estompage de distance sur les canaux de proximité (Dire, Crier, Emotes)&#x0A;Nécessite l'activation de la colorisation des emotes</value>
+  </data>
+  <data name="Settings.Plugins.MissingMandatory" xml:space="preserve">
+    <value>Vous devez installer Penumbra et Glamourer et les maintenir à jour pour utiliser UmbraSync.</value>
+  </data>
+  <data name="Settings.Account.DeleteAccount" xml:space="preserve">
+    <value>Supprimer le compte</value>
+  </data>
+  <data name="Settings.Account.DeleteAccount.Confirm" xml:space="preserve">
+    <value>Supprimer votre compte ?</value>
+  </data>
+  <data name="Settings.Account.DeleteAccount.Help" xml:space="preserve">
+    <value>Supprime définitivement votre compte actuellement connecté.</value>
+  </data>
+  <data name="Settings.Account.DeleteAccount.Warning1" xml:space="preserve">
+    <value>Votre compte et tous les fichiers et données associés sur le service seront supprimés.</value>
+  </data>
+  <data name="Settings.Account.DeleteAccount.Warning2" xml:space="preserve">
+    <value>Votre UID sera retiré de toutes les listes d'appairage.</value>
+  </data>
+  <data name="Settings.Account.DeleteAccount.ConfirmQuestion" xml:space="preserve">
+    <value>Êtes-vous sûr de vouloir continuer ?</value>
+  </data>
+  <data name="Settings.Account.ServiceSettings" xml:space="preserve">
+    <value>Service et personnages</value>
+  </data>
+  <data name="Settings.Account.ReconnectWarning" xml:space="preserve">
+    <value>Vous devez vous reconnecter au service pour que les modifications soient appliquées.</value>
+  </data>
+  <data name="Settings.Account.Tab.Characters" xml:space="preserve">
+    <value>Assignation des personnages</value>
+  </data>
+  <data name="Settings.Account.Tab.SecretKeys" xml:space="preserve">
+    <value>Gestion des clés secrètes</value>
+  </data>
+  <data name="Settings.Account.Characters.Info" xml:space="preserve">
+    <value>Les personnages listés ici se connecteront avec la clé secrète spécifiée.</value>
+  </data>
+  <data name="Settings.Account.Characters.Current" xml:space="preserve">
+    <value>Personnage actuel</value>
+  </data>
+  <data name="Settings.Account.Characters.DeleteAssignment" xml:space="preserve">
+    <value>Supprimer l'assignation du personnage</value>
+  </data>
+  <data name="Settings.Account.Characters.AddCurrent" xml:space="preserve">
+    <value>Ajouter le personnage actuel</value>
+  </data>
+  <data name="Settings.Account.Characters.NeedKey" xml:space="preserve">
+    <value>Vous devez d'abord ajouter une clé secrète avant d'ajouter des personnages.</value>
+  </data>
+  <data name="Settings.Account.Keys.DisplayName" xml:space="preserve">
+    <value>Nom d'affichage de la clé</value>
+  </data>
+  <data name="Settings.Account.Keys.SecretKey" xml:space="preserve">
+    <value>Clé secrète</value>
+  </data>
+  <data name="Settings.Account.Keys.AssignCurrent" xml:space="preserve">
+    <value>Assigner le personnage actuel</value>
+  </data>
+  <data name="Settings.Account.Keys.UseKeyFor" xml:space="preserve">
+    <value>Utiliser cette clé secrète pour {0} @ {1}</value>
+  </data>
+  <data name="Settings.Account.Keys.Delete" xml:space="preserve">
+    <value>Supprimer la clé</value>
+  </data>
+  <data name="Settings.Account.Keys.DeleteHelp" xml:space="preserve">
+    <value>Maintenez CTRL pour supprimer cette clé secrète</value>
+  </data>
+  <data name="Settings.Account.Keys.InUseWarning" xml:space="preserve">
+    <value>Cette clé est actuellement assignée à un personnage et ne peut pas être modifiée ou supprimée.</value>
+  </data>
+  <data name="Settings.Account.Keys.AddNew" xml:space="preserve">
+    <value>Ajouter manuellement une clé secrète</value>
+  </data>
+  <data name="Settings.Account.Keys.NewKeyName" xml:space="preserve">
+    <value>Nouvelle clé secrète</value>
+  </data>
+  <data name="Settings.Account.Register" xml:space="preserve">
+    <value>Créer une nouvelle clé secrète</value>
+  </data>
+  <data name="Settings.Account.Register.Sending" xml:space="preserve">
+    <value>Envoi de la requête...</value>
+  </data>
+  <data name="Settings.Account.Register.Error" xml:space="preserve">
+    <value>Une erreur inconnue s'est produite. Veuillez réessayer plus tard.</value>
+  </data>
+  <data name="Settings.Account.Register.Success" xml:space="preserve">
+    <value>Nouveau compte enregistré.&#x0A;Veuillez conserver une copie de votre clé secrète en cas de réinitialisation de vos plugins, ou pour l'utiliser sur un autre PC.</value>
+  </data>
+  <data name="Settings.Account.Keys.ExportOne" xml:space="preserve">
+    <value>Exporter cette clé</value>
+  </data>
+  <data name="Settings.Account.Keys.ExportOne.Dialog" xml:space="preserve">
+    <value>Exporter la clé secrète</value>
+  </data>
+  <data name="Settings.Account.Keys.Export" xml:space="preserve">
+    <value>Exporter toutes les clés</value>
+  </data>
+  <data name="Settings.Account.Keys.Export.Dialog" xml:space="preserve">
+    <value>Exporter les clés secrètes</value>
+  </data>
+  <data name="Settings.Account.Keys.Import" xml:space="preserve">
+    <value>Importer des clés</value>
+  </data>
+  <data name="Settings.Account.Keys.Import.Dialog" xml:space="preserve">
+    <value>Importer des clés secrètes</value>
+  </data>
+  <data name="Settings.Account.Keys.Import.Result" xml:space="preserve">
+    <value>Résumé de l'importation</value>
+  </data>
+  <data name="Settings.Account.Keys.Import.Imported" xml:space="preserve">
+    <value>Importée</value>
+  </data>
+  <data name="Settings.Account.Keys.Import.Skipped" xml:space="preserve">
+    <value>Ignorée</value>
+  </data>
+  <data name="Settings.Account.Keys.Import.AlreadyExists" xml:space="preserve">
+    <value>Déjà existante</value>
+  </data>
+  <data name="Settings.Account.Keys.Import.EmptyKey" xml:space="preserve">
+    <value>Clé vide</value>
+  </data>
+  <data name="Settings.Account.Keys.Import.InvalidFile" xml:space="preserve">
+    <value>Le fichier n'a pas pu être lu ou n'est pas un fichier de clés valide.</value>
+  </data>
+  <data name="Settings.Advanced.UmbraApi" xml:space="preserve">
+    <value>Activer l'API Umbra Sync</value>
+  </data>
+  <data name="Settings.Advanced.UmbraApi.Help" xml:space="preserve">
+    <value>Active la gestion de l'API Umbra Sync. Cela inclut actuellement :&#x0A;&#x0A; - Support du chargement MCDF pour les autres plugins&#x0A; - Blocage des applications Moodles aux utilisateurs appairés&#x0A;&#x0A;Si un autre fournisseur d'API Umbra est chargé pendant que cette option est activée, le contrôle de l'API sera abandonné.</value>
+  </data>
+  <data name="Settings.Advanced.UmbraApi.Active" xml:space="preserve">
+    <value>API Umbra active !</value>
+  </data>
+  <data name="Settings.Advanced.UmbraApi.Disabled" xml:space="preserve">
+    <value>API Umbra inactive : option désactivée</value>
+  </data>
+  <data name="Settings.Advanced.UmbraApi.OtherProvider" xml:space="preserve">
+    <value>API Umbra inactive : un autre fournisseur d'API est chargé</value>
+  </data>
+  <data name="Settings.Advanced.UmbraApi.Unknown" xml:space="preserve">
+    <value>API Umbra inactive : raison inconnue</value>
+  </data>
+  <data name="Settings.Advanced.LogEvents" xml:space="preserve">
+    <value>Journaliser les données de l'Event Viewer</value>
+  </data>
+  <data name="Settings.Advanced.OpenEventViewer" xml:space="preserve">
+    <value>Ouvrir l'Event Viewer</value>
+  </data>
+  <data name="Settings.Advanced.HoldCombat" xml:space="preserve">
+    <value>Suspendre les applications en combat</value>
+  </data>
+  <data name="Settings.Advanced.SerialApply" xml:space="preserve">
+    <value>Applications séquentielles des joueurs</value>
+  </data>
+  <data name="Settings.Advanced.SerialApply.Help" xml:space="preserve">
+    <value>Expérimental — Peut réduire les problèmes dans les zones peuplées</value>
+  </data>
+  <data name="Settings.Advanced.Debug" xml:space="preserve">
+    <value>Débogage</value>
+  </data>
+  <data name="Settings.Advanced.Debug.CopyCharaData" xml:space="preserve">
+    <value>Copier les dernières données de personnage</value>
+  </data>
+  <data name="Settings.Advanced.Debug.CopyCharaData.Help" xml:space="preserve">
+    <value>Utilisez ceci pour signaler des mods rejetés par le serveur.</value>
+  </data>
+  <data name="Settings.Advanced.Debug.LogLevel" xml:space="preserve">
+    <value>Niveau de log</value>
+  </data>
+  <data name="Settings.Advanced.Debug.LogPerf" xml:space="preserve">
+    <value>Journaliser les compteurs de performance</value>
+  </data>
+  <data name="Settings.Advanced.Debug.LogPerf.Help" xml:space="preserve">
+    <value>Activer cette option peut avoir un léger impact sur les performances. Il n'est pas recommandé de la laisser activée longtemps.</value>
+  </data>
+  <data name="Settings.Advanced.Debug.PrintPerf" xml:space="preserve">
+    <value>Afficher les stats dans /xllog</value>
+  </data>
+  <data name="Settings.Advanced.Debug.PrintPerf60" xml:space="preserve">
+    <value>Afficher les stats (60s) dans /xllog</value>
+  </data>
+  <data name="Settings.Advanced.Debug.ActiveBlocks" xml:space="preserve">
+    <value>Blocages de personnages actifs</value>
   </data>
 </root>

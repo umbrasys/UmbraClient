@@ -1,9 +1,11 @@
 ﻿using Dalamud.Game.ClientState.Objects.Types;
+using System.Collections.Concurrent;
 using System.Numerics;
 using UmbraSync.API.Data;
 using UmbraSync.API.Dto;
 using UmbraSync.API.Dto.CharaData;
 using UmbraSync.API.Dto.Group;
+using UmbraSync.API.Dto.Ping;
 using UmbraSync.API.Dto.Slot;
 using UmbraSync.API.Dto.User;
 using UmbraSync.MareConfiguration.Models;
@@ -19,6 +21,7 @@ namespace UmbraSync.Services.Mediator;
 public record SwitchToIntroUiMessage : MessageBase;
 public record SwitchToMainUiMessage : MessageBase;
 public record OpenSettingsUiMessage : MessageBase;
+public record OpenChangelogUiMessage : MessageBase;
 public record DalamudLoginMessage : MessageBase;
 public record DalamudLogoutMessage : MessageBase;
 public record PriorityFrameworkUpdateMessage : SameThreadMessage;
@@ -65,7 +68,7 @@ public record HubReconnectingMessage(Exception? Exception) : SameThreadMessage;
 public record HubReconnectedMessage(string? Arg) : SameThreadMessage;
 public record HubClosedMessage(Exception? Exception) : SameThreadMessage;
 public record DownloadReadyMessage(Guid RequestId) : MessageBase;
-public record DownloadStartedMessage(GameObjectHandler DownloadId, Dictionary<string, FileDownloadStatus> DownloadStatus) : MessageBase;
+public record DownloadStartedMessage(GameObjectHandler DownloadId, ConcurrentDictionary<string, FileDownloadStatus> DownloadStatus) : MessageBase;
 public record DownloadFinishedMessage(GameObjectHandler DownloadId) : MessageBase;
 public record UiToggleMessage(Type UiType) : MessageBase;
 public record PlayerUploadingMessage(GameObjectHandler Handler, bool IsUploading) : MessageBase;
@@ -96,8 +99,6 @@ public record EventMessage(Event Event) : MessageBase;
 public record PenumbraDirectoryChangedMessage(string? ModDirectory) : MessageBase;
 public record PenumbraRedrawCharacterMessage(ICharacter Character) : SameThreadMessage;
 public record PenumbraFilesChangedMessage(List<string> AddedOrChanged, List<string> Deleted) : MessageBase;
-public record UserChatMsgMessage(SignedChatMessage ChatMsg) : MessageBase;
-public record GroupChatMsgMessage(GroupDto GroupInfo, SignedChatMessage ChatMsg) : MessageBase;
 public record UserTypingStateMessage(TypingStateDto Typing) : MessageBase;
 public record RecalculatePerformanceMessage(string? UID) : MessageBase;
 public record NameplateRedrawMessage : MessageBase;
@@ -134,7 +135,11 @@ public record ApplyDefaultsToAllSyncsMessage(string? Context = null, bool? Disab
 public record PairSyncOverrideChanged(string Uid, bool? DisableSounds, bool? DisableAnimations, bool? DisableVfx) : MessageBase;
 public record GroupSyncOverrideChanged(string Gid, bool? DisableSounds, bool? DisableAnimations, bool? DisableVfx) : MessageBase;
 public record NotificationStateChanged(int TotalCount) : MessageBase;
-
+public record PairOnlineMessage(UserData User) : MessageBase;
 public record PluginChangeMessage(string InternalName, Version Version, bool IsLoaded) : KeyedMessage(InternalName);
+public record GroupProfileUpdatedMessage(GroupProfileDto Profile) : MessageBase;
+public record PingMarkerReceivedMessage(GroupPingMarkerDto Dto) : MessageBase;
+public record PingMarkerRemovedMessage(GroupData Group, UserData Sender, Guid PingId) : MessageBase;
+public record PingMarkersClearedMessage(GroupData Group) : MessageBase;
 #pragma warning restore S2094
 #pragma warning restore MA0048

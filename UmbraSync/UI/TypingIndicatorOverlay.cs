@@ -118,7 +118,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
             var targetIndex = -1;
             var playerName = pair?.PlayerName;
             var objectId = pair?.PlayerCharacterId ?? uint.MaxValue;
-            
+
             if (objectId != 0 && objectId != uint.MaxValue)
             {
                 targetIndex = GetPartyIndexFromAgentHUD(objectId);
@@ -127,7 +127,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
             {
                 targetIndex = GetPartyIndexForObjectId(objectId);
             }
-            
+
             if (targetIndex < 0 && !string.IsNullOrEmpty(playerName))
             {
                 targetIndex = GetPartyIndexForName(playerName);
@@ -502,7 +502,7 @@ public sealed class TypingIndicatorOverlay : WindowMediatorSubscriberBase
 
         return -1;
     }
-    
+
     private int GetPartyIndexForObjectId(uint objectId)
     {
         for (var i = 0; i < _partyList.Count; ++i)

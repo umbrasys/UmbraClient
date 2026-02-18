@@ -12,6 +12,7 @@ using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.ServerConfiguration;
+using UmbraSync.UI.Components;
 
 namespace UmbraSync.UI;
 
@@ -19,6 +20,7 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
 {
     private readonly UmbraProfileManager _umbraProfileManager;
     private readonly ServerConfigurationManager _serverManager;
+    private readonly MareConfigService _configService;
     private readonly UiSharedService _uiSharedService;
     private Vector2 _lastMainPos = Vector2.Zero;
     private Vector2 _lastMainSize = Vector2.Zero;
@@ -36,6 +38,7 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
     {
         _uiSharedService = uiSharedService;
         _serverManager = serverManager;
+        _configService = mareConfigService;
         _umbraProfileManager = umbraProfileManager;
         Flags = ImGuiWindowFlags.NoDecoration;
 
@@ -90,7 +93,7 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
         {
             var spacing = ImGui.GetStyle().ItemSpacing;
 
-            var umbraProfile = _umbraProfileManager.GetUmbraProfile(_pair.UserData, _pair.PlayerName, _pair.WorldId);
+            var umbraProfile = _umbraProfileManager.GetUmbraProfile(_pair.UserData);
 
             var accent = UiSharedService.AccentColor;
             if (accent.W <= 0f) accent = ImGuiColors.ParsedPurple;
@@ -137,8 +140,9 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
             var rectMin = drawList.GetClipRectMin();
             var rectMax = drawList.GetClipRectMax();
 
+            var nameColor = _isRpTab && _configService.Current.UseRpNameColors && !string.IsNullOrEmpty(umbraProfile.RpNameColor) ? UiSharedService.HexToVector4(umbraProfile.RpNameColor) : UiSharedService.AccentColor;
             using (_uiSharedService.UidFont.Push())
-                UiSharedService.ColorText(_pair.UserData.AliasOrUID + (_isRpTab ? " (RP)" : " (HRP)"), UiSharedService.AccentColor);
+                UiSharedService.ColorText(_pair.UserData.AliasOrUID + (_isRpTab ? " (RP)" : " (HRP)"), nameColor);
 
             ImGuiHelpers.ScaledDummy(spacing.Y, spacing.Y);
             var textPos = ImGui.GetCursorPosY();
@@ -184,6 +188,17 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
             }
 
             ImGui.Separator();
+
+            if (_isRpTab)
+            {
+                var moodlesJson = _pair.LastReceivedCharacterData?.MoodlesData;
+                if (!string.IsNullOrEmpty(moodlesJson))
+                {
+                    _uiSharedService.DrawMoodlesAtAGlance(moodlesJson, 36f);
+                    ImGui.Spacing();
+                }
+            }
+
             _uiSharedService.GameFont.Push();
             var remaining = ImGui.GetWindowContentRegionMax().Y - ImGui.GetCursorPosY();
             var descText = _isRpTab ? (umbraProfile.RpDescription ?? Loc.Get("UserProfile.NoRpDescription")) : umbraProfile.Description;
@@ -197,10 +212,16 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
                     rpInfo += $"{Loc.Get("UserProfile.RpTitle")} : {umbraProfile.RpTitle}\n";
                 if (!string.IsNullOrEmpty(umbraProfile.RpAge))
                     rpInfo += $"{Loc.Get("UserProfile.RpAge")} : {umbraProfile.RpAge}\n";
+                if (!string.IsNullOrEmpty(umbraProfile.RpRace))
+                    rpInfo += $"{Loc.Get("UserProfile.RpRace")} : {umbraProfile.RpRace}\n";
+                if (!string.IsNullOrEmpty(umbraProfile.RpEthnicity))
+                    rpInfo += $"{Loc.Get("UserProfile.RpEthnicity")} : {umbraProfile.RpEthnicity}\n";
                 if (!string.IsNullOrEmpty(umbraProfile.RpHeight))
                     rpInfo += $"{Loc.Get("UserProfile.RpHeight")} : {umbraProfile.RpHeight}\n";
                 if (!string.IsNullOrEmpty(umbraProfile.RpBuild))
                     rpInfo += $"{Loc.Get("UserProfile.RpBuild")} : {umbraProfile.RpBuild}\n";
+                if (!string.IsNullOrEmpty(umbraProfile.RpResidence))
+                    rpInfo += $"{Loc.Get("UserProfile.RpResidence")} : {umbraProfile.RpResidence}\n";
                 if (!string.IsNullOrEmpty(umbraProfile.RpOccupation))
                     rpInfo += $"{Loc.Get("UserProfile.RpOccupation")} : {umbraProfile.RpOccupation}\n";
                 if (!string.IsNullOrEmpty(umbraProfile.RpAffiliation))
@@ -214,14 +235,17 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
                 }
             }
 
-            var textSize = ImGui.CalcTextSize(descText, hideTextAfterDoubleHash: false, 256f * ImGuiHelpers.GlobalScale);
+            var cleanDesc = BbCodeRenderer.StripTags(descText);
+            var textSize = ImGui.CalcTextSize(cleanDesc, hideTextAfterDoubleHash: false, 256f * ImGuiHelpers.GlobalScale);
             bool trimmed = textSize.Y > remaining;
             while (textSize.Y > remaining && descText.Contains(' '))
             {
                 descText = descText[..descText.LastIndexOf(' ')].TrimEnd();
-                textSize = ImGui.CalcTextSize(descText + $"...{Environment.NewLine}{Loc.Get("PopoutProfile.ReadMoreHint")}", hideTextAfterDoubleHash: false, 256f * ImGuiHelpers.GlobalScale);
+                cleanDesc = BbCodeRenderer.StripTags(descText);
+                textSize = ImGui.CalcTextSize(cleanDesc + $"...{Environment.NewLine}{Loc.Get("PopoutProfile.ReadMoreHint")}", hideTextAfterDoubleHash: false, 256f * ImGuiHelpers.GlobalScale);
             }
-            UiSharedService.TextWrapped(trimmed ? descText + $"...{Environment.NewLine}{Loc.Get("PopoutProfile.ReadMoreHint")}" : descText);
+            var wrapWidth = 256f * ImGuiHelpers.GlobalScale;
+            BbCodeRenderer.Render(trimmed ? descText + $"...{Environment.NewLine}{Loc.Get("PopoutProfile.ReadMoreHint")}" : descText, wrapWidth);
 
             _uiSharedService.GameFont.Pop();
 

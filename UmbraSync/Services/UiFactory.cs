@@ -1,8 +1,11 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Dalamud.Interface.ImGuiFileDialog;
+using Microsoft.Extensions.Logging;
 using UmbraSync.API.Dto.Group;
+using UmbraSync.Interop.Ipc;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Services.AutoDetect;
 using UmbraSync.Services.Mediator;
+using UmbraSync.MareConfiguration;
 using UmbraSync.Services.Notification;
 using UmbraSync.Services.ServerConfiguration;
 using UmbraSync.UI;
@@ -20,18 +23,23 @@ public class UiFactory(
     UmbraProfileManager umbraProfileManager,
     PerformanceCollectorService performanceCollectorService,
     NotificationTracker notificationTracker,
-    DalamudUtilService dalamudUtilService)
+    DalamudUtilService dalamudUtilService,
+    FileDialogManager fileDialogManager,
+    IpcManager ipcManager,
+    MareConfigService mareConfigService)
 {
     public SyncshellAdminUI CreateSyncshellAdminUi(GroupFullInfoDto dto)
     {
         return new SyncshellAdminUI(loggerFactory.CreateLogger<SyncshellAdminUI>(), mareMediator,
-            apiController, uiSharedService, pairManager, syncshellDiscoveryService, dto, performanceCollectorService, notificationTracker, dalamudUtilService);
+            apiController, uiSharedService, pairManager, syncshellDiscoveryService, dto, performanceCollectorService, notificationTracker,
+            dalamudUtilService, fileDialogManager, umbraProfileManager);
     }
 
     public StandaloneProfileUi CreateStandaloneProfileUi(Pair pair)
     {
         return new StandaloneProfileUi(loggerFactory.CreateLogger<StandaloneProfileUi>(), mareMediator,
-            uiSharedService, serverConfigManager, umbraProfileManager, apiController, pair, performanceCollectorService);
+            uiSharedService, serverConfigManager, mareConfigService, umbraProfileManager, apiController, pair, performanceCollectorService,
+            ipcManager, dalamudUtilService);
     }
 
     public PermissionWindowUI CreatePermissionPopupUi(Pair pair)

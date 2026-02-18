@@ -16,7 +16,7 @@ public sealed class PenumbraModSettings : IDisposable
     private readonly TimeSpan _modSettingDebounce = TimeSpan.FromSeconds(2);
     private DateTime _lastModSettingTrigger = DateTime.MinValue;
     private CancellationTokenSource? _modSettingDebounceCts;
-    private readonly object _modSettingDebounceLock = new();
+    private readonly Lock _modSettingDebounceLock = new();
 
     public PenumbraModSettings(PenumbraCore core)
     {

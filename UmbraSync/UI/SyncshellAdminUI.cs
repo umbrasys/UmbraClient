@@ -1,6 +1,8 @@
 ﻿using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
+using Dalamud.Interface.ImGuiFileDialog;
+using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Microsoft.Extensions.Logging;
@@ -48,7 +50,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
     private string? _capacityMessage;
     private bool _autoDetectDesiredVisibility;
     private int _adDurationHours = 2;
-    private bool _adRecurring = false;
+    private AutoDetectMode _adMode = AutoDetectMode.Duration;
     private readonly bool[] _adWeekdays = new bool[7];
     private int _adStartHour = 21;
     private int _adStartMinute = 0;
@@ -70,11 +72,35 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
     private float _slotRadius = 10f;
     private bool _slotLoading = false;
     private readonly DalamudUtilService _dalamudUtilService;
+    private readonly FileDialogManager _fileDialogManager;
+    private readonly UmbraProfileManager _profileManager;
+    // Group profile fields
+    private bool _profileLoading;
+    private bool _profileSaving;
+    private bool _profileLoaded;
+    private string _profileDescription = string.Empty;
+    private List<string> _profileTags = [];
+    private string _newTag = string.Empty;
+    private bool _profileNsfw;
+    private bool _profileDisabled;
+    private byte[] _profileImageBytes = [];
+    private byte[] _bannerImageBytes = [];
+    private IDalamudTextureWrap? _profileTexture;
+    private IDalamudTextureWrap? _bannerTexture;
+    private string? _profileMessage;
+    private bool _showProfilePreview;
+    private DateTime _profileSaveConfirmTime = DateTime.MinValue;
+    private string _savedProfileDescription = string.Empty;
+    private List<string> _savedProfileTags = [];
+    private bool _savedProfileNsfw;
+    private bool _savedProfileDisabled;
+    private byte[] _savedProfileImageBytes = [];
+    private byte[] _savedBannerImageBytes = [];
 
     public SyncshellAdminUI(ILogger<SyncshellAdminUI> logger, MareMediator mediator, ApiController apiController,
         UiSharedService uiSharedService, PairManager pairManager, SyncshellDiscoveryService syncshellDiscoveryService,
         GroupFullInfoDto groupFullInfo, PerformanceCollectorService performanceCollectorService, NotificationTracker notificationTracker,
-        DalamudUtilService dalamudUtilService)
+        DalamudUtilService dalamudUtilService, FileDialogManager fileDialogManager, UmbraProfileManager profileManager)
         : base(logger, mediator, string.Format(CultureInfo.CurrentCulture, Loc.Get("SyncshellAdmin.WindowTitle"), groupFullInfo.GroupAliasOrGID), performanceCollectorService)
     {
         GroupFullInfo = groupFullInfo;
@@ -84,6 +110,8 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
         _syncshellDiscoveryService = syncshellDiscoveryService;
         _notificationTracker = notificationTracker;
         _dalamudUtilService = dalamudUtilService;
+        _fileDialogManager = fileDialogManager;
+        _profileManager = profileManager;
         _isOwner = string.Equals(GroupFullInfo.OwnerUID, _apiController.UID, StringComparison.Ordinal);
         _isModerator = GroupFullInfo.GroupUserInfo.IsModerator();
         _newPassword = string.Empty;
@@ -279,6 +307,17 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                                         _ = _apiController.GroupSetUserInfo(new GroupPairUserInfoDto(GroupFullInfo.Group, pair.Key.UserData, userInfo));
                                     }
                                     UiSharedService.AttachToolTip(pair.Value != null && pair.Value.Value.IsPinned() ? Loc.Get("SyncshellAdmin.Users.Unpin") : Loc.Get("SyncshellAdmin.Users.Pin"));
+                                    ImGui.SameLine();
+
+                                    if (_uiSharedService.IconButton(FontAwesomeIcon.MapMarkerAlt))
+                                    {
+                                        GroupUserInfo userInfo = pair.Value ?? GroupUserInfo.None;
+
+                                        userInfo.SetCanPlacePings(!userInfo.CanPlacePings());
+
+                                        _ = _apiController.GroupSetUserInfo(new GroupPairUserInfoDto(GroupFullInfo.Group, pair.Key.UserData, userInfo));
+                                    }
+                                    UiSharedService.AttachToolTip(pair.Value != null && pair.Value.Value.CanPlacePings() ? Loc.Get("SyncshellAdmin.Users.RevokePing") : Loc.Get("SyncshellAdmin.Users.GrantPing"));
                                     ImGui.SameLine();
 
                                     using (ImRaii.Disabled(!UiSharedService.CtrlPressed()))
@@ -549,6 +588,15 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                 DrawSlotTab();
             }
             slotTab.Dispose();
+
+            var profileTab = ImRaii.TabItem(Loc.Get("SyncshellAdmin.Tab.Profile"));
+            if (profileTab)
+            {
+                DrawProfileTab();
+            }
+            profileTab.Dispose();
+
+            DrawProfilePreview();
 
             if (_isOwner)
             {
@@ -829,6 +877,291 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
         }
     }
 
+    private void DrawProfileTab()
+    {
+        if (!_profileLoaded && !_profileLoading)
+        {
+            _profileLoading = true;
+            _ = LoadGroupProfileAsync();
+        }
+
+        UiSharedService.TextWrapped(Loc.Get("SyncshellAdmin.Profile.Intro"));
+        ImGuiHelpers.ScaledDummy(4);
+
+        if (_profileLoading)
+        {
+            ImGui.TextDisabled(Loc.Get("SyncshellAdmin.Profile.Loading"));
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(_profileMessage))
+        {
+            UiSharedService.ColorTextWrapped(_profileMessage!, ImGuiColors.DalamudYellow);
+            ImGuiHelpers.ScaledDummy(4);
+        }
+
+        // Profile image
+        ImGui.TextUnformatted(Loc.Get("SyncshellAdmin.Profile.ProfileImage"));
+        if (_profileTexture != null && _profileImageBytes.Length > 0)
+        {
+            float imgSize = 128f;
+            float imgRounding = 10f * ImGuiHelpers.GlobalScale;
+            var drawList = ImGui.GetWindowDrawList();
+            var imgMin = ImGui.GetCursorScreenPos();
+            var imgMax = new Vector2(imgMin.X + imgSize, imgMin.Y + imgSize);
+            drawList.AddImageRounded(
+                _profileTexture.Handle, imgMin, imgMax,
+                Vector2.Zero, Vector2.One,
+                ImGui.ColorConvertFloat4ToU32(Vector4.One), imgRounding);
+            ImGui.Dummy(new Vector2(imgSize, imgSize));
+        }
+        else
+        {
+            ImGui.TextDisabled(Loc.Get("SyncshellAdmin.Profile.NoImage"));
+        }
+        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Upload, Loc.Get("SyncshellAdmin.Profile.UploadImage")))
+        {
+            _fileDialogManager.OpenFileDialog(
+                Loc.Get("SyncshellAdmin.Profile.UploadImage"),
+                "Image files{.png,.jpg,.jpeg}",
+                (success, name) =>
+                {
+                    if (!success) return;
+                    _ = Task.Run(async () =>
+                    {
+                        var bytes = await File.ReadAllBytesAsync(name).ConfigureAwait(false);
+                        if (bytes.Length > 2 * 1024 * 1024)
+                        {
+                            _profileMessage = Loc.Get("SyncshellAdmin.Profile.ImageTooLarge");
+                            return;
+                        }
+                        _profileImageBytes = bytes;
+                        _profileTexture?.Dispose();
+                        _profileTexture = _uiSharedService.LoadImage(bytes);
+                    });
+                });
+        }
+        ImGui.SameLine();
+        using (ImRaii.Disabled(_profileImageBytes.Length == 0))
+        {
+            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Trash, Loc.Get("SyncshellAdmin.Profile.ClearImage")))
+            {
+                _profileImageBytes = [];
+                _profileTexture?.Dispose();
+                _profileTexture = null;
+            }
+        }
+
+        ImGuiHelpers.ScaledDummy(4);
+
+        // Banner
+        ImGui.TextUnformatted(Loc.Get("SyncshellAdmin.Profile.BannerImage"));
+        if (_bannerTexture != null && _bannerImageBytes.Length > 0)
+        {
+            float availWidth = ImGui.GetContentRegionAvail().X;
+            float bannerHeight = availWidth * (260f / 840f);
+            float bannerRounding = 10f * ImGuiHelpers.GlobalScale;
+            var bannerDrawList = ImGui.GetWindowDrawList();
+            var bannerMin = ImGui.GetCursorScreenPos();
+            var bannerMax = new Vector2(bannerMin.X + availWidth, bannerMin.Y + bannerHeight);
+            bannerDrawList.AddImageRounded(
+                _bannerTexture.Handle, bannerMin, bannerMax,
+                Vector2.Zero, Vector2.One,
+                ImGui.ColorConvertFloat4ToU32(Vector4.One), bannerRounding);
+            ImGui.Dummy(new Vector2(availWidth, bannerHeight));
+        }
+        else
+        {
+            ImGui.TextDisabled(Loc.Get("SyncshellAdmin.Profile.NoBanner"));
+        }
+        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Upload, Loc.Get("SyncshellAdmin.Profile.UploadBanner")))
+        {
+            _fileDialogManager.OpenFileDialog(
+                Loc.Get("SyncshellAdmin.Profile.UploadBanner"),
+                "Image files{.png,.jpg,.jpeg}",
+                (success, name) =>
+                {
+                    if (!success) return;
+                    _ = Task.Run(async () =>
+                    {
+                        var bytes = await File.ReadAllBytesAsync(name).ConfigureAwait(false);
+                        if (bytes.Length > 2 * 1024 * 1024)
+                        {
+                            _profileMessage = Loc.Get("SyncshellAdmin.Profile.ImageTooLarge");
+                            return;
+                        }
+                        _bannerImageBytes = bytes;
+                        _bannerTexture?.Dispose();
+                        _bannerTexture = _uiSharedService.LoadImage(bytes);
+                    });
+                });
+        }
+        ImGui.SameLine();
+        using (ImRaii.Disabled(_bannerImageBytes.Length == 0))
+        {
+            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Trash, Loc.Get("SyncshellAdmin.Profile.ClearBanner")))
+            {
+                _bannerImageBytes = [];
+                _bannerTexture?.Dispose();
+                _bannerTexture = null;
+            }
+        }
+
+        ImGuiHelpers.ScaledDummy(4);
+
+        // Description
+        ImGui.TextUnformatted(Loc.Get("SyncshellAdmin.Profile.Description"));
+        ImGui.InputTextMultiline("##profile_desc", ref _profileDescription, 1500, new Vector2(-1, 80));
+
+        ImGuiHelpers.ScaledDummy(4);
+
+        // Tags
+        ImGui.TextUnformatted(Loc.Get("SyncshellAdmin.Profile.Tags"));
+        for (int i = _profileTags.Count - 1; i >= 0; i--)
+        {
+            ImGui.TextUnformatted(_profileTags[i]);
+            ImGui.SameLine();
+            using var tagId = ImRaii.PushId("tag_" + i);
+            if (_uiSharedService.IconButton(FontAwesomeIcon.Times))
+            {
+                _profileTags.RemoveAt(i);
+            }
+        }
+        ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
+        ImGui.InputText("##new_tag", ref _newTag, 50);
+        ImGui.SameLine();
+        using (ImRaii.Disabled(string.IsNullOrWhiteSpace(_newTag) || _profileTags.Count >= 20))
+        {
+            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Plus, Loc.Get("SyncshellAdmin.Profile.AddTag")))
+            {
+                _profileTags.Add(_newTag.Trim());
+                _newTag = string.Empty;
+            }
+        }
+
+        ImGuiHelpers.ScaledDummy(4);
+
+        // NSFW + Disabled
+        ImGui.Checkbox(Loc.Get("SyncshellAdmin.Profile.NSFW"), ref _profileNsfw);
+        _uiSharedService.DrawHelpText(Loc.Get("SyncshellAdmin.Profile.NSFWHelp"));
+        ImGui.Checkbox(Loc.Get("SyncshellAdmin.Profile.Disabled"), ref _profileDisabled);
+        _uiSharedService.DrawHelpText(Loc.Get("SyncshellAdmin.Profile.DisabledHelp"));
+
+        ImGuiHelpers.ScaledDummy(6);
+
+        using (ImRaii.Disabled(_profileSaving))
+        {
+            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Save, Loc.Get("SyncshellAdmin.Profile.Save")))
+            {
+                _ = SaveGroupProfileAsync();
+            }
+        }
+        ImGui.SameLine();
+        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Eye, Loc.Get("SyncshellAdmin.Profile.Preview")))
+        {
+            _showProfilePreview = true;
+        }
+        ImGui.SameLine();
+        if (ImGui.Button(Loc.Get("SyncshellAdmin.Profile.Cancel")))
+        {
+            _profileLoaded = false;
+            _profileMessage = null;
+        }
+
+        ImGui.SameLine();
+        if ((DateTime.UtcNow - _profileSaveConfirmTime).TotalSeconds < 4)
+        {
+            ImGui.TextColored(ImGuiColors.HealerGreen, Loc.Get("SyncshellAdmin.Profile.Saved"));
+        }
+        else if (HasProfileUnsavedChanges())
+        {
+            ImGui.TextColored(new Vector4(0.85f, 0.75f, 0.20f, 1f), Loc.Get("SyncshellAdmin.Profile.UnsavedChanges"));
+        }
+    }
+
+    private async Task LoadGroupProfileAsync()
+    {
+        try
+        {
+            var profile = await _apiController.GroupGetProfile(new(GroupFullInfo.Group)).ConfigureAwait(false);
+            if (profile != null)
+            {
+                _profileDescription = profile.Description ?? string.Empty;
+                _profileTags = profile.Tags?.ToList() ?? [];
+                _profileNsfw = profile.IsNsfw;
+                _profileDisabled = profile.IsDisabled;
+
+                if (!string.IsNullOrEmpty(profile.ProfileImageBase64))
+                {
+                    _profileImageBytes = Convert.FromBase64String(profile.ProfileImageBase64);
+                    _profileTexture = _uiSharedService.LoadImage(_profileImageBytes);
+                }
+                else
+                {
+                    _profileImageBytes = [];
+                    _profileTexture = null;
+                }
+
+                if (!string.IsNullOrEmpty(profile.BannerImageBase64))
+                {
+                    _bannerImageBytes = Convert.FromBase64String(profile.BannerImageBase64);
+                    _bannerTexture = _uiSharedService.LoadImage(_bannerImageBytes);
+                }
+                else
+                {
+                    _bannerImageBytes = [];
+                    _bannerTexture = null;
+                }
+
+                _profileManager.SetGroupProfile(GroupFullInfo.GID, profile);
+            }
+            _profileLoaded = true;
+            SnapshotProfileState();
+        }
+        catch (Exception ex)
+        {
+            _profileMessage = string.Format(CultureInfo.CurrentCulture, Loc.Get("SyncshellAdmin.Profile.SaveFailed"), ex.Message);
+        }
+        finally
+        {
+            _profileLoading = false;
+        }
+    }
+
+    private async Task SaveGroupProfileAsync()
+    {
+        _profileSaving = true;
+        _profileMessage = null;
+        try
+        {
+            var dto = new GroupProfileDto
+            {
+                Group = GroupFullInfo.Group,
+                Description = string.IsNullOrWhiteSpace(_profileDescription) ? null : _profileDescription,
+                Tags = _profileTags.Count > 0 ? _profileTags.ToArray() : null,
+                ProfileImageBase64 = _profileImageBytes.Length > 0 ? Convert.ToBase64String(_profileImageBytes) : null,
+                BannerImageBase64 = _bannerImageBytes.Length > 0 ? Convert.ToBase64String(_bannerImageBytes) : null,
+                IsNsfw = _profileNsfw,
+                IsDisabled = _profileDisabled,
+            };
+
+            await _apiController.GroupSetProfile(dto).ConfigureAwait(false);
+            _profileManager.SetGroupProfile(GroupFullInfo.GID, dto);
+            _profileMessage = null;
+            SnapshotProfileState();
+            _profileSaveConfirmTime = DateTime.UtcNow;
+        }
+        catch (Exception ex)
+        {
+            _profileMessage = Loc.Get("SyncshellAdmin.Profile.SaveFailed");
+            _logger.LogWarning(ex, "Failed to save group profile for {gid}", GroupFullInfo.GID);
+        }
+        finally
+        {
+            _profileSaving = false;
+        }
+    }
+
     private void DrawAutoDetectTab()
     {
         if (!_autoDetectStateInitialized && !_autoDetectStateLoading)
@@ -865,12 +1198,31 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
             ImGui.TextUnformatted(Loc.Get("SyncshellAdmin.AutoDetect.Options"));
             ImGui.Separator();
 
-            // Recurring toggle first
-            ImGui.Checkbox(Loc.Get("SyncshellAdmin.AutoDetect.Recurring"), ref _adRecurring);
+            // Mode selection via radio buttons
+            var modeFulltime = _adMode == AutoDetectMode.Fulltime;
+            var modeDuration = _adMode == AutoDetectMode.Duration;
+            var modeRecurring = _adMode == AutoDetectMode.Recurring;
+
+            if (ImGui.RadioButton(Loc.Get("SyncshellAdmin.AutoDetect.Fulltime"), modeFulltime))
+            {
+                _adMode = AutoDetectMode.Fulltime;
+            }
+            _uiSharedService.DrawHelpText(Loc.Get("SyncshellAdmin.AutoDetect.FulltimeHelp"));
+
+            if (ImGui.RadioButton(Loc.Get("SyncshellAdmin.AutoDetect.Duration"), modeDuration))
+            {
+                _adMode = AutoDetectMode.Duration;
+            }
+            _uiSharedService.DrawHelpText(Loc.Get("SyncshellAdmin.AutoDetect.DurationModeHelp"));
+
+            if (ImGui.RadioButton(Loc.Get("SyncshellAdmin.AutoDetect.Recurring"), modeRecurring))
+            {
+                _adMode = AutoDetectMode.Recurring;
+            }
             _uiSharedService.DrawHelpText(Loc.Get("SyncshellAdmin.AutoDetect.RecurringHelp"));
 
-            // Duration in hours (only when NOT recurring)
-            if (!_adRecurring)
+            // Duration in hours (only for Duration mode)
+            if (_adMode == AutoDetectMode.Duration)
             {
                 ImGuiHelpers.ScaledDummy(4);
                 int duration = _adDurationHours;
@@ -884,7 +1236,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
             }
 
             ImGuiHelpers.ScaledDummy(4);
-            if (_adRecurring)
+            if (_adMode == AutoDetectMode.Recurring)
             {
                 ImGuiHelpers.ScaledDummy(4);
                 ImGui.TextUnformatted(Loc.Get("SyncshellAdmin.AutoDetect.Weekdays"));
@@ -968,7 +1320,11 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
 
         if (_autoDetectDesiredVisibility)
         {
-            if (_adRecurring)
+            if (_adMode == AutoDetectMode.Fulltime)
+            {
+                parts.Add(Loc.Get("SyncshellAdmin.AutoDetect.Status.Fulltime"));
+            }
+            else if (_adMode == AutoDetectMode.Recurring)
             {
                 var selectedDays = GetSelectedWeekdays();
                 if (selectedDays.Count > 0)
@@ -1060,15 +1416,26 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
 
         try
         {
-            // Duration always used when visible
-            int? duration = _autoDetectDesiredVisibility ? _adDurationHours : null;
+            // Determine mode override
+            AutoDetectMode? modeOverride = null;
+            if (!_autoDetectDesiredVisibility)
+            {
+                modeOverride = AutoDetectMode.Off;
+            }
+            else if (_adMode == AutoDetectMode.Fulltime)
+            {
+                modeOverride = AutoDetectMode.Fulltime;
+            }
+
+            // Duration only used when visible and in Duration mode
+            int? duration = _autoDetectDesiredVisibility && _adMode == AutoDetectMode.Duration ? _adDurationHours : null;
 
             // Scheduling fields only if recurring is enabled
             int[]? weekdaysArr = null;
             TimeSpan? start = null;
             TimeSpan? end = null;
             string? tz = null;
-            if (_autoDetectDesiredVisibility && _adRecurring)
+            if (_autoDetectDesiredVisibility && _adMode == AutoDetectMode.Recurring)
             {
                 List<int> weekdays = new();
                 for (int i = 0; i < 7; i++) if (_adWeekdays[i]) weekdays.Add(i);
@@ -1086,7 +1453,8 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
                 start,
                 end,
                 tz,
-                CancellationToken.None).ConfigureAwait(false);
+                CancellationToken.None,
+                modeOverride).ConfigureAwait(false);
 
             if (!ok)
             {
@@ -1128,7 +1496,7 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
 
     private void ResetAutoDetectScheduleFields()
     {
-        _adRecurring = false;
+        _adMode = AutoDetectMode.Duration;
         _adDurationHours = 2;
         Array.Clear(_adWeekdays);
         _adStartHour = 21;
@@ -1140,6 +1508,21 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
 
     private void ApplyAutoDetectSchedule(SyncshellDiscoveryStateDto state)
     {
+        // Use Mode from server if available, otherwise infer
+        if (state.Mode.HasValue)
+        {
+            if (state.Mode.Value == AutoDetectMode.Fulltime)
+            {
+                _adMode = AutoDetectMode.Fulltime;
+                return;
+            }
+            else if (state.Mode.Value == AutoDetectMode.Off)
+            {
+                ResetAutoDetectScheduleFields();
+                return;
+            }
+        }
+
         var hasServerSchedule = state.DisplayDurationHours.HasValue
             || (state.ActiveWeekdays != null && state.ActiveWeekdays.Length > 0)
             || !string.IsNullOrWhiteSpace(state.TimeStartLocal)
@@ -1148,7 +1531,15 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
 
         if (!hasServerSchedule)
         {
-            ResetAutoDetectScheduleFields();
+            // No schedule and no explicit mode: if visible, assume Fulltime; otherwise reset
+            if (state.AutoDetectVisible)
+            {
+                _adMode = AutoDetectMode.Fulltime;
+            }
+            else
+            {
+                ResetAutoDetectScheduleFields();
+            }
             return;
         }
 
@@ -1157,7 +1548,8 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
             _adDurationHours = Math.Clamp(state.DisplayDurationHours.Value, 1, 240);
         }
 
-        _adRecurring = state.ActiveWeekdays != null && state.ActiveWeekdays.Length > 0;
+        var isRecurring = state.ActiveWeekdays != null && state.ActiveWeekdays.Length > 0;
+        _adMode = isRecurring ? AutoDetectMode.Recurring : AutoDetectMode.Duration;
         Array.Clear(_adWeekdays);
         if (state.ActiveWeekdays != null)
         {
@@ -1190,8 +1582,124 @@ public class SyncshellAdminUI : WindowMediatorSubscriberBase
         _autoDetectMessage = null;
     }
 
+    private void SnapshotProfileState()
+    {
+        _savedProfileDescription = _profileDescription;
+        _savedProfileTags = [.. _profileTags];
+        _savedProfileNsfw = _profileNsfw;
+        _savedProfileDisabled = _profileDisabled;
+        _savedProfileImageBytes = _profileImageBytes;
+        _savedBannerImageBytes = _bannerImageBytes;
+    }
+
+    private bool HasProfileUnsavedChanges()
+    {
+        if (!string.Equals(_profileDescription, _savedProfileDescription, StringComparison.Ordinal))
+            return true;
+        if (_profileNsfw != _savedProfileNsfw || _profileDisabled != _savedProfileDisabled)
+            return true;
+        if (!_profileImageBytes.SequenceEqual(_savedProfileImageBytes))
+            return true;
+        if (!_bannerImageBytes.SequenceEqual(_savedBannerImageBytes))
+            return true;
+        if (_profileTags.Count != _savedProfileTags.Count)
+            return true;
+        for (int i = 0; i < _profileTags.Count; i++)
+        {
+            if (!string.Equals(_profileTags[i], _savedProfileTags[i], StringComparison.Ordinal))
+                return true;
+        }
+        return false;
+    }
+
+    private void DrawProfilePreview()
+    {
+        if (!_showProfilePreview) return;
+
+        ImGui.SetNextWindowSize(new Vector2(420, 500) * ImGuiHelpers.GlobalScale, ImGuiCond.FirstUseEver);
+        if (ImGui.Begin(string.Format(CultureInfo.CurrentCulture, Loc.Get("SyncshellAdmin.Profile.PreviewTitle"), GroupFullInfo.GroupAliasOrGID), ref _showProfilePreview))
+        {
+            float availWidth = ImGui.GetContentRegionAvail().X;
+
+            if (_bannerTexture != null && _bannerImageBytes.Length > 0)
+            {
+                float bannerHeight = availWidth * (260f / 840f);
+                float bannerRounding = 10f * ImGuiHelpers.GlobalScale;
+                var bannerDrawList = ImGui.GetWindowDrawList();
+                var bannerMin = ImGui.GetCursorScreenPos();
+                var bannerMax = new Vector2(bannerMin.X + availWidth, bannerMin.Y + bannerHeight);
+                bannerDrawList.AddImageRounded(
+                    _bannerTexture.Handle, bannerMin, bannerMax,
+                    Vector2.Zero, Vector2.One,
+                    ImGui.ColorConvertFloat4ToU32(Vector4.One), bannerRounding);
+                ImGui.Dummy(new Vector2(availWidth, bannerHeight));
+                ImGuiHelpers.ScaledDummy(6);
+            }
+
+            UiSharedService.DrawCard("preview-hero", () =>
+            {
+                float imgSize = 80f * ImGuiHelpers.GlobalScale;
+                float imgRounding = 10f * ImGuiHelpers.GlobalScale;
+
+                if (_profileTexture != null && _profileImageBytes.Length > 0)
+                {
+                    var cardDrawList = ImGui.GetWindowDrawList();
+                    var imgMin = ImGui.GetCursorScreenPos();
+                    var imgMax = new Vector2(imgMin.X + imgSize, imgMin.Y + imgSize);
+                    cardDrawList.AddImageRounded(
+                        _profileTexture.Handle, imgMin, imgMax,
+                        Vector2.Zero, Vector2.One,
+                        ImGui.ColorConvertFloat4ToU32(Vector4.One), imgRounding);
+                    ImGui.Dummy(new Vector2(imgSize, imgSize));
+                    ImGui.SameLine();
+                }
+
+                ImGui.BeginGroup();
+                using (_uiSharedService.UidFont.Push())
+                {
+                    UiSharedService.ColorText(GroupFullInfo.GroupAliasOrGID, UiSharedService.AccentColor);
+                }
+                if (_profileNsfw)
+                {
+                    ImGui.SameLine();
+                    ImGui.TextColored(new Vector4(0.9f, 0.3f, 0.3f, 1f), "NSFW");
+                }
+                if (_profileTags.Count > 0)
+                {
+                    foreach (var tag in _profileTags)
+                    {
+                        ImGui.SameLine();
+                        ImGui.TextColored(ImGuiColors.DalamudGrey, tag);
+                    }
+                }
+                ImGui.EndGroup();
+            }, stretchWidth: true);
+
+            ImGuiHelpers.ScaledDummy(4);
+
+            if (!string.IsNullOrWhiteSpace(_profileDescription))
+            {
+                UiSharedService.DrawCard("preview-desc", () =>
+                {
+                    UiSharedService.ColorText(Loc.Get("SyncshellAdmin.Profile.Description"), UiSharedService.AccentColor);
+                    ImGuiHelpers.ScaledDummy(2);
+                    float wrapWidth = ImGui.GetContentRegionAvail().X;
+                    ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + wrapWidth);
+                    using (_uiSharedService.GameFont.Push())
+                    {
+                        ImGui.TextUnformatted(_profileDescription);
+                    }
+                    ImGui.PopTextWrapPos();
+                }, stretchWidth: true);
+            }
+        }
+        ImGui.End();
+    }
+
     public override void OnClose()
     {
+        _profileTexture?.Dispose();
+        _bannerTexture?.Dispose();
         Mediator.Publish(new RemoveWindowMessage(this));
     }
 

@@ -7,7 +7,7 @@ public sealed class PairLedger : DisposableMediatorSubscriberBase
 {
     private readonly PairManager _pairManager;
     private readonly PairStateCache _stateCache;
-    private readonly object _metricsGate = new();
+    private readonly Lock _metricsGate = new();
     private CancellationTokenSource? _ensureMetricsCts;
 
     public PairLedger(
@@ -186,6 +186,10 @@ public sealed class PairLedger : DisposableMediatorSubscriberBase
 
             // Si les métriques sont déjà présentes, pas besoin de réappliquer
             if (pair.LastAppliedApproximateVRAMBytes >= 0 && pair.LastAppliedDataTris >= 0)
+                continue;
+
+            // Ne pas interrompre un téléchargement ou une application en cours
+            if (pair.IsApplyingOrDownloading)
                 continue;
 
             try

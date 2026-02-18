@@ -25,6 +25,17 @@ public class MareConfig : IMareConfiguration
     public bool UseNameColors { get; set; }
     public DtrEntry.Colors NameColors { get; set; } = new(Foreground: 0x67EBF5u, Glow: 0x00303Cu);
     public DtrEntry.Colors BlockedNameColors { get; set; } = new(Foreground: 0x8AADC7, Glow: 0x000080u);
+    public bool UseRpNamesOnNameplates { get; set; }
+    public bool UseRpNamesInChat { get; set; }
+    public bool UseRpNameColors { get; set; } = true;
+    public bool EmoteHighlightEnabled { get; set; } = true;
+    public ushort EmoteHighlightColorKey { get; set; } = 706;
+    public bool EmoteHighlightAsterisks { get; set; } = true;
+    public bool EmoteHighlightAngleBrackets { get; set; } = true;
+    public bool EmoteHighlightSquareBrackets { get; set; } = true;
+    public bool EmoteHighlightParenthesesGray { get; set; } = true;
+    public ushort EmoteHighlightParenthesesColorKey { get; set; } = 4;
+    public bool EmoteHighlightParenthesesItalic { get; set; } = true;
     public bool EnableRightClickMenus { get; set; } = true;
     public NotificationLocation ErrorNotification { get; set; } = NotificationLocation.Both;
     public string ExportFolder { get; set; } = string.Empty;
@@ -39,7 +50,7 @@ public class MareConfig : IMareConfiguration
     public bool OpenPopupOnAdd { get; set; } = true;
     public int ParallelDownloads { get; set; } = 10;
     public bool EnableDownloadQueue { get; set; } = true;
-    public bool EnableParallelPairProcessing { get; set; } = false;
+    public bool EnableParallelPairProcessing { get; set; } = true;
     public int MaxConcurrentPairApplications { get; set; } = 10;
     public int DownloadSpeedLimitInBytes { get; set; }
     public DownloadSpeeds DownloadSpeedType { get; set; } = DownloadSpeeds.MBps;
@@ -84,11 +95,6 @@ public class MareConfig : IMareConfiguration
     public List<string> PrecacheExcludePatterns { get; set; } = new();
     public int Version { get; set; } = 1;
     public NotificationLocation WarningNotification { get; set; } = NotificationLocation.Both;
-    public bool DisableSyncshellChat { get; set; }
-    public int ChatColor { get; set; } // 0 means "use plugin default"
-    public int ChatLogKind { get; set; } = 1; // XivChatType.Debug
-    public bool ExtraChatAPI { get; set; }
-    public bool ExtraChatTags { get; set; }
     public bool TypingIndicatorShowOnNameplates { get; set; } = true;
     public bool TypingIndicatorShowOnPartyList { get; set; } = true;
     public bool TypingIndicatorEnabled { get; set; } = true;
@@ -98,10 +104,16 @@ public class MareConfig : IMareConfiguration
     public TypingIndicatorNameplateStyle TypingIndicatorNameplateStyle { get; set; } = TypingIndicatorNameplateStyle.Side;
     public float TypingIndicatorNameplateOpacity { get; set; } = 1.0f;
     public float TypingIndicatorPartyOpacity { get; set; } = 0.9f;
-
     public bool UmbraAPI { get; set; } = true;
     public bool EnableSlotNotifications { get; set; } = true;
     public float DefaultSlotRadius { get; set; } = 10f;
+    public bool PingEnabled { get; set; } = true;
+    public int PingKeybind { get; set; } = 0x50; // VirtualKey.P
+    public float PingUiScale { get; set; } = 1.0f;
+    public float PingOpacity { get; set; } = 0.9f;
+    public bool PingShowAuthorName { get; set; } = true;
+    public bool PingShowInParty { get; set; } = true;
+    public bool PingShowInSyncshell { get; set; } = true;
 
     [SuppressMessage("Major Code Smell", "S1133:Do not forget to remove this deprecated code someday", Justification = "Legacy config needed for migration")]
     [SuppressMessage("Major Code Smell", "S1123:Add an explanation", Justification = "Legacy config needed for migration")]

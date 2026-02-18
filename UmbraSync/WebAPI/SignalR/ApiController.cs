@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
 using System.Reflection;
 using UmbraSync.API.Data;
 using UmbraSync.API.Data.Extensions;
@@ -13,6 +14,7 @@ using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.Notification;
 using UmbraSync.Services.ServerConfiguration;
+using UmbraSync.Localization;
 using UmbraSync.WebAPI.SignalR.Utils;
 
 namespace UmbraSync.WebAPI.SignalR;
@@ -183,9 +185,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
 
                 await _mareHub.StartAsync(token).ConfigureAwait(false);
 
-                _connectionDto = await GetConnectionDto().ConfigureAwait(false);
-
-                ServerState = ServerState.Connected;
+                _connectionDto = await GetConnectionDtoInternal(publishConnected: false).ConfigureAwait(false);
 
                 var currentClientVer = Assembly.GetExecutingAssembly().GetName().Version!;
 
@@ -195,23 +195,30 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
                     {
                         var currentVer = $"{currentClientVer.Major}.{currentClientVer.Minor}.{currentClientVer.Build}";
                         var requiredVer = $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}";
-                        Mediator.Publish(new NotificationMessage("Client incompatible",
-                            $"Your client is outdated ({currentVer}), current is: {requiredVer}. " +
-                            $"This client version is incompatible and will not be able to connect. Please update your Umbra client.",
+                        Mediator.Publish(new DualNotificationMessage(Loc.Get("Notification.Toast.ClientIncompatible.Title"),
+                            string.Format(CultureInfo.CurrentCulture, Loc.Get("Notification.Toast.ClientIncompatible.Body"), currentVer, requiredVer),
                             NotificationType.Error));
                         _notificationTracker.Upsert(NotificationEntry.ClientIncompatible(currentVer, requiredVer));
+                    }
+                    else
+                    {
+                        Mediator.Publish(new DualNotificationMessage(Loc.Get("CompactUi.UidStatus.VersionMismatch"),
+                            Loc.Get("CompactUi.ServerErrors.VersionMismatch"),
+                            NotificationType.Error));
                     }
                     await StopConnection(ServerState.VersionMisMatch).ConfigureAwait(false);
                     return;
                 }
 
+                ServerState = ServerState.Connected;
+                Mediator.Publish(new ConnectedMessage(_connectionDto));
+
                 if (_connectionDto.CurrentClientVersion > currentClientVer)
                 {
                     var currentVer = $"{currentClientVer.Major}.{currentClientVer.Minor}.{currentClientVer.Build}";
                     var latestVer = $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}";
-                    Mediator.Publish(new NotificationMessage("Client outdated",
-                        $"Your client is outdated ({currentVer}), current is: {latestVer}. " +
-                        $"Please keep your Umbra client up-to-date.",
+                    Mediator.Publish(new DualNotificationMessage(Loc.Get("Notification.Toast.ClientOutdated.Title"),
+                        string.Format(CultureInfo.CurrentCulture, Loc.Get("Notification.Toast.ClientOutdated.Body"), currentVer, latestVer),
                         NotificationType.Warning, TimeSpan.FromSeconds(15)));
                     _notificationTracker.Upsert(NotificationEntry.ClientOutdated(currentVer, latestVer));
                 }
@@ -465,7 +472,6 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         OnDownloadReady((guid) => _ = Client_DownloadReady(guid));
         OnReceiveServerMessage((sev, msg) => _ = Client_ReceiveServerMessage(sev, msg));
         OnUpdateSystemInfo((dto) => _ = Client_UpdateSystemInfo(dto));
-
         OnUserSendOffline((dto) => _ = Client_UserSendOffline(dto));
         OnUserAddClientPair((dto) => _ = Client_UserAddClientPair(dto));
         OnUserReceiveCharacterData((dto) => _ = Client_UserReceiveCharacterData(dto));
@@ -476,7 +482,6 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         OnUserReceiveUploadStatus(dto => _ = Client_UserReceiveUploadStatus(dto));
         OnUserUpdateProfile(dto => _ = Client_UserUpdateProfile(dto));
         OnUserTypingState(dto => _ = Client_UserTypingState(dto));
-
         OnGroupChangePermissions((dto) => _ = Client_GroupChangePermissions(dto));
         OnGroupDelete((dto) => _ = Client_GroupDelete(dto));
         OnGroupPairChangeUserInfo((dto) => _ = Client_GroupPairChangeUserInfo(dto));
@@ -485,15 +490,15 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         OnGroupSendFullInfo((dto) => _ = Client_GroupSendFullInfo(dto));
         OnGroupSendInfo((dto) => _ = Client_GroupSendInfo(dto));
         OnGroupPairChangePermissions((dto) => _ = Client_GroupPairChangePermissions(dto));
-
-        OnUserChatMsg((dto) => _ = Client_UserChatMsg(dto));
-        OnGroupChatMsg((dto) => _ = Client_GroupChatMsg(dto));
-
         OnGposeLobbyJoin((dto) => _ = Client_GposeLobbyJoin(dto));
         OnGposeLobbyLeave((dto) => _ = Client_GposeLobbyLeave(dto));
         OnGposeLobbyPushCharacterData((dto) => _ = Client_GposeLobbyPushCharacterData(dto));
         OnGposeLobbyPushPoseData((dto, data) => _ = Client_GposeLobbyPushPoseData(dto, data));
         OnGposeLobbyPushWorldData((dto, data) => _ = Client_GposeLobbyPushWorldData(dto, data));
+        OnGroupSendProfile((dto) => _ = Client_GroupSendProfile(dto));
+        OnGroupReceivePing((dto) => _ = Client_GroupReceivePing(dto));
+        OnGroupRemovePing((group, sender, remove) => _ = Client_GroupRemovePing(group, sender, remove));
+        OnGroupClearPings((group) => _ = Client_GroupClearPings(group));
 
         _healthCheckTokenSource?.Cancel();
         _healthCheckTokenSource?.Dispose();
@@ -510,12 +515,13 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
             Logger.LogDebug("Individual Pair: {userPair}", userPair);
             _pairManager.AddUserPair(userPair, addToLastAddedUser: false);
         }
-        foreach (var entry in await GroupsGetAll().ConfigureAwait(false))
+        var allGroups = await GroupsGetAll().ConfigureAwait(false);
+        foreach (var entry in allGroups)
         {
             Logger.LogDebug("Group: {entry}", entry);
             _pairManager.AddGroup(entry);
         }
-        foreach (var group in _pairManager.GroupPairs.Keys)
+        foreach (var group in allGroups)
         {
             var users = await GroupsGetUsersInGroup(group).ConfigureAwait(false);
             foreach (var user in users)

@@ -6,3 +6,14 @@
 using System.Diagnostics.CodeAnalysis;
 
 [assembly: SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>", Scope = "member", Target = "~M:UmbraSync.Services.CharaDataManager.AttachPoseData(UmbraSync.API.Dto.CharaData.PoseEntry,UmbraSync.Services.CharaData.Models.CharaDataExtendedUpdateDto)")]
+
+// NoopReleaser.Instance : null object pattern conservé pour usage futur
+[assembly: SuppressMessage("Major Code Smell", "S1144:Unused private types or members should be removed", Justification = "Null object pattern for future use", Scope = "member", Target = "~F:UmbraSync.Services.ApplicationSemaphoreService.NoopReleaser.Instance")]
+
+// DrawSyncshell : méthode conservée pour réutilisation future (remplacée par DrawSyncshellCards)
+[assembly: SuppressMessage("Major Code Smell", "S1144:Unused private types or members should be removed", Justification = "Kept for future use", Scope = "member", Target = "~M:UmbraSync.UI.Components.GroupPanel.DrawSyncshell(UmbraSync.API.Dto.Group.GroupFullInfoDto,System.Collections.Generic.List{UmbraSync.PlayerData.Pairs.Pair})")]
+
+// _profileManager : lié à DrawSyncshell, conservé pour usage futur
+[assembly: SuppressMessage("Minor Code Smell", "S4487:Unread \"private\" fields should be removed", Justification = "Linked to DrawSyncshell, kept for future use", Scope = "member", Target = "~F:UmbraSync.UI.Components.GroupPanel._profileManager")]
+
+// S1199 et S6966 supprimés via #pragma inline dans les fichiers concernés
