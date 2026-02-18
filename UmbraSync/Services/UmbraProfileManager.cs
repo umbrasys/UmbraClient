@@ -159,7 +159,7 @@ public class UmbraProfileManager : MediatorSubscriberBase
                 profile.RpFirstName, profile.RpLastName, profile.RpTitle, profile.RpAge,
                 profile.RpRace, profile.RpEthnicity,
                 profile.RpHeight, profile.RpBuild, profile.RpResidence, profile.RpOccupation, profile.RpAffiliation,
-                profile.RpAlignment, profile.RpAdditionalInfo);
+                profile.RpAlignment, profile.RpAdditionalInfo, profile.RpNameColor);
 
             if (_apiController.IsConnected && string.Equals(_apiController.UID, data.UID, StringComparison.Ordinal) && charName != null && worldId != null)
             {
@@ -181,6 +181,7 @@ public class UmbraProfileManager : MediatorSubscriberBase
                 if (!string.Equals(localRpProfile.RpAdditionalInfo, profileData.RpAdditionalInfo, StringComparison.Ordinal)) { localRpProfile.RpAdditionalInfo = profileData.RpAdditionalInfo ?? string.Empty; changed = true; }
                 if (localRpProfile.IsRpNsfw != profileData.IsRpNSFW) { localRpProfile.IsRpNsfw = profileData.IsRpNSFW; changed = true; }
                 if (!string.Equals(localRpProfile.RpProfilePictureBase64, profileData.Base64RpProfilePicture, StringComparison.Ordinal)) { localRpProfile.RpProfilePictureBase64 = profileData.Base64RpProfilePicture ?? string.Empty; changed = true; }
+                if (!string.Equals(localRpProfile.RpNameColor, profileData.RpNameColor, StringComparison.Ordinal)) { localRpProfile.RpNameColor = profileData.RpNameColor ?? string.Empty; changed = true; }
 
                 if (changed)
                 {

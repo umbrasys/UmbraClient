@@ -2291,6 +2291,12 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="Settings.RpNamesInChat" xml:space="preserve">
     <value>Afficher les noms RP dans le chat</value>
   </data>
+  <data name="Settings.RpNameColors" xml:space="preserve">
+    <value>Afficher les couleurs des noms RP</value>
+  </data>
+  <data name="Settings.RpNameColors.Help" xml:space="preserve">
+    <value>Lorsque activé, les couleurs de noms RP choisies par les utilisateurs seront affichées sur les fiches et dans le chat.</value>
+  </data>
   <data name="Settings.EmoteHighlight.Header" xml:space="preserve">
     <value>Coloration des emotes</value>
   </data>
@@ -3423,6 +3429,12 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   </data>
   <data name="EditProfile.SaveButton" xml:space="preserve">
     <value>Sauvegarder le profil</value>
+  </data>
+  <data name="EditProfile.NameColor" xml:space="preserve">
+    <value>Couleur du nom</value>
+  </data>
+  <data name="EditProfile.NameColor.Tooltip" xml:space="preserve">
+    <value>Choisissez une couleur pour votre nom RP. Cette couleur sera visible sur votre fiche et dans le chat.</value>
   </data>
   <data name="EditProfile.SelectImageButton" xml:space="preserve">
     <value>Sélectionner une image</value>

@@ -8,11 +8,13 @@ using Microsoft.Extensions.Logging;
 using System.Numerics;
 using UmbraSync.Interop.Ipc;
 using UmbraSync.Localization;
+using UmbraSync.MareConfiguration;
 using UmbraSync.PlayerData.Pairs;
 using UmbraSync.Models;
 using UmbraSync.Services;
 using UmbraSync.Services.Mediator;
 using UmbraSync.Services.ServerConfiguration;
+using UmbraSync.UI.Components;
 
 namespace UmbraSync.UI;
 
@@ -20,6 +22,7 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
 {
     private readonly UmbraProfileManager _umbraProfileManager;
     private readonly ServerConfigurationManager _serverManager;
+    private readonly MareConfigService _configService;
     private readonly ApiController _apiController;
     private readonly UiSharedService _uiSharedService;
     private readonly IpcManager _ipcManager;
@@ -35,12 +38,13 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
     private DateTime _lastMoodlesFetch = DateTime.MinValue;
 
     public StandaloneProfileUi(ILogger<StandaloneProfileUi> logger, MareMediator mediator, UiSharedService uiBuilder,
-        ServerConfigurationManager serverManager, UmbraProfileManager umbraProfileManager, ApiController apiController, Pair pair,
+        ServerConfigurationManager serverManager, MareConfigService configService, UmbraProfileManager umbraProfileManager, ApiController apiController, Pair pair,
         PerformanceCollectorService performanceCollector, IpcManager ipcManager, DalamudUtilService dalamudUtil)
         : base(logger, mediator, string.Format(System.Globalization.CultureInfo.CurrentCulture, Loc.Get("StandaloneProfile.WindowTitle"), pair.UserData.AliasOrUID) + "##UmbraSyncStandaloneProfileUI" + pair.UserData.AliasOrUID, performanceCollector)
     {
         _uiSharedService = uiBuilder;
         _serverManager = serverManager;
+        _configService = configService;
         _umbraProfileManager = umbraProfileManager;
         _apiController = apiController;
         _ipcManager = ipcManager;
@@ -304,9 +308,7 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
                 var wrapWidth = ImGui.GetContentRegionAvail().X;
                 DrawSectionTitle(Loc.Get("UserProfile.RpDescription"));
                 using var _ = _uiSharedService.GameFont.Push();
-                ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + wrapWidth);
-                ImGui.TextUnformatted(description);
-                ImGui.PopTextWrapPos();
+                BbCodeRenderer.Render(description, wrapWidth);
             }, stretchWidth: true);
             ImGuiHelpers.ScaledDummy(cardSpacing / ImGuiHelpers.GlobalScale);
         }
@@ -318,9 +320,7 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
                 var wrapWidth = ImGui.GetContentRegionAvail().X;
                 DrawSectionTitle(Loc.Get("UserProfile.RpAdditionalInfo"));
                 using var _ = _uiSharedService.GameFont.Push();
-                ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + wrapWidth);
-                ImGui.TextUnformatted(profile.RpAdditionalInfo);
-                ImGui.PopTextWrapPos();
+                BbCodeRenderer.Render(profile.RpAdditionalInfo, wrapWidth);
             }, stretchWidth: true);
         }
     }
@@ -380,14 +380,16 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
             // Capture screen position of name line for moodles
             nameLineScreen = ImGui.GetCursorScreenPos();
 
+            var nameColor = _configService.Current.UseRpNameColors && !string.IsNullOrEmpty(profile.RpNameColor) ? UiSharedService.HexToVector4(profile.RpNameColor) : accent;
+
             using (_uiSharedService.UidFont.Push())
-                UiSharedService.ColorText(fullName, accent);
+                UiSharedService.ColorText(fullName, nameColor);
 
             // Title
             if (!string.IsNullOrEmpty(profile.RpTitle))
             {
                 using var _ = _uiSharedService.GameFont.Push();
-                UiSharedService.ColorText(profile.RpTitle, accent);
+                UiSharedService.ColorText(profile.RpTitle, nameColor);
             }
 
             // Race · Ethnicity

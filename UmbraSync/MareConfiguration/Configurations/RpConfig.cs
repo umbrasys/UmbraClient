@@ -26,4 +26,5 @@ public class CharacterRpProfile
     public string RpAffiliation { get; set; } = string.Empty;
     public string RpAlignment { get; set; } = string.Empty;
     public string RpAdditionalInfo { get; set; } = string.Empty;
+    public string RpNameColor { get; set; } = string.Empty;
 }

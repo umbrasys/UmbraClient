@@ -83,6 +83,10 @@ public class EditProfileUi : WindowMediatorSubscriberBase
     private string _savedRpAffiliationText = string.Empty;
     private string _savedRpAlignmentText = string.Empty;
     private string _savedRpAdditionalInfoText = string.Empty;
+    private Vector3 _rpNameColorVec;
+    private string _savedRpNameColorHex = string.Empty;
+    private Vector3 _bbcodeColorVec = new(1f, 0.6f, 0.2f);
+    private Vector3 _moodleColorVec = new(1f, 0.6f, 0.2f);
     private bool _addMoodlePopupOpen;
     private int _newMoodleIconId = 210456;
     private string _newMoodleTitle = "";
@@ -95,20 +99,6 @@ public class EditProfileUi : WindowMediatorSubscriberBase
     private readonly Lazy<List<StatusIconInfo>>? _statusIcons;
     private List<StatusIconInfo>? _filteredIcons;
     private string _lastIconSearchText = "";
-
-    private static readonly (string Name, Vector4 Color)[] MoodleColors =
-    [
-        ("Red",        new Vector4(0.90f, 0.20f, 0.20f, 1f)),
-        ("Orange",     new Vector4(1.00f, 0.60f, 0.20f, 1f)),
-        ("Yellow",     new Vector4(1.00f, 0.95f, 0.30f, 1f)),
-        ("Gold",       new Vector4(0.85f, 0.75f, 0.20f, 1f)),
-        ("Green",      new Vector4(0.20f, 0.80f, 0.20f, 1f)),
-        ("LightGreen", new Vector4(0.60f, 1.00f, 0.60f, 1f)),
-        ("LightBlue",  new Vector4(0.50f, 0.80f, 1.00f, 1f)),
-        ("DarkBlue",   new Vector4(0.20f, 0.40f, 0.90f, 1f)),
-        ("Pink",       new Vector4(1.00f, 0.50f, 0.80f, 1f)),
-        ("White",      new Vector4(1.00f, 1.00f, 1.00f, 1f)),
-    ];
 
     public EditProfileUi(ILogger<EditProfileUi> logger, MareMediator mediator,
         ApiController apiController, UiSharedService uiSharedService, FileDialogManager fileDialogManager,
@@ -215,7 +205,8 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                 RpOccupation: _rpOccupationText,
                 RpAffiliation: _rpAffiliationText,
                 RpAlignment: _rpAlignmentText,
-                RpAdditionalInfo: _rpAdditionalInfoText
+                RpAdditionalInfo: _rpAdditionalInfoText,
+                RpNameColor: UiSharedService.Vector4ToHex(new Vector4(_rpNameColorVec, 1f))
             );
 
             _umbraProfileManager.SetPreviewProfile(pair.UserData, pair.PlayerName, pair.WorldId, previewProfileData);
@@ -335,6 +326,18 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                 _rpAffiliationText = umbraProfile.RpAffiliation ?? string.Empty;
                 _rpAlignmentText = umbraProfile.RpAlignment ?? string.Empty;
                 _rpAdditionalInfoText = umbraProfile.RpAdditionalInfo ?? string.Empty;
+
+                var nameColorHex = umbraProfile.RpNameColor ?? string.Empty;
+                if (!string.IsNullOrEmpty(nameColorHex))
+                {
+                    var v4 = UiSharedService.HexToVector4(nameColorHex);
+                    _rpNameColorVec = new Vector3(v4.X, v4.Y, v4.Z);
+                }
+                else
+                {
+                    var accent = UiSharedService.AccentColor;
+                    _rpNameColorVec = new Vector3(accent.X, accent.Y, accent.Z);
+                }
 
                 try
                 {
@@ -465,7 +468,8 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                                 RpOccupation = rpProfile.RpOccupation,
                                 RpAffiliation = rpProfile.RpAffiliation,
                                 RpAlignment = rpProfile.RpAlignment,
-                                RpAdditionalInfo = rpProfile.RpAdditionalInfo
+                                RpAdditionalInfo = rpProfile.RpAdditionalInfo,
+                                RpNameColor = rpProfile.RpNameColor
                             }).ConfigureAwait(false);
                         }
                         else
@@ -487,7 +491,8 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                                 RpOccupation = curProfile.RpOccupation,
                                 RpAffiliation = curProfile.RpAffiliation,
                                 RpAlignment = curProfile.RpAlignment,
-                                RpAdditionalInfo = curProfile.RpAdditionalInfo
+                                RpAdditionalInfo = curProfile.RpAdditionalInfo,
+                                RpNameColor = curProfile.RpNameColor
                             }).ConfigureAwait(false);
                         }
                         Mediator.Publish(new ClearProfileDataMessage(new UserData(_apiController.UID), charName, worldId));
@@ -543,6 +548,15 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                 UiSharedService.ColorTextWrapped(string.Format(Loc.Get("EditProfile.RpFirstNameMismatch"), vanillaFirstName), ImGuiColors.DalamudRed);
             }
 
+            // Color picker for RP name
+            ImGui.TextColored(ImGuiColors.DalamudGrey, Loc.Get("EditProfile.NameColor"));
+            ImGui.SameLine();
+            ImGui.SetNextItemWidth(24f * ImGuiHelpers.GlobalScale);
+            if (ImGui.ColorEdit3("##rpNameColor", ref _rpNameColorVec, ImGuiColorEditFlags.NoInputs | ImGuiColorEditFlags.NoLabel))
+            {
+            }
+            UiSharedService.AttachToolTip(Loc.Get("EditProfile.NameColor.Tooltip"));
+
             DrawFieldPair(Loc.Get("UserProfile.RpTitle"), ref _rpTitleText, 100, Loc.Get("UserProfile.RpAge"), ref _rpAgeText, 50);
             DrawFieldPair(Loc.Get("UserProfile.RpRace"), ref _rpRaceText, 50, Loc.Get("UserProfile.RpEthnicity"), ref _rpEthnicityText, 50);
             DrawFieldPair(Loc.Get("UserProfile.RpHeight"), ref _rpHeightText, 50, Loc.Get("UserProfile.RpBuild"), ref _rpBuildText, 100);
@@ -576,6 +590,9 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             using (_uiSharedService.GameFont.Push())
             {
                 ImGui.TextColored(ImGuiColors.DalamudGrey, Loc.Get("UserProfile.RpAdditionalInfo"));
+                ImGui.SameLine();
+                DrawBbCodeToolbar(ref _rpAdditionalInfoText);
+
                 ImGui.InputTextMultiline("##additional_info", ref _rpAdditionalInfoText, 3000,
                     new Vector2(w, 150 * ImGuiHelpers.GlobalScale));
             }
@@ -773,31 +790,17 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             ImGui.SetNextItemWidth(-1);
             ImGui.InputText("##moodleTitle", ref _newMoodleTitle, 100);
 
-            // Color buttons
-            var btnSize = 20f * ImGuiHelpers.GlobalScale;
-            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, Vector2.Zero);
-            ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 3f);
-            ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(4f * ImGuiHelpers.GlobalScale, 0));
-            for (int ci = 0; ci < MoodleColors.Length; ci++)
-            {
-                var (colorName, colorVec) = MoodleColors[ci];
-                if (ci > 0) ImGui.SameLine();
-                ImGui.PushStyleColor(ImGuiCol.Button, colorVec with { W = 0.85f });
-                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, colorVec);
-                ImGui.PushStyleColor(ImGuiCol.ButtonActive, colorVec with { W = 0.6f });
-                if (ImGui.Button($"##color_{colorName}", new Vector2(btnSize, btnSize)))
-                {
-                    _newMoodleTitle = WrapTitleWithColor(_newMoodleTitle, colorName);
-                }
-                ImGui.PopStyleColor(3);
-                if (ImGui.IsItemHovered())
-                {
-                    ImGui.BeginTooltip();
-                    ImGui.TextUnformatted(colorName);
-                    ImGui.EndTooltip();
-                }
-            }
+            ImGui.SetNextItemWidth(24f * ImGuiHelpers.GlobalScale);
+            ImGui.ColorEdit3("##moodleTitleColor", ref _moodleColorVec, ImGuiColorEditFlags.NoInputs | ImGuiColorEditFlags.NoLabel);
             ImGui.SameLine();
+            if (ImGui.Button("Appliquer##applyMoodleColor"))
+            {
+                var hex = UiSharedService.Vector4ToHex(new Vector4(_moodleColorVec, 1f));
+                _newMoodleTitle = WrapTitleWithColor(_newMoodleTitle, hex);
+            }
+            UiSharedService.AttachToolTip("Appliquer la couleur au titre");
+            ImGui.SameLine();
+            var btnSize = 20f * ImGuiHelpers.GlobalScale;
             ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.4f, 0.4f, 0.4f, 0.85f));
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.6f, 0.3f, 0.3f, 1f));
             ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.8f, 0.2f, 0.2f, 1f));
@@ -806,23 +809,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                 _newMoodleTitle = StripColorTags(_newMoodleTitle);
             }
             ImGui.PopStyleColor(3);
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.BeginTooltip();
-                ImGui.TextUnformatted("Retirer la couleur");
-                ImGui.EndTooltip();
-            }
-            ImGui.SameLine();
-            ImGui.TextColored(ImGuiColors.DalamudGrey, "(?)");
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.BeginTooltip();
-                ImGui.TextUnformatted("Syntaxe BBCode : [color=NomCouleur]Texte[/color]");
-                ImGui.TextUnformatted("Couleurs : Red, Orange, Yellow, Gold, Green,");
-                ImGui.TextUnformatted("LightGreen, LightBlue, DarkBlue, Pink, White");
-                ImGui.EndTooltip();
-            }
-            ImGui.PopStyleVar(3);
+            UiSharedService.AttachToolTip("Retirer la couleur");
 
             // Description
             ImGui.TextColored(ImGuiColors.DalamudGrey, "Description");
@@ -1075,6 +1062,130 @@ public class EditProfileUi : WindowMediatorSubscriberBase
         return Regex.Replace(text, @"\[/?color(?:=[^\]]*)?]", string.Empty, RegexOptions.None, TimeSpan.FromSeconds(1)).Trim();
     }
 
+    private void DrawBbCodeToolbar(ref string text)
+    {
+        var spacing = 2f * ImGuiHelpers.GlobalScale;
+        ImGui.PushStyleColor(ImGuiCol.Button, Vector4.Zero);
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, UiSharedService.ThemeButtonHovered);
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, UiSharedService.ThemeButtonActive);
+        ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(4, 2) * ImGuiHelpers.GlobalScale);
+
+        BbCodeIconButton(FontAwesomeIcon.Bold, "[b]", "[/b]", "Gras", ref text);
+        ImGui.SameLine(0, spacing);
+        BbCodeIconButton(FontAwesomeIcon.Italic, "[i]", "[/i]", "Italique", ref text);
+        ImGui.SameLine(0, spacing);
+        BbCodeTextButton("U\u0332", "[u]", "[/u]", "Souligné", ref text);
+        ImGui.SameLine(0, spacing);
+        BbCodeIconButton(FontAwesomeIcon.AlignLeft, "[left]\n", "\n[/left]", "Aligner à gauche", ref text);
+        ImGui.SameLine(0, spacing);
+        BbCodeIconButton(FontAwesomeIcon.AlignCenter, "[center]\n", "\n[/center]", "Centrer", ref text);
+        ImGui.SameLine(0, spacing);
+        BbCodeIconButton(FontAwesomeIcon.AlignRight, "[right]\n", "\n[/right]", "Aligner à droite", ref text);
+        ImGui.SameLine(0, spacing);
+        BbCodeIconButton(FontAwesomeIcon.AlignJustify, "[justify]\n", "\n[/justify]", "Justifier", ref text);
+        ImGui.SameLine(0, spacing);
+
+        using (var font = _uiSharedService.IconFont.Push())
+        {
+            if (ImGui.Button(FontAwesomeIcon.PaintBrush.ToIconString() + "##bbcode_color"))
+                ImGui.OpenPopup("bbcode_color_picker");
+        }
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip("Couleur");
+
+        if (ImGui.BeginPopup("bbcode_color_picker"))
+        {
+            if (ImGui.ColorPicker3("##bbcodeColorPicker", ref _bbcodeColorVec, ImGuiColorEditFlags.PickerHueWheel | ImGuiColorEditFlags.NoSidePreview))
+            {
+            }
+            if (ImGui.Button("Insérer##bbcodeColorInsert"))
+            {
+                var hex = UiSharedService.Vector4ToHex(new Vector4(_bbcodeColorVec, 1f));
+                text += $"[color={hex}][/color]";
+                ImGui.CloseCurrentPopup();
+            }
+            ImGui.EndPopup();
+        }
+
+        ImGui.SameLine(0, spacing);
+        if (_uiSharedService.IconTextButton(FontAwesomeIcon.QuestionCircle, "Aide BBCode"))
+            ImGui.OpenPopup("bbcode_help_popup");
+
+        DrawBbCodeHelpPopup();
+
+        ImGui.PopStyleVar();
+        ImGui.PopStyleColor(3);
+    }
+
+    private static void DrawBbCodeHelpPopup()
+    {
+        if (!ImGui.BeginPopup("bbcode_help_popup")) return;
+
+        ImGui.TextColored(new Vector4(0.59f, 0.27f, 0.90f, 1f), "Formatage BBCode");
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        ImGui.TextUnformatted("Encadrez votre texte avec des balises pour le mettre en forme.");
+        ImGui.TextUnformatted("Les boutons de la barre d'outils insèrent les balises à la fin du texte.");
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        ImGui.TextColored(ImGuiColors.DalamudGrey, "Style de texte");
+        ImGui.Spacing();
+        DrawHelpRow("[b]texte[/b]", "Gras");
+        DrawHelpRow("[i]texte[/i]", "Italique");
+        DrawHelpRow("[u]texte[/u]", "Souligné");
+        DrawHelpRow("[color=Red]texte[/color]", "Couleur (nom ou #hex)");
+
+        ImGui.Spacing();
+        ImGui.TextColored(ImGuiColors.DalamudGrey, "Alignement");
+        ImGui.Spacing();
+        DrawHelpRow("[left]texte[/left]", "Aligné à gauche");
+        DrawHelpRow("[center]texte[/center]", "Centré");
+        DrawHelpRow("[right]texte[/right]", "Aligné à droite");
+        DrawHelpRow("[justify]texte[/justify]", "Justifié");
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+        ImGui.TextColored(ImGuiColors.DalamudGrey, "Couleurs disponibles");
+        ImGui.Spacing();
+        ImGui.TextWrapped("Red, Orange, Yellow, Gold, Green, LightGreen,\nLightBlue, DarkBlue, Blue, Pink, Purple, White, Grey");
+        ImGui.Spacing();
+        ImGui.TextWrapped("Vous pouvez aussi utiliser un code hexadécimal :\n[color=#FF5500]texte[/color]");
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+        ImGui.TextColored(ImGuiColors.DalamudGrey, "Exemple");
+        ImGui.Spacing();
+        ImGui.TextWrapped("[justify][b]Titre[/b]\nCeci est un texte [color=Gold]doré[/color]\net [i]italique[/i].[/justify]");
+
+        ImGui.EndPopup();
+    }
+
+    private static void DrawHelpRow(string tag, string description)
+    {
+        ImGui.TextColored(new Vector4(0.85f, 0.75f, 0.20f, 1f), tag);
+        ImGui.SameLine(280 * ImGuiHelpers.GlobalScale);
+        ImGui.TextUnformatted(description);
+    }
+
+    private void BbCodeIconButton(FontAwesomeIcon icon, string openTag, string closeTag, string tooltip, ref string text)
+    {
+        using var font = _uiSharedService.IconFont.Push();
+        if (ImGui.Button(icon.ToIconString() + $"##bb_{openTag}"))
+            text += openTag + closeTag;
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip(tooltip);
+    }
+
+    private static void BbCodeTextButton(string label, string openTag, string closeTag, string tooltip, ref string text)
+    {
+        if (ImGui.Button(label + $"##bb_{openTag}"))
+            text += openTag + closeTag;
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip(tooltip);
+    }
+
     private void DrawVanityPopup()
     {
         if (_vanityModalOpen && ImGui.BeginPopupModal(Loc.Get("EditProfile.SetCustomId.Title"), ref _vanityModalOpen, ImGuiWindowFlags.AlwaysAutoResize))
@@ -1136,7 +1247,8 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                         RpOccupation = curProfile.RpOccupation,
                         RpAffiliation = curProfile.RpAffiliation,
                         RpAlignment = curProfile.RpAlignment,
-                        RpAdditionalInfo = curProfile.RpAdditionalInfo
+                        RpAdditionalInfo = curProfile.RpAdditionalInfo,
+                        RpNameColor = curProfile.RpNameColor
                     }).ConfigureAwait(false);
                     Mediator.Publish(new ClearProfileDataMessage(new UserData(_apiController.UID), charName, worldId));
                 });
@@ -1172,7 +1284,8 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                         RpOccupation = curProfile.RpOccupation,
                         RpAffiliation = curProfile.RpAffiliation,
                         RpAlignment = curProfile.RpAlignment,
-                        RpAdditionalInfo = curProfile.RpAdditionalInfo
+                        RpAdditionalInfo = curProfile.RpAdditionalInfo,
+                        RpNameColor = curProfile.RpNameColor
                     }).ConfigureAwait(false);
                     Mediator.Publish(new ClearProfileDataMessage(new UserData(_apiController.UID), charName, worldId));
                 });
@@ -1209,6 +1322,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                 profile.RpAffiliation = _rpAffiliationText;
                 profile.RpAlignment = _rpAlignmentText;
                 profile.RpAdditionalInfo = _rpAdditionalInfoText;
+                profile.RpNameColor = UiSharedService.Vector4ToHex(new Vector4(_rpNameColorVec, 1f));
                 _rpConfigService.Save();
             }
 
@@ -1243,7 +1357,8 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                             RpOccupation = localRpProfile.RpOccupation,
                             RpAffiliation = localRpProfile.RpAffiliation,
                             RpAlignment = localRpProfile.RpAlignment,
-                            RpAdditionalInfo = localRpProfile.RpAdditionalInfo
+                            RpAdditionalInfo = localRpProfile.RpAdditionalInfo,
+                            RpNameColor = localRpProfile.RpNameColor
                         }).ConfigureAwait(false);
                     }
                     else
@@ -1268,7 +1383,8 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                             RpOccupation = localRpProfile.RpOccupation,
                             RpAffiliation = localRpProfile.RpAffiliation,
                             RpAlignment = localRpProfile.RpAlignment,
-                            RpAdditionalInfo = localRpProfile.RpAdditionalInfo
+                            RpAdditionalInfo = localRpProfile.RpAdditionalInfo,
+                            RpNameColor = localRpProfile.RpNameColor
                         }).ConfigureAwait(false);
                     }
                     Mediator.Publish(new ClearProfileDataMessage(new UserData(_apiController.UID), charName, worldId));
@@ -1314,6 +1430,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             _savedRpAffiliationText = _rpAffiliationText;
             _savedRpAlignmentText = _rpAlignmentText;
             _savedRpAdditionalInfoText = _rpAdditionalInfoText;
+            _savedRpNameColorHex = UiSharedService.Vector4ToHex(new Vector4(_rpNameColorVec, 1f));
         }
         else
         {
@@ -1337,7 +1454,8 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                 || !string.Equals(_rpOccupationText, _savedRpOccupationText, StringComparison.Ordinal)
                 || !string.Equals(_rpAffiliationText, _savedRpAffiliationText, StringComparison.Ordinal)
                 || !string.Equals(_rpAlignmentText, _savedRpAlignmentText, StringComparison.Ordinal)
-                || !string.Equals(_rpAdditionalInfoText, _savedRpAdditionalInfoText, StringComparison.Ordinal);
+                || !string.Equals(_rpAdditionalInfoText, _savedRpAdditionalInfoText, StringComparison.Ordinal)
+                || !string.Equals(UiSharedService.Vector4ToHex(new Vector4(_rpNameColorVec, 1f)), _savedRpNameColorHex, StringComparison.Ordinal);
         }
         else
         {

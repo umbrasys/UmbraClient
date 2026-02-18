@@ -295,60 +295,105 @@ public partial class FileDownloadManager : DisposableMediatorSubscriberBase
             catch (Exception ex) { Logger.LogWarning(ex, "Cannot delete existing .lz4tmp file {path}", lz4TmpPath); }
         }
 
-        try
-        {
-            var response = await _orchestrator.SendRequestAsync(HttpMethod.Get, new Uri(url), ct, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+        const int maxRetries = 3;
+        const int perFileTimeoutSeconds = 5;
+        var retryDelay = TimeSpan.FromSeconds(2);
 
-            if (response.StatusCode == HttpStatusCode.NotFound)
+        for (int attempt = 1; attempt <= maxRetries; attempt++)
+        {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(perFileTimeoutSeconds));
+            var linkedToken = timeoutCts.Token;
+
+            try
+            {
+                Logger.LogDebug("Attempt {attempt}/{max} - Direct CDN download for {hash}", attempt, maxRetries, file.Hash);
+
+                var response = await _orchestrator.SendRequestAsync(HttpMethod.Get, new Uri(url), linkedToken, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+
+                if (response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    Logger.LogDebug("Direct CDN 404 for {hash}, will fallback", file.Hash);
+                    return false;
+                }
+
+                response.EnsureSuccessStatusCode();
+
+                ThrottledStream? throttledStream = null;
+                try
+                {
+                    var limit = _orchestrator.DownloadLimitPerSlot();
+                    throttledStream = new ThrottledStream(await response.Content.ReadAsStreamAsync(linkedToken).ConfigureAwait(false), limit);
+                    _activeDownloadStreams.TryAdd(throttledStream, 0);
+
+                    var bufferSize = response.Content.Headers.ContentLength > 1024 * 1024 ? 65536 : 8196;
+                    var buffer = new byte[bufferSize];
+
+                    using var fileStream = new FileStream(lz4TmpPath, FileMode.Create, FileAccess.Write, FileShare.None);
+                    int bytesRead;
+                    while ((bytesRead = await throttledStream.ReadAsync(buffer, linkedToken).ConfigureAwait(false)) > 0)
+                    {
+                        linkedToken.ThrowIfCancellationRequested();
+                        await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), linkedToken).ConfigureAwait(false);
+                        progress.Report(bytesRead);
+                    }
+
+                    Logger.LogDebug("CDN download (compressed) finished for {hash}", file.Hash);
+                    return true;
+                }
+                finally
+                {
+                    if (throttledStream != null)
+                    {
+                        _activeDownloadStreams.TryRemove(throttledStream, out _);
+                        await throttledStream.DisposeAsync().ConfigureAwait(false);
+                    }
+                }
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {
                 Logger.LogDebug("Direct CDN 404 for {hash}, will fallback", file.Hash);
                 return false;
             }
-
-            response.EnsureSuccessStatusCode();
-
-            ThrottledStream? throttledStream = null;
-            try
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
-                var limit = _orchestrator.DownloadLimitPerSlot();
-                throttledStream = new ThrottledStream(await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false), limit);
-                _activeDownloadStreams.TryAdd(throttledStream, 0);
+                throw;
+            }
+            catch (HttpRequestException ex) when (ex.InnerException is TimeoutException || ex.StatusCode == null)
+            {
+                Logger.LogWarning(ex, "Timeout during CDN download of {hash}. Attempt {attempt}/{max}", file.Hash, attempt, maxRetries);
+                if (File.Exists(lz4TmpPath)) try { File.Delete(lz4TmpPath); } catch { }
 
-                var bufferSize = response.Content.Headers.ContentLength > 1024 * 1024 ? 65536 : 8196;
-                var buffer = new byte[bufferSize];
-
-                using var fileStream = new FileStream(lz4TmpPath, FileMode.Create, FileAccess.Write, FileShare.None);
-                int bytesRead;
-                while ((bytesRead = await throttledStream.ReadAsync(buffer, ct).ConfigureAwait(false)) > 0)
+                if (attempt >= maxRetries)
                 {
-                    ct.ThrowIfCancellationRequested();
-                    await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), ct).ConfigureAwait(false);
-                    progress.Report(bytesRead);
+                    Logger.LogWarning("Max retries reached for CDN download of {hash}, will fallback", file.Hash);
+                    return false;
                 }
 
-                Logger.LogDebug("CDN download (compressed) finished for {hash}", file.Hash);
-                return true;
+                await Task.Delay(retryDelay, ct).ConfigureAwait(false);
             }
-            finally
+            catch (TaskCanceledException) when (!ct.IsCancellationRequested)
             {
-                if (throttledStream != null)
+                Logger.LogWarning("CDN download timed out ({timeout}s) for {hash}. Attempt {attempt}/{max}", perFileTimeoutSeconds, file.Hash, attempt, maxRetries);
+                if (File.Exists(lz4TmpPath)) try { File.Delete(lz4TmpPath); } catch { }
+
+                if (attempt >= maxRetries)
                 {
-                    _activeDownloadStreams.TryRemove(throttledStream, out _);
-                    await throttledStream.DisposeAsync().ConfigureAwait(false);
+                    Logger.LogWarning("Max retries reached for CDN download of {hash}, will fallback", file.Hash);
+                    return false;
                 }
+
+                await Task.Delay(retryDelay, ct).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                Logger.LogWarning(ex, "Direct CDN download failed for {hash} (attempt {attempt}/{max}), will fallback", file.Hash, attempt, maxRetries);
+                if (File.Exists(lz4TmpPath)) try { File.Delete(lz4TmpPath); } catch { }
+                return false;
             }
         }
-        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
-        {
-            Logger.LogDebug("Direct CDN 404 for {hash}, will fallback", file.Hash);
-            return false;
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            Logger.LogWarning(ex, "Direct CDN download failed for {hash}, will fallback", file.Hash);
-            if (File.Exists(lz4TmpPath)) try { File.Delete(lz4TmpPath); } catch { /* best-effort cleanup */ }
-            return false;
-        }
+
+        return false;
     }
 
     // --- CDN Direct Download: Phase 2 (decompress + hash verify + persist) ---

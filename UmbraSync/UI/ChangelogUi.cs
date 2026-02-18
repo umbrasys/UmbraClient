@@ -172,6 +172,12 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
     {
         return new List<ChangelogEntry>
         {
+            new(new Version(2, 2, 2, 1), "2.2.2.1", new List<ChangelogLine>
+            {
+                new("Nouveauté : Support du format BBCode dans les informations du Profil RP."),
+                new("Correctif : Dans certains cas, la bulle d'écriture ne s'affichait plus."),
+                new("Correctif : Meilleure gestion du timeout / perte de connexion lors d'un téléchargement de mod."),
+            }),
             new(new Version(2, 2, 2, 0), "2.2.2.0", new List<ChangelogLine>
             {
                 new("Nouveauté : Intégration de Moodles dans les profils RP."),

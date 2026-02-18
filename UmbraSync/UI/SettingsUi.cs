@@ -521,6 +521,14 @@ public class SettingsUi : WindowMediatorSubscriberBase
             _configService.Save();
         }
 
+        var useRpNameColors = _configService.Current.UseRpNameColors;
+        if (ImGui.Checkbox(Loc.Get("Settings.RpNameColors"), ref useRpNameColors))
+        {
+            _configService.Current.UseRpNameColors = useRpNameColors;
+            _configService.Save();
+        }
+        _uiShared.DrawHelpText(Loc.Get("Settings.RpNameColors.Help"));
+
         ImGui.Spacing();
 
         _uiShared.BigText(Loc.Get("Settings.EmoteHighlight.Header"));

@@ -97,11 +97,12 @@ public class ChatNameReplacementService : DisposableMediatorSubscriberBase
         if (string.IsNullOrEmpty(senderText))
             return;
 
-        var rpName = ResolveRpName(senderText);
+        var (rpName, nameColor) = ResolveRpName(senderText);
         if (rpName == null)
             return;
 
-        ReplaceSenderName(ref sender, senderText, rpName);
+        var effectiveColor = _configService.Current.UseRpNameColors ? nameColor : null;
+        ReplaceSenderName(ref sender, senderText, rpName, effectiveColor);
     }
 
     private static string ExtractSenderName(SeString sender)
@@ -114,7 +115,7 @@ public class ChatNameReplacementService : DisposableMediatorSubscriberBase
         return string.Empty;
     }
 
-    private string? ResolveRpName(string senderName)
+    private (string? rpName, string? nameColor) ResolveRpName(string senderName)
     {
         var localPlayerName = _dalamudUtil.GetPlayerName();
         if (!string.IsNullOrEmpty(localPlayerName) && NameMatches(senderName, localPlayerName)
@@ -123,7 +124,7 @@ public class ChatNameReplacementService : DisposableMediatorSubscriberBase
             var profile = _umbraProfileManager.GetUmbraProfile(new UserData(_apiController.UID));
             if (!string.IsNullOrEmpty(profile.RpFirstName) && !string.IsNullOrEmpty(profile.RpLastName)
                 && IsRpFirstNameValid(localPlayerName, profile.RpFirstName))
-                return BuildRpDisplayName(profile);
+                return (BuildRpDisplayName(profile), profile.RpNameColor);
         }
 
         foreach (var pair in _pairManager.GetOnlineUserPairs())
@@ -137,11 +138,11 @@ public class ChatNameReplacementService : DisposableMediatorSubscriberBase
                 var profile = _umbraProfileManager.GetUmbraProfile(pair.UserData);
                 if (!string.IsNullOrEmpty(profile.RpFirstName) && !string.IsNullOrEmpty(profile.RpLastName)
                     && IsRpFirstNameValid(playerName, profile.RpFirstName))
-                    return BuildRpDisplayName(profile);
+                    return (BuildRpDisplayName(profile), profile.RpNameColor);
             }
         }
 
-        return null;
+        return (null, null);
     }
 
     private static bool IsRpFirstNameValid(string vanillaFullName, string rpFirstName)
@@ -194,10 +195,16 @@ public class ChatNameReplacementService : DisposableMediatorSubscriberBase
         return false;
     }
 
-    private static void ReplaceSenderName(ref SeString sender, string originalName, string rpName)
+    private const byte ColorTypeForeground = 0x13;
+
+    private static void ReplaceSenderName(ref SeString sender, string originalName, string rpName, string? nameColor)
     {
         var newPayloads = new List<Payload>(sender.Payloads.Count);
         var replaced = false;
+        uint colorUint = 0;
+        bool applyColor = !string.IsNullOrEmpty(nameColor);
+        if (applyColor)
+            colorUint = UI.UiSharedService.HexToUint(nameColor!);
 
         foreach (var payload in sender.Payloads)
         {
@@ -207,8 +214,23 @@ public class ChatNameReplacementService : DisposableMediatorSubscriberBase
                 var index = text.IndexOf(originalName, StringComparison.OrdinalIgnoreCase);
                 if (index >= 0)
                 {
-                    var newText = string.Concat(text.AsSpan(0, index), rpName, text.AsSpan(index + originalName.Length));
-                    newPayloads.Add(new TextPayload(newText));
+                    var before = text[..index];
+                    var after = text[(index + originalName.Length)..];
+
+                    if (!string.IsNullOrEmpty(before))
+                        newPayloads.Add(new TextPayload(before));
+
+                    if (applyColor && colorUint != 0)
+                        newPayloads.Add(BuildColorStartPayload(ColorTypeForeground, colorUint));
+
+                    newPayloads.Add(new TextPayload(rpName));
+
+                    if (applyColor && colorUint != 0)
+                        newPayloads.Add(BuildColorEndPayload(ColorTypeForeground));
+
+                    if (!string.IsNullOrEmpty(after))
+                        newPayloads.Add(new TextPayload(after));
+
                     replaced = true;
                     continue;
                 }
@@ -219,4 +241,32 @@ public class ChatNameReplacementService : DisposableMediatorSubscriberBase
         if (replaced)
             sender = new SeString(newPayloads);
     }
+
+    private static RawPayload BuildColorStartPayload(byte colorType, uint color)
+    {
+        // SeString packed integer encoding (Lumina/Dalamud format)
+        // Type byte = (0xF0 | presentByteMask) - 1
+        // Data bytes written raw in MSB order: byte@24, byte@16(R), byte@8(G), byte@0(B)
+        byte r = (byte)(color >> 16);
+        byte g = (byte)(color >> 8);
+        byte b = (byte)color;
+
+        byte mask = 0;
+        var data = new List<byte>(3);
+        if (r != 0) { mask |= 0x04; data.Add(r); }
+        if (g != 0) { mask |= 0x02; data.Add(g); }
+        if (b != 0) { mask |= 0x01; data.Add(b); }
+
+        var result = new byte[4 + data.Count];
+        result[0] = 0x02;
+        result[1] = colorType;
+        result[2] = (byte)(data.Count + 2); // typeByte + data + end marker
+        result[3] = (byte)((0xF0 | mask) - 1);
+        for (var i = 0; i < data.Count; i++) result[4 + i] = data[i];
+        result[^1] = 0x03;
+        return new RawPayload(result);
+    }
+
+    private static RawPayload BuildColorEndPayload(byte colorType)
+        => new([0x02, colorType, 0x02, 0xEC, 0x03]);
 }

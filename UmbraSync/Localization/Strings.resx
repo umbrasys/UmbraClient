@@ -2391,6 +2391,12 @@ Click to change.</value>
   <data name="Settings.RpNamesInChat" xml:space="preserve">
     <value>Display RP names in chat</value>
   </data>
+  <data name="Settings.RpNameColors" xml:space="preserve">
+    <value>Display RP name colors</value>
+  </data>
+  <data name="Settings.RpNameColors.Help" xml:space="preserve">
+    <value>When enabled, RP name colors chosen by users will be displayed on profiles and in chat.</value>
+  </data>
   <data name="Settings.EmoteHighlight.Header" xml:space="preserve">
     <value>Emote Highlighting</value>
   </data>
@@ -3523,6 +3529,12 @@ Click to change.</value>
   </data>
   <data name="EditProfile.SaveButton" xml:space="preserve">
     <value>Save Profile</value>
+  </data>
+  <data name="EditProfile.NameColor" xml:space="preserve">
+    <value>Name Color</value>
+  </data>
+  <data name="EditProfile.NameColor.Tooltip" xml:space="preserve">
+    <value>Choose a color for your RP name. This color will be visible on your profile and in chat.</value>
   </data>
   <data name="EditProfile.SelectImageButton" xml:space="preserve">
     <value>Select Image</value>
