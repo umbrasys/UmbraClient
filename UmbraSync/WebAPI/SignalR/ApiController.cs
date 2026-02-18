@@ -499,6 +499,11 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IM
         OnGroupReceivePing((dto) => _ = Client_GroupReceivePing(dto));
         OnGroupRemovePing((group, sender, remove) => _ = Client_GroupRemovePing(group, sender, remove));
         OnGroupClearPings((group) => _ = Client_GroupClearPings(group));
+        OnQuestSessionJoin((userData) => _ = Client_QuestSessionJoin(userData));
+        OnQuestSessionLeave((userData) => _ = Client_QuestSessionLeave(userData));
+        OnQuestSessionStateUpdate((sender, state) => _ = Client_QuestSessionStateUpdate(sender, state));
+        OnQuestSessionEventTriggered((sender, trigger) => _ = Client_QuestSessionEventTriggered(sender, trigger));
+        OnQuestSessionBranchingChoice((sender, choice) => _ = Client_QuestSessionBranchingChoice(sender, choice));
 
         _healthCheckTokenSource?.Cancel();
         _healthCheckTokenSource?.Dispose();

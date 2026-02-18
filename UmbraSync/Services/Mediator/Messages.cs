@@ -6,6 +6,7 @@ using UmbraSync.API.Dto;
 using UmbraSync.API.Dto.CharaData;
 using UmbraSync.API.Dto.Group;
 using UmbraSync.API.Dto.Ping;
+using UmbraSync.API.Dto.QuestSync;
 using UmbraSync.API.Dto.Slot;
 using UmbraSync.API.Dto.User;
 using UmbraSync.MareConfiguration.Models;
@@ -144,5 +145,10 @@ public record GroupProfileUpdatedMessage(GroupProfileDto Profile) : MessageBase;
 public record PingMarkerReceivedMessage(GroupPingMarkerDto Dto) : MessageBase;
 public record PingMarkerRemovedMessage(GroupData Group, UserData Sender, Guid PingId) : MessageBase;
 public record PingMarkersClearedMessage(GroupData Group) : MessageBase;
+public record QuestSessionJoinMessage(UserData UserData) : MessageBase;
+public record QuestSessionLeaveMessage(UserData UserData) : MessageBase;
+public record QuestSessionStateUpdateMessage(UserData Sender, QuestSessionStateDto State) : MessageBase;
+public record QuestSessionEventTriggeredMessage(UserData Sender, QuestEventTriggerDto Trigger) : MessageBase;
+public record QuestSessionBranchingChoiceMessage(UserData Sender, QuestBranchingChoiceDto Choice) : MessageBase;
 #pragma warning restore S2094
 #pragma warning restore MA0048
