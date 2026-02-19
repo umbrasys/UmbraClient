@@ -4200,4 +4200,152 @@ Le serveur est prêt, en attente de l'intégration avec A Quest Reborn.</value>
   <data name="Settings.ProfileBrowser.ClearCache" xml:space="preserve">
     <value>Vider le cache</value>
   </data>
+  <!-- RGPD / Vie privée -->
+  <data name="Settings.Section.Privacy.Desc" xml:space="preserve">
+    <value>Gérez vos données personnelles, vos consentements et exercez vos droits conformément au RGPD.</value>
+  </data>
+  <data name="Settings.Privacy.Title" xml:space="preserve">
+    <value>Vie privée &amp; RGPD</value>
+  </data>
+  <data name="Settings.Privacy.ConsentStatus" xml:space="preserve">
+    <value>État du consentement</value>
+  </data>
+  <data name="Settings.Privacy.ConsentActive" xml:space="preserve">
+    <value>Consentement actif</value>
+  </data>
+  <data name="Settings.Privacy.ConsentExpired" xml:space="preserve">
+    <value>Consentement expiré ou absent ! Veuillez renouveler via l'écran d'introduction.</value>
+  </data>
+  <data name="Settings.Privacy.ConsentDetail.Collection" xml:space="preserve">
+    <value>Collecte de données (identifiant, apparence, mods)</value>
+  </data>
+  <data name="Settings.Privacy.ConsentDetail.Sharing" xml:space="preserve">
+    <value>Partage avec les joueurs appairés</value>
+  </data>
+  <data name="Settings.Privacy.ConsentDetail.ThirdParty" xml:space="preserve">
+    <value>Plugins tiers (Customize+, Honorific, etc.)</value>
+  </data>
+  <data name="Settings.Privacy.Export.Header" xml:space="preserve">
+    <value>Export de vos données (Art. 20 RGPD)</value>
+  </data>
+  <data name="Settings.Privacy.Export.Description" xml:space="preserve">
+    <value>Exportez une copie de toutes vos données personnelles stockées localement et/ou sur le serveur.</value>
+  </data>
+  <data name="Settings.Privacy.Export.LocalButton" xml:space="preserve">
+    <value>Exporter (local)</value>
+  </data>
+  <data name="Settings.Privacy.Export.ServerButton" xml:space="preserve">
+    <value>Exporter (serveur)</value>
+  </data>
+  <data name="Settings.Privacy.Export.InProgress" xml:space="preserve">
+    <value>Export en cours...</value>
+  </data>
+  <data name="Settings.Privacy.Export.Success" xml:space="preserve">
+    <value>Export terminé : {0}</value>
+  </data>
+  <data name="Settings.Privacy.Export.Failed" xml:space="preserve">
+    <value>L'export a échoué. Le serveur ne supporte peut-être pas encore cette fonctionnalité.</value>
+  </data>
+  <data name="Settings.Privacy.Delete.Header" xml:space="preserve">
+    <value>Suppression des données locales (Art. 17 RGPD)</value>
+  </data>
+  <data name="Settings.Privacy.Delete.Description" xml:space="preserve">
+    <value>Supprime les notes, exports et réinitialise le consentement. Les données serveur ne sont pas affectées.</value>
+  </data>
+  <data name="Settings.Privacy.Delete.LocalButton" xml:space="preserve">
+    <value>Supprimer les données locales</value>
+  </data>
+  <data name="Settings.Privacy.Delete.ConfirmTitle" xml:space="preserve">
+    <value>Confirmer la suppression</value>
+  </data>
+  <data name="Settings.Privacy.Delete.ConfirmMessage" xml:space="preserve">
+    <value>Vos notes locales et exports RGPD seront supprimés, et votre consentement sera réinitialisé. Cette action est irréversible.</value>
+  </data>
+  <data name="Settings.Privacy.Delete.ConfirmYes" xml:space="preserve">
+    <value>Supprimer</value>
+  </data>
+  <data name="Settings.Privacy.Revoke.Header" xml:space="preserve">
+    <value>Retrait du consentement</value>
+  </data>
+  <data name="Settings.Privacy.Revoke.Description" xml:space="preserve">
+    <value>Révoquez votre consentement RGPD. Vous serez déconnecté et renvoyé à l'écran d'introduction.</value>
+  </data>
+  <data name="Settings.Privacy.Revoke.Button" xml:space="preserve">
+    <value>Retirer mon consentement</value>
+  </data>
+  <data name="Settings.Privacy.Revoke.ConfirmTitle" xml:space="preserve">
+    <value>Retirer le consentement ?</value>
+  </data>
+  <data name="Settings.Privacy.Revoke.ConfirmMessage" xml:space="preserve">
+    <value>En retirant votre consentement, vous serez déconnecté du service. Vous devrez accepter à nouveau le consentement pour vous reconnecter.</value>
+  </data>
+  <data name="Settings.Privacy.Revoke.ConfirmYes" xml:space="preserve">
+    <value>Retirer</value>
+  </data>
+  <data name="Settings.Privacy.Rights.Header" xml:space="preserve">
+    <value>Vos droits (RGPD)</value>
+  </data>
+  <data name="Settings.Privacy.Rights.Access" xml:space="preserve">
+    <value>Droit d'accès : Consultez les données qu'UmbraSync détient sur vous via l'export.</value>
+  </data>
+  <data name="Settings.Privacy.Rights.Rectification" xml:space="preserve">
+    <value>Droit de rectification : Modifiez vos données via les paramètres de profil.</value>
+  </data>
+  <data name="Settings.Privacy.Rights.Erasure" xml:space="preserve">
+    <value>Droit à l'effacement : Supprimez votre compte et toutes les données associées.</value>
+  </data>
+  <data name="Settings.Privacy.Rights.Portability" xml:space="preserve">
+    <value>Droit à la portabilité : Exportez vos données dans un format lisible (JSON).</value>
+  </data>
+  <data name="Settings.Privacy.Rights.Opposition" xml:space="preserve">
+    <value>Droit d'opposition : Retirez votre consentement à tout moment.</value>
+  </data>
+  <data name="Settings.Privacy.Rights.Limitation" xml:space="preserve">
+    <value>Droit à la limitation : Mettez en pause le traitement via les options de pause du service.</value>
+  </data>
+  <data name="Rgpd.Consent.Title" xml:space="preserve">
+    <value>Protection des données (RGPD)</value>
+  </data>
+  <data name="Rgpd.Consent.Intro" xml:space="preserve">
+    <value>Conformément au Règlement Général sur la Protection des Données (RGPD), UmbraSync doit obtenir votre consentement explicite avant de traiter vos données personnelles.</value>
+  </data>
+  <data name="Rgpd.Consent.Reassurance" xml:space="preserve">
+    <value>Ces données sont collectées uniquement pour le bon fonctionnement du plugin. Aucune donnée n'est revendue ni transmise à des tiers à des fins commerciales.</value>
+  </data>
+  <data name="Rgpd.Consent.DataCollected.Header" xml:space="preserve">
+    <value>Données collectées :</value>
+  </data>
+  <data name="Rgpd.Consent.DataCollected.Details" xml:space="preserve">
+    <value>• Identifiant unique (UID)&#x0A;• Données d'apparence (mods Penumbra, états Glamourer)&#x0A;• Profils RP (nom, description, image)&#x0A;• Liste d'appairage et appartenances aux syncshells&#x0A;• Fichiers de mods uploadés pour la synchronisation</value>
+  </data>
+  <data name="Rgpd.Consent.DataCollection" xml:space="preserve">
+    <value>J'accepte la collecte de mes données (obligatoire)</value>
+  </data>
+  <data name="Rgpd.Consent.DataCollection.Detail" xml:space="preserve">
+    <value>Nécessaire au fonctionnement du service de synchronisation.</value>
+  </data>
+  <data name="Rgpd.Consent.DataSharing" xml:space="preserve">
+    <value>J'accepte le partage avec les joueurs appairés (obligatoire)</value>
+  </data>
+  <data name="Rgpd.Consent.DataSharing.Detail" xml:space="preserve">
+    <value>Vos données d'apparence sont partagées avec les joueurs que vous choisissez d'appairer.</value>
+  </data>
+  <data name="Rgpd.Consent.ThirdParty" xml:space="preserve">
+    <value>J'accepte le partage avec les plugins tiers (optionnel)</value>
+  </data>
+  <data name="Rgpd.Consent.ThirdParty.Detail" xml:space="preserve">
+    <value>Customize+, Honorific, Moodles, etc. peuvent échanger des données supplémentaires.</value>
+  </data>
+  <data name="Rgpd.Consent.Rights" xml:space="preserve">
+    <value>Vos droits :</value>
+  </data>
+  <data name="Rgpd.Consent.Rights.Summary" xml:space="preserve">
+    <value>Vous pouvez à tout moment accéder, exporter, rectifier ou supprimer vos données depuis l'onglet « Vie privée » des paramètres. Vous pouvez retirer votre consentement à tout moment.</value>
+  </data>
+  <data name="Rgpd.Consent.AcceptButton" xml:space="preserve">
+    <value>J'accepte et je continue</value>
+  </data>
+  <data name="Rgpd.Consent.MandatoryWarning" xml:space="preserve">
+    <value>Les consentements de collecte et de partage sont obligatoires pour utiliser le service.</value>
+  </data>
 </root>

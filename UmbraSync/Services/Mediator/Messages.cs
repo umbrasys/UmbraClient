@@ -150,5 +150,12 @@ public record QuestSessionLeaveMessage(UserData UserData) : MessageBase;
 public record QuestSessionStateUpdateMessage(UserData Sender, QuestSessionStateDto State) : MessageBase;
 public record QuestSessionEventTriggeredMessage(UserData Sender, QuestEventTriggerDto Trigger) : MessageBase;
 public record QuestSessionBranchingChoiceMessage(UserData Sender, QuestBranchingChoiceDto Choice) : MessageBase;
+// GDPR / RGPD
+public record RgpdConsentUpdatedMessage(bool ConsentGiven) : MessageBase;
+public record RgpdDataExportRequestMessage : MessageBase;
+public record RgpdDataExportReadyMessage(string ExportPath) : MessageBase;
+public record RgpdLocalDataDeletionRequestMessage : MessageBase;
+public record RgpdLocalDataDeletionCompleteMessage : MessageBase;
+public record SwitchToRgpdConsentUiMessage : MessageBase;
 #pragma warning restore S2094
 #pragma warning restore MA0048

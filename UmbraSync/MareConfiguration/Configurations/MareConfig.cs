@@ -115,6 +115,13 @@ public class MareConfig : IMareConfiguration
     public bool PingShowAuthorName { get; set; } = true;
     public bool PingShowInParty { get; set; } = true;
     public bool PingShowInSyncshell { get; set; } = true;
+    public const int ExpectedRgpdVersion = 1;
+    public bool RgpdConsentGiven { get; set; }
+    public DateTime? RgpdConsentDate { get; set; }
+    public int AcceptedRgpdVersion { get; set; }
+    public bool RgpdConsentDataCollection { get; set; }
+    public bool RgpdConsentDataSharing { get; set; }
+    public bool RgpdConsentThirdPartyPlugins { get; set; }
 
     [SuppressMessage("Major Code Smell", "S1133:Do not forget to remove this deprecated code someday", Justification = "Legacy config needed for migration")]
     [SuppressMessage("Major Code Smell", "S1123:Add an explanation", Justification = "Legacy config needed for migration")]

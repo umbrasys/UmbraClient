@@ -174,6 +174,7 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
         {
             new(new Version(2, 3, 0, 0), "2.3.0.0", new List<ChangelogLine>
             {
+                new("Nouveauté : Conforme avec le Règlement Général sur la Protection des Données (RGPD)."),
                 new("Nouveauté : Support du plugin A Quest Reborn pour la synchronisation des quêtes personnalisées."),
                 new("Nouveauté : Possibilité de partager un fichier de housing avec meubles moddé."),
                 new("Nouveauté : Possibilité d'ajouter des éléments de profil personnalisés."),

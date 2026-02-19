@@ -167,6 +167,7 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton<HousingFurnitureScanner>();
             collection.AddSingleton<HousingShareManager>();
             collection.AddSingleton<HousingFurnitureSyncService>();
+            collection.AddSingleton<RgpdDataService>();
 
             collection.AddSingleton((s) => new RpConfigService(pluginInterface.ConfigDirectory.FullName, s.GetRequiredService<DalamudUtilService>()));
             collection.AddSingleton((s) => new MareConfigService(pluginInterface.ConfigDirectory.FullName));

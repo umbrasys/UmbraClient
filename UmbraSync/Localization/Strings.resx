@@ -4291,4 +4291,152 @@ The server is ready, awaiting integration with A Quest Reborn.</value>
   <data name="Settings.ProfileBrowser.ClearCache" xml:space="preserve">
     <value>Clear cache</value>
   </data>
+  <!-- GDPR / Privacy -->
+  <data name="Settings.Section.Privacy.Desc" xml:space="preserve">
+    <value>Manage your personal data, consent settings, and exercise your rights under the GDPR.</value>
+  </data>
+  <data name="Settings.Privacy.Title" xml:space="preserve">
+    <value>Privacy &amp; GDPR</value>
+  </data>
+  <data name="Settings.Privacy.ConsentStatus" xml:space="preserve">
+    <value>Consent Status</value>
+  </data>
+  <data name="Settings.Privacy.ConsentActive" xml:space="preserve">
+    <value>Consent active</value>
+  </data>
+  <data name="Settings.Privacy.ConsentExpired" xml:space="preserve">
+    <value>Consent expired or missing ! Please renew via the introduction screen.</value>
+  </data>
+  <data name="Settings.Privacy.ConsentDetail.Collection" xml:space="preserve">
+    <value>Data collection (identifier, appearance, mods)</value>
+  </data>
+  <data name="Settings.Privacy.ConsentDetail.Sharing" xml:space="preserve">
+    <value>Sharing with paired players</value>
+  </data>
+  <data name="Settings.Privacy.ConsentDetail.ThirdParty" xml:space="preserve">
+    <value>Third-party plugins (Customize+, Honorific, etc.)</value>
+  </data>
+  <data name="Settings.Privacy.Export.Header" xml:space="preserve">
+    <value>Export Your Data (GDPR Art. 20)</value>
+  </data>
+  <data name="Settings.Privacy.Export.Description" xml:space="preserve">
+    <value>Export a copy of all your personal data stored locally and/or on the server.</value>
+  </data>
+  <data name="Settings.Privacy.Export.LocalButton" xml:space="preserve">
+    <value>Export (local)</value>
+  </data>
+  <data name="Settings.Privacy.Export.ServerButton" xml:space="preserve">
+    <value>Export (server)</value>
+  </data>
+  <data name="Settings.Privacy.Export.InProgress" xml:space="preserve">
+    <value>Export in progress...</value>
+  </data>
+  <data name="Settings.Privacy.Export.Success" xml:space="preserve">
+    <value>Export complete: {0}</value>
+  </data>
+  <data name="Settings.Privacy.Export.Failed" xml:space="preserve">
+    <value>Export failed. The server may not support this feature yet.</value>
+  </data>
+  <data name="Settings.Privacy.Delete.Header" xml:space="preserve">
+    <value>Delete Local Data (GDPR Art. 17)</value>
+  </data>
+  <data name="Settings.Privacy.Delete.Description" xml:space="preserve">
+    <value>Deletes notes, exports, and resets consent. Server data is not affected.</value>
+  </data>
+  <data name="Settings.Privacy.Delete.LocalButton" xml:space="preserve">
+    <value>Delete local data</value>
+  </data>
+  <data name="Settings.Privacy.Delete.ConfirmTitle" xml:space="preserve">
+    <value>Confirm deletion</value>
+  </data>
+  <data name="Settings.Privacy.Delete.ConfirmMessage" xml:space="preserve">
+    <value>Your local notes and GDPR exports will be deleted, and your consent will be reset. This action is irreversible.</value>
+  </data>
+  <data name="Settings.Privacy.Delete.ConfirmYes" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Settings.Privacy.Revoke.Header" xml:space="preserve">
+    <value>Revoke Consent</value>
+  </data>
+  <data name="Settings.Privacy.Revoke.Description" xml:space="preserve">
+    <value>Revoke your GDPR consent. You will be disconnected and returned to the introduction screen.</value>
+  </data>
+  <data name="Settings.Privacy.Revoke.Button" xml:space="preserve">
+    <value>Revoke my consent</value>
+  </data>
+  <data name="Settings.Privacy.Revoke.ConfirmTitle" xml:space="preserve">
+    <value>Revoke consent?</value>
+  </data>
+  <data name="Settings.Privacy.Revoke.ConfirmMessage" xml:space="preserve">
+    <value>By revoking your consent, you will be disconnected from the service. You will need to accept consent again to reconnect.</value>
+  </data>
+  <data name="Settings.Privacy.Revoke.ConfirmYes" xml:space="preserve">
+    <value>Revoke</value>
+  </data>
+  <data name="Settings.Privacy.Rights.Header" xml:space="preserve">
+    <value>Your Rights (GDPR)</value>
+  </data>
+  <data name="Settings.Privacy.Rights.Access" xml:space="preserve">
+    <value>Right of access : View the data UmbraSync holds about you via export.</value>
+  </data>
+  <data name="Settings.Privacy.Rights.Rectification" xml:space="preserve">
+    <value>Right to rectification : Edit your data through profile settings.</value>
+  </data>
+  <data name="Settings.Privacy.Rights.Erasure" xml:space="preserve">
+    <value>Right to erasure : Delete your account and all associated data.</value>
+  </data>
+  <data name="Settings.Privacy.Rights.Portability" xml:space="preserve">
+    <value>Right to data portability : Export your data in a readable format (JSON).</value>
+  </data>
+  <data name="Settings.Privacy.Rights.Opposition" xml:space="preserve">
+    <value>Right to object : Withdraw your consent at any time.</value>
+  </data>
+  <data name="Settings.Privacy.Rights.Limitation" xml:space="preserve">
+    <value>Right to restriction : Pause processing through the service's pause options.</value>
+  </data>
+  <data name="Rgpd.Consent.Title" xml:space="preserve">
+    <value>Data Protection (GDPR)</value>
+  </data>
+  <data name="Rgpd.Consent.Intro" xml:space="preserve">
+    <value>In accordance with the General Data Protection Regulation (GDPR), UmbraSync needs your explicit consent before processing your personal data.</value>
+  </data>
+  <data name="Rgpd.Consent.Reassurance" xml:space="preserve">
+    <value>This data is collected solely for the proper functioning of the plugin. No data is sold or shared with third parties for commercial purposes.</value>
+  </data>
+  <data name="Rgpd.Consent.DataCollected.Header" xml:space="preserve">
+    <value>Data collected:</value>
+  </data>
+  <data name="Rgpd.Consent.DataCollected.Details" xml:space="preserve">
+    <value>• Unique identifier (UID)&#x0A;• Appearance data (Penumbra mods, Glamourer states)&#x0A;• RP profiles (name, description, image)&#x0A;• Pairing list and syncshell memberships&#x0A;• Mod files uploaded for synchronization</value>
+  </data>
+  <data name="Rgpd.Consent.DataCollection" xml:space="preserve">
+    <value>I consent to data collection (required)</value>
+  </data>
+  <data name="Rgpd.Consent.DataCollection.Detail" xml:space="preserve">
+    <value>Required for the synchronization service to function.</value>
+  </data>
+  <data name="Rgpd.Consent.DataSharing" xml:space="preserve">
+    <value>I consent to sharing with paired players (required)</value>
+  </data>
+  <data name="Rgpd.Consent.DataSharing.Detail" xml:space="preserve">
+    <value>Your appearance data is shared with players you choose to pair with.</value>
+  </data>
+  <data name="Rgpd.Consent.ThirdParty" xml:space="preserve">
+    <value>I consent to third-party plugin sharing (optional)</value>
+  </data>
+  <data name="Rgpd.Consent.ThirdParty.Detail" xml:space="preserve">
+    <value>Customize+, Honorific, Moodles, etc. may exchange additional data.</value>
+  </data>
+  <data name="Rgpd.Consent.Rights" xml:space="preserve">
+    <value>Your rights:</value>
+  </data>
+  <data name="Rgpd.Consent.Rights.Summary" xml:space="preserve">
+    <value>You can access, export, rectify, or delete your data at any time from the "Privacy" tab in settings. You may withdraw your consent at any time.</value>
+  </data>
+  <data name="Rgpd.Consent.AcceptButton" xml:space="preserve">
+    <value>I accept and continue</value>
+  </data>
+  <data name="Rgpd.Consent.MandatoryWarning" xml:space="preserve">
+    <value>Collection and sharing consent are required to use the service.</value>
+  </data>
 </root>

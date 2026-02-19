@@ -55,7 +55,11 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private readonly ServerConfigurationManager _serverConfigurationManager;
     private readonly UiSharedService _uiShared;
     private readonly ChatTypingDetectionService _chatTypingDetectionService;
+    private readonly RgpdDataService _rgpdDataService;
     private readonly IKeyState _keyState;
+    private bool _rgpdDeleteConfirmShown;
+    private bool _rgpdRevokeConfirmShown;
+    private string? _rgpdExportStatusMessage;
     private static readonly string DtrDefaultPreviewText = DtrEntry.DefaultGlyph + " 123";
     private bool _deleteAccountPopupModalShown = false;
     private bool _isCapturingPingKey = false;
@@ -88,12 +92,12 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private bool _settingsSidebarIndicatorInit;
     private Vector2 _settingsSidebarWindowPos;
 
-    private static readonly string[] SettingsLabels = ["General", "Performance", "Storage", "Transfers", "AutoDetect", "Chat", "Pings", "Compte", "Avancé", "À propos"];
+    private static readonly string[] SettingsLabels = ["General", "Performance", "Storage", "Transfers", "AutoDetect", "Chat", "Pings", "Compte", "Vie privée", "Avancé", "À propos"];
     private static readonly FontAwesomeIcon[] SettingsIcons = [
         FontAwesomeIcon.Cog, FontAwesomeIcon.Bolt, FontAwesomeIcon.Database,
         FontAwesomeIcon.Retweet, FontAwesomeIcon.BroadcastTower, FontAwesomeIcon.Comment,
-        FontAwesomeIcon.Bell, FontAwesomeIcon.UserCircle, FontAwesomeIcon.Wrench,
-        FontAwesomeIcon.InfoCircle
+        FontAwesomeIcon.Bell, FontAwesomeIcon.UserCircle, FontAwesomeIcon.ShieldAlt,
+        FontAwesomeIcon.Wrench, FontAwesomeIcon.InfoCircle
     ];
     private static readonly string[] SettingsDescriptionKeys = [
         "Settings.Section.General.Desc",
@@ -104,6 +108,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         "Settings.Section.Chat.Desc",
         "Settings.Section.Pings.Desc",
         "Settings.Section.Account.Desc",
+        "Settings.Section.Privacy.Desc",
         "Settings.Section.Advanced.Desc",
         "Settings.Section.About.Desc",
     ];
@@ -123,6 +128,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         AutoDetectSuppressionService autoDetectSuppressionService,
         PenumbraPrecacheService precacheService,
         ChatTypingDetectionService chatTypingDetectionService,
+        RgpdDataService gdprDataService,
         IKeyState keyState) : base(logger, mediator, "Umbra Settings", performanceCollector)
     {
         _configService = configService;
@@ -145,6 +151,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         _uiShared = uiShared;
         _precacheService = precacheService;
         _chatTypingDetectionService = chatTypingDetectionService;
+        _rgpdDataService = gdprDataService;
         _keyState = keyState;
         AllowClickthrough = false;
         AllowPinning = false;
@@ -708,10 +715,235 @@ public class SettingsUi : WindowMediatorSubscriberBase
         return new Vector4(r, g, b, a);
     }
 
+    private static void DrawPrivacyDescription(float availWidth)
+    {
+        float margin = availWidth * 0.05f;
+        using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudGrey3))
+        {
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + margin);
+            ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + availWidth - margin * 2f);
+            ImGui.TextWrapped(Loc.Get("Settings.Section.Privacy.Desc"));
+            ImGui.PopTextWrapPos();
+        }
+    }
+
+    private void DrawPrivacy()
+    {
+        _lastTab = "Privacy";
+
+        // EU Pantone blue #003399
+        // Custom section header
+        ImGuiHelpers.ScaledDummy(6f);
+        var availWidth = ImGui.GetContentRegionAvail().X;
+        string iconStr = FontAwesomeIcon.ShieldAlt.ToIconString();
+        using (_uiShared.IconFont.Push())
+        {
+            var iconSz = ImGui.CalcTextSize(iconStr);
+            float scale = 1.6f;
+            var scaledSz = iconSz * scale;
+            var pos = ImGui.GetCursorScreenPos();
+            float iconX = pos.X + (availWidth - scaledSz.X) / 2f;
+            ImGui.Dummy(new Vector2(0, scaledSz.Y));
+            ImGui.GetWindowDrawList().AddText(ImGui.GetFont(), ImGui.GetFontSize() * scale, new Vector2(iconX, pos.Y), ImGui.GetColorU32(UiSharedService.AccentColor), iconStr);
+        }
+        ImGuiHelpers.ScaledDummy(4f);
+        using (_uiShared.UidFont.Push())
+        {
+            var titleSz = ImGui.CalcTextSize(Loc.Get("Settings.Privacy.Title"));
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (availWidth - titleSz.X) / 2f);
+            UiSharedService.ColorText(Loc.Get("Settings.Privacy.Title"), UiSharedService.AccentColor);
+        }
+        ImGuiHelpers.ScaledDummy(2f);
+        DrawPrivacyDescription(availWidth);
+        ImGuiHelpers.ScaledDummy(6f);
+        ImGui.Separator();
+        ImGuiHelpers.ScaledDummy(4f);
+
+        // --- Consent status ---
+        UiSharedService.ColorTextWrapped(Loc.Get("Settings.Privacy.ConsentStatus"), UiSharedService.AccentColor);
+        ImGuiHelpers.ScaledDummy(2f);
+
+        if (_rgpdDataService.IsRgpdConsentValid)
+        {
+            UiSharedService.ColorText(Loc.Get("Settings.Privacy.ConsentActive"), ImGuiColors.HealerGreen);
+            if (_configService.Current.RgpdConsentDate.HasValue)
+            {
+                ImGui.SameLine();
+                using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudGrey3))
+                    ImGui.TextUnformatted($"({_configService.Current.RgpdConsentDate.Value:dd/MM/yyyy})");
+            }
+            ImGuiHelpers.ScaledDummy(2f);
+
+            var details = new List<string>();
+            if (_configService.Current.RgpdConsentDataCollection) details.Add(Loc.Get("Settings.Privacy.ConsentDetail.Collection"));
+            if (_configService.Current.RgpdConsentDataSharing) details.Add(Loc.Get("Settings.Privacy.ConsentDetail.Sharing"));
+            if (_configService.Current.RgpdConsentThirdPartyPlugins) details.Add(Loc.Get("Settings.Privacy.ConsentDetail.ThirdParty"));
+            foreach (var d in details)
+            {
+                ImGui.Bullet();
+                ImGui.SameLine();
+                ImGui.TextUnformatted(d);
+            }
+        }
+        else
+        {
+            UiSharedService.ColorText(Loc.Get("Settings.Privacy.ConsentExpired"), ImGuiColors.DalamudYellow);
+        }
+
+        ImGuiHelpers.ScaledDummy(4f);
+        UiSharedService.ColorTextWrapped(Loc.Get("Rgpd.Consent.Reassurance"), ImGuiColors.HealerGreen);
+
+        ImGuiHelpers.ScaledDummy(8f);
+        ImGui.Separator();
+        ImGuiHelpers.ScaledDummy(4f);
+
+        // --- Data export ---
+        UiSharedService.ColorTextWrapped(Loc.Get("Settings.Privacy.Export.Header"), UiSharedService.AccentColor);
+        ImGuiHelpers.ScaledDummy(2f);
+        UiSharedService.TextWrapped(Loc.Get("Settings.Privacy.Export.Description"));
+        ImGuiHelpers.ScaledDummy(4f);
+
+        if (_uiShared.IconTextButton(FontAwesomeIcon.FileExport, Loc.Get("Settings.Privacy.Export.LocalButton")))
+        {
+            Mediator.Publish(new RgpdDataExportRequestMessage());
+            _rgpdExportStatusMessage = Loc.Get("Settings.Privacy.Export.InProgress");
+        }
+
+        if (ApiController.ServerAlive)
+        {
+            ImGui.SameLine();
+            if (_uiShared.IconTextButton(FontAwesomeIcon.CloudDownloadAlt, Loc.Get("Settings.Privacy.Export.ServerButton")))
+            {
+                _rgpdExportStatusMessage = Loc.Get("Settings.Privacy.Export.InProgress");
+                _ = Task.Run(async () =>
+                {
+                    var result = await _apiController.UserRgpdExportData().ConfigureAwait(false);
+                    if (result != null)
+                    {
+                        var exportDir = !string.IsNullOrEmpty(_configService.Current.ExportFolder)
+                            ? _configService.Current.ExportFolder
+                            : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                        Directory.CreateDirectory(exportDir);
+                        var path = Path.Combine(exportDir, $"umbrasync_server_export_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json");
+                        var json = System.Text.Json.JsonSerializer.Serialize(result, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                        File.WriteAllText(path, json);
+                        _rgpdExportStatusMessage = string.Format(Loc.Get("Settings.Privacy.Export.Success"), path);
+                    }
+                    else
+                    {
+                        _rgpdExportStatusMessage = Loc.Get("Settings.Privacy.Export.Failed");
+                    }
+                });
+            }
+        }
+
+        if (!string.IsNullOrEmpty(_rgpdExportStatusMessage))
+        {
+            ImGuiHelpers.ScaledDummy(2f);
+            UiSharedService.TextWrapped(_rgpdExportStatusMessage);
+        }
+
+        ImGuiHelpers.ScaledDummy(8f);
+        ImGui.Separator();
+        ImGuiHelpers.ScaledDummy(4f);
+
+        // --- Data deletion ---
+        UiSharedService.ColorTextWrapped(Loc.Get("Settings.Privacy.Delete.Header"), UiSharedService.AccentColor);
+        ImGuiHelpers.ScaledDummy(2f);
+        UiSharedService.TextWrapped(Loc.Get("Settings.Privacy.Delete.Description"));
+        ImGuiHelpers.ScaledDummy(4f);
+
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Trash, Loc.Get("Settings.Privacy.Delete.LocalButton")))
+        {
+            _rgpdDeleteConfirmShown = true;
+            ImGui.OpenPopup("###rgpdDeleteLocalPopup");
+        }
+
+        if (ImGui.BeginPopupModal(Loc.Get("Settings.Privacy.Delete.ConfirmTitle") + "###rgpdDeleteLocalPopup", ref _rgpdDeleteConfirmShown, UiSharedService.PopupWindowFlags))
+        {
+            UiSharedService.TextWrapped(Loc.Get("Settings.Privacy.Delete.ConfirmMessage"));
+            ImGui.Separator();
+            ImGui.Spacing();
+            var buttonSize = (ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X - ImGui.GetStyle().ItemSpacing.X) / 2;
+
+            if (ImGui.Button(Loc.Get("Settings.Privacy.Delete.ConfirmYes"), new Vector2(buttonSize, 0)))
+            {
+                Mediator.Publish(new RgpdLocalDataDeletionRequestMessage());
+                _rgpdDeleteConfirmShown = false;
+            }
+            ImGui.SameLine();
+            if (ImGui.Button(Loc.Get("Common.Cancel") + "##cancelRgpdDelete", new Vector2(buttonSize, 0)))
+                _rgpdDeleteConfirmShown = false;
+
+            UiSharedService.SetScaledWindowSize(350);
+            ImGui.EndPopup();
+        }
+
+        ImGuiHelpers.ScaledDummy(8f);
+        ImGui.Separator();
+        ImGuiHelpers.ScaledDummy(4f);
+
+        // --- Revoke consent ---
+        UiSharedService.ColorTextWrapped(Loc.Get("Settings.Privacy.Revoke.Header"), UiSharedService.AccentColor);
+        ImGuiHelpers.ScaledDummy(2f);
+        UiSharedService.TextWrapped(Loc.Get("Settings.Privacy.Revoke.Description"));
+        ImGuiHelpers.ScaledDummy(4f);
+
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Ban, Loc.Get("Settings.Privacy.Revoke.Button")))
+        {
+            _rgpdRevokeConfirmShown = true;
+            ImGui.OpenPopup("###rgpdRevokePopup");
+        }
+
+        if (ImGui.BeginPopupModal(Loc.Get("Settings.Privacy.Revoke.ConfirmTitle") + "###rgpdRevokePopup", ref _rgpdRevokeConfirmShown, UiSharedService.PopupWindowFlags))
+        {
+            UiSharedService.TextWrapped(Loc.Get("Settings.Privacy.Revoke.ConfirmMessage"));
+            ImGui.Separator();
+            ImGui.Spacing();
+            var buttonSize = (ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X - ImGui.GetStyle().ItemSpacing.X) / 2;
+
+            if (ImGui.Button(Loc.Get("Settings.Privacy.Revoke.ConfirmYes"), new Vector2(buttonSize, 0)))
+            {
+                _rgpdDataService.RevokeRgpdConsent();
+                _rgpdRevokeConfirmShown = false;
+                Mediator.Publish(new SwitchToIntroUiMessage());
+            }
+            ImGui.SameLine();
+            if (ImGui.Button(Loc.Get("Common.Cancel") + "##cancelRgpdRevoke", new Vector2(buttonSize, 0)))
+                _rgpdRevokeConfirmShown = false;
+
+            UiSharedService.SetScaledWindowSize(350);
+            ImGui.EndPopup();
+        }
+
+        ImGuiHelpers.ScaledDummy(8f);
+        ImGui.Separator();
+        ImGuiHelpers.ScaledDummy(4f);
+
+        // --- Your rights ---
+        UiSharedService.ColorTextWrapped(Loc.Get("Settings.Privacy.Rights.Header"), UiSharedService.AccentColor);
+        ImGuiHelpers.ScaledDummy(2f);
+
+        string[] rightKeys = [
+            "Settings.Privacy.Rights.Access",
+            "Settings.Privacy.Rights.Rectification",
+            "Settings.Privacy.Rights.Erasure",
+            "Settings.Privacy.Rights.Portability",
+            "Settings.Privacy.Rights.Opposition",
+            "Settings.Privacy.Rights.Limitation",
+        ];
+        foreach (var key in rightKeys)
+        {
+            ImGui.Bullet();
+            ImGui.SameLine();
+            UiSharedService.TextWrapped(Loc.Get(key));
+        }
+    }
+
     private void DrawAdvanced()
     {
         _lastTab = "Advanced";
-        DrawSectionHeader(8);
+        DrawSectionHeader(9);
 
         // --- Plugin Compatibility ---
         _uiShared.BigText(Loc.Get("Settings.Advanced.PluginCompatibility"));
@@ -2159,8 +2391,9 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 DrawServerConfiguration();
                 ImGui.EndDisabled();
                 break;
-            case 8: DrawAdvanced(); break;
-            case 9: DrawAbout(); break;
+            case 8: DrawPrivacy(); break;
+            case 9: DrawAdvanced(); break;
+            case 10: DrawAbout(); break;
         }
         ImGui.EndChild();
     }
@@ -2467,7 +2700,10 @@ public class SettingsUi : WindowMediatorSubscriberBase
         var min = _settingsSidebarIndicatorPos - new Vector2(padding);
         var max = _settingsSidebarIndicatorPos + _settingsSidebarIndicatorSize + new Vector2(padding);
         float rounding = 6f * ImGuiHelpers.GlobalScale;
-        drawList.AddRectFilled(min, max, ImGui.GetColorU32(UiSharedService.AccentColor), rounding);
+        var indicatorColor = _activeSettingsTab == 8
+            ? new Vector4(0f, 0.2f, 0.6f, 1f) // EU Pantone blue #003399 for Privacy tab
+            : UiSharedService.AccentColor;
+        drawList.AddRectFilled(min, max, ImGui.GetColorU32(indicatorColor), rounding);
     }
 
     private void DrawAutoDetect()
