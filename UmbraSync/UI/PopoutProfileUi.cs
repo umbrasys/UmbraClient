@@ -207,6 +207,8 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
             if (_isRpTab)
             {
                 var moodlesJson = _pair.LastReceivedCharacterData?.MoodlesData;
+                if (string.IsNullOrEmpty(moodlesJson))
+                    moodlesJson = umbraProfile.MoodlesData;
                 if (!string.IsNullOrEmpty(moodlesJson))
                 {
                     _uiSharedService.DrawMoodlesAtAGlance(moodlesJson, 36f);

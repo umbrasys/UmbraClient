@@ -749,7 +749,11 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
         }
         else
         {
-            return Pair.LastReceivedCharacterData?.MoodlesData;
+            var realtimeMoodles = Pair.LastReceivedCharacterData?.MoodlesData;
+            if (!string.IsNullOrEmpty(realtimeMoodles))
+                return realtimeMoodles;
+
+            return _umbraProfileManager.GetUmbraProfile(Pair.UserData).MoodlesData;
         }
     }
 

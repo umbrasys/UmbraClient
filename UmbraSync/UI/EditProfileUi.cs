@@ -157,6 +157,18 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             }
         });
         Mediator.Subscribe<MoodlesMessage>(this, (msg) => _ = Task.Run(RefreshLocalMoodlesAsync));
+        Mediator.Subscribe<ConnectedMessage>(this, (msg) => Task.Run(async () =>
+        {
+            // Boucle de restauration de moodles au démarrage
+            await Task.Delay(2000).ConfigureAwait(false);
+            for (int i = 0; i < 6; i++)
+            {
+                if (_moodleRestoreAttempted) break;
+                await RefreshLocalMoodlesAsync().ConfigureAwait(false);
+                if (_moodleRestoreAttempted) break;
+                await Task.Delay(4000).ConfigureAwait(false);
+            }
+        }));
     }
 
     private bool _moodlesFetching;
@@ -174,16 +186,20 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             _localMoodlesJson = await _ipcManager.Moodles.GetStatusAsync(ptr).ConfigureAwait(false) ?? string.Empty;
             _lastMoodlesFetch = DateTime.UtcNow;
 
+            var charName = await _dalamudUtil.GetPlayerNameAsync().ConfigureAwait(false);
+            var worldId = await _dalamudUtil.GetHomeWorldIdAsync().ConfigureAwait(false);
+            if (string.IsNullOrEmpty(charName) || worldId == 0) return;
+
             var moodles = MoodleStatusInfo.ParseMoodles(_localMoodlesJson);
             if (moodles.Count > 0)
             {
-                SaveMoodlesBackup(_localMoodlesJson);
+                SaveMoodlesBackup(_localMoodlesJson, charName, worldId);
                 _moodleRestoreAttempted = true;
             }
             else if (!_moodleRestoreAttempted
                      && (DateTime.UtcNow - _lastMoodleRestoreAttempt).TotalSeconds > 15)
             {
-                var profile = _rpConfigService.GetCurrentCharacterProfile();
+                var profile = _rpConfigService.GetCharacterProfile(charName, worldId);
                 if (!string.IsNullOrEmpty(profile.MoodlesBackupJson))
                 {
                     var backupMoodles = MoodleStatusInfo.ParseMoodles(profile.MoodlesBackupJson);
@@ -225,12 +241,12 @@ public class EditProfileUi : WindowMediatorSubscriberBase
         }
     }
 
-    private void SaveMoodlesBackup(string moodlesJson)
+    private void SaveMoodlesBackup(string moodlesJson, string charName, uint worldId)
     {
         var moodles = MoodleStatusInfo.ParseMoodles(moodlesJson);
         if (moodles.Count == 0) return;
 
-        var profile = _rpConfigService.GetCurrentCharacterProfile();
+        var profile = _rpConfigService.GetCharacterProfile(charName, worldId);
         profile.MoodlesBackupJson = moodlesJson;
         profile.MoodlesBackupTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         _rpConfigService.Save();
@@ -539,7 +555,8 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                                 RpAlignment = rpProfile.RpAlignment,
                                 RpAdditionalInfo = rpProfile.RpAdditionalInfo,
                                 RpNameColor = rpProfile.RpNameColor,
-                                RpCustomFields = rpProfile.RpCustomFields.Count > 0 ? System.Text.Json.JsonSerializer.Serialize(rpProfile.RpCustomFields) : null
+                                RpCustomFields = rpProfile.RpCustomFields.Count > 0 ? System.Text.Json.JsonSerializer.Serialize(rpProfile.RpCustomFields) : null,
+                                MoodlesData = curProfile.MoodlesData
                             }).ConfigureAwait(false);
                         }
                         else
@@ -563,7 +580,8 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                                 RpAlignment = curProfile.RpAlignment,
                                 RpAdditionalInfo = curProfile.RpAdditionalInfo,
                                 RpNameColor = curProfile.RpNameColor,
-                                RpCustomFields = curProfile.RpCustomFields
+                                RpCustomFields = curProfile.RpCustomFields,
+                                MoodlesData = curProfile.MoodlesData
                             }).ConfigureAwait(false);
                         }
                         Mediator.Publish(new ClearProfileDataMessage(new UserData(_apiController.UID), charName, worldId));
@@ -1232,7 +1250,9 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             var newJson = MoodleStatusInfo.RemoveMoodleAtIndex(freshJson, index);
             await _ipcManager.Moodles.SetStatusAsync(ptr, newJson).ConfigureAwait(false);
             _localMoodlesJson = await _ipcManager.Moodles.GetStatusAsync(ptr).ConfigureAwait(false) ?? string.Empty;
-            SaveMoodlesBackup(_localMoodlesJson);
+            var cn = await _dalamudUtil.GetPlayerNameAsync().ConfigureAwait(false);
+            var wid = await _dalamudUtil.GetHomeWorldIdAsync().ConfigureAwait(false);
+            if (!string.IsNullOrEmpty(cn) && wid > 0) SaveMoodlesBackup(_localMoodlesJson, cn, wid);
         }
         catch (Exception ex)
         {
@@ -1258,7 +1278,9 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             var newJson = MoodleStatusInfo.AddMoodle(freshJson, moodle);
             await _ipcManager.Moodles.SetStatusAsync(ptr, newJson).ConfigureAwait(false);
             _localMoodlesJson = await _ipcManager.Moodles.GetStatusAsync(ptr).ConfigureAwait(false) ?? string.Empty;
-            SaveMoodlesBackup(_localMoodlesJson);
+            var cn = await _dalamudUtil.GetPlayerNameAsync().ConfigureAwait(false);
+            var wid = await _dalamudUtil.GetHomeWorldIdAsync().ConfigureAwait(false);
+            if (!string.IsNullOrEmpty(cn) && wid > 0) SaveMoodlesBackup(_localMoodlesJson, cn, wid);
         }
         catch (Exception ex)
         {
@@ -1491,7 +1513,8 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                         RpAlignment = curProfile.RpAlignment,
                         RpAdditionalInfo = curProfile.RpAdditionalInfo,
                         RpNameColor = curProfile.RpNameColor,
-                        RpCustomFields = curProfile.RpCustomFields
+                        RpCustomFields = curProfile.RpCustomFields,
+                        MoodlesData = curProfile.MoodlesData
                     }).ConfigureAwait(false);
                     Mediator.Publish(new ClearProfileDataMessage(new UserData(_apiController.UID), charName, worldId));
                 });
@@ -1529,7 +1552,8 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                         RpAlignment = curProfile.RpAlignment,
                         RpAdditionalInfo = curProfile.RpAdditionalInfo,
                         RpNameColor = curProfile.RpNameColor,
-                        RpCustomFields = curProfile.RpCustomFields
+                        RpCustomFields = curProfile.RpCustomFields,
+                        MoodlesData = curProfile.MoodlesData
                     }).ConfigureAwait(false);
                     Mediator.Publish(new ClearProfileDataMessage(new UserData(_apiController.UID), charName, worldId));
                 });
@@ -1571,13 +1595,14 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                     .Select(f => new RpCustomField { Name = f.Name, Value = f.Value, Order = f.Order })
                     .ToList();
                 _rpConfigService.Save();
-                SaveMoodlesBackup(_localMoodlesJson);
             }
 
             var charName = _dalamudUtil.GetPlayerName();
             var worldId = _dalamudUtil.GetHomeWorldId();
+            SaveMoodlesBackup(_localMoodlesJson, charName, worldId);
             var localRpProfile = _rpConfigService.GetCurrentCharacterProfile();
             var customFieldsJsonSnapshot = System.Text.Json.JsonSerializer.Serialize(_rpCustomFields);
+            var moodlesDataSnapshot = _localMoodlesJson;
 
             _ = Task.Run(async () =>
             {
@@ -1608,7 +1633,8 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                             RpAlignment = localRpProfile.RpAlignment,
                             RpAdditionalInfo = localRpProfile.RpAdditionalInfo,
                             RpNameColor = localRpProfile.RpNameColor,
-                            RpCustomFields = customFieldsJsonSnapshot
+                            RpCustomFields = customFieldsJsonSnapshot,
+                            MoodlesData = moodlesDataSnapshot
                         }).ConfigureAwait(false);
                     }
                     else
@@ -1635,7 +1661,8 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                             RpAlignment = localRpProfile.RpAlignment,
                             RpAdditionalInfo = localRpProfile.RpAdditionalInfo,
                             RpNameColor = localRpProfile.RpNameColor,
-                            RpCustomFields = customFieldsJsonSnapshot
+                            RpCustomFields = customFieldsJsonSnapshot,
+                            MoodlesData = moodlesDataSnapshot
                         }).ConfigureAwait(false);
                     }
                     Mediator.Publish(new ClearProfileDataMessage(new UserData(_apiController.UID), charName, worldId));

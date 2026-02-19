@@ -199,7 +199,8 @@ public class UmbraProfileManager : MediatorSubscriberBase
                 profile.RpRace, profile.RpEthnicity,
                 profile.RpHeight, profile.RpBuild, profile.RpResidence, profile.RpOccupation, profile.RpAffiliation,
                 profile.RpAlignment, profile.RpAdditionalInfo, profile.RpNameColor,
-                customFields);
+                customFields,
+                profile.MoodlesData);
 
             if (_apiController.IsConnected && string.Equals(_apiController.UID, data.UID, StringComparison.Ordinal) && charName != null && worldId != null)
             {
@@ -224,6 +225,13 @@ public class UmbraProfileManager : MediatorSubscriberBase
                 if (!string.Equals(localRpProfile.RpNameColor, profileData.RpNameColor, StringComparison.Ordinal)) { localRpProfile.RpNameColor = profileData.RpNameColor ?? string.Empty; changed = true; }
                 var serverCustomFields = profileData.RpCustomFields ?? new List<RpCustomField>();
                 if (!CustomFieldsEqual(localRpProfile.RpCustomFields, serverCustomFields)) { localRpProfile.RpCustomFields = serverCustomFields; changed = true; }
+
+                if (string.IsNullOrEmpty(localRpProfile.MoodlesBackupJson) && !string.IsNullOrEmpty(profileData.MoodlesData))
+                {
+                    localRpProfile.MoodlesBackupJson = profileData.MoodlesData;
+                    changed = true;
+                    Logger.LogInformation("Restored MoodlesBackupJson from server for {uid}", data.UID);
+                }
 
                 if (changed)
                 {
@@ -309,18 +317,7 @@ public class UmbraProfileManager : MediatorSubscriberBase
                 return;
             }
 
-            var localProfile = _rpConfigService.GetCharacterProfile(charName, worldId);
-            bool isEmpty = string.IsNullOrEmpty(localProfile.RpFirstName)
-                        && string.IsNullOrEmpty(localProfile.RpLastName)
-                        && string.IsNullOrEmpty(localProfile.RpDescription);
-
-            if (!isEmpty)
-            {
-                Logger.LogDebug("EnsureOwnProfileSynced: Local profile already exists for {name}@{worldId}", charName, worldId);
-                return;
-            }
-
-            Logger.LogInformation("EnsureOwnProfileSynced: No local profile for {name}@{worldId}, fetching from server", charName, worldId);
+            Logger.LogInformation("EnsureOwnProfileSynced: Fetching full profile from server for {name}@{worldId}", charName, worldId);
             await GetUmbraProfileFromService(new UserData(_apiController.UID), charName, worldId).ConfigureAwait(false);
         }
         catch (Exception ex)

@@ -30,6 +30,7 @@ internal class ProfileCacheEntry
     public string? RpAdditionalInfo { get; set; }
     public string? RpNameColor { get; set; }
     public List<RpCustomField>? RpCustomFields { get; set; }
+    public string? MoodlesData { get; set; }
 
     public UmbraProfileData ToProfileData() => new(
         IsFlagged, IsNSFW, Base64ProfilePicture, Description,
@@ -38,7 +39,8 @@ internal class ProfileCacheEntry
         RpRace, RpEthnicity,
         RpHeight, RpBuild, RpResidence, RpOccupation, RpAffiliation,
         RpAlignment, RpAdditionalInfo, RpNameColor,
-        RpCustomFields);
+        RpCustomFields,
+        MoodlesData);
 
     public static ProfileCacheEntry FromProfile(UserData user, string? charName, uint? worldId, UmbraProfileData profile) => new()
     {
@@ -68,5 +70,6 @@ internal class ProfileCacheEntry
         RpAdditionalInfo = profile.RpAdditionalInfo,
         RpNameColor = profile.RpNameColor,
         RpCustomFields = profile.RpCustomFields,
+        MoodlesData = profile.MoodlesData,
     };
 }
