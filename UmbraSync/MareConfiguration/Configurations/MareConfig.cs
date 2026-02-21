@@ -108,13 +108,6 @@ public class MareConfig : IMareConfiguration
     public bool UmbraAPI { get; set; } = true;
     public bool EnableSlotNotifications { get; set; } = true;
     public float DefaultSlotRadius { get; set; } = 10f;
-    public bool PingEnabled { get; set; } = true;
-    public int PingKeybind { get; set; } = 0x50; // VirtualKey.P
-    public float PingUiScale { get; set; } = 1.0f;
-    public float PingOpacity { get; set; } = 0.9f;
-    public bool PingShowAuthorName { get; set; } = true;
-    public bool PingShowInParty { get; set; } = true;
-    public bool PingShowInSyncshell { get; set; } = true;
     public const int ExpectedRgpdVersion = 1;
     public bool RgpdConsentGiven { get; set; }
     public DateTime? RgpdConsentDate { get; set; }

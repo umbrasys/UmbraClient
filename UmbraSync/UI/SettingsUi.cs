@@ -56,13 +56,11 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private readonly UiSharedService _uiShared;
     private readonly ChatTypingDetectionService _chatTypingDetectionService;
     private readonly RgpdDataService _rgpdDataService;
-    private readonly IKeyState _keyState;
     private bool _rgpdDeleteConfirmShown;
     private bool _rgpdRevokeConfirmShown;
     private string? _rgpdExportStatusMessage;
     private static readonly string DtrDefaultPreviewText = DtrEntry.DefaultGlyph + " 123";
     private bool _deleteAccountPopupModalShown = false;
-    private bool _isCapturingPingKey = false;
     private bool _emoteColorPaletteOpen = false;
     private bool _hrpColorPaletteOpen = false;
     private string _lastTab = string.Empty;
@@ -92,11 +90,11 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private bool _settingsSidebarIndicatorInit;
     private Vector2 _settingsSidebarWindowPos;
 
-    private static readonly string[] SettingsLabels = ["General", "Performance", "Storage", "Transfers", "AutoDetect", "Chat", "Pings", "Compte", "Vie privée", "Avancé", "À propos"];
+    private static readonly string[] SettingsLabels = ["General", "Performance", "Storage", "Transfers", "AutoDetect", "Chat", "Compte", "Vie privée", "Avancé", "À propos"];
     private static readonly FontAwesomeIcon[] SettingsIcons = [
         FontAwesomeIcon.Cog, FontAwesomeIcon.Bolt, FontAwesomeIcon.Database,
         FontAwesomeIcon.Retweet, FontAwesomeIcon.BroadcastTower, FontAwesomeIcon.Comment,
-        FontAwesomeIcon.Bell, FontAwesomeIcon.UserCircle, FontAwesomeIcon.ShieldAlt,
+        FontAwesomeIcon.UserCircle, FontAwesomeIcon.ShieldAlt,
         FontAwesomeIcon.Wrench, FontAwesomeIcon.InfoCircle
     ];
     private static readonly string[] SettingsDescriptionKeys = [
@@ -106,7 +104,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
         "Settings.Section.Transfers.Desc",
         "Settings.Section.AutoDetect.Desc",
         "Settings.Section.Chat.Desc",
-        "Settings.Section.Pings.Desc",
         "Settings.Section.Account.Desc",
         "Settings.Section.Privacy.Desc",
         "Settings.Section.Advanced.Desc",
@@ -128,8 +125,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         AutoDetectSuppressionService autoDetectSuppressionService,
         PenumbraPrecacheService precacheService,
         ChatTypingDetectionService chatTypingDetectionService,
-        RgpdDataService gdprDataService,
-        IKeyState keyState) : base(logger, mediator, "Umbra Settings", performanceCollector)
+        RgpdDataService gdprDataService) : base(logger, mediator, "Umbra Settings", performanceCollector)
     {
         _configService = configService;
         _pairManager = pairManager;
@@ -152,7 +148,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
         _precacheService = precacheService;
         _chatTypingDetectionService = chatTypingDetectionService;
         _rgpdDataService = gdprDataService;
-        _keyState = keyState;
         AllowClickthrough = false;
         AllowPinning = false;
         _validationProgress = new Progress<(int, int, FileCacheEntity)>(v => _currentProgress = v);
@@ -943,7 +938,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private void DrawAdvanced()
     {
         _lastTab = "Advanced";
-        DrawSectionHeader(9);
+        DrawSectionHeader(8);
 
         // --- Plugin Compatibility ---
         _uiShared.BigText(Loc.Get("Settings.Advanced.PluginCompatibility"));
@@ -1907,7 +1902,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private void DrawServerConfiguration()
     {
         _lastTab = "Compte";
-        DrawSectionHeader(7);
+        DrawSectionHeader(6);
 
         var idx = _serverConfigurationManager.CurrentServerIndex;
         var playerName = _dalamudUtilService.GetPlayerName();
@@ -2385,15 +2380,14 @@ public class SettingsUi : WindowMediatorSubscriberBase
             case 3: DrawCurrentTransfers(); break;
             case 4: DrawAutoDetect(); break;
             case 5: DrawChatConfig(); break;
-            case 6: DrawPingSettings(); break;
-            case 7:
+            case 6:
                 ImGui.BeginDisabled(_registrationInProgress);
                 DrawServerConfiguration();
                 ImGui.EndDisabled();
                 break;
-            case 8: DrawPrivacy(); break;
-            case 9: DrawAdvanced(); break;
-            case 10: DrawAbout(); break;
+            case 7: DrawPrivacy(); break;
+            case 8: DrawAdvanced(); break;
+            case 9: DrawAbout(); break;
         }
         ImGui.EndChild();
     }
@@ -2700,7 +2694,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         var min = _settingsSidebarIndicatorPos - new Vector2(padding);
         var max = _settingsSidebarIndicatorPos + _settingsSidebarIndicatorSize + new Vector2(padding);
         float rounding = 6f * ImGuiHelpers.GlobalScale;
-        var indicatorColor = _activeSettingsTab == 8
+        var indicatorColor = _activeSettingsTab == 7
             ? new Vector4(0f, 0.2f, 0.6f, 1f) // EU Pantone blue #003399 for Privacy tab
             : UiSharedService.AccentColor;
         drawList.AddRectFilled(min, max, ImGui.GetColorU32(indicatorColor), rounding);
@@ -2893,107 +2887,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
                     _configService.Save();
                 }
                 _uiShared.DrawHelpText(Loc.Get("Settings.Typing.ShowSelfHelp"));
-            }
-        }
-    }
-
-    private void DrawPingSettings()
-    {
-        _lastTab = "Pings";
-        DrawSectionHeader(6);
-
-        using (ImRaii.PushIndent())
-        {
-            var pingEnabled = _configService.Current.PingEnabled;
-            if (ImGui.Checkbox(Loc.Get("Settings.Ping.Enabled"), ref pingEnabled))
-            {
-                _configService.Current.PingEnabled = pingEnabled;
-                _configService.Save();
-            }
-            _uiShared.DrawHelpText(Loc.Get("Settings.Ping.EnabledHelp"));
-
-            if (!pingEnabled)
-            {
-                ImGui.BeginDisabled();
-            }
-            var currentKey = (VirtualKey)_configService.Current.PingKeybind;
-            var keyName = currentKey.GetFancyName();
-            ImGui.Text(Loc.Get("Settings.Ping.Keybind"));
-            ImGui.SameLine();
-            if (_isCapturingPingKey)
-            {
-                ImGui.TextColored(ImGuiColors.DalamudYellow, Loc.Get("Settings.Ping.KeybindCapture"));
-                ImGui.SameLine();
-                if (ImGui.Button(Loc.Get("Settings.Ping.KeybindCancel") + "##PingKeybindCancel"))
-                {
-                    _isCapturingPingKey = false;
-                }
-
-                foreach (var key in _keyState.GetValidVirtualKeys())
-                {
-                    if (key == VirtualKey.NO_KEY) continue;
-                    if (key is VirtualKey.ESCAPE) continue;
-                    if (!_keyState[key]) continue;
-                    var name = key.GetFancyName();
-                    if (string.IsNullOrEmpty(name)) continue;
-
-                    _configService.Current.PingKeybind = (int)key;
-                    _configService.Save();
-                    _isCapturingPingKey = false;
-                    _keyState[key] = false;
-                    break;
-                }
-            }
-            else
-            {
-                ImGui.Text($"[ {keyName} ]");
-                ImGui.SameLine();
-                if (ImGui.Button(Loc.Get("Settings.Ping.KeybindChange") + "##PingKeybindChange"))
-                {
-                    _isCapturingPingKey = true;
-                }
-            }
-            var uiScale = _configService.Current.PingUiScale;
-            if (ImGui.SliderFloat(Loc.Get("Settings.Ping.UiScale"), ref uiScale, 0.5f, 3.0f, "%.1f"))
-            {
-                _configService.Current.PingUiScale = uiScale;
-                _configService.Save();
-            }
-            var opacity = _configService.Current.PingOpacity;
-            if (ImGui.SliderFloat(Loc.Get("Settings.Ping.Opacity"), ref opacity, 0.1f, 1.0f, "%.1f"))
-            {
-                _configService.Current.PingOpacity = opacity;
-                _configService.Save();
-            }
-
-            var showAuthor = _configService.Current.PingShowAuthorName;
-            if (ImGui.Checkbox(Loc.Get("Settings.Ping.ShowAuthorName"), ref showAuthor))
-            {
-                _configService.Current.PingShowAuthorName = showAuthor;
-                _configService.Save();
-            }
-
-            ImGui.Separator();
-
-            var showInParty = _configService.Current.PingShowInParty;
-            if (ImGui.Checkbox(Loc.Get("Settings.Ping.ShowInParty"), ref showInParty))
-            {
-                _configService.Current.PingShowInParty = showInParty;
-                _configService.Save();
-            }
-            _uiShared.DrawHelpText(Loc.Get("Settings.Ping.ShowInPartyHelp"));
-
-            var showInSyncshell = _configService.Current.PingShowInSyncshell;
-            if (ImGui.Checkbox(Loc.Get("Settings.Ping.ShowInSyncshell"), ref showInSyncshell))
-            {
-                _configService.Current.PingShowInSyncshell = showInSyncshell;
-                _configService.Save();
-            }
-            _uiShared.DrawHelpText(Loc.Get("Settings.Ping.ShowInSyncshellHelp"));
-
-            if (!pingEnabled)
-            {
-                ImGui.EndDisabled();
             }
         }
     }

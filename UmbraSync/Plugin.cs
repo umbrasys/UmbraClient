@@ -157,8 +157,6 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddSingleton<PartyListTypingService>();
             collection.AddSingleton<TypingIndicatorStateService>();
             collection.AddSingleton<TypingRemoteNotificationService>();
-            collection.AddSingleton<UmbraSync.Services.Ping.PingMarkerStateService>();
-            collection.AddSingleton<UmbraSync.Services.Ping.PingPermissionService>();
             collection.AddSingleton<ChatTwoCompatibilityService>();
             collection.AddSingleton<NotificationTracker>();
             collection.AddSingleton<PenumbraPrecacheService>();
@@ -227,7 +225,6 @@ public sealed class Plugin : IDalamudPlugin
             collection.AddScoped<WindowMediatorSubscriberBase, CharaDataHubUi>();
             collection.AddScoped<WindowMediatorSubscriberBase>(sp => sp.GetRequiredService<EditProfileUi>());
             collection.AddScoped<WindowMediatorSubscriberBase, TypingIndicatorOverlay>();
-            collection.AddScoped<WindowMediatorSubscriberBase, PingMarkerOverlay>();
             collection.AddScoped<CacheCreationService>();
             collection.AddScoped<TransientResourceManager>();
             collection.AddScoped<PlayerDataFactory>();

@@ -64,11 +64,6 @@
         <None Include="..\.editorconfig" Link=".editorconfig" />
     </ItemGroup>
 
-    <ItemGroup>
-        <Content Include="Resources\Ping\*.png">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-    </ItemGroup>
 
     <Target Name="EnsureOtterGuiBuilt"
             BeforeTargets="ResolveReferences"

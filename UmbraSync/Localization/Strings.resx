@@ -3697,54 +3697,6 @@ Click to change.</value>
   <data name="Syncshell.Members.Filter.Placeholder" xml:space="preserve">
     <value>Search members...</value>
   </data>
-  <data name="Settings.Ping.Header" xml:space="preserve">
-    <value>Ping Markers</value>
-  </data>
-  <data name="Settings.Ping.Enabled" xml:space="preserve">
-    <value>Enable ping markers</value>
-  </data>
-  <data name="Settings.Ping.EnabledHelp" xml:space="preserve">
-    <value>Toggle ping marker display and placement. When disabled, you won't see or place any markers.</value>
-  </data>
-  <data name="Settings.Ping.Keybind" xml:space="preserve">
-    <value>Ping keybind</value>
-  </data>
-  <data name="Settings.Ping.KeybindChange" xml:space="preserve">
-    <value>Change</value>
-  </data>
-  <data name="Settings.Ping.KeybindCapture" xml:space="preserve">
-    <value>Press a key...</value>
-  </data>
-  <data name="Settings.Ping.KeybindCancel" xml:space="preserve">
-    <value>Cancel</value>
-  </data>
-  <data name="Settings.Ping.UiScale" xml:space="preserve">
-    <value>Marker size</value>
-  </data>
-  <data name="Settings.Ping.Opacity" xml:space="preserve">
-    <value>Marker opacity</value>
-  </data>
-  <data name="Settings.Ping.ShowAuthorName" xml:space="preserve">
-    <value>Show author name</value>
-  </data>
-  <data name="Settings.Ping.ShowInParty" xml:space="preserve">
-    <value>Show party markers</value>
-  </data>
-  <data name="Settings.Ping.ShowInPartyHelp" xml:space="preserve">
-    <value>Display markers placed by the party/alliance leader.</value>
-  </data>
-  <data name="Settings.Ping.ShowInSyncshell" xml:space="preserve">
-    <value>Show syncshell markers</value>
-  </data>
-  <data name="Settings.Ping.ShowInSyncshellHelp" xml:space="preserve">
-    <value>Display markers placed by syncshell members with ping permission.</value>
-  </data>
-  <data name="SyncshellAdmin.Users.GrantPing" xml:space="preserve">
-    <value>Grant ping permission</value>
-  </data>
-  <data name="SyncshellAdmin.Users.RevokePing" xml:space="preserve">
-    <value>Revoke ping permission</value>
-  </data>
   <data name="SyncshellAdmin.Tab.Profile" xml:space="preserve">
     <value>Profile</value>
   </data>
@@ -3858,9 +3810,6 @@ Click to change.</value>
   </data>
   <data name="Settings.Section.Chat.Desc" xml:space="preserve">
     <value>Configure RP names, typing indicators and game chat integrations.</value>
-  </data>
-  <data name="Settings.Section.Pings.Desc" xml:space="preserve">
-    <value>Configure the marker system to point at positions in the world.</value>
   </data>
   <data name="Settings.Section.Account.Desc" xml:space="preserve">
     <value>Manage your account, secret keys and character assignments.</value>
