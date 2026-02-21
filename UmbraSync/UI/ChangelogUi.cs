@@ -182,6 +182,7 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
                 new("Nouveauté : Refonte du hub de donnée avec création de liste de profil RP en cache."),
                 new("Correctif : Création d'un cache Moodles propre à UmbraSync afin de sauvegarder les traits RP en cas de panne."),
                 new("Correctif : Le profil RP pouvait disparaitre après un changement de Monde où application d'ID personnalisé."),
+                new("Autres : Suppression de la fonctionnalité des Pings."),
                 new("Autres : Nettoyage du code source."),
                 new("Retrouvez la note de version complète sur Discord."),
             }),
