@@ -42,7 +42,7 @@ public sealed class HousingShareManager
     public bool IsApplied { get; private set; }
     public Guid? AppliedShareId { get; private set; }
 
-    public Task PublishAsync(LocationInfo location, string description)
+    public Task PublishAsync(LocationInfo location, string description, List<string> allowedIndividuals, List<string> allowedSyncshells)
     {
         return RunOperation(async () =>
         {
@@ -76,7 +76,9 @@ public sealed class HousingShareManager
                 CipherData = cipher,
                 Nonce = nonce,
                 Salt = salt,
-                Tag = tag
+                Tag = tag,
+                AllowedIndividuals = allowedIndividuals,
+                AllowedSyncshells = allowedSyncshells
             };
 
             await _apiController.HousingShareUpload(uploadDto).ConfigureAwait(false);
@@ -89,6 +91,33 @@ public sealed class HousingShareManager
                 string.Format(CultureInfo.CurrentCulture, Loc.Get("HousingShare.Success.Published"), modPaths.Count),
                 NotificationType.Info,
                 TimeSpan.FromSeconds(4)));
+        });
+    }
+
+    public Task UpdateVisibilityAsync(Guid shareId, string description, List<string> allowedIndividuals, List<string> allowedSyncshells)
+    {
+        return RunOperation(async () =>
+        {
+            var dto = new HousingShareUpdateRequestDto
+            {
+                ShareId = shareId,
+                Description = description,
+                AllowedIndividuals = allowedIndividuals,
+                AllowedSyncshells = allowedSyncshells
+            };
+
+            var updated = await _apiController.HousingShareUpdate(dto).ConfigureAwait(false);
+            if (updated == null)
+            {
+                LastError = Loc.Get("HousingShare.Error.UpdateFailed");
+                return;
+            }
+
+            var idx = _ownShares.FindIndex(s => s.Id == shareId);
+            if (idx >= 0) _ownShares[idx] = updated;
+
+            LastSuccess = Loc.Get("HousingShare.Success.Updated");
+            _logger.LogInformation("Housing share {ShareId} visibility updated", shareId);
         });
     }
 

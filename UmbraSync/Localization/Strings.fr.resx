@@ -4074,6 +4074,12 @@ Veuillez conserver une copie de votre clé secrète au cas où vous auriez besoi
   <data name="HousingShare.Success.Refreshed" xml:space="preserve">
     <value>Partages de mods de maison actualisés.</value>
   </data>
+  <data name="HousingShare.Success.Updated" xml:space="preserve">
+    <value>Visibilité du partage mise à jour.</value>
+  </data>
+  <data name="HousingShare.Error.UpdateFailed" xml:space="preserve">
+    <value>Échec de la mise à jour du partage.</value>
+  </data>
   <data name="HousingShare.Notification.ShareTitle" xml:space="preserve">
     <value>Partage de maison</value>
   </data>

@@ -4165,6 +4165,12 @@ Click to change.</value>
   <data name="HousingShare.Success.Refreshed" xml:space="preserve">
     <value>Housing mod shares refreshed.</value>
   </data>
+  <data name="HousingShare.Success.Updated" xml:space="preserve">
+    <value>Share visibility updated.</value>
+  </data>
+  <data name="HousingShare.Error.UpdateFailed" xml:space="preserve">
+    <value>Failed to update share.</value>
+  </data>
   <data name="HousingShare.Notification.ShareTitle" xml:space="preserve">
     <value>Housing Share</value>
   </data>

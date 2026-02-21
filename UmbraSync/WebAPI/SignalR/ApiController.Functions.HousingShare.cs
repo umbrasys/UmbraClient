@@ -65,6 +65,20 @@ public sealed partial class ApiController
         }
     }
 
+    public async Task<HousingShareEntryDto?> HousingShareUpdate(HousingShareUpdateRequestDto dto)
+    {
+        if (!IsConnected) return null;
+        try
+        {
+            return await _mareHub!.InvokeAsync<HousingShareEntryDto?>(nameof(HousingShareUpdate), dto).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error during {method}", nameof(HousingShareUpdate));
+            throw new InvalidOperationException($"Error during {nameof(HousingShareUpdate)}", ex);
+        }
+    }
+
     public async Task<bool> HousingShareDelete(Guid shareId)
     {
         if (!IsConnected) return false;
