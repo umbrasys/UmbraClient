@@ -180,6 +180,7 @@ public sealed class ChangelogUi : WindowMediatorSubscriberBase
                 new("Nouveauté : Possibilité d'ajouter des éléments de profil personnalisés."),
                 new("Nouveauté : Possibilité de colorer le nom, prénom et titre RP de son personnage."),
                 new("Nouveauté : Refonte du hub de donnée avec création de liste de profil RP en cache."),
+                new("Nouveauté : Support des doubles parenthèse comme contenu HRP."),
                 new("Correctif : Création d'un cache Moodles propre à UmbraSync afin de sauvegarder les traits RP en cas de panne."),
                 new("Correctif : Le profil RP pouvait disparaitre après un changement de Monde où application d'ID personnalisé."),
                 new("Autres : Suppression de la fonctionnalité des Pings."),
